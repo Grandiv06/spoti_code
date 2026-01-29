@@ -21,7 +21,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fa" dir="rtl" className="scroll-smooth" suppressHydrationWarning>
+    <html
+      lang="fa"
+      dir="rtl"
+      className="scroll-smooth"
+      suppressHydrationWarning
+    >
       <head>
         <link
           href="https://fonts.googleapis.com/icon?family=Material+Icons+Round"
@@ -50,16 +55,14 @@ export default function RootLayout({
         />
       </head>
       <body className={`${vazirmatn.variable} antialiased`}>
-        <ThemeProvider 
-          attribute="class" 
-          defaultTheme="light" 
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
           enableSystem={false}
           disableTransitionOnChange={false}
           storageKey="spoticode-theme"
         >
-          <ThemeWrapper>
-            {children}
-          </ThemeWrapper>
+          <ThemeWrapper>{children}</ThemeWrapper>
         </ThemeProvider>
       </body>
     </html>

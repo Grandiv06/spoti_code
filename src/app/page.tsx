@@ -27,13 +27,13 @@ export default function Home() {
             <div className="hidden lg:flex items-center gap-1">
               <a
                 className="px-5 py-2 text-sm font-bold rounded-4xl bg-primary/10 text-primary transition-all"
-                href="#"
+                href="/"
               >
                 خانه
               </a>
               <a
                 className="px-5 py-2 text-sm font-medium rounded-4xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-300 hover:text-primary"
-                href="#"
+                href="/courses"
               >
                 دوره‌ها
               </a>
@@ -45,7 +45,7 @@ export default function Home() {
               </a>
               <a
                 className="px-5 py-2 text-sm font-medium rounded-4xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-300 hover:text-primary"
-                href="#"
+                href="/about"
               >
                 درباره ما
               </a>
@@ -122,7 +122,7 @@ export default function Home() {
                 </a>
                 <a
                   className="bg-white dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-gray-800 text-text-light dark:text-white px-10 py-5 rounded-4xl text-lg font-extrabold transition-all shadow-lg flex items-center justify-center gap-3 border border-gray-100 dark:border-gray-700"
-                  href="#"
+                  href="/courses"
                 >
                   <span className="material-symbols-outlined text-primary">
                     category
