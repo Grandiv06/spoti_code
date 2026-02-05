@@ -36,14 +36,16 @@ export default function Header() {
         ))}
       </div>
 
-      {/* Login Button - Desktop */}
-      <Link
-        className="hidden md:flex bg-black text-white dark:bg-white dark:text-black px-6 py-3 rounded-full text-sm font-bold hover:scale-105 transition-transform shadow-lg items-center gap-2"
-        href="/login"
-      >
-        ورود / ثبت‌نام
-        <span className="material-icons-round text-base">login</span>
-      </Link>
+      {/* Login & Register - Desktop */}
+      <div className="hidden md:flex items-center gap-2">
+        <Link
+          className="bg-black text-white dark:bg-white dark:text-black px-6 py-3 rounded-full text-sm font-bold hover:scale-105 transition-transform shadow-lg items-center gap-2 flex"
+          href="/login"
+        >
+          <span className="material-icons-round text-base">person</span>
+          ورود / ثبت‌نام
+        </Link>
+      </div>
 
       {/* Mobile Menu Button */}
       <button

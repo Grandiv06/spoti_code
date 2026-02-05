@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import ThemeToggle from "./components/ThemeToggle";
 
 export default function Home() {
@@ -25,47 +26,47 @@ export default function Home() {
               </span>
             </div>
             <div className="hidden lg:flex items-center gap-1">
-              <a
+              <Link
                 className="px-5 py-2 text-sm font-bold rounded-4xl bg-primary/10 text-primary transition-all"
                 href="/"
               >
                 خانه
-              </a>
-              <a
+              </Link>
+              <Link
                 className="px-5 py-2 text-sm font-medium rounded-4xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-300 hover:text-primary"
                 href="/courses"
               >
                 دوره‌ها
-              </a>
-              <a
-                className="px-5 py-2 text-sm font-medium rounded-4xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-300 hover:text-primary"
+              </Link>
+              <Link
+                className="px-5 py-2 text-sm font-medium rounded-4xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-400 hover:text-primary"
                 href="#"
               >
                 مسیر یادگیری
-              </a>
-              <a
+              </Link>
+              <Link
                 className="px-5 py-2 text-sm font-medium rounded-4xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-300 hover:text-primary"
                 href="/about"
               >
                 درباره ما
-              </a>
-              <a
-                className="px-5 py-2 text-sm font-medium rounded-4xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-300 hover:text-primary"
+              </Link>
+              <Link
+                className="px-5 py-2 text-sm font-medium rounded-4xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-400 hover:text-primary"
                 href="#"
               >
                 ارتباط با ما
-              </a>
+              </Link>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            <a
+            <Link
               className="hidden md:flex bg-primary hover:bg-primary-hover text-white px-8 py-3 rounded-4xl text-sm font-bold transition-all shadow-xl shadow-primary/25 hover:scale-[1.02] active:scale-95 items-center gap-2"
-              href="#"
+              href="/login"
             >
               ورود / ثبت‌نام
               <span className="material-symbols-outlined text-xl">login</span>
-            </a>
+            </Link>
             <button className="lg:hidden p-3 rounded-2xl bg-white dark:bg-surface-dark shadow-sm border border-gray-100 dark:border-gray-700">
               <span className="material-symbols-outlined">menu</span>
             </button>
@@ -187,52 +188,65 @@ export default function Home() {
         </header>
 
         {/* Stats Section */}
-        <section className="py-20 relative z-10">
+        <section className="py-12 relative z-10">
           <div className="max-w-7xl mx-auto px-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-              <div className="glass-card rounded-4xl p-12 flex flex-col items-center justify-center text-center shadow-[0_20px_50px_-12px_rgba(34,197,94,0.18)] dark:shadow-none border border-white dark:border-gray-800 hover:-translate-y-3 transition-all duration-500 group">
-                <div className="w-24 h-24 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/40 dark:to-green-900/20 rounded-4xl flex items-center justify-center mb-8 text-primary shadow-inner group-hover:rotate-6 transition-transform">
-                  <span className="material-symbols-outlined text-6xl font-light">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              <div className="glass-card rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-[0_12px_40px_-8px_rgba(34,197,94,0.15)] dark:shadow-none border border-white dark:border-gray-800 hover:-translate-y-2 transition-all duration-300 group">
+                <div className="w-14 h-14 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/40 dark:to-green-900/20 rounded-2xl flex items-center justify-center mb-4 text-primary shadow-inner group-hover:rotate-6 transition-transform">
+                  <span className="material-symbols-outlined text-3xl font-light">
                     school
                   </span>
                 </div>
-                <h3 className="text-6xl font-black text-gray-900 dark:text-white mb-4 tracking-tighter">
+                <h3 className="text-3xl font-black text-gray-900 dark:text-white mb-1 tracking-tighter">
                   ۱۰,۰۰۰+
                 </h3>
-                <p className="text-xl font-bold text-gray-500 dark:text-gray-400">
+                <p className="text-sm font-bold text-gray-500 dark:text-gray-400">
                   دانشجوی مستعد
                 </p>
               </div>
-              <div className="glass-card rounded-4xl p-12 flex flex-col items-center justify-center text-center shadow-[0_20px_50px_-12px_rgba(34,197,94,0.18)] dark:shadow-none border border-white dark:border-gray-800 hover:-translate-y-3 transition-all duration-500 group">
-                <div className="w-24 h-24 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/40 dark:to-blue-900/20 rounded-4xl flex items-center justify-center mb-8 text-blue-500 shadow-inner group-hover:rotate-6 transition-transform">
-                  <span className="material-symbols-outlined text-6xl font-light">
+              <div className="glass-card rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-[0_12px_40px_-8px_rgba(34,197,94,0.15)] dark:shadow-none border border-white dark:border-gray-800 hover:-translate-y-2 transition-all duration-300 group">
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/40 dark:to-blue-900/20 rounded-2xl flex items-center justify-center mb-4 text-blue-500 shadow-inner group-hover:rotate-6 transition-transform">
+                  <span className="material-symbols-outlined text-3xl font-light">
                     menu_book
                   </span>
                 </div>
-                <h3 className="text-6xl font-black text-gray-900 dark:text-white mb-2 tracking-tighter">
+                <h3 className="text-3xl font-black text-gray-900 dark:text-white mb-1 tracking-tighter">
                   ۵۰+
                 </h3>
-                <p className="text-xl font-bold text-gray-500 dark:text-gray-400 mb-6">
+                <p className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-3">
                   دوره تخصصی
                 </p>
-                <div className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500/10 text-blue-600 dark:text-blue-300 rounded-4xl text-sm font-black border border-blue-500/20">
-                  <span className="material-symbols-outlined text-lg">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 text-blue-600 dark:text-blue-300 rounded-2xl text-xs font-black border border-blue-500/20">
+                  <span className="material-symbols-outlined text-sm">
                     timer
                   </span>
                   ۱۵۰۰+ ساعت محتوا
                 </div>
               </div>
-              <div className="glass-card rounded-4xl p-12 flex flex-col items-center justify-center text-center shadow-[0_20px_50px_-12px_rgba(34,197,94,0.18)] dark:shadow-none border border-white dark:border-gray-800 hover:-translate-y-3 transition-all duration-500 group">
-                <div className="w-24 h-24 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/40 dark:to-purple-900/20 rounded-4xl flex items-center justify-center mb-8 text-purple-500 shadow-inner group-hover:rotate-6 transition-transform">
-                  <span className="material-symbols-outlined text-6xl font-light">
+              <div className="glass-card rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-[0_12px_40px_-8px_rgba(34,197,94,0.15)] dark:shadow-none border border-white dark:border-gray-800 hover:-translate-y-2 transition-all duration-300 group">
+                <div className="w-14 h-14 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/40 dark:to-purple-900/20 rounded-2xl flex items-center justify-center mb-4 text-purple-500 shadow-inner group-hover:rotate-6 transition-transform">
+                  <span className="material-symbols-outlined text-3xl font-light">
                     support_agent
                   </span>
                 </div>
-                <h3 className="text-6xl font-black text-gray-900 dark:text-white mb-4 tracking-tighter">
+                <h3 className="text-3xl font-black text-gray-900 dark:text-white mb-1 tracking-tighter">
                   ۲۴/۷
                 </h3>
-                <p className="text-xl font-bold text-gray-500 dark:text-gray-400">
+                <p className="text-sm font-bold text-gray-500 dark:text-gray-400">
                   پشتیبانی اختصاصی
+                </p>
+              </div>
+              <div className="glass-card rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-[0_12px_40px_-8px_rgba(34,197,94,0.15)] dark:shadow-none border border-white dark:border-gray-800 hover:-translate-y-2 transition-all duration-300 group">
+                <div className="w-14 h-14 bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/40 dark:to-amber-900/20 rounded-2xl flex items-center justify-center mb-4 text-amber-600 dark:text-amber-400 shadow-inner group-hover:rotate-6 transition-transform">
+                  <span className="material-symbols-outlined text-3xl font-light">
+                    verified
+                  </span>
+                </div>
+                <h3 className="text-3xl font-black text-gray-900 dark:text-white mb-1 tracking-tighter">
+                  ۹۸٪
+                </h3>
+                <p className="text-sm font-bold text-gray-500 dark:text-gray-400">
+                  رضایت دانشجویان
                 </p>
               </div>
             </div>

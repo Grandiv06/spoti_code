@@ -64,7 +64,7 @@ export default function CourseDetailPage({
             <ThemeToggle />
             <Link
               className="hidden md:flex bg-primary hover:bg-primary-hover text-white px-8 py-3 rounded-4xl text-sm font-bold transition-all shadow-xl shadow-primary/25 hover:scale-[1.02] active:scale-95 items-center gap-2"
-              href="#"
+              href="/login"
             >
               ورود / ثبت‌نام
               <span className="material-symbols-outlined text-xl">login</span>

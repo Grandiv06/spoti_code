@@ -58,7 +58,7 @@ export default function CoursesPage() {
             <ThemeToggle />
             <Link
               className="hidden md:flex bg-primary hover:bg-primary-hover text-white px-8 py-3 rounded-4xl text-sm font-bold transition-all shadow-xl shadow-primary/25 hover:scale-[1.02] active:scale-95 items-center gap-2"
-              href="#"
+              href="/login"
             >
               ورود / ثبت‌نام
               <span className="material-symbols-outlined text-xl">login</span>
@@ -189,58 +189,6 @@ export default function CoursesPage() {
                       12
                     </span>
                   </label>
-                </div>
-              </div>
-
-              {/* Level */}
-              <div className="mb-10">
-                <p className="text-xs font-black text-gray-400 mb-5 uppercase tracking-widest px-2">
-                  سطح دوره
-                </p>
-                <div className="flex flex-col gap-3">
-                  <label className="cursor-pointer">
-                    <input
-                      defaultChecked
-                      className="peer sr-only"
-                      name="level"
-                      type="radio"
-                    />
-                    <div className="text-sm px-5 py-4 rounded-3xl border border-transparent bg-white/40 dark:bg-white/5 text-gray-600 dark:text-gray-300 font-bold hover:bg-white/60 hover:shadow-sm transition-all peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary flex items-center justify-between">
-                      <span>همه سطوح</span>
-                      <div className="w-3 h-3 rounded-full bg-gray-300 peer-checked:bg-primary shadow-sm"></div>
-                    </div>
-                  </label>
-                  <label className="cursor-pointer">
-                    <input className="peer sr-only" name="level" type="radio" />
-                    <div className="text-sm px-5 py-4 rounded-3xl border border-transparent bg-white/40 dark:bg-white/5 text-gray-600 dark:text-gray-300 font-bold hover:bg-white/60 hover:shadow-sm transition-all peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary flex items-center justify-between">
-                      <span>مقدماتی</span>
-                      <div className="w-3 h-3 rounded-full bg-gray-300 peer-checked:bg-primary shadow-sm"></div>
-                    </div>
-                  </label>
-                  <label className="cursor-pointer">
-                    <input className="peer sr-only" name="level" type="radio" />
-                    <div className="text-sm px-5 py-4 rounded-3xl border border-transparent bg-white/40 dark:bg-white/5 text-gray-600 dark:text-gray-300 font-bold hover:bg-white/60 hover:shadow-sm transition-all peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary flex items-center justify-between">
-                      <span>پیشرفته</span>
-                      <div className="w-3 h-3 rounded-full bg-gray-300 peer-checked:bg-primary shadow-sm"></div>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              {/* Price Range */}
-              <div>
-                <p className="text-xs font-black text-gray-400 mb-5 uppercase tracking-widest px-2">
-                  محدوده قیمت
-                </p>
-                <div className="px-2">
-                  <input
-                    className="w-full h-1.5 bg-gray-200 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary hover:accent-primary-dark transition-all"
-                    type="range"
-                  />
-                  <div className="flex justify-between mt-4 text-[10px] font-bold text-gray-500">
-                    <span>رایگان</span>
-                    <span>۵۰ میلیون تومان</span>
-                  </div>
                 </div>
               </div>
             </div>

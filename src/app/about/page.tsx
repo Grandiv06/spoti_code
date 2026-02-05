@@ -63,7 +63,7 @@ export default function AboutPage() {
             <ThemeToggle />
             <Link
               className="hidden md:flex bg-primary hover:bg-primary-hover text-white px-8 py-3 rounded-4xl text-sm font-bold transition-all shadow-xl shadow-primary/25 hover:scale-[1.02] active:scale-95 items-center gap-2"
-              href="#"
+              href="/login"
             >
               ورود / ثبت‌نام
               <span className="material-symbols-outlined text-xl">login</span>
@@ -90,31 +90,6 @@ export default function AboutPage() {
               ما در حال ساختن آینده برنامه‌نویسی در ایران هستیم. جایی که
               تکنولوژی، هنر و آموزش با هم ترکیب می‌شوند.
             </h2>
-
-            {/* Hero Visual */}
-            <div className="w-full mt-12 relative group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-primary to-teal-500 rounded-[2.5rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
-              <div className="relative glass-panel rounded-[2.5rem] p-2 overflow-hidden min-h-[300px] sm:min-h-[400px] flex items-center justify-center">
-                <div
-                  className="absolute inset-0 bg-cover bg-center opacity-60 mix-blend-overlay"
-                  style={{
-                    backgroundImage:
-                      "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCXvGtTm1UECSlmosqdl_BhKftiDa9cXOFcsKZuApObX523_jVgulRQUXfXtJ7ZlxHIJDkfne-AhdJEBdt1HdNuWg3TKpHwAui3CyeprN5L3SDdmX-fq4JhxYuV_XTMq4eq3dJS5lwYLRe2SmhJK_s1n-nUXXUuM7grKFbYYhZZy4cQcdMgpxoMDVkstrLc3CZew17UOOTVzdfpt_fRKBBjH328MqCqy4a0HRW_glkK-2Fphb9rxY82fq4oZdoh4uwCUfdwbcGdHQO8')",
-                  }}
-                ></div>
-                <div className="absolute inset-0 bg-gradient-to-t from-background-light dark:from-background-dark via-transparent to-transparent"></div>
-                <div className="relative z-10 flex flex-col items-center gap-4">
-                  <div className="size-20 sm:size-24 rounded-3xl bg-white/5 dark:bg-white/5 backdrop-blur-md border border-white/10 flex items-center justify-center shadow-2xl">
-                    <span className="material-symbols-outlined text-5xl sm:text-6xl text-primary">
-                      terminal
-                    </span>
-                  </div>
-                  <p className="font-mono text-primary/80 text-sm sm:text-base dir-ltr">
-                    &lt;CodeTheFuture /&gt;
-                  </p>
-                </div>
-              </div>
-            </div>
           </div>
         </section>
 
