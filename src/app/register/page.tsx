@@ -1,4 +1,5 @@
 import Link from "next/link";
+import AuthHeader from "../components/AuthHeader";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -9,46 +10,11 @@ export const metadata: Metadata = {
 export default function RegisterPage() {
   return (
     <div className="bg-auth-modern min-h-screen flex flex-col font-sans relative overflow-x-hidden text-gray-800 dark:text-gray-200">
+      <AuthHeader />
       {/* Blobs */}
       <div className="blob-auth bg-green-200/60 dark:bg-green-900/30 w-96 h-96 top-0 -right-20 animate-pulse" />
       <div className="blob-auth bg-green-300/40 dark:bg-green-800/20 w-[30rem] h-[30rem] bottom-0 -left-20" />
 
-      <header className="w-full relative z-10 py-6 px-6">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="text-[#00c853] h-10 w-10 flex items-center justify-center bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-green-100 dark:border-gray-700">
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                viewBox="0 0 48 48"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M6 6H42L36 24L42 42H6L12 24L6 6Z"
-                  fill="currentColor"
-                />
-              </svg>
-            </div>
-            <h2 className="text-gray-900 dark:text-white text-xl font-bold tracking-tight">
-              آکادمی برنامه‌نویسی
-            </h2>
-          </Link>
-          <div className="hidden sm:flex gap-6 text-sm font-semibold text-gray-600 dark:text-gray-400">
-            <Link
-              href="/courses"
-              className="hover:text-[#00c853] dark:hover:text-green-400 transition-colors"
-            >
-              دوره‌ها
-            </Link>
-            <Link
-              href="#"
-              className="hover:text-[#00c853] dark:hover:text-green-400 transition-colors"
-            >
-              مقالات
-            </Link>
-          </div>
-        </div>
-      </header>
 
       <main className="flex-grow flex items-center justify-center p-4 relative z-10">
         <div className="w-full max-w-[460px] bg-white dark:bg-gray-800/95 rounded-[2.5rem] shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1),0_0_0_1px_rgba(0,0,0,0.02)] dark:shadow-xl border border-white/60 dark:border-gray-700/50 backdrop-blur-sm relative">
