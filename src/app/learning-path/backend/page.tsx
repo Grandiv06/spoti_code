@@ -1,13 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import Header from "../../components/Header";
 
 export default function BackendRoadmap() {
   return (
-    <div className="bg-background-base text-text-main font-body overflow-x-hidden min-h-screen flex flex-col selection:bg-primary selection:text-white">
-      <Header />
-
+    <div className="bg-background-base text-text-main overflow-x-hidden min-h-screen flex flex-col selection:bg-primary selection:text-white">
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-gradient-to-br from-emerald-200/40 to-teal-100/40 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-full blur-[80px] animate-drift"></div>
         <div className="absolute bottom-[-10%] left-[-10%] w-[700px] h-[700px] bg-gradient-to-tr from-green-100/50 to-emerald-100/30 dark:from-green-900/20 dark:to-emerald-900/20 rounded-full blur-[100px] animate-drift" style={{ animationDelay: '-5s' }}></div>
@@ -22,7 +19,7 @@ export default function BackendRoadmap() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
             </span>
-            <span className="text-sm font-bold text-primary-dark dark:text-emerald-400 tracking-widest uppercase font-display">Roadmap 2024</span>
+            <span className="text-sm font-bold text-primary-dark dark:text-emerald-400 tracking-widest uppercase">Roadmap 2024</span>
           </div>
           <h1 className="text-6xl md:text-7xl lg:text-9xl font-black tracking-tight leading-[1.1] text-text-main drop-shadow-sm">
             مسیر <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-400 dark:to-teal-300">حرفه‌ای</span> شدن <br/>
@@ -60,9 +57,9 @@ export default function BackendRoadmap() {
                   <h3 className="text-4xl font-extrabold text-text-main">جاوااسکریپت پیشرفته</h3>
                   <p className="text-text-muted text-lg leading-relaxed">زبان مادر. درک عمیق Asynchronous Programming، Event Loop و مفاهیم پایه‌ای برای توسعه سمت سرور.</p>
                   <div className="flex flex-wrap gap-3 mt-4">
-                    <span className="px-5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800/30 text-sm text-emerald-700 dark:text-emerald-300 font-bold font-display shadow-sm">ES6+</span>
-                    <span className="px-5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800/30 text-sm text-emerald-700 dark:text-emerald-300 font-bold font-display shadow-sm">Async/Await</span>
-                    <span className="px-5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800/30 text-sm text-emerald-700 dark:text-emerald-300 font-bold font-display shadow-sm">V8 Engine</span>
+                    <span className="px-5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800/30 text-sm text-emerald-700 dark:text-emerald-300 font-bold shadow-sm">ES6+</span>
+                    <span className="px-5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800/30 text-sm text-emerald-700 dark:text-emerald-300 font-bold shadow-sm">Async/Await</span>
+                    <span className="px-5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800/30 text-sm text-emerald-700 dark:text-emerald-300 font-bold shadow-sm">V8 Engine</span>
                   </div>
                 </div>
               </div>
@@ -103,9 +100,9 @@ export default function BackendRoadmap() {
                   <h3 className="text-4xl font-extrabold text-text-main">هسته Node.js</h3>
                   <p className="text-text-muted text-lg leading-relaxed">موتور اجرایی قدرتمند. کار با ماژول‌ها، سیستم فایل، بافرها و استریم‌ها در محیط نود.</p>
                   <div className="flex flex-wrap gap-3 mt-4 justify-center md:justify-start">
-                    <span className="px-5 py-2 rounded-xl bg-teal-50 dark:bg-teal-900/30 border border-teal-100 dark:border-teal-800/30 text-sm text-teal-600 dark:text-teal-300 font-bold font-display shadow-sm">Modules</span>
-                    <span className="px-5 py-2 rounded-xl bg-teal-50 dark:bg-teal-900/30 border border-teal-100 dark:border-teal-800/30 text-sm text-teal-600 dark:text-teal-300 font-bold font-display shadow-sm">File System</span>
-                    <span className="px-5 py-2 rounded-xl bg-teal-50 dark:bg-teal-900/30 border border-teal-100 dark:border-teal-800/30 text-sm text-teal-600 dark:text-teal-300 font-bold font-display shadow-sm">Streams</span>
+                    <span className="px-5 py-2 rounded-xl bg-teal-50 dark:bg-teal-900/30 border border-teal-100 dark:border-teal-800/30 text-sm text-teal-600 dark:text-teal-300 font-bold shadow-sm">Modules</span>
+                    <span className="px-5 py-2 rounded-xl bg-teal-50 dark:bg-teal-900/30 border border-teal-100 dark:border-teal-800/30 text-sm text-teal-600 dark:text-teal-300 font-bold shadow-sm">File System</span>
+                    <span className="px-5 py-2 rounded-xl bg-teal-50 dark:bg-teal-900/30 border border-teal-100 dark:border-teal-800/30 text-sm text-teal-600 dark:text-teal-300 font-bold shadow-sm">Streams</span>
                   </div>
                 </div>
               </div>
@@ -120,9 +117,9 @@ export default function BackendRoadmap() {
                   <h3 className="text-4xl font-extrabold text-text-main">پایگاه‌های داده</h3>
                   <p className="text-text-muted text-lg leading-relaxed">قلب تپنده داده‌ها. تسلط بر دیتابیس‌های رابطه‌ای (SQL) و غیررابطه‌ای (NoSQL) و طراحی اسکیما.</p>
                   <div className="flex flex-wrap gap-3 mt-4">
-                    <span className="px-5 py-2 rounded-xl bg-green-50 dark:bg-green-900/30 border border-green-100 dark:border-green-800/30 text-sm text-green-700 dark:text-green-300 font-bold font-display shadow-sm">PostgreSQL</span>
-                    <span className="px-5 py-2 rounded-xl bg-green-50 dark:bg-green-900/30 border border-green-100 dark:border-green-800/30 text-sm text-green-700 dark:text-green-300 font-bold font-display shadow-sm">MongoDB</span>
-                    <span className="px-5 py-2 rounded-xl bg-green-50 dark:bg-green-900/30 border border-green-100 dark:border-green-800/30 text-sm text-green-700 dark:text-green-300 font-bold font-display shadow-sm">Redis</span>
+                    <span className="px-5 py-2 rounded-xl bg-green-50 dark:bg-green-900/30 border border-green-100 dark:border-green-800/30 text-sm text-green-700 dark:text-green-300 font-bold shadow-sm">PostgreSQL</span>
+                    <span className="px-5 py-2 rounded-xl bg-green-50 dark:bg-green-900/30 border border-green-100 dark:border-green-800/30 text-sm text-green-700 dark:text-green-300 font-bold shadow-sm">MongoDB</span>
+                    <span className="px-5 py-2 rounded-xl bg-green-50 dark:bg-green-900/30 border border-green-100 dark:border-green-800/30 text-sm text-green-700 dark:text-green-300 font-bold shadow-sm">Redis</span>
                   </div>
                 </div>
               </div>
@@ -163,9 +160,9 @@ export default function BackendRoadmap() {
                   <h3 className="text-4xl font-extrabold text-text-main">فریمورک Express.js</h3>
                   <p className="text-text-muted text-lg leading-relaxed">ساخت RESTful API. مدیریت روت‌ها، Middlewareها، احراز هویت (Auth) و مدیریت خطاها.</p>
                   <div className="flex flex-wrap gap-3 mt-4 justify-center md:justify-start">
-                    <span className="px-5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800/30 text-sm text-emerald-600 dark:text-emerald-300 font-bold font-display shadow-sm">REST API</span>
-                    <span className="px-5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800/30 text-sm text-emerald-600 dark:text-emerald-300 font-bold font-display shadow-sm">Middleware</span>
-                    <span className="px-5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800/30 text-sm text-emerald-600 dark:text-emerald-300 font-bold font-display shadow-sm">JWT</span>
+                    <span className="px-5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800/30 text-sm text-emerald-600 dark:text-emerald-300 font-bold shadow-sm">REST API</span>
+                    <span className="px-5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800/30 text-sm text-emerald-600 dark:text-emerald-300 font-bold shadow-sm">Middleware</span>
+                    <span className="px-5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800/30 text-sm text-emerald-600 dark:text-emerald-300 font-bold shadow-sm">JWT</span>
                   </div>
                 </div>
               </div>
@@ -180,9 +177,9 @@ export default function BackendRoadmap() {
                   <h3 className="text-4xl font-extrabold text-text-main">ارتباطات درنگ (Real-time)</h3>
                   <p className="text-text-muted text-lg leading-relaxed">تعامل زنده. پیاده‌سازی چت، نوتیفیکیشن و آپدیت‌های آنی با استفاده از WebSockets.</p>
                   <div className="flex flex-wrap gap-3 mt-4">
-                    <span className="px-5 py-2 rounded-xl bg-teal-50 dark:bg-teal-900/30 border border-teal-100 dark:border-teal-800/30 text-sm text-teal-700 dark:text-teal-300 font-bold font-display shadow-sm">Socket.io</span>
-                    <span className="px-5 py-2 rounded-xl bg-teal-50 dark:bg-teal-900/30 border border-teal-100 dark:border-teal-800/30 text-sm text-teal-700 dark:text-teal-300 font-bold font-display shadow-sm">WebSockets</span>
-                    <span className="px-5 py-2 rounded-xl bg-teal-50 dark:bg-teal-900/30 border border-teal-100 dark:border-teal-800/30 text-sm text-teal-700 dark:text-teal-300 font-bold font-display shadow-sm">Events</span>
+                    <span className="px-5 py-2 rounded-xl bg-teal-50 dark:bg-teal-900/30 border border-teal-100 dark:border-teal-800/30 text-sm text-teal-700 dark:text-teal-300 font-bold shadow-sm">Socket.io</span>
+                    <span className="px-5 py-2 rounded-xl bg-teal-50 dark:bg-teal-900/30 border border-teal-100 dark:border-teal-800/30 text-sm text-teal-700 dark:text-teal-300 font-bold shadow-sm">WebSockets</span>
+                    <span className="px-5 py-2 rounded-xl bg-teal-50 dark:bg-teal-900/30 border border-teal-100 dark:border-teal-800/30 text-sm text-teal-700 dark:text-teal-300 font-bold shadow-sm">Events</span>
                   </div>
                 </div>
               </div>
@@ -223,9 +220,9 @@ export default function BackendRoadmap() {
                   <h3 className="text-4xl font-extrabold text-text-main">تست و استقرار</h3>
                   <p className="text-text-muted text-lg leading-relaxed">تضمین کیفیت. نوشتن تست‌های Unit و Integration و دیپلوی امن روی سرورهای ابری.</p>
                   <div className="flex flex-wrap gap-3 mt-4 justify-center md:justify-start">
-                    <span className="px-5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800/30 text-sm text-emerald-700 dark:text-emerald-300 font-bold font-display shadow-sm">Jest</span>
-                    <span className="px-5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800/30 text-sm text-emerald-700 dark:text-emerald-300 font-bold font-display shadow-sm">Docker</span>
-                    <span className="px-5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800/30 text-sm text-emerald-700 dark:text-emerald-300 font-bold font-display shadow-sm">CI/CD</span>
+                    <span className="px-5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800/30 text-sm text-emerald-700 dark:text-emerald-300 font-bold shadow-sm">Jest</span>
+                    <span className="px-5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800/30 text-sm text-emerald-700 dark:text-emerald-300 font-bold shadow-sm">Docker</span>
+                    <span className="px-5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800/30 text-sm text-emerald-700 dark:text-emerald-300 font-bold shadow-sm">CI/CD</span>
                   </div>
                 </div>
               </div>
@@ -245,28 +242,28 @@ export default function BackendRoadmap() {
               <div className="bg-emerald-50 dark:bg-emerald-900/30 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
                 <span className="material-symbols-outlined text-emerald-500 text-4xl">groups</span>
               </div>
-              <span className="text-5xl font-black font-display text-text-main">3.2k+</span>
+              <span className="text-5xl font-black text-text-main">3.2k+</span>
               <span className="text-base text-text-muted font-medium">دانشجوی فعال</span>
             </div>
             <div className="bg-white/60 dark:bg-slate-800/60 border border-white dark:border-white/10 p-8 rounded-[2rem] shadow-sm hover:shadow-xl transition-all flex flex-col items-center gap-3 group">
               <div className="bg-emerald-50 dark:bg-emerald-900/30 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
                 <span className="material-symbols-outlined text-emerald-500 text-4xl">schedule</span>
               </div>
-              <span className="text-5xl font-black font-display text-text-main">140h</span>
+              <span className="text-5xl font-black text-text-main">140h</span>
               <span className="text-base text-text-muted font-medium">محتوای ویدیویی</span>
             </div>
             <div className="bg-white/60 dark:bg-slate-800/60 border border-white dark:border-white/10 p-8 rounded-[2rem] shadow-sm hover:shadow-xl transition-all flex flex-col items-center gap-3 group">
               <div className="bg-emerald-50 dark:bg-emerald-900/30 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
                 <span className="material-symbols-outlined text-emerald-500 text-4xl">dns</span>
               </div>
-              <span className="text-5xl font-black font-display text-text-main">20+</span>
+              <span className="text-5xl font-black text-text-main">20+</span>
               <span className="text-base text-text-muted font-medium">پروژه عملی</span>
             </div>
             <div className="bg-white/60 dark:bg-slate-800/60 border border-white dark:border-white/10 p-8 rounded-[2rem] shadow-sm hover:shadow-xl transition-all flex flex-col items-center gap-3 group">
               <div className="bg-emerald-50 dark:bg-emerald-900/30 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
                 <span className="material-symbols-outlined text-emerald-500 text-4xl">verified</span>
               </div>
-              <span className="text-5xl font-black font-display text-text-main">100%</span>
+              <span className="text-5xl font-black text-text-main">100%</span>
               <span className="text-base text-text-muted font-medium">تضمین کیفیت</span>
             </div>
           </div>

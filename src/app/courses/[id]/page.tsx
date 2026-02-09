@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import ThemeToggle from "../../components/ThemeToggle";
 
 export default function CourseDetailPage({
   params,
@@ -8,73 +7,10 @@ export default function CourseDetailPage({
   params: { id: string };
 }) {
   return (
-    <div className="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark font-body transition-colors duration-300 relative overflow-x-hidden min-h-screen">
+    <div className="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark transition-colors duration-300 relative overflow-x-hidden min-h-screen">
       <div className="mesh-bg"></div>
       <div className="fixed top-20 left-20 w-64 h-64 bg-primary/20 rounded-full blur-3xl -z-10 animate-pulse"></div>
       <div className="fixed bottom-20 right-20 w-96 h-96 bg-blue-300/20 rounded-full blur-3xl -z-10"></div>
-
-      {/* Header Navigation */}
-      <header className="sticky top-0 z-50 w-full px-6 py-4 glass-header border-b border-white/20 dark:border-gray-800">
-        <nav className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-10">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
-                <span className="material-symbols-outlined font-bold">
-                  terminal
-                </span>
-              </div>
-              <span className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white">
-                اسپاتی<span className="text-primary">کد</span>
-              </span>
-            </Link>
-            <div className="hidden lg:flex items-center gap-1">
-              <Link
-                className="px-5 py-2 text-sm font-medium rounded-4xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-300 hover:text-primary"
-                href="/"
-              >
-                خانه
-              </Link>
-              <Link
-                className="px-5 py-2 text-sm font-medium rounded-4xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-300 hover:text-primary"
-                href="/courses"
-              >
-                دوره‌ها
-              </Link>
-              <Link
-                className="px-5 py-2 text-sm font-medium rounded-4xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-300 hover:text-primary"
-                href="#"
-              >
-                مسیر یادگیری
-              </Link>
-              <Link
-                className="px-5 py-2 text-sm font-medium rounded-4xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-300 hover:text-primary"
-                href="/about"
-              >
-                درباره ما
-              </Link>
-              <Link
-                className="px-5 py-2 text-sm font-medium rounded-4xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-300 hover:text-primary"
-                href="#"
-              >
-                ارتباط با ما
-              </Link>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-            <Link
-              className="hidden md:flex bg-primary hover:bg-primary-hover text-white px-8 py-3 rounded-4xl text-sm font-bold transition-all shadow-xl shadow-primary/25 hover:scale-[1.02] active:scale-95 items-center gap-2"
-              href="/login"
-            >
-              ورود / ثبت‌نام
-              <span className="material-symbols-outlined text-xl">login</span>
-            </Link>
-            <button className="lg:hidden p-3 rounded-2xl bg-white dark:bg-surface-dark shadow-sm border border-gray-100 dark:border-gray-700">
-              <span className="material-symbols-outlined">menu</span>
-            </button>
-          </div>
-        </nav>
-      </header>
 
       <main className="max-w-[1440px] mx-auto px-4 md:px-12 py-12 relative z-10">
         {/* Hero Section */}
@@ -156,7 +92,7 @@ export default function CourseDetailPage({
               <Image
                 className="w-full h-full object-cover transition-transform duration-1000 group-hover/video:scale-105"
                 alt="Course Preview"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCc49PM7jv0TAyt2M6g0rPORbBPnROb4uEehDRs7HG74pWFGVpKmtho5YveesNwMWo8VXq9XG-VeRxR2Kp-Rfw-JXQijDnjY56abTYQ7iP2JJQmpF7jyc_fIx0rqUCeefKUoAMJGlPhLwxJaipxy9v17D32ShQOXvPHguh9wMIsQlhedGMqU50s1_7JTUNS1cirfdSCgWaqjYsS_cFtck9E64skPAq-yY6g3M7kEbEeClYzJ9IhI821kBzTba5LMKVRGb4vVqOckMay"
+                src="/images/course3.jpg"
                 fill
                 style={{ objectFit: "cover" }}
               />
@@ -365,7 +301,7 @@ export default function CourseDetailPage({
                     <Image
                       className="w-full h-full object-cover"
                       alt="Instructor"
-                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuBm_bq93_om11KQbxen09lrL0WuPW2RmtceC9FQXQk6JGF6Y-z3e4Lycw4nqbqMHf_BLpkqrJ_Ly2raDLElsvKtnNwbImG1k7yHSbSd-aj-tKQ2rimk0KfNSigR45Jz8EXsIu0OlxCd7SsuJXxQmSs6pAsSoZK3bop6AcT1qHFxEwmV-WuNqjySMwq0CAPcwpR51ByrfDDyheTh6cDdk_EQblC6V8-41nRFP94dQclqTQPEZ1YPHX5mcTjmskhrcFc3ZKrtPqwZ_nto"
+                      src="/images/inst1.jpg"
                       width={160}
                       height={160}
                     />
@@ -374,7 +310,7 @@ export default function CourseDetailPage({
                     <Image
                       alt="TS"
                       className="size-8"
-                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuB99TOtEt3NwkiTJc2D1saTfDOZI-dhz3QwcV7kIaaTwL8Qt2XVgXYtt310RYXs3NvCC7DX4NkYQL1vWRIZzrgtd1bRhHn9dMEdAsG7uiv1-MzhJE9QBRd8MWHmEEAsM7YchVyLtVZr-GcAWUI1NKnptqbIONBEJ1wwvFWNVfBi-JCc0nCNyliNxxQNeh6RsA3Coj_lrtqB1gx0jUokW4cZ53zm2Pre8RIz8x1CtcUdRd6vWHd89gKCZeLbcyykB2h_dHBRoK4dugTG"
+                      src="/images/inst4.jpg"
                       width={32}
                       height={32}
                     />

@@ -1,18 +1,17 @@
+import "@fontsource/material-icons-round";
+import "@fontsource-variable/material-symbols-outlined";
 import type { Metadata } from "next";
-import { Vazirmatn } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import ThemeWrapper from "./components/ThemeWrapper";
-
-const vazirmatn = Vazirmatn({
-  variable: "--font-vazirmatn",
-  subsets: ["latin"],
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
-});
+import AppShell from "./components/AppShell";
 
 export const metadata: Metadata = {
   title: "آکادمی کد - آموزش برنامه‌نویسی",
   description: "مسیر حرفه‌ای شدن در دنیای برنامه‌نویسی",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -28,14 +27,6 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <link
-          href="https://fonts.googleapis.com/icon?family=Material+Icons+Round"
-          rel="stylesheet"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
-          rel="stylesheet"
-        />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -54,7 +45,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${vazirmatn.variable} antialiased`}>
+      <body className="font-sans antialiased">
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
@@ -62,7 +53,9 @@ export default function RootLayout({
           disableTransitionOnChange={false}
           storageKey="spoticode-theme"
         >
-          <ThemeWrapper>{children}</ThemeWrapper>
+          <ThemeWrapper>
+          <AppShell>{children}</AppShell>
+        </ThemeWrapper>
         </ThemeProvider>
       </body>
     </html>

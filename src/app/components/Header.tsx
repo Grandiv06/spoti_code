@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 import ThemeToggle from "./ThemeToggle";
 import { usePathname } from "next/navigation";
@@ -18,20 +19,22 @@ export default function Header() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full px-6 py-4 glass-header border-b border-white/20 dark:border-gray-800 transition-all duration-300">
+    <header className="sticky top-0 z-50 w-full px-6 py-4 glass-header transition-all duration-300">
       <nav className="max-w-7xl mx-auto flex justify-between items-center">
         <div className="flex items-center gap-10">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
-              <span className="material-symbols-outlined font-bold">
-                terminal
-              </span>
-            </div>
-            <span className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white">
-              اسپاتی<span className="text-primary">کد</span>
+          <Link href="/" className="flex items-center gap-1.5 group">
+            <Image
+              src="/favicon.svg"
+              alt="اسپاتی‌کد"
+              width={15}
+              height={15}
+              className="w-8 h-8 group-hover:-rotate-45 transition-transform"
+            />
+            <span className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white  group-hover:scale-105 transition-transform duration-300">
+              <span className="text-primary-dark/80">اسپاتی</span> کد
             </span>
           </Link>
-          
+
           {/* Desktop Menu */}
           <div className="hidden lg:flex items-center gap-1">
             {menuItems.map((item) => {
@@ -62,7 +65,7 @@ export default function Header() {
             ورود / ثبت‌نام
             <span className="material-symbols-outlined text-xl">login</span>
           </Link>
-          
+
           {/* Mobile Menu Button */}
           <button
             className="lg:hidden p-3 rounded-2xl bg-white dark:bg-surface-dark shadow-sm border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
@@ -93,7 +96,9 @@ export default function Header() {
                     onClick={() => setIsMenuOpen(false)}
                   >
                     {item.label}
-                    {isActive && <span className="w-2 h-2 bg-primary rounded-full"></span>}
+                    {isActive && (
+                      <span className="w-2 h-2 bg-primary rounded-full"></span>
+                    )}
                   </Link>
                 );
               })}

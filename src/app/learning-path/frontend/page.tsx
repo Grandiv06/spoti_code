@@ -1,13 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import Header from "../../components/Header";
 
 export default function FrontendRoadmap() {
   return (
-    <div className="bg-background-base text-text-main font-body overflow-x-hidden min-h-screen flex flex-col selection:bg-primary selection:text-white">
-      <Header />
-
+    <div className="bg-background-base text-text-main overflow-x-hidden min-h-screen flex flex-col selection:bg-primary selection:text-white">
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-gradient-to-br from-emerald-200/40 to-teal-100/40 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-full blur-[80px] animate-drift"></div>
         <div className="absolute bottom-[-10%] left-[-10%] w-[700px] h-[700px] bg-gradient-to-tr from-green-100/50 to-emerald-100/30 dark:from-green-900/20 dark:to-emerald-900/20 rounded-full blur-[100px] animate-drift" style={{ animationDelay: '-5s' }}></div>
@@ -22,7 +19,7 @@ export default function FrontendRoadmap() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
             </span>
-            <span className="text-sm font-bold text-primary-dark dark:text-emerald-400 tracking-widest uppercase font-display">Roadmap 2024</span>
+            <span className="text-sm font-bold text-primary-dark dark:text-emerald-400 tracking-widest uppercase">Roadmap 2024</span>
           </div>
           <h1 className="text-6xl md:text-7xl lg:text-9xl font-black tracking-tight leading-[1.1] text-text-main drop-shadow-sm">
             مسیر <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-400 dark:to-teal-300">حرفه‌ای</span> شدن <br/>
@@ -60,9 +57,9 @@ export default function FrontendRoadmap() {
                   <h3 className="text-4xl font-extrabold text-text-main">آشنایی با HTML</h3>
                   <p className="text-text-muted text-lg leading-relaxed">اسکلت‌بندی وب. یادگیری تگ‌های معنایی، دسترسی‌پذیری و اصول اولیه سئو برای ساخت ساختاری مستحکم.</p>
                   <div className="flex flex-wrap gap-3 mt-4">
-                    <span className="px-5 py-2 rounded-xl bg-orange-50 dark:bg-orange-900/30 border border-orange-100 dark:border-orange-800/30 text-sm text-orange-600 dark:text-orange-300 font-bold font-display shadow-sm">Semantics</span>
-                    <span className="px-5 py-2 rounded-xl bg-orange-50 dark:bg-orange-900/30 border border-orange-100 dark:border-orange-800/30 text-sm text-orange-600 dark:text-orange-300 font-bold font-display shadow-sm">Forms</span>
-                    <span className="px-5 py-2 rounded-xl bg-orange-50 dark:bg-orange-900/30 border border-orange-100 dark:border-orange-800/30 text-sm text-orange-600 dark:text-orange-300 font-bold font-display shadow-sm">SEO</span>
+                    <span className="px-5 py-2 rounded-xl bg-orange-50 dark:bg-orange-900/30 border border-orange-100 dark:border-orange-800/30 text-sm text-orange-600 dark:text-orange-300 font-bold shadow-sm">Semantics</span>
+                    <span className="px-5 py-2 rounded-xl bg-orange-50 dark:bg-orange-900/30 border border-orange-100 dark:border-orange-800/30 text-sm text-orange-600 dark:text-orange-300 font-bold shadow-sm">Forms</span>
+                    <span className="px-5 py-2 rounded-xl bg-orange-50 dark:bg-orange-900/30 border border-orange-100 dark:border-orange-800/30 text-sm text-orange-600 dark:text-orange-300 font-bold shadow-sm">SEO</span>
                   </div>
                 </div>
               </div>
@@ -103,9 +100,9 @@ export default function FrontendRoadmap() {
                   <h3 className="text-4xl font-extrabold text-text-main">استایل‌دهی با CSS</h3>
                   <p className="text-text-muted text-lg leading-relaxed">جادوی بصری وب. از چیدمان‌های Flexbox و Grid گرفته تا انیمیشن‌های پیشرفته و طراحی واکنش‌گرا.</p>
                   <div className="flex flex-wrap gap-3 mt-4 justify-center md:justify-start">
-                    <span className="px-5 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/30 text-sm text-blue-600 dark:text-blue-300 font-bold font-display shadow-sm">Flexbox</span>
-                    <span className="px-5 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/30 text-sm text-blue-600 dark:text-blue-300 font-bold font-display shadow-sm">Grid</span>
-                    <span className="px-5 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/30 text-sm text-blue-600 dark:text-blue-300 font-bold font-display shadow-sm">Responsive</span>
+                    <span className="px-5 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/30 text-sm text-blue-600 dark:text-blue-300 font-bold shadow-sm">Flexbox</span>
+                    <span className="px-5 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/30 text-sm text-blue-600 dark:text-blue-300 font-bold shadow-sm">Grid</span>
+                    <span className="px-5 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/30 text-sm text-blue-600 dark:text-blue-300 font-bold shadow-sm">Responsive</span>
                   </div>
                 </div>
               </div>
@@ -120,9 +117,9 @@ export default function FrontendRoadmap() {
                   <h3 className="text-4xl font-extrabold text-text-main">جادوی جاوااسکریپت</h3>
                   <p className="text-text-muted text-lg leading-relaxed">قلب تپنده تعاملات. یادگیری ES6+، کار با DOM، فراخوانی API و مدیریت داده‌ها به صورت ناهمگام.</p>
                   <div className="flex flex-wrap gap-3 mt-4">
-                    <span className="px-5 py-2 rounded-xl bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-100 dark:border-yellow-800/30 text-sm text-yellow-700 dark:text-yellow-300 font-bold font-display shadow-sm">ES6+</span>
-                    <span className="px-5 py-2 rounded-xl bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-100 dark:border-yellow-800/30 text-sm text-yellow-700 dark:text-yellow-300 font-bold font-display shadow-sm">DOM</span>
-                    <span className="px-5 py-2 rounded-xl bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-100 dark:border-yellow-800/30 text-sm text-yellow-700 dark:text-yellow-300 font-bold font-display shadow-sm">Fetch API</span>
+                    <span className="px-5 py-2 rounded-xl bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-100 dark:border-yellow-800/30 text-sm text-yellow-700 dark:text-yellow-300 font-bold shadow-sm">ES6+</span>
+                    <span className="px-5 py-2 rounded-xl bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-100 dark:border-yellow-800/30 text-sm text-yellow-700 dark:text-yellow-300 font-bold shadow-sm">DOM</span>
+                    <span className="px-5 py-2 rounded-xl bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-100 dark:border-yellow-800/30 text-sm text-yellow-700 dark:text-yellow-300 font-bold shadow-sm">Fetch API</span>
                   </div>
                 </div>
               </div>
@@ -163,9 +160,9 @@ export default function FrontendRoadmap() {
                   <h3 className="text-4xl font-extrabold text-text-main">فریمورک React</h3>
                   <p className="text-text-muted text-lg leading-relaxed">تفکر کامپوننتی. ساخت رابط‌های کاربری پیچیده با استفاده از هوک‌ها، مدیریت وضعیت و اکوسیستم قدرتمند ریاکت.</p>
                   <div className="flex flex-wrap gap-3 mt-4 justify-center md:justify-start">
-                    <span className="px-5 py-2 rounded-xl bg-sky-50 dark:bg-sky-900/30 border border-sky-100 dark:border-sky-800/30 text-sm text-sky-600 dark:text-sky-300 font-bold font-display shadow-sm">Components</span>
-                    <span className="px-5 py-2 rounded-xl bg-sky-50 dark:bg-sky-900/30 border border-sky-100 dark:border-sky-800/30 text-sm text-sky-600 dark:text-sky-300 font-bold font-display shadow-sm">Hooks</span>
-                    <span className="px-5 py-2 rounded-xl bg-sky-50 dark:bg-sky-900/30 border border-sky-100 dark:border-sky-800/30 text-sm text-sky-600 dark:text-sky-300 font-bold font-display shadow-sm">Redux</span>
+                    <span className="px-5 py-2 rounded-xl bg-sky-50 dark:bg-sky-900/30 border border-sky-100 dark:border-sky-800/30 text-sm text-sky-600 dark:text-sky-300 font-bold shadow-sm">Components</span>
+                    <span className="px-5 py-2 rounded-xl bg-sky-50 dark:bg-sky-900/30 border border-sky-100 dark:border-sky-800/30 text-sm text-sky-600 dark:text-sky-300 font-bold shadow-sm">Hooks</span>
+                    <span className="px-5 py-2 rounded-xl bg-sky-50 dark:bg-sky-900/30 border border-sky-100 dark:border-sky-800/30 text-sm text-sky-600 dark:text-sky-300 font-bold shadow-sm">Redux</span>
                   </div>
                 </div>
               </div>
@@ -180,9 +177,9 @@ export default function FrontendRoadmap() {
                   <h3 className="text-4xl font-extrabold text-text-main">Next.js پیشرفته</h3>
                   <p className="text-text-muted text-lg leading-relaxed">قدرت فول‌استک. رندرینگ سمت سرور (SSR)، تولید سایت استاتیک (SSG) و بهینه‌سازی عملکرد وب‌سایت.</p>
                   <div className="flex flex-wrap gap-3 mt-4">
-                    <span className="px-5 py-2 rounded-xl bg-gray-50 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700/30 text-sm text-gray-800 dark:text-gray-200 font-bold font-display shadow-sm">SSR</span>
-                    <span className="px-5 py-2 rounded-xl bg-gray-50 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700/30 text-sm text-gray-800 dark:text-gray-200 font-bold font-display shadow-sm">App Router</span>
-                    <span className="px-5 py-2 rounded-xl bg-gray-50 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700/30 text-sm text-gray-800 dark:text-gray-200 font-bold font-display shadow-sm">API Routes</span>
+                    <span className="px-5 py-2 rounded-xl bg-gray-50 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700/30 text-sm text-gray-800 dark:text-gray-200 font-bold shadow-sm">SSR</span>
+                    <span className="px-5 py-2 rounded-xl bg-gray-50 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700/30 text-sm text-gray-800 dark:text-gray-200 font-bold shadow-sm">App Router</span>
+                    <span className="px-5 py-2 rounded-xl bg-gray-50 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700/30 text-sm text-gray-800 dark:text-gray-200 font-bold shadow-sm">API Routes</span>
                   </div>
                 </div>
               </div>
@@ -215,28 +212,28 @@ export default function FrontendRoadmap() {
               <div className="bg-emerald-50 dark:bg-emerald-900/30 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
                 <span className="material-symbols-outlined text-emerald-500 text-4xl">groups</span>
               </div>
-              <span className="text-5xl font-black font-display text-text-main">2.5k+</span>
+              <span className="text-5xl font-black text-text-main">2.5k+</span>
               <span className="text-base text-text-muted font-medium">دانشجوی فعال</span>
             </div>
             <div className="bg-white/60 dark:bg-slate-800/60 border border-white dark:border-white/10 p-8 rounded-[2rem] shadow-sm hover:shadow-xl transition-all flex flex-col items-center gap-3 group">
               <div className="bg-emerald-50 dark:bg-emerald-900/30 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
                 <span className="material-symbols-outlined text-emerald-500 text-4xl">schedule</span>
               </div>
-              <span className="text-5xl font-black font-display text-text-main">120h</span>
+              <span className="text-5xl font-black text-text-main">120h</span>
               <span className="text-base text-text-muted font-medium">محتوای ویدیویی</span>
             </div>
             <div className="bg-white/60 dark:bg-slate-800/60 border border-white dark:border-white/10 p-8 rounded-[2rem] shadow-sm hover:shadow-xl transition-all flex flex-col items-center gap-3 group">
               <div className="bg-emerald-50 dark:bg-emerald-900/30 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
                 <span className="material-symbols-outlined text-emerald-500 text-4xl">code_blocks</span>
               </div>
-              <span className="text-5xl font-black font-display text-text-main">15+</span>
+              <span className="text-5xl font-black text-text-main">15+</span>
               <span className="text-base text-text-muted font-medium">پروژه عملی</span>
             </div>
             <div className="bg-white/60 dark:bg-slate-800/60 border border-white dark:border-white/10 p-8 rounded-[2rem] shadow-sm hover:shadow-xl transition-all flex flex-col items-center gap-3 group">
               <div className="bg-emerald-50 dark:bg-emerald-900/30 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
                 <span className="material-symbols-outlined text-emerald-500 text-4xl">verified</span>
               </div>
-              <span className="text-5xl font-black font-display text-text-main">100%</span>
+              <span className="text-5xl font-black text-text-main">100%</span>
               <span className="text-base text-text-muted font-medium">تضمین کیفیت</span>
             </div>
           </div>

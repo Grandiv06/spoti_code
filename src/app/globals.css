@@ -1,9 +1,82 @@
 @import "tailwindcss";
 
+/* ایران‌یکان – فونت متن سایت */
+@font-face {
+  font-family: "Iran Yekan";
+  src: url("/fonts/Thin.woff2") format("woff2");
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Iran Yekan";
+  src: url("/fonts/UltraLight.woff2") format("woff2");
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Iran Yekan";
+  src: url("/fonts/Light.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Iran Yekan";
+  src: url("/fonts/Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Iran Yekan";
+  src: url("/fonts/Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Iran Yekan";
+  src: url("/fonts/DemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Iran Yekan";
+  src: url("/fonts/Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Iran Yekan";
+  src: url("/fonts/ExtraBold.woff2") format("woff2");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Iran Yekan";
+  src: url("/fonts/Black.woff2") format("woff2");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Iran Yekan";
+  src: url("/fonts/ExtraBlack.woff2") format("woff2");
+  font-weight: 950;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* تم دستی: dark فقط با کلاس .dark روی html اعمال شود، نه تم سیستم */
 @custom-variant dark (&&:where(.dark, .dark *));
 
 :root {
+  font-family: "Iran Yekan", ui-sans-serif, system-ui, sans-serif;
   /* Common Colors */
   --color-primary: #22c55e;
   --color-primary-hover: #16a34a;
@@ -64,8 +137,9 @@
   --color-text-muted-light: #6b7280;
   --color-text-muted-dark: #9ca3af;
   
-  --font-display: var(--font-vazirmatn);
-  --font-body: var(--font-vazirmatn);
+  --font-sans: "Iran Yekan", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Iran Yekan", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Iran Yekan", ui-sans-serif, system-ui, sans-serif;
   --radius-4xl: 2.5rem;
   --radius-5xl: 3rem;
   
@@ -75,6 +149,29 @@
   --shadow-glass-hover: 0 25px 50px -12px rgba(16, 185, 129, 0.15), 0 0 0 1px rgba(255,255,255,1) inset;
   --shadow-card-soft: 0 20px 40px -5px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(255,255,255,1) inset;
   --shadow-3d-icon: 20px 20px 60px #cdddd6, -20px -20px 60px #ffffff;
+}
+
+/* هدر – همان استایل سایدبار سیگنال استادیو (بکگراند نیمه‌شفاف + بلور ملایم) */
+.glass-header {
+  background: rgba(243, 244, 246, 0.8); /* gray-100/80 */
+  border-bottom: 1px solid rgba(229, 231, 235, 0.5); /* gray-200/50 */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.dark .glass-header {
+  background: rgba(2, 0, 11, 0.3); /* #02000B/30 مثل سایدبار سیگنال استادیو */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+@layer base {
+  html {
+    font-family: "Iran Yekan", ui-sans-serif, system-ui, sans-serif;
+  }
+  body {
+    font-family: inherit;
+  }
 }
 
 @keyframes float {
@@ -161,4 +258,46 @@
   z-index: 0;
 }
 
-/* Other styles preserved below, I will just append or replace the initial block */
+/* Material Icons Round Support */
+.material-icons-round {
+  font-family: 'Material Icons Round';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'liga';
+}
+
+/* Material Symbols Outlined Support */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined Variable';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'liga';
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.material-symbols-outlined.filled {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}

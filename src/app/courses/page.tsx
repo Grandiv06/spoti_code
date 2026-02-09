@@ -1,14 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
-import Header from "../components/Header";
 
 export default function CoursesPage() {
   return (
-    <div className="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark font-body transition-colors duration-300 relative overflow-x-hidden min-h-screen">
+    <div className="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark transition-colors duration-300 relative overflow-x-hidden min-h-screen">
       <div className="mesh-bg"></div>
-      
-      {/* Header Navigation */}
-      <Header />
 
       <main className="max-w-[1440px] mx-auto px-4 md:px-20 py-12 relative z-10">
         {/* Breadcrumb and Title */}
@@ -143,7 +139,7 @@ export default function CoursesPage() {
                   <Image
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     alt="Modern workspace with code on monitor"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuCc49PM7jv0TAyt2M6g0rPORbBPnROb4uEehDRs7HG74pWFGVpKmtho5YveesNwMWo8VXq9XG-VeRxR2Kp-Rfw-JXQijDnjY56abTYQ7iP2JJQmpF7jyc_fIx0rqUCeefKUoAMJGlPhLwxJaipxy9v17D32ShQOXvPHguh9wMIsQlhedGMqU50s1_7JTUNS1cirfdSCgWaqjYsS_cFtck9E64skPAq-yY6g3M7kEbEeClYzJ9IhI821kBzTba5LMKVRGb4vVqOckMay"
+                    src="/images/course3.jpg"
                     fill
                     style={{ objectFit: "cover" }}
                   />
@@ -172,7 +168,7 @@ export default function CoursesPage() {
                       <Image
                         className="w-full h-full rounded-full object-cover"
                         alt="Instructor portrait"
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBm_bq93_om11KQbxen09lrL0WuPW2RmtceC9FQXQk6JGF6Y-z3e4Lycw4nqbqMHf_BLpkqrJ_Ly2raDLElsvKtnNwbImG1k7yHSbSd-aj-tKQ2rimk0KfNSigR45Jz8EXsIu0OlxCd7SsuJXxQmSs6pAsSoZK3bop6AcT1qHFxEwmV-WuNqjySMwq0CAPcwpR51ByrfDDyheTh6cDdk_EQblC6V8-41nRFP94dQclqTQPEZ1YPHX5mcTjmskhrcFc3ZKrtPqwZ_nto"
+                        src="/images/inst1.jpg"
                         width={32}
                         height={32}
                       />
@@ -225,7 +221,7 @@ export default function CoursesPage() {
                   <Image
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     alt="Abstract code blocks on dark background"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDzPJRMEmaq6EH8R50vA9qjGAlhgETXatorf4f-Ul3X1LZYECqkk0JXFpNKHRTrfgghkw_5Az346whqrMcpe9oyC61C4fp6MNzvbuxWOvsvpqXPsYUuwzBRcnPomHra3VhDsVDhE4rF7gjcDonHdbS-jcU9lRxlEp0b5s_53ZQcLhep14FIbVJ1BbLmxnKc-hbGkl9GJAdKYC0H29AfO14GXww8ej91u9cEXObz6jGXVemo2dduzhWgL1nYBY2GtUe4iJOrkCHxNVhw"
+                    src="/images/course4.jpg"
                     fill
                     style={{ objectFit: "cover" }}
                   />
@@ -254,7 +250,7 @@ export default function CoursesPage() {
                       <Image
                         className="w-full h-full rounded-full object-cover"
                         alt="Instructor portrait"
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBTo48yWCkbbL4AUX4ph1xh7BO27nQI6Wc3mSVwkc3CYlvs6oy6jfaVubgLkdQBEengKR7tNh68jE1ws5CuCDu1LPUY6C-EtYkwEhcwToXDBvo2OZ4BKKVVn0aqkG47sEDE86wz0_zHeSzKKV8bygulsasrRryc7Nnc5WEBiOtpoVFGoDs1MfjCazxG75QCpOh01ZfPW2jV7sJYGwUP-dysGuVxs01jfAKIS30R7UjLJFtANaMDkANjBaRqM2IMVmQxHTc6VbAdBcnl"
+                        src="/images/inst2.jpg"
                         width={32}
                         height={32}
                       />
@@ -307,7 +303,7 @@ export default function CoursesPage() {
                   <Image
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     alt="Laptop with programming code"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuC3JkfhbK69ePR81B0wvBcL3LmRuDBmfB-lBcQivncJqyqpxQBUp84QjceFJT3fiNBlfTLR-x9fKCXfTwN_NAruzXtSM0dSHQ_HIl2-cgLqLkbVzD_qVWLV90WVMT99esxlpc0yaz0TdmBs2JbZzDG78sUCmJOg9MM9fq9wVOFnjv5djcg_Hb-oOPknbB8QNLFCi568dFbFbSl9uI1R5K09ut0S-HjkXuBqFvzELvATnBfIyq1X3mrkpw0zZD1gpj9nn_Vnfo1IZkj2"
+                    src="/images/course5.jpg"
                     fill
                     style={{ objectFit: "cover" }}
                   />
@@ -336,7 +332,7 @@ export default function CoursesPage() {
                       <Image
                         className="w-full h-full rounded-full object-cover"
                         alt="Instructor portrait"
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuCxm84iyo35eMZfxun4pcwru8Vjqh9Z0CM1BT1KMucM3D5cSkFwv-gh0CtNtL34Znf17icDy1IAGW32f-DV67azOtohwLsT8ySk9NQl1JQv-MhRegYfJqqb0M_eOkDgN2uqWHK1X7twW_OC9FWYk-K57MVCr4rdPDDERZZK-q3CsTdCKJzUGEcehJfnMtekHOlErA97u2iRtqCBnIA28bnLZ80nLcvjBCmMQaLpBg8LBR79RMPZutojDcRwsBZniAwCC7Bd5kP8OsPU"
+                        src="/images/inst3.jpg"
                         width={32}
                         height={32}
                       />
@@ -389,7 +385,7 @@ export default function CoursesPage() {
                   <Image
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     alt="Developer coding on laptop"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuCT_9VUIMGffSoKrMo2QF8H7UdHkYMN2oMsJu0WcMcMrrtaG8OqWDulwvU52a9msDgCP3GfAg0R1Dx7Mvq08eT0mPDH74fK9vdvN8i6Ex11v-D8ED9LNrkAbM0EyfXoQKiMDx8xMUaCbJBBnTxcvFJh8wbZJ40wqqoBHHUubV6rC6IxOKNBt9K0Tt5E_U9rIsBnyfKi9HsJyTd8dK9DVmhbcLSFThtuLn1PxaMWBG6ttKSelwM5S1MUFmXPBpB2XNIgXtbaoZC2I90W"
+                    src="/images/course1.jpg"
                     fill
                     style={{ objectFit: "cover" }}
                   />
@@ -418,7 +414,7 @@ export default function CoursesPage() {
                       <Image
                         className="w-full h-full rounded-full object-cover"
                         alt="Instructor portrait"
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuAOqH7DCb3-JLBZI7COh_kM5CI95F9LAdm9LYvOVPVm5BZwXclKHzqau-u_oxRCE_T25kS6DZAn5T0yo9oOb8AkCyJeCRzrU-lkwZL-C6MzeK2yxDRIOmVmSHMkdm41c_mzWSNUAOsuHEDmaYZ_20_y_XFolSeawmMWoVRAXq47GKWwAovy-B9g9ZNbT2Evy5o2EpUysMiW9aL46E70WucdsHm97kS5DRrZ2hhknzwre_CdOMvtiWMLVGwzHbp9O5zxAsMnxboe76VW"
+                        src="/images/course2.jpg"
                         width={32}
                         height={32}
                       />

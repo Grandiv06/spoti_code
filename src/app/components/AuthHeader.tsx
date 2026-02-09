@@ -1,16 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import ThemeToggle from "./ThemeToggle";
 
 export default function AuthHeader() {
   return (
-    <header className="w-full relative z-50 py-4 px-6 glass-header border-b border-white/20 dark:border-gray-800">
+    <header className="sticky top-0 z-50 w-full py-4 px-6 glass-header transition-all duration-300">
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
-            <span className="material-symbols-outlined font-bold">terminal</span>
-          </div>
+          <Image
+            src="/favicon.svg"
+            alt="اسپاتی‌کد"
+            width={40}
+            height={40}
+            className="w-10 h-10 group-hover:scale-110 transition-transform"
+          />
           <span className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white">
             اسپاتی<span className="text-primary">کد</span>
           </span>

@@ -1,79 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
-import ThemeToggle from "../components/ThemeToggle";
 
 export default function AboutPage() {
   return (
-    <div className="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark font-body transition-colors duration-300 relative overflow-x-hidden min-h-screen">
+    <div className="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark transition-colors duration-300 relative overflow-x-hidden min-h-screen">
       {/* Ambient Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
         <div className="absolute -top-[10%] -left-[10%] w-[50vw] h-[50vw] bg-primary/10 rounded-full blur-[120px] opacity-30 animate-pulse"></div>
         <div className="absolute top-[40%] -right-[10%] w-[40vw] h-[40vw] bg-[#105230]/40 dark:bg-[#105230]/20 rounded-full blur-[140px] opacity-40"></div>
         <div className="absolute bottom-[-10%] left-[20%] w-[35vw] h-[35vw] bg-primary/5 rounded-full blur-[100px]"></div>
       </div>
-
-      {/* Header Navigation */}
-      <header className="sticky top-0 z-50 w-full px-6 py-4 glass-header border-b border-white/20 dark:border-gray-800">
-        <nav className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-10">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
-                <span className="material-symbols-outlined font-bold">
-                  terminal
-                </span>
-              </div>
-              <span className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white">
-                اسپاتی<span className="text-primary">کد</span>
-              </span>
-            </Link>
-            <div className="hidden lg:flex items-center gap-1">
-              <Link
-                className="px-5 py-2 text-sm font-medium rounded-4xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-300 hover:text-primary"
-                href="/"
-              >
-                خانه
-              </Link>
-              <Link
-                className="px-5 py-2 text-sm font-medium rounded-4xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-300 hover:text-primary"
-                href="/courses"
-              >
-                دوره‌ها
-              </Link>
-              <Link
-                className="px-5 py-2 text-sm font-medium rounded-4xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-300 hover:text-primary"
-                href="#"
-              >
-                مسیر یادگیری
-              </Link>
-              <Link
-                className="px-5 py-2 text-sm font-bold rounded-4xl bg-primary/10 text-primary transition-all"
-                href="/about"
-              >
-                درباره ما
-              </Link>
-              <Link
-                className="px-5 py-2 text-sm font-medium rounded-4xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-300 hover:text-primary"
-                href="#"
-              >
-                ارتباط با ما
-              </Link>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-            <Link
-              className="hidden md:flex bg-primary hover:bg-primary-hover text-white px-8 py-3 rounded-4xl text-sm font-bold transition-all shadow-xl shadow-primary/25 hover:scale-[1.02] active:scale-95 items-center gap-2"
-              href="/login"
-            >
-              ورود / ثبت‌نام
-              <span className="material-symbols-outlined text-xl">login</span>
-            </Link>
-            <button className="lg:hidden p-3 rounded-2xl bg-white dark:bg-surface-dark shadow-sm border border-gray-100 dark:border-gray-700">
-              <span className="material-symbols-outlined">menu</span>
-            </button>
-          </div>
-        </nav>
-      </header>
 
       <main className="flex-1 flex flex-col items-center w-full max-w-[1100px] mx-auto px-4 sm:px-6 py-12 gap-20 sm:gap-32">
         {/* Hero Section */}
@@ -127,7 +63,7 @@ export default function AboutPage() {
               <Image
                 className="w-full h-full transition-transform duration-700 hover:scale-105"
                 alt="Group of diverse developers collaborating around a laptop in a modern office with glass walls"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMwQhWgYdrIJ62_yYRR77UX0B0mm_zknna67SLOdBeesKx8wn29f9uvAwpHtqalO8NLUUiDtQVrywd-NaVKtRIKoY-5us0Ku_5ZdYq_48dhwOHb4HLPA_vW-bC3Zk64Q_OIJyUe7j4c6l3WiY_1Vl4tcPatQYfg7oXtxp9eAVpxOQfXChq4AqQQbUg41e-5EB3iq_2HzFDZTF7hKPO7Vq_bp2n3-FlqCAILZtMnkjMU3zqrk8RThz3nRz-6W_j6f_XAXxOQeaZaFrC"
+                src="/images/about_hero.jpg"
                 fill
                 style={{ objectFit: "cover" }}
               />
@@ -200,7 +136,7 @@ export default function AboutPage() {
                 <Image
                   alt="Professional portrait of Ali, Senior Backend Engineer"
                   className="w-full h-full rounded-full object-cover border-4 border-white dark:border-gray-800 grayscale group-hover:grayscale-0 transition-all duration-500"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDjifGa_EvooxbvP5wwVOA9_y12OoraotW4Yc7bo4k-i3lror_54y0nSTWPWrwVFi1X7lCTDJT901mqeSsjv1MYZf4nSx_3h8NNcV2EqjmV1WWfXX2i6Pyk17KVrExAOiOr8oI6VYvhf30DrUiJ_d0-EJsTk2u094N1ZlgUDW2JEu5ubv1QvX7IqGlu_xgQkyCu6LVFQYYOWciJEIsX_03rzsIyURveEOFVIOFNEY03-xm8Q0M2CVjBwRrJoxi5RipZOFSaRv_QA098"
+                  src="/images/inst5.jpg"
                   width={128}
                   height={128}
                 />
@@ -239,7 +175,7 @@ export default function AboutPage() {
                 <Image
                   alt="Professional portrait of Maryam, Lead UI/UX Designer"
                   className="w-full h-full rounded-full object-cover border-4 border-white dark:border-gray-800 grayscale group-hover:grayscale-0 transition-all duration-500"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-K7IKhblTvVvq0AJgEBiMu4npRJJ9cNpIv1FNZ7O3GimLRrF55V68l8S4SaAmKMna33PgTp5VLK_550p9Ug8_n9yO29Yj3tJTLfAe_Za3KUdCUn2oMQSYyt4dUKywpeegDX3VxBZyFuKT5FhaRtzx_0U-rdkBGSjE6VRh1QPQrh7fo1oJjrJHOAbgyS46AV43wod-uvlZU2r-xCylq72LLtylGTfSqJrlGtnO4dyPQKTp2F2po-_0tXSgVN2YxQACWt0SCZEbNlBc"
+                  src="/images/inst6.jpg"
                   width={128}
                   height={128}
                 />
@@ -278,7 +214,7 @@ export default function AboutPage() {
                 <Image
                   alt="Professional portrait of Reza, DevOps Specialist"
                   className="w-full h-full rounded-full object-cover border-4 border-white dark:border-gray-800 grayscale group-hover:grayscale-0 transition-all duration-500"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuCG_7_OV6UkSQCfcWqB7xVZaxX4lTfRjUVqKj8B2ZvunDKBTOMJFGS1ihFyeiVX93ARP3tipyuoUzaRx1tZNzH9LXRiBw9kw5cbZ40Klri0FP0xxOe-Uow-jQHcvVgUV4MuOGKwIBEwnIyqcn9Pms0kBHOD7VnYPGSj2i9ZBVUHbo3TNMUZ6Pka3RxzfxThADJ2XDUjbRMaeLPwhVd3c2UyCEMHtKLX9itOsCDkIdDBUk7DMd5fIwb7TzKjmcVkWwZWxYjNHogaY7jn"
+                  src="/images/about1.jpg"
                   width={128}
                   height={128}
                 />
@@ -317,7 +253,7 @@ export default function AboutPage() {
                 <Image
                   alt="Professional portrait of Sara, Frontend Architect"
                   className="w-full h-full rounded-full object-cover border-4 border-white dark:border-gray-800 grayscale group-hover:grayscale-0 transition-all duration-500"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuC_rQ5gFsVEbOiED96C0-BikugCshS-PH5KG1tl0yKliKKTGwQfo7JlWc7Vaeen-kF-4rw_d0YQ09fXAH0I1mMfQDGFHI0solmFVvsS9p1FzKvMr0RW5BR3mK9inG49cPoHvjlb97G3u3966KpFJOJKlslV3Cwxc4FjKiFD7xnsvfzst7TFmCQsLfHmeRk3dxY42SxYz6fHpIAR-LM2Qw67rn3MhTKaaTDk_96JIB9L948VaYEG3NUr20gkjU7qwvnhCtMn2GyHaF9i"
+                  src="/images/about2.jpg"
                   width={128}
                   height={128}
                 />

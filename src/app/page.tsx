@@ -1,17 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
-import Header from "./components/Header";
 
 export default function Home() {
   return (
-    <div className="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark font-body transition-colors duration-300">
+    <div className="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark transition-colors duration-300">
       {/* Background Blobs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="blob-shape bg-primary/20 w-96 h-96 rounded-full top-0 right-0 -translate-y-1/2 translate-x-1/2 dark:bg-primary/10"></div>
         <div className="blob-shape bg-blue-400/20 w-80 h-80 rounded-full bottom-0 left-0 translate-y-1/2 -translate-x-1/2 dark:bg-blue-600/10"></div>
       </div>
-
-      <Header />
 
       <main>
         {/* Hero Section */}
@@ -75,21 +72,21 @@ export default function Home() {
                   <Image
                     alt="User"
                     className="w-12 h-12 rounded-full border-4 border-white dark:border-surface-dark shadow-md"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuAazZSzTe3MdhTzPF3dHu5a6qk3uJvliezBsbiDS3J6kmbeMjRET2LFFgodqE-LJZCWx1AB2FQ9ff40jaoL-3sdL1D31YU7tiI16JUMc-SxIANn7-Wqr4Y4UlAJZ1616qaBJTNEFT4YDLkK8ZSEGecrKibdo7A13LPmBPOqL4AWRAOm2J__H_Csu3wbl88JoKaI9GtSuvhOWwzzMRVmtfp7pN8xVgW1-HhJmePeASf2FacBQ01gBsbVCkcvaQEZ4T9RXwxNVKHJfY6f"
+                    src="/images/user1.jpg"
                     width={48}
                     height={48}
                   />
                   <Image
                     alt="User"
                     className="w-12 h-12 rounded-full border-4 border-white dark:border-surface-dark shadow-md"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuBhZjlbzi0KH6Wc7h8OA-Cc_Xj8c9-6WhzM_W4HCaeUFUOOmGyFYuQwii6uHEo724TYDLAMJj0OdQwJ-WtDiia8g6EnTj-yA8o85_qQreW-eBJpQKHD4aO1GKcBPRNSOQeTn9WkyIC9zwDo-1EUcyM_2gZzYG768GNRAQgDOa4ncQuKfisUESSr4LLLviJE5CcQroYqkm70XPUxP3Z5UARAmIjSENSbAZSYMws7udJ5Od_xVL0zpLfXC7PQSR9czdBcCi7adN5roKef"
+                    src="/images/user2.jpg"
                     width={48}
                     height={48}
                   />
                   <Image
                     alt="User"
                     className="w-12 h-12 rounded-full border-4 border-white dark:border-surface-dark shadow-md"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZzvndaxs8tWctegXESOt8G2Sr-B4h_6eK7iWg3kDFqTY6rpYKsU_L-lEMpL8I2xIyYN-F9v_XHqxxzW3pqXn048bQ6kcgSGqhzSASgHbI8U_viS-5EC-k6IaCLpyjYwZ3R3vRvB9PmjWziTLp1iK4phbkmxcmqTit5dDQmW09UMMunD6AObFRj1GrNPDjmHxpE60Hrr2Bf5FnyzhwK55t776K9raMzDGPW8Q83dpreAv9e5sFP4D8oHapuRtY5n1g8XFeyB5zvgVq"
+                    src="/images/user3.jpg"
                     width={48}
                     height={48}
                   />
@@ -108,7 +105,7 @@ export default function Home() {
                 <Image
                   alt="Coding workspace"
                   className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDBGwIz3RE15OuWqY3np5mw1yisfwiNcY8K57Nce439EBABYm3Xcw2nEvmBbnqHNQkeY1O1_fC57JSTlKYFjCkfbuyk2uUeSd4vWMt1gpXGT5DnFiBtWg_Ld6ry6bvUNXZo0B4rxCCG2X1C0vhRQGoAodnqHYleM02CjAd3fLz2lppGur5EAicFs18-8dD_7yWjiDgMz_hh0CfTJJnuv1KIxcmD1FVlw1CfUJMfr8ZpZBd1EeTJTdFMhbG9EuyHvojHVHrLLebGhYpO"
+                  src="/images/hero_image.jpg"
                   fill
                   style={{ objectFit: "cover" }}
                 />
@@ -319,7 +316,7 @@ export default function Home() {
                 <Image
                   alt="Student"
                   className="w-20 h-20 rounded-full border-4 border-white dark:border-gray-800 shadow-lg absolute -top-10 left-1/2 -translate-x-1/2"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuCrf1RdMrodFjhWJh-iK0XhouvsguIc_tqt1eWfmtW3mlexRVf7sjoWuI1x5IZhQ_gGygXex_D75Z8Gb4m1jNnP21y21f7eAriTeXNUGubdtVgFMN8AsNoTcD778AyQvO07-blnfK4wJptF2aQaiO545okVeIJJOJYSe_oW3I9W6xvJb--Zo2ngO0C8LX8Xii18oga40DOPc0xTC8Q0-g4H8ScMBysCL2_5SNcMWbHYPU7MNS-zF_ehST9IpneJvGx0r6JcuDIAGrYG"
+                  src="/images/student1.jpg"
                   width={80}
                   height={80}
                 />
@@ -336,7 +333,7 @@ export default function Home() {
                 <Image
                   alt="Student"
                   className="w-24 h-24 rounded-full border-4 border-white shadow-lg absolute -top-12 left-1/2 -translate-x-1/2"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuB_SOsEeQSj_gKZRlFLcvtfLiORWOblAq9GHZkXeH1i8LD1wdGmu27BM3y3BbYzz7yLk4SJXNM-Dnbe5Ep0xW2NeGOU-AYO-mNcl4PQNUu7pzG8rQ4OaWpmZ6PVNwfgjXeusQ8t_Q3pQ4bdTf25pxvnoKeDidCF6BsDT09ldAYoaFsF-qJ57-K2b34YgtcXa-r2N9KoR9l0D0Th8PSGkJwfXQOT-ceVI1e24ifGlVlm4PLRR8NpCRSmSh7pLDDzCy7fuS-AZflC8wsR"
+                  src="/images/student2.jpg"
                   width={96}
                   height={96}
                 />
@@ -353,7 +350,7 @@ export default function Home() {
                 <Image
                   alt="Student"
                   className="w-20 h-20 rounded-full border-4 border-white dark:border-gray-800 shadow-lg absolute -top-10 left-1/2 -translate-x-1/2"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuBqLxI5l9LptlDqcl0isYj3mv3ijPcEak2a_0B9KGXDgpWeUhLqT9ZOo0VPRVbS5RWuRe9NoFAMrLpRotrUiE7kbg9AUfefCiItSixRrYQaAPwE15VNOQ2_bFaQfOOsOLsgCEZILMAcB7YUOE9g2-KIRX0movKlctPaGhr5OvTKGBYzxSUczp3OXnUIXsZb22C2iNZhoLs43irP4mtL8810m4KPk4S-qDYe9mVm4o-fizV_u2z7BBs8vzfcf6lu8aAWCv92egcw6ALl"
+                  src="/images/student3.jpg"
                   width={80}
                   height={80}
                 />
@@ -376,12 +373,14 @@ export default function Home() {
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16 relative z-10">
           <div className="space-y-8">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white">
-                <span className="material-symbols-outlined text-3xl font-bold">
-                  terminal
-                </span>
-              </div>
-              <span className="text-2xl font-black">آکادمی کد</span>
+              <Image
+                src="/favicon.svg"
+                alt="اسپاتی‌کد"
+                width={15}
+                height={15}
+                className="w-8 h-8 group-hover:scale-110 transition-transform"
+              />
+              <span className="text-2xl font-black">اسپاتی کد</span>
             </div>
             <p className="text-gray-400 leading-relaxed text-lg">
               تخصصی‌ترین مرکز آموزش برنامه‌نویسی در ایران با هدف تربیت نیروهای

@@ -1,14 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import Header from "../components/Header";
 
 export default function LearningPathsOverview() {
   return (
-    <div className="bg-background-base text-text-main font-body overflow-x-hidden min-h-screen flex flex-col selection:bg-primary selection:text-white">
-      {/* Header Navigation */}
-      <Header />
-
+    <div className="bg-background-base text-text-main overflow-x-hidden min-h-screen flex flex-col selection:bg-primary selection:text-white">
       <header className="relative pt-20 pb-32 px-6 min-h-[calc(100vh-100px)] flex flex-col justify-center items-center text-center overflow-hidden z-10">
         <div className="relative z-10 max-w-4xl mx-auto flex flex-col items-center gap-6">
           <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-white/80 dark:bg-surface-dark/80 border border-white dark:border-gray-700 shadow-sm backdrop-blur-md animate-float">
@@ -16,7 +12,7 @@ export default function LearningPathsOverview() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
             </span>
-            <span className="text-sm font-bold text-primary-dark dark:text-emerald-400 tracking-wide font-display">Roadmaps</span>
+            <span className="text-sm font-bold text-primary-dark dark:text-emerald-400 tracking-wide">Roadmaps</span>
           </div>
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[1.2] text-text-main drop-shadow-sm">
             مسیرهای <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-400 dark:to-teal-300">یادگیری</span>

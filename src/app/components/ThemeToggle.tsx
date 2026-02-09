@@ -18,7 +18,6 @@ export default function ThemeToggle() {
   if (!mounted) {
     return (
       <button className="w-12 h-12 rounded-2xl bg-white dark:bg-surface-dark shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-center">
-        <span className="material-symbols-outlined text-xl">brightness_medium</span>
       </button>
     );
   }
