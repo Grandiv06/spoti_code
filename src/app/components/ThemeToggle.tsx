@@ -43,7 +43,7 @@ export default function ThemeToggle() {
       onClick={toggleTheme}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className="relative flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/20 dark:bg-[#14161c]/80 backdrop-blur-xl border border-white/15 dark:border-white/[0.04] hover:bg-white/30 dark:hover:bg-[#14161c]/90 transition-colors duration-300 overflow-hidden cursor-pointer"
+      className="relative flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/20 dark:bg-[#14161c]/10 backdrop-blur-xl border border-white/15 dark:border-white/[0.04] hover:bg-white/30 dark:hover:bg-[#14161c]/20 transition-colors duration-300 overflow-hidden cursor-pointer"
       aria-label="Toggle theme"
     >
       {mousePos && (
