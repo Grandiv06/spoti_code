@@ -72,22 +72,65 @@ export default function CourseCurriculum({
   totalLessons = 120,
   chapters = MOCK_CHAPTERS,
 }: CourseCurriculumProps) {
-  const [openChapterId, setOpenChapterId] = useState<string | null>(chapters[1]?.id ?? null);
+  const [isCurriculumVisible, setIsCurriculumVisible] = useState(true);
+  const [openChapterId, setOpenChapterId] = useState<string | null>(null);
 
   const toggleChapter = (id: string) => {
     setOpenChapterId((prev) => (prev === id ? null : id));
   };
 
+  const collapseAll = () => setIsCurriculumVisible(false);
+  const showCurriculum = () => setIsCurriculumVisible(true);
+
+  if (!isCurriculumVisible) {
+    return (
+      <section className="space-y-6">
+        <button
+          type="button"
+          onClick={showCurriculum}
+          className="w-full glass-panel rounded-4xl px-8 py-8 flex items-center justify-between gap-4 hover:bg-white/20 dark:hover:bg-white/10 transition-all duration-300 group"
+        >
+          <div className="flex items-center gap-4">
+            <span className="flex items-center justify-center size-14 rounded-3xl bg-primary/20 dark:bg-primary/30 text-primary group-hover:scale-110 transition-transform">
+              <span className="material-symbols-outlined filled text-3xl">toc</span>
+            </span>
+            <div className="text-right">
+              <h2 className="text-xl font-black text-gray-900 dark:text-white">
+                سرفصل‌های آموزشی
+              </h2>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                {chapters.length} فصل • {totalLessons} جلسه
+              </span>
+            </div>
+          </div>
+          <span className="material-symbols-outlined text-primary text-3xl group-hover:translate-x-1 transition-transform">
+            expand_more
+          </span>
+        </button>
+      </section>
+    );
+  }
+
   return (
     <section className="space-y-6">
-      <div className="glass-panel rounded-4xl px-8 py-6 flex items-center justify-between mb-2">
+      <div className="glass-panel rounded-4xl px-8 py-6 flex flex-wrap items-center justify-between gap-4 mb-2">
         <h2 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3">
           <span className="material-symbols-outlined filled text-primary">toc</span>
           سرفصل‌های آموزشی
         </h2>
-        <span className="text-sm font-bold text-primary bg-white/50 dark:bg-white/10 px-4 py-2 rounded-2xl shadow-sm">
-          {totalLessons} جلسه
-        </span>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={collapseAll}
+            className="text-sm font-bold text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary px-4 py-2 rounded-2xl bg-white/30 dark:bg-white/5 hover:bg-white/50 dark:hover:bg-white/10 transition-colors flex items-center gap-2"
+          >
+            <span className="material-symbols-outlined text-lg">unfold_less</span>
+            بستن همه
+          </button>
+          <span className="text-sm font-bold text-primary bg-white/50 dark:bg-white/10 px-4 py-2 rounded-2xl shadow-sm">
+            {totalLessons} جلسه
+          </span>
+        </div>
       </div>
 
       <div className="space-y-6">
