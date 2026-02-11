@@ -13,7 +13,6 @@ export default function LoginPage() {
       <div className="blob-auth bg-green-200/60 dark:bg-green-900/30 w-96 h-96 top-0 -right-20 animate-pulse" />
       <div className="blob-auth bg-green-300/40 dark:bg-green-800/20 w-[30rem] h-[30rem] bottom-0 -left-20" />
 
-
       <main className="flex-grow flex items-center justify-center p-4 relative z-10">
         <div className="w-full max-w-[460px] bg-white dark:bg-gray-800/95 rounded-[2.5rem] shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1),0_0_0_1px_rgba(0,0,0,0.02)] dark:shadow-xl border border-white/60 dark:border-gray-700/50 backdrop-blur-sm relative">
           <div className="p-8 sm:p-10">
@@ -57,7 +56,6 @@ export default function LoginPage() {
             </form>
 
             <div className="mt-8 space-y-5 text-center">
-
               <div className="relative py-2">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-gray-100 dark:border-gray-600" />
@@ -86,7 +84,7 @@ export default function LoginPage() {
 
       <footer className="relative z-10 py-6 text-center">
         <p className="text-gray-400 text-xs font-medium dir-ltr">
-          © 2024 Programming Academy
+          © 2026 SpotiCode Academy
         </p>
       </footer>
     </div>

@@ -24,10 +24,11 @@ export default function NavLink({ href, label, isActive }: NavLinkProps) {
   };
 
   const baseClasses =
-    "relative px-5 py-2 text-sm font-medium rounded-4xl transition-all duration-300 overflow-hidden";
-  const activeClasses = "bg-primary/10 text-primary font-bold overflow-hidden";
+    "relative px-5 py-2 text-sm font-medium rounded-4xl transition-[background-color,color] duration-300 overflow-hidden border border-transparent focus:outline-none focus:ring-0 focus-visible:ring-0 focus:border-transparent";
+  const activeClasses =
+    "bg-primary/10 text-primary font-bold overflow-hidden border-transparent";
   const inactiveClasses =
-    "text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary backdrop-blur-xl border border-transparent hover:bg-white/20 hover:dark:bg-[#14161c]/10 hover:border-white/15 hover:dark:border-white/[0.04] overflow-hidden";
+    "text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary backdrop-blur-xl hover:bg-white/20 hover:dark:bg-[#14161c]/10 hover:border-white/15 hover:dark:border-white/[0.04] overflow-hidden";
 
   return (
     <div

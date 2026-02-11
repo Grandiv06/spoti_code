@@ -143,7 +143,7 @@ export default function AboutPage() {
               </div>
               <div className="flex flex-col gap-1">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">
-                  علی رضایی
+                  سروش مشایخی{" "}
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-widest font-bold">
                   Senior Backend
@@ -182,7 +182,7 @@ export default function AboutPage() {
               </div>
               <div className="flex flex-col gap-1">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">
-                  مریم کمالی
+                  دنیا گودرزی{" "}
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-widest font-bold">
                   Lead Designer
@@ -221,7 +221,7 @@ export default function AboutPage() {
               </div>
               <div className="flex flex-col gap-1">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">
-                  رضا احمدی
+                  امیررضا عبدالرحیمی{" "}
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-widest font-bold">
                   DevOps Lead
@@ -260,7 +260,7 @@ export default function AboutPage() {
               </div>
               <div className="flex flex-col gap-1">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">
-                  سارا نبوی
+                  ایلیا مرادی{" "}
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-widest font-bold">
                   Frontend Architect

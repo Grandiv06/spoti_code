@@ -58,7 +58,7 @@ export default function Home() {
                   </span>
                 </a>
                 <a
-                  className="bg-white dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-gray-800 text-text-light dark:text-white px-10 py-5 rounded-4xl text-lg font-extrabold transition-all shadow-lg flex items-center justify-center gap-3 border border-gray-100 dark:border-gray-700"
+                  className="bg-white/70 dark:bg-[#14161c]/10 backdrop-blur-xl hover:bg-white/90 dark:hover:bg-[#14161c]/20 text-text-light dark:text-white px-10 py-5 rounded-4xl text-lg font-extrabold transition-all duration-300 shadow-lg flex items-center justify-center gap-3 border border-white/30 dark:border-white/10"
                   href="/courses"
                 >
                   <span className="material-symbols-outlined text-primary">
