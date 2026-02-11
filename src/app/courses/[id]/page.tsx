@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import CourseCurriculum from "../../components/CourseCurriculum";
+import CourseFAQ from "../../components/CourseFAQ";
 
 export default function CourseDetailPage({
   params,
@@ -166,6 +167,9 @@ export default function CourseDetailPage({
 
             {/* Curriculum Section */}
             <CourseCurriculum totalLessons={120} />
+
+            {/* FAQ Section */}
+            <CourseFAQ />
 
             {/* Instructor Section */}
             <section className="glass-panel rounded-4xl p-8 md:p-12 glass-card-hover mt-4">
