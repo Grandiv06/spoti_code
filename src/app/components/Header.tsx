@@ -27,9 +27,9 @@ export default function Header() {
 
   return (
     <header
-      className={`fixed z-50 px-6 transition-all duration-300 ease-out bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-gray-200 dark:border-gray-700 ${
+      className={`fixed z-50 px-6 transition-all duration-300 ease-out bg-white/95 dark:bg-[#14161c]/10 backdrop-blur-[8px] border-gray-200 dark:border-slate-400/10 ${
         isScrolled
-          ? "top-4 left-18 right-18 py-3 rounded-3xl shadow-lg border"
+          ? "top-4 left-30 right-30 py-3 rounded-3xl shadow-lg border"
           : "top-0 left-0 right-0 py-6 rounded-none border-b shadow-sm"
       }`}
     >
