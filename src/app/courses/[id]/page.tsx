@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import CourseCurriculum from "../../components/CourseCurriculum";
 
 export default function CourseDetailPage({
   params,
@@ -164,134 +165,7 @@ export default function CourseDetailPage({
             </section>
 
             {/* Curriculum Section */}
-            <section className="space-y-6">
-              <div className="glass-panel rounded-4xl px-8 py-6 flex items-center justify-between mb-2">
-                <h2 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3">
-                  <span className="material-symbols-outlined filled text-primary">
-                    toc
-                  </span>
-                  سرفصل‌های آموزشی
-                </h2>
-                <span className="text-sm font-bold text-primary bg-white/50 dark:bg-white/10 px-4 py-2 rounded-2xl shadow-sm">
-                  ۱۲۰ جلسه
-                </span>
-              </div>
-
-              {/* Chapter 1 */}
-              <div className="glass-panel rounded-4xl overflow-hidden transition-all duration-300 hover:bg-white/40 dark:hover:bg-white/5 group">
-                <button className="w-full flex items-center justify-between p-6 md:p-8 text-right">
-                  <div className="flex items-center gap-6">
-                    <span className="flex items-center justify-center size-14 rounded-3xl bg-white dark:bg-gray-800 shadow-md text-2xl font-black text-primary group-hover:text-primary-dark group-hover:scale-110 transition-all">
-                      ۰۱
-                    </span>
-                    <div>
-                      <h3 className="font-bold text-xl text-gray-900 dark:text-white mb-1 group-hover:text-primary-dark transition-colors">
-                        مبانی و مفاهیم پایه‌ای
-                      </h3>
-                      <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">
-                        شروع قدرتمند با جاوااسکریپت مدرن
-                      </span>
-                    </div>
-                  </div>
-                  <div className="size-10 rounded-full bg-white/50 dark:bg-white/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
-                    <span className="material-symbols-outlined transition-transform group-hover:rotate-180">
-                      expand_more
-                    </span>
-                  </div>
-                </button>
-              </div>
-
-              {/* Chapter 2 - Expanded */}
-              <div className="glass-panel rounded-4xl overflow-hidden transition-all duration-300 bg-white/40 dark:bg-white/5 border-white/80 dark:border-gray-700 shadow-lg">
-                <button className="w-full flex items-center justify-between p-6 md:p-8 text-right border-b border-white/50 dark:border-gray-700">
-                  <div className="flex items-center gap-6">
-                    <span className="flex items-center justify-center size-14 rounded-3xl bg-primary text-white shadow-[0_0_20px_rgba(34,197,94,0.5)] text-2xl font-black transition-all">
-                      ۰۲
-                    </span>
-                    <div>
-                      <h3 className="font-bold text-xl text-gray-900 dark:text-white mb-1">
-                        عمیق شدن در Hooks
-                      </h3>
-                      <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">
-                        مدیریت حرفه‌ای وضعیت
-                      </span>
-                    </div>
-                  </div>
-                  <div className="size-10 rounded-full bg-primary text-white flex items-center justify-center shadow-[0_0_20px_rgba(34,197,94,0.5)]">
-                    <span className="material-symbols-outlined rotate-180">
-                      expand_more
-                    </span>
-                  </div>
-                </button>
-                <div className="p-6 md:p-8 bg-white/20 dark:bg-white/5 backdrop-blur-sm">
-                  <ul className="space-y-4 border-r-2 border-primary/30 pr-6 mr-3">
-                    <li className="flex items-center justify-between group/li cursor-pointer">
-                      <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300 group-hover/li:text-gray-900 dark:group-hover/li:text-white transition-colors">
-                        <span className="material-symbols-outlined text-primary text-xl">
-                          play_circle
-                        </span>
-                        <span className="font-bold text-sm">
-                          مفهوم Closure و useState
-                        </span>
-                      </div>
-                      <span className="text-xs font-bold bg-white/50 dark:bg-white/10 px-2 py-1 rounded text-primary">
-                        ۱۵:۰۰
-                      </span>
-                    </li>
-                    <li className="flex items-center justify-between group/li cursor-pointer">
-                      <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300 group-hover/li:text-gray-900 dark:group-hover/li:text-white transition-colors">
-                        <span className="material-symbols-outlined text-primary text-xl">
-                          play_circle
-                        </span>
-                        <span className="font-bold text-sm">
-                          هوک useEffect و چرخه حیات
-                        </span>
-                      </div>
-                      <span className="text-xs font-bold bg-white/50 dark:bg-white/10 px-2 py-1 rounded text-primary">
-                        ۲۲:۳۰
-                      </span>
-                    </li>
-                    <li className="flex items-center justify-between group/li cursor-pointer">
-                      <div className="flex items-center gap-3 text-gray-500 dark:text-gray-500">
-                        <span className="material-symbols-outlined text-gray-400 dark:text-gray-600 text-xl">
-                          lock
-                        </span>
-                        <span className="font-bold text-sm">
-                          هوک‌های سفارشی (Custom Hooks)
-                        </span>
-                      </div>
-                      <span className="text-xs font-bold bg-gray-100/50 dark:bg-gray-800/50 px-2 py-1 rounded text-gray-500 dark:text-gray-500">
-                        قفل
-                      </span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              {/* Chapter 3 */}
-              <div className="glass-panel rounded-4xl overflow-hidden transition-all duration-300 hover:bg-white/40 dark:hover:bg-white/5 group">
-                <button className="w-full flex items-center justify-between p-6 md:p-8 text-right">
-                  <div className="flex items-center gap-6">
-                    <span className="flex items-center justify-center size-14 rounded-3xl bg-white dark:bg-gray-800 shadow-md text-2xl font-black text-primary group-hover:text-primary-dark group-hover:scale-110 transition-all">
-                      ۰۳
-                    </span>
-                    <div>
-                      <h3 className="font-bold text-xl text-gray-900 dark:text-white mb-1 group-hover:text-primary-dark transition-colors">
-                        معماری Next.js 14
-                      </h3>
-                      <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">
-                        رندرینگ سمت سرور و کلاینت
-                      </span>
-                    </div>
-                  </div>
-                  <div className="size-10 rounded-full bg-white/50 dark:bg-white/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
-                    <span className="material-symbols-outlined transition-transform group-hover:rotate-180">
-                      expand_more
-                    </span>
-                  </div>
-                </button>
-              </div>
-            </section>
+            <CourseCurriculum totalLessons={120} />
 
             {/* Instructor Section */}
             <section className="glass-panel rounded-4xl p-8 md:p-12 glass-card-hover mt-4">
