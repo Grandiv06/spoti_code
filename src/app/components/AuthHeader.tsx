@@ -16,7 +16,11 @@ export default function AuthHeader() {
 
   return (
     <header
-      className={`fixed top-0 z-50 w-full px-6 transition-all duration-300 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700 shadow-sm ${isScrolled ? "py-2" : "py-4"}`}
+      className={`fixed z-50 px-6 transition-all duration-300 ease-out bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-gray-200 dark:border-gray-700 ${
+        isScrolled
+          ? "top-4 left-8 right-8 py-2 rounded-3xl shadow-lg border"
+          : "top-0 left-0 right-0 py-4 rounded-none border-b shadow-sm"
+      }`}
     >
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         <Link href="/" className="flex items-center gap-3 group">
