@@ -116,10 +116,10 @@
   --color-primary-hover: var(--color-primary-hover);
   --color-primary-dark: var(--color-primary-dark);
   --color-primary-soft: var(--color-primary-soft);
-  
+
   --color-background-light: #f0fdf4;
   --color-background-dark: #0f172a;
-  
+
   /* Dynamic Colors */
   --color-background-base: var(--color-background-base);
   --color-glass-surface: var(--color-glass-surface);
@@ -129,40 +129,32 @@
   --color-text-muted: var(--color-text-muted);
   --color-sage: var(--color-sage);
   --color-sage-light: var(--color-sage-light);
-  
+
   --color-surface-light: #ffffff;
   --color-surface-dark: #1e293b;
   --color-text-light: #1f2937;
   --color-text-dark: #f3f4f6;
   --color-text-muted-light: #6b7280;
   --color-text-muted-dark: #9ca3af;
-  
+
   --font-sans: "Iran Yekan", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Iran Yekan", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Iran Yekan", ui-sans-serif, system-ui, sans-serif;
   --radius-4xl: 2.5rem;
   --radius-5xl: 3rem;
-  
-  --shadow-layered: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 8px 10px -6px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.02);
-  --shadow-glass: 0 20px 40px -10px rgba(16, 185, 129, 0.08), 0 0 0 1px rgba(255,255,255,0.8) inset;
-  --shadow-glass-hover: 0 25px 50px -12px rgba(16, 185, 129, 0.15), 0 0 0 1px rgba(255,255,255,1) inset;
-  --shadow-card-soft: 0 20px 40px -5px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(255,255,255,1) inset;
-  --shadow-3d-icon: 20px 20px 60px #cdddd6, -20px -20px 60px #ffffff;
-}
 
-/* هدر – همان استایل سایدبار سیگنال استادیو (بکگراند نیمه‌شفاف + بلور ملایم) */
-.glass-header {
-  background: rgba(243, 244, 246, 0.8); /* gray-100/80 */
-  border-bottom: 1px solid rgba(229, 231, 235, 0.5); /* gray-200/50 */
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-.dark .glass-header {
-  background: rgba(2, 0, 11, 0.3); /* #02000B/30 مثل سایدبار سیگنال استادیو */
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  --shadow-layered:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.02);
+  --shadow-glass:
+    0 20px 40px -10px rgba(16, 185, 129, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+  --shadow-glass-hover:
+    0 25px 50px -12px rgba(16, 185, 129, 0.15),
+    0 0 0 1px rgba(255, 255, 255, 1) inset;
+  --shadow-card-soft:
+    0 20px 40px -5px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(255, 255, 255, 1) inset;
+  --shadow-3d-icon: 20px 20px 60px #cdddd6, -20px -20px 60px #ffffff;
 }
 
 @layer base {
@@ -175,15 +167,27 @@
 }
 
 @keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-15px); }
-  100% { transform: translateY(0px); }
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
 }
 
 @keyframes drift {
-  0% { transform: translate(0, 0) rotate(0deg); }
-  50% { transform: translate(20px, 30px) rotate(5deg); }
-  100% { transform: translate(0, 0) rotate(0deg); }
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(20px, 30px) rotate(5deg);
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
 }
 
 .animate-float {
@@ -210,21 +214,24 @@
 
 .roadmap-card:hover {
   transform: translateY(-5px) scale(1.01);
-  box-shadow: 0 30px 60px -15px rgba(16, 185, 129, 0.2), 0 0 0 2px rgba(255,255,255,1) inset;
+  box-shadow:
+    0 30px 60px -15px rgba(16, 185, 129, 0.2),
+    0 0 0 2px rgba(255, 255, 255, 1) inset;
 }
 
 .roadmap-connector::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   bottom: 0;
   left: 50%;
   width: 12px;
-  background: linear-gradient(180deg, 
-      rgba(16, 185, 129, 0) 0%, 
-      rgba(16, 185, 129, 0.15) 20%, 
-      rgba(16, 185, 129, 0.15) 80%, 
-      rgba(16, 185, 129, 0) 100%
+  background: linear-gradient(
+    180deg,
+    rgba(16, 185, 129, 0) 0%,
+    rgba(16, 185, 129, 0.15) 20%,
+    rgba(16, 185, 129, 0.15) 80%,
+    rgba(16, 185, 129, 0) 100%
   );
   transform: translateX(-50%);
   border-radius: 9999px;
@@ -235,19 +242,27 @@
 /* پس‌زمینه مدرن و نرم برای صفحه لاگین/ثبت‌نام */
 .bg-auth-modern {
   background-color: #f8fafc;
-  background-image: 
+  background-image:
     radial-gradient(at 0% 0%, rgba(34, 197, 94, 0.05) 0px, transparent 50%),
     radial-gradient(at 100% 0%, rgba(16, 185, 129, 0.03) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(20, 184, 166, 0.05) 0px, transparent 50%),
+    radial-gradient(
+      at 100% 100%,
+      rgba(20, 184, 166, 0.05) 0px,
+      transparent 50%
+    ),
     radial-gradient(at 0% 100%, rgba(16, 185, 129, 0.03) 0px, transparent 50%);
   background-attachment: fixed;
 }
 
 .dark .bg-auth-modern {
   background-color: #0f172a;
-  background-image: 
+  background-image:
     radial-gradient(at 0% 0%, rgba(34, 197, 94, 0.1) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
+    radial-gradient(
+      at 100% 100%,
+      rgba(16, 185, 129, 0.08) 0px,
+      transparent 50%
+    ),
     radial-gradient(at 50% 50%, rgba(34, 197, 94, 0.05) 0px, transparent 50%);
 }
 
@@ -260,7 +275,7 @@
 
 /* Material Icons Round Support */
 .material-icons-round {
-  font-family: 'Material Icons Round';
+  font-family: "Material Icons Round";
   font-weight: normal;
   font-style: normal;
   font-size: 24px;
@@ -274,12 +289,12 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  font-feature-settings: 'liga';
+  font-feature-settings: "liga";
 }
 
 /* Material Symbols Outlined Support */
 .material-symbols-outlined {
-  font-family: 'Material Symbols Outlined Variable';
+  font-family: "Material Symbols Outlined Variable";
   font-weight: normal;
   font-style: normal;
   font-size: 24px;
@@ -290,14 +305,22 @@
   white-space: nowrap;
   word-wrap: normal;
   direction: ltr;
-  -webkit-font-feature-settings: 'liga';
+  -webkit-font-feature-settings: "liga";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  font-feature-settings: 'liga';
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-feature-settings: "liga";
+  font-variation-settings:
+    "FILL" 0,
+    "wght" 400,
+    "GRAD" 0,
+    "opsz" 24;
 }
 
 .material-symbols-outlined.filled {
-  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-variation-settings:
+    "FILL" 1,
+    "wght" 400,
+    "GRAD" 0,
+    "opsz" 24;
 }

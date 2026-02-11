@@ -2,11 +2,22 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useState, useEffect } from "react";
 import ThemeToggle from "./ThemeToggle";
 
 export default function AuthHeader() {
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-50 w-full py-4 px-6 glass-header transition-all duration-300">
+    <header
+      className={`fixed top-0 z-50 w-full px-6 transition-all duration-300 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700 shadow-sm ${isScrolled ? "py-2" : "py-4"}`}
+    >
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         <Link href="/" className="flex items-center gap-3 group">
           <Image
@@ -20,18 +31,18 @@ export default function AuthHeader() {
             اسپاتی<span className="text-primary">کد</span>
           </span>
         </Link>
-        
+
         <div className="flex items-center gap-4">
           <ThemeToggle />
-          <Link 
-            href="/" 
+          <Link
+            href="/"
             className="hidden sm:flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-white dark:bg-surface-dark shadow-sm border border-gray-100 dark:border-gray-700 text-sm font-bold text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-all hover:scale-[1.02] active:scale-95"
           >
             صفحه اصلی
             <span className="material-symbols-outlined text-xl">home</span>
           </Link>
-          <Link 
-            href="/" 
+          <Link
+            href="/"
             className="sm:hidden flex items-center justify-center w-12 h-12 rounded-2xl bg-white dark:bg-surface-dark shadow-sm border border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:text-primary transition-all"
             aria-label="Home"
           >

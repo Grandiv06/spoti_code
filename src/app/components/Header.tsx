@@ -2,13 +2,20 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ThemeToggle from "./ThemeToggle";
 import { usePathname } from "next/navigation";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const menuItems = [
     { label: "خانه", href: "/" },
@@ -19,7 +26,7 @@ export default function Header() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full px-6 py-4 glass-header transition-all duration-300">
+    <header className={`fixed top-0 z-50 w-full px-6 transition-all duration-300 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700 shadow-sm ${isScrolled ? "py-3" : "py-6"}`}>
       <nav className="max-w-7xl mx-auto flex justify-between items-center">
         <div className="flex items-center gap-10">
           <Link href="/" className="flex items-center gap-1.5 group">
