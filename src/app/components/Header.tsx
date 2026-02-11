@@ -2,13 +2,19 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import ThemeToggle from "./ThemeToggle";
+import NavLink from "./NavLink";
 import { usePathname } from "next/navigation";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [loginMousePos, setLoginMousePos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const loginRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -16,6 +22,14 @@ export default function Header() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const handleLoginMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = loginRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    setLoginMousePos({ x, y });
+  };
 
   const menuItems = [
     { label: "خانه", href: "/" },
@@ -49,35 +63,44 @@ export default function Header() {
           </Link>
 
           {/* Desktop Menu */}
-          <div className="hidden lg:flex items-center gap-1">
-            {menuItems.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  className={`px-5 py-2 text-sm font-medium rounded-4xl transition-all ${
-                    isActive
-                      ? "bg-primary/10 text-primary font-bold"
-                      : "text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800"
-                  }`}
-                  href={item.href}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
+          <div className="hidden lg:flex items-center gap-1 ">
+            {menuItems.map((item) => (
+              <NavLink
+                key={item.href}
+                href={item.href}
+                label={item.label}
+                isActive={pathname === item.href}
+              />
+            ))}
           </div>
         </div>
 
         <div className="flex items-center gap-4">
           <ThemeToggle />
-          <Link
-            className="hidden md:flex bg-primary hover:bg-primary-hover text-white px-8 py-3 rounded-4xl text-sm font-bold transition-all shadow-xl shadow-primary/25 hover:scale-[1.02] active:scale-95 items-center gap-2"
-            href="/login"
+          <div
+            ref={loginRef}
+            onMouseMove={handleLoginMouseMove}
+            onMouseLeave={() => setLoginMousePos(null)}
+            className="hidden md:block relative"
           >
-            ورود / ثبت‌نام
-            <span className="material-symbols-outlined text-xl">login</span>
-          </Link>
+            <Link
+              href="/login"
+              className="relative flex items-center justify-center gap-2 rounded-4xl px-8 py-3 text-sm font-bold text-white transition-all duration-300 hover:scale-[1.02] active:scale-95 overflow-hidden bg-primary/85 dark:bg-primary/80 backdrop-blur-xl border border-white/25 dark:border-white/15 shadow-xl shadow-primary/25 hover:bg-primary dark:hover:bg-primary-hover"
+            >
+              {loginMousePos && (
+                <span
+                  className="pointer-events-none absolute inset-0"
+                  style={{
+                    background: `radial-gradient(circle 60px at ${loginMousePos.x}% ${loginMousePos.y}%, rgba(255,255,255,0.2) 0%, transparent 70%)`,
+                  }}
+                />
+              )}
+              <span className="relative z-10">ورود / ثبت‌نام</span>
+              <span className="material-symbols-outlined relative z-10 text-xl">
+                login
+              </span>
+            </Link>
+          </div>
 
           {/* Mobile Menu Button */}
           <button
