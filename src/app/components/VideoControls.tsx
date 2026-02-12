@@ -157,7 +157,7 @@ export default function VideoControls({
             <span className="text-sm font-bold text-white truncate">{subtitle}</span>
           </div>
 
-          <span className="text-xs bg-white/20 px-3 py-1.5 rounded-xl font-mono dir-ltr shrink-0 text-white">
+          <span dir="ltr" className="text-xs bg-white/20 px-3 py-1.5 rounded-xl font-mono shrink-0 text-white">
             {formatTime(currentTime)} / {formatTime(duration)}
           </span>
         </div>
