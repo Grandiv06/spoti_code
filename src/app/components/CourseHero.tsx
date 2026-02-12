@@ -158,7 +158,11 @@ export default function CourseHero() {
           )}
 
           {/* Play button / Close when expanded - pointer-events-none so controls below are clickable */}
-          <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+          <div
+            className={`absolute z-20 pointer-events-none ${
+              isVideoExpanded ? "top-4 left-4" : "inset-0 flex items-center justify-center"
+            }`}
+          >
             <button
               type="button"
               onClick={handleToggle}
@@ -176,9 +180,9 @@ export default function CourseHero() {
                   </div>
                 </div>
               ) : (
-                <div className="size-14 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-md border border-white/20 flex items-center justify-center transition-all duration-300 hover:scale-110">
-                  <span className="material-symbols-outlined text-3xl text-white rotate-180">
-                    expand_more
+                <div className="size-12 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-md border border-white/20 flex items-center justify-center transition-all duration-300 hover:scale-110">
+                  <span className="material-symbols-outlined text-2xl text-white">
+                    arrow_back
                   </span>
                 </div>
               )}

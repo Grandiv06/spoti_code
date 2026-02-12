@@ -120,8 +120,8 @@ export default function VideoControls({
   };
 
   return (
-    <div className="absolute bottom-4 right-4 left-4 z-30 flex flex-col gap-3">
-      {/* Progress bar - same style as overlay */}
+    <div className="absolute bottom-4 right-4 left-4 z-30 flex flex-col gap-3 dir-ltr">
+      {/* Progress bar - left to right: left = start, right = end */}
       <div
         role="progressbar"
         aria-valuenow={currentTime}
@@ -180,6 +180,7 @@ export default function VideoControls({
               step={0.05}
               value={isMuted ? 0 : volume}
               onChange={handleVolumeChange}
+              dir="ltr"
               className="w-16 h-1.5 cursor-pointer appearance-none rounded-full bg-white/20 [&::-webkit-slider-thumb]:size-2.5 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:border-0"
             />
           </div>
