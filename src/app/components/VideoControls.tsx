@@ -128,11 +128,13 @@ export default function VideoControls({
         aria-valuemin={0}
         aria-valuemax={duration}
         onClick={handleProgressClick}
-        className="h-2 w-full cursor-pointer rounded-full bg-white/20 overflow-hidden border border-white/10"
+        dir="ltr"
+        style={{ direction: "ltr" }}
+        className="h-2 w-full cursor-pointer rounded-full bg-white/20 overflow-hidden border border-white/10 flex flex-row"
       >
         <div
-          className="h-full bg-primary/80 rounded-full transition-all duration-100"
-          style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+          className="h-full bg-primary/80 rounded-full min-w-0 transition-all duration-100"
+          style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%`, flex: "none" }}
         />
       </div>
 
