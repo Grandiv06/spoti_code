@@ -16,7 +16,7 @@ export default function AuthHeader() {
 
   return (
     <header
-      className={`fixed z-50 px-6 transition-all duration-300 ease-out bg-white/95 dark:bg-[#14161c]/95 backdrop-blur-xl border-gray-200 dark:border-slate-400/25 ${
+      className={`fixed z-50 px-6 transition-all duration-300 ease-out bg-white/95 dark:bg-[#14161c] border-gray-200 dark:border-white/[0.08] ${
         isScrolled
           ? "top-4 left-8 right-8 py-2 rounded-3xl shadow-lg border"
           : "top-0 left-0 right-0 py-4 rounded-none border-b shadow-sm"
