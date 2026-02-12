@@ -6,20 +6,36 @@ import VideoControls from "./VideoControls";
 
 // ویدیوی تستی برای جلسه اول دوره
 const TEST_VIDEO_URL =
+  "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4";
+
+// ویدیوی جایگزین در صورت خطا
+const FALLBACK_VIDEO_URL =
   "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
 
 export default function CourseHero() {
   const [isVideoExpanded, setIsVideoExpanded] = useState(false);
   const [fixedHeight, setFixedHeight] = useState<number | null>(null);
+  const [videoUrl, setVideoUrl] = useState(TEST_VIDEO_URL);
+  const [videoError, setVideoError] = useState(false);
   const gridRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  const handleVideoError = () => {
+    if (videoUrl === TEST_VIDEO_URL) {
+      setVideoUrl(FALLBACK_VIDEO_URL);
+    } else {
+      setVideoError(true);
+    }
+  };
 
   const handleToggle = () => {
     if (!isVideoExpanded && gridRef.current) {
       setFixedHeight(gridRef.current.offsetHeight);
     }
-    if (!isVideoExpanded) {
-      videoRef.current?.play();
+    if (!isVideoExpanded && !videoError) {
+      videoRef.current?.play().catch(() => {
+        setVideoError(true);
+      });
     } else {
       videoRef.current?.pause();
     }
@@ -116,10 +132,10 @@ export default function CourseHero() {
               : "rounded-4xl lg:rounded-l-none lg:rounded-r-4xl m-2 lg:m-0 lg:ml-2"
           }`}
         >
-          {/* Thumbnail - hidden when video is playing */}
+          {/* Thumbnail - hidden when video is playing (or always visible on error) */}
           <div
             className={`absolute inset-0 transition-opacity duration-300 ${
-              isVideoExpanded ? "opacity-0 pointer-events-none" : "opacity-100"
+              isVideoExpanded && !videoError ? "opacity-0 pointer-events-none" : "opacity-100"
             }`}
           >
             <Image
@@ -134,25 +150,29 @@ export default function CourseHero() {
           </div>
 
           {/* Video - visible and plays when expanded */}
-          <video
-            ref={videoRef}
-            src={TEST_VIDEO_URL}
-            className={`absolute inset-0 w-full h-full object-cover object-center ${
-              isVideoExpanded ? "opacity-100 z-10" : "opacity-0 pointer-events-none"
-            }`}
-            playsInline
-            preload="metadata"
-            muted={false}
-            controls={false}
-            loop
-          />
+          {!videoError && (
+            <video
+              key={videoUrl}
+              ref={videoRef}
+              src={videoUrl}
+              onError={handleVideoError}
+              className={`absolute inset-0 w-full h-full object-cover object-center ${
+                isVideoExpanded ? "opacity-100 z-10" : "opacity-0 pointer-events-none"
+              }`}
+              playsInline
+              preload="metadata"
+              muted={false}
+              controls={false}
+              loop
+            />
+          )}
 
           {/* Custom controls - only when expanded */}
-          {isVideoExpanded && (
+          {isVideoExpanded && !videoError && (
             <div className="absolute bottom-0 right-0 left-0 z-20 p-4">
               <VideoControls
                 videoRef={videoRef}
-                videoUrl={TEST_VIDEO_URL}
+                videoUrl={videoUrl}
                 title="جلسه اول رایگان"
                 subtitle="آشنایی با اکوسیستم React"
               />
