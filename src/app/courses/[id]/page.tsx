@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import CourseCurriculum from "../../components/CourseCurriculum";
 import CourseFAQ from "../../components/CourseFAQ";
+import CourseReviews from "../../components/CourseReviews";
 
 export default function CourseDetailPage({
   params,
@@ -224,6 +225,9 @@ export default function CourseDetailPage({
                 </div>
               </div>
             </section>
+
+            {/* Reviews Section */}
+            <CourseReviews />
           </div>
 
           {/* Sidebar */}
