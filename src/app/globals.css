@@ -328,6 +328,12 @@
 }
 
 /* ویدیو فول و وسط در حالت عادی و fullscreen */
+.video-fullscreen-container video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center !important;
+}
 .video-fullscreen-container:fullscreen {
   display: flex !important;
   align-items: center !important;

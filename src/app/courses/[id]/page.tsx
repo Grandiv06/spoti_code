@@ -17,7 +17,6 @@ export default function CourseDetailPage({
       <div className="fixed bottom-20 right-20 w-96 h-96 bg-blue-300/20 rounded-full blur-3xl -z-10"></div>
 
       <main className="max-w-[1440px] mx-auto px-4 md:px-12 py-12 relative z-10">
-        {/* Hero Section */}
         <CourseHero />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">

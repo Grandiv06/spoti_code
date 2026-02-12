@@ -33,18 +33,17 @@ export default function CourseHero() {
       <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent pointer-events-none" />
       <div
         ref={gridRef}
-        className="relative grid grid-cols-1 grid-rows-[auto_auto] lg:grid-cols-[var(--hero-col1,1fr)_1fr] lg:grid-rows-1 rounded-4xl bg-white/20 dark:bg-white/5 overflow-hidden backdrop-blur-sm min-h-[500px] lg:min-h-[480px] transition-[grid-template-columns] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]"
-        style={
-          {
-            "--hero-col1": isVideoExpanded ? "0fr" : "1fr",
-            ...(fixedHeight ? { height: fixedHeight } : {}),
-          } as React.CSSProperties
-        }
+        className={`relative grid rounded-4xl bg-white/20 dark:bg-white/5 overflow-hidden backdrop-blur-sm min-h-[500px] lg:min-h-[480px] transition-[grid-template-columns] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+          isVideoExpanded
+            ? "grid-cols-1 grid-rows-1"
+            : "grid-cols-1 grid-rows-[auto_auto] lg:grid-cols-[1fr_1fr] lg:grid-rows-1"
+        }`}
+        style={fixedHeight ? { height: fixedHeight } : undefined}
       >
-        {/* Course Info - collapses when video expands */}
+        {/* Course Info - hidden when video plays so video expands to full width */}
         <div
           className={`min-w-0 overflow-hidden p-8 md:p-12 lg:p-16 flex flex-col justify-center relative z-10 row-start-2 lg:row-start-1 transition-opacity duration-500 ease-out ${
-            isVideoExpanded ? "opacity-0 pointer-events-none" : "opacity-100"
+            isVideoExpanded ? "hidden" : "opacity-100"
           }`}
         >
           <div className="flex flex-wrap items-center gap-3 mb-8">
