@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function LoginPage() {
   return (
-    <div className="bg-auth-modern min-h-screen flex flex-col relative overflow-x-hidden text-gray-800 dark:text-gray-200">
+    <div className="bg-auth-modern h-full min-h-0 flex flex-col relative overflow-hidden text-gray-800 dark:text-gray-200">
       {/* Blobs */}
       <div className="blob-auth bg-green-200/60 dark:bg-green-900/30 w-96 h-96 top-0 -right-20 animate-pulse" />
       <div className="blob-auth bg-green-300/40 dark:bg-green-800/20 w-[30rem] h-[30rem] bottom-0 -left-20" />

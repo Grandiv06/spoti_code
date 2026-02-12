@@ -14,12 +14,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     pathname?.startsWith("/register/");
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div
+      className={`flex flex-col ${
+        isAuthPage ? "h-screen overflow-hidden" : "min-h-screen"
+      }`}
+    >
       {isAuthPage ? <AuthHeader /> : <Header />}
-      <div className={`flex-1 ${isAuthPage ? "" : "pt-20 md:pt-24 lg:pt-24"}`}>
+      <div
+        className={`flex-1 min-h-0 overflow-hidden ${
+          isAuthPage ? "" : "pt-20 md:pt-24 lg:pt-24"
+        }`}
+      >
         {children}
       </div>
-      <Footer />
+      {!isAuthPage && <Footer />}
     </div>
   );
 }
