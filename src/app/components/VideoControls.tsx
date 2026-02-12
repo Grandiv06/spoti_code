@@ -90,7 +90,7 @@ export default function VideoControls({
   };
 
   const toggleFullscreen = () => {
-    const container = videoRef.current?.parentElement?.parentElement;
+    const container = videoRef.current?.parentElement;
     if (!container) return;
     if (!document.fullscreenElement) {
       container.requestFullscreen?.();

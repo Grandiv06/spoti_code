@@ -326,3 +326,19 @@
     "GRAD" 0,
     "opsz" 24;
 }
+
+/* ویدیو فول و وسط در حالت عادی و fullscreen */
+.video-fullscreen-container:fullscreen {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: black;
+}
+.video-fullscreen-container:fullscreen video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+  object-position: center;
+}

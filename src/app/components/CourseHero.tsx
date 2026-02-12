@@ -27,7 +27,9 @@ export default function CourseHero() {
   };
 
   return (
-    <div className="glass-panel rounded-5xl p-2 mb-16 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1),0_10px_20px_-5px_rgba(0,0,0,0.04)] relative overflow-hidden group">
+    <div className={`glass-panel rounded-5xl mb-16 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1),0_10px_20px_-5px_rgba(0,0,0,0.04)] relative overflow-hidden group transition-all duration-700 ${
+      isVideoExpanded ? "p-0" : "p-2"
+    }`}>
       <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent pointer-events-none" />
       <div
         ref={gridRef}
@@ -108,7 +110,7 @@ export default function CourseHero() {
 
         {/* Video Section - expands to full width on play */}
         <div
-          className={`relative cursor-pointer overflow-hidden min-h-[400px] lg:min-h-0 row-start-1 group/video transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+          className={`video-fullscreen-container relative cursor-pointer overflow-hidden min-h-[400px] lg:min-h-0 row-start-1 group/video transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] w-full min-w-0 flex items-center justify-center bg-black ${
             isVideoExpanded
               ? "rounded-4xl m-0"
               : "rounded-4xl lg:rounded-l-none lg:rounded-r-4xl m-2 lg:m-0 lg:ml-2"
@@ -135,7 +137,7 @@ export default function CourseHero() {
           <video
             ref={videoRef}
             src={TEST_VIDEO_URL}
-            className={`absolute inset-0 w-full h-full object-cover ${
+            className={`absolute inset-0 w-full h-full object-cover object-center ${
               isVideoExpanded ? "opacity-100 z-10" : "opacity-0 pointer-events-none"
             }`}
             playsInline

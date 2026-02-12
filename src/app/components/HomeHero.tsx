@@ -138,7 +138,7 @@ export default function HomeHero() {
           }`}
         >
           <div
-            className={`w-full bg-black overflow-hidden relative ${
+            className={`video-fullscreen-container w-full bg-black overflow-hidden relative ${
               isVideoExpanded ? "h-full rounded-4xl" : "aspect-video"
             }`}
           >
@@ -164,7 +164,7 @@ export default function HomeHero() {
             <video
               ref={videoRef}
               src={TEST_VIDEO_URL}
-              className={`absolute inset-0 w-full h-full object-cover ${
+              className={`absolute inset-0 w-full h-full object-cover object-center ${
                 isVideoExpanded ? "opacity-100 z-10" : "opacity-0 pointer-events-none"
               }`}
               playsInline
