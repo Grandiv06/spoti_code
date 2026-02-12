@@ -2,15 +2,26 @@
 
 import Image from "next/image";
 import { useRef, useState } from "react";
+import VideoControls from "./VideoControls";
+
+// ویدیوی تستی برای جلسه اول دوره
+const TEST_VIDEO_URL =
+  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
 
 export default function CourseHero() {
   const [isVideoExpanded, setIsVideoExpanded] = useState(false);
   const [fixedHeight, setFixedHeight] = useState<number | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const handleToggle = () => {
     if (!isVideoExpanded && gridRef.current) {
       setFixedHeight(gridRef.current.offsetHeight);
+    }
+    if (!isVideoExpanded) {
+      videoRef.current?.play();
+    } else {
+      videoRef.current?.pause();
     }
     setIsVideoExpanded((prev) => !prev);
   };
@@ -103,22 +114,55 @@ export default function CourseHero() {
               : "rounded-4xl lg:rounded-l-none lg:rounded-r-4xl m-2 lg:m-0 lg:ml-2"
           }`}
         >
-          <Image
-            className="w-full h-full object-cover transition-transform duration-1000 group-hover/video:scale-105"
-            alt="Course Preview"
-            src="/images/course3.jpg"
-            fill
-            style={{ objectFit: "cover" }}
-          />
-          <div className="absolute inset-0 bg-emerald-900/20 dark:bg-emerald-900/40 mix-blend-multiply transition-colors group-hover/video:bg-emerald-900/10" />
-          <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/80 via-transparent to-transparent opacity-60" />
+          {/* Thumbnail - hidden when video is playing */}
+          <div
+            className={`absolute inset-0 transition-opacity duration-300 ${
+              isVideoExpanded ? "opacity-0 pointer-events-none" : "opacity-100"
+            }`}
+          >
+            <Image
+              className="w-full h-full object-cover transition-transform duration-1000 group-hover/video:scale-105"
+              alt="Course Preview"
+              src="/images/course3.jpg"
+              fill
+              style={{ objectFit: "cover" }}
+            />
+            <div className="absolute inset-0 bg-emerald-900/20 dark:bg-emerald-900/40 mix-blend-multiply transition-colors group-hover/video:bg-emerald-900/10" />
+            <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/80 via-transparent to-transparent opacity-60" />
+          </div>
 
-          {/* Play button / Close when expanded */}
-          <div className="absolute inset-0 flex items-center justify-center z-20">
+          {/* Video - visible and plays when expanded */}
+          <video
+            ref={videoRef}
+            src={TEST_VIDEO_URL}
+            className={`absolute inset-0 w-full h-full object-cover ${
+              isVideoExpanded ? "opacity-100 z-10" : "opacity-0 pointer-events-none"
+            }`}
+            playsInline
+            preload="metadata"
+            muted={false}
+            controls={false}
+            loop
+          />
+
+          {/* Custom controls - only when expanded */}
+          {isVideoExpanded && (
+            <div className="absolute bottom-0 right-0 left-0 z-20 p-4">
+              <VideoControls
+                videoRef={videoRef}
+                videoUrl={TEST_VIDEO_URL}
+                title="جلسه اول رایگان"
+                subtitle="آشنایی با اکوسیستم React"
+              />
+            </div>
+          )}
+
+          {/* Play button / Close when expanded - pointer-events-none so controls below are clickable */}
+          <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
             <button
               type="button"
               onClick={handleToggle}
-              className="relative focus:outline-none focus:ring-0"
+              className="relative focus:outline-none focus:ring-0 pointer-events-auto"
               aria-label={isVideoExpanded ? "بستن ویدیو" : "پخش ویدیو"}
             >
               {!isVideoExpanded ? (
@@ -141,18 +185,20 @@ export default function CourseHero() {
             </button>
           </div>
 
-          {/* Video info overlay */}
-          <div className="absolute bottom-8 right-8 left-8 z-20">
-            <div className="bg-black/40 backdrop-blur-md rounded-3xl p-5 border border-white/10 flex items-center justify-between text-white shadow-lg">
-              <div className="flex flex-col">
-                <span className="text-xs text-white/70 mb-1">جلسه اول رایگان</span>
-                <span className="font-bold text-base">آشنایی با اکوسیستم React</span>
+          {/* Video info overlay - only when collapsed */}
+          {!isVideoExpanded && (
+            <div className="absolute bottom-8 right-8 left-8 z-20">
+              <div className="bg-black/40 backdrop-blur-md rounded-3xl p-5 border border-white/10 flex items-center justify-between text-white shadow-lg">
+                <div className="flex flex-col">
+                  <span className="text-xs text-white/70 mb-1">جلسه اول رایگان</span>
+                  <span className="font-bold text-base">آشنایی با اکوسیستم React</span>
+                </div>
+                <span className="text-xs bg-white/20 px-3 py-1.5 rounded-xl font-mono dir-ltr">
+                  05:34
+                </span>
               </div>
-              <span className="text-xs bg-white/20 px-3 py-1.5 rounded-xl font-mono dir-ltr">
-                05:34
-              </span>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
