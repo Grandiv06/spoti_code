@@ -81,12 +81,6 @@ export default function LoginPage() {
           </div>
         </div>
       </main>
-
-      <footer className="relative z-10 py-6 text-center">
-        <p className="text-gray-400 text-xs font-medium dir-ltr">
-          © 2026 SpotiCode Academy
-        </p>
-      </footer>
     </div>
   );
 }

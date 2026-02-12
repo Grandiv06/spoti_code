@@ -239,20 +239,6 @@ export default function FrontendRoadmap() {
           </div>
         </div>
       </section>
-
-      <footer className="py-12 text-center text-text-muted bg-white dark:bg-surface-dark border-t border-emerald-50 dark:border-gray-800 text-sm relative z-10">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-            <p className="font-medium">تمامی حقوق محفوظ است © ۱۴۰۳ فرانت‌اند مستر</p>
-          </div>
-          <div className="flex gap-8">
-            <Link className="hover:text-primary-dark dark:hover:text-primary transition-colors font-medium" href="#">قوانین و مقررات</Link>
-            <Link className="hover:text-primary-dark dark:hover:text-primary transition-colors font-medium" href="#">پشتیبانی</Link>
-            <Link className="hover:text-primary-dark dark:hover:text-primary transition-colors font-medium" href="#">حریم خصوصی</Link>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

@@ -106,12 +106,6 @@ export default function RegisterPage() {
           </div>
         </div>
       </main>
-
-      <footer className="relative z-10 py-6 text-center">
-        <p className="text-gray-400 text-xs font-medium dir-ltr">
-          © 2024 Programming Academy
-        </p>
-      </footer>
     </div>
   );
 }

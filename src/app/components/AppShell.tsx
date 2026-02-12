@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import Header from "./Header";
 import AuthHeader from "./AuthHeader";
+import Footer from "./Footer";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -15,9 +16,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col">
       {isAuthPage ? <AuthHeader /> : <Header />}
-      <div className={isAuthPage ? "" : "pt-20 md:pt-24 lg:pt-24"}>
+      <div className={`flex-1 ${isAuthPage ? "" : "pt-20 md:pt-24 lg:pt-24"}`}>
         {children}
       </div>
+      <Footer />
     </div>
   );
 }
