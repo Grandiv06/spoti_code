@@ -3,6 +3,7 @@ import CourseCurriculum from "../../components/CourseCurriculum";
 import CourseFAQ from "../../components/CourseFAQ";
 import CourseReviews from "../../components/CourseReviews";
 import CourseHero from "../../components/CourseHero";
+import AddToCartButton from "../../components/AddToCartButton";
 
 export default function CourseDetailPage({
   params,
@@ -138,13 +139,15 @@ export default function CourseDetailPage({
                       ۲۰٪ تخفیف محدود
                     </span>
                   </div>
-                  <button className="w-full bg-gradient-to-r from-primary to-emerald-400 text-white text-xl font-black py-6 rounded-[2rem] shadow-[0_0_20px_rgba(34,197,94,0.5)] hover:shadow-[0_0_40px_rgba(34,197,94,0.8)] hover:-translate-y-1 active:scale-95 transition-all flex items-center justify-center gap-3 group/btn border border-white/20 relative overflow-hidden">
-                    <span className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300"></span>
-                    <span className="material-symbols-outlined text-[28px] relative z-10">
-                      local_mall
-                    </span>
-                    <span className="relative z-10">ثبت‌نام در دوره</span>
-                  </button>
+                  <AddToCartButton
+                    course={{
+                      id: params.id,
+                      title: "دوره جامع React و Next.js",
+                      price: "4,500,000",
+                      image: "/images/react-green.png",
+                      instructor: "امیررضا رضایی",
+                    }}
+                  />
                   <p className="text-center text-xs font-bold text-gray-500 dark:text-gray-400 mt-5 flex items-center justify-center gap-1">
                     <span className="material-symbols-outlined text-sm">
                       verified_user

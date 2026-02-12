@@ -5,6 +5,8 @@ import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import ThemeWrapper from "./components/ThemeWrapper";
 import AppShell from "./components/AppShell";
+import { CartProvider } from "../context/CartContext";
+import CartSidebar from "./components/CartSidebar";
 
 export const metadata: Metadata = {
   title: "آکادمی کد - آموزش برنامه‌نویسی",
@@ -54,8 +56,11 @@ export default function RootLayout({
           storageKey="spoticode-theme"
         >
           <ThemeWrapper>
-          <AppShell>{children}</AppShell>
-        </ThemeWrapper>
+            <CartProvider>
+              <AppShell>{children}</AppShell>
+              <CartSidebar />
+            </CartProvider>
+          </ThemeWrapper>
         </ThemeProvider>
       </body>
     </html>

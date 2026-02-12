@@ -4,10 +4,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import ThemeToggle from "./ThemeToggle";
+import { useCart } from "../../context/CartContext";
 import NavLink from "./NavLink";
 import { usePathname } from "next/navigation";
 
 export default function Header() {
+  const { cart, toggleCart } = useCart();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [loginMousePos, setLoginMousePos] = useState<{
@@ -101,6 +103,20 @@ export default function Header() {
               </span>
             </Link>
           </div>
+
+          <button
+            onClick={toggleCart}
+            className="relative p-3 rounded-2xl bg-white dark:bg-surface-dark shadow-sm border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"
+          >
+            <span className="material-symbols-outlined text-gray-700 dark:text-gray-200 group-hover:text-primary transition-colors">
+              shopping_cart
+            </span>
+            {cart.length > 0 && (
+              <span className="absolute -top-1 -right-1 size-5 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white dark:border-[#14161c]">
+                {cart.length}
+              </span>
+            )}
+          </button>
 
           {/* Mobile Menu Button */}
           <button
