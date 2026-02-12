@@ -16,23 +16,23 @@ export default function AuthHeader() {
 
   return (
     <header
-      className={`fixed z-50 px-6 transition-all duration-300 ease-out bg-white/95 dark:bg-[#14161c] border-gray-200 dark:border-white/[0.08] ${
+      className={`fixed z-50 px-6 transition-all duration-300 ease-out bg-white/10 dark:bg-[#14161c]/10 backdrop-blur-[8px] border-gray-200/10 dark:border-slate-400/10 ${
         isScrolled
-          ? "top-4 left-8 right-8 py-2 rounded-3xl shadow-lg border"
-          : "top-0 left-0 right-0 py-4 rounded-none border-b shadow-sm"
+          ? "top-4 left-44 right-44 py-3 rounded-4xl shadow-lg border"
+          : "top-0 left-0 right-0 py-6 rounded-none border-b shadow-sm"
       }`}
     >
-      <div className="max-w-7xl mx-auto flex justify-between items-center">
-        <Link href="/" className="flex items-center gap-3 group">
+      <nav className="max-w-7xl mx-auto flex justify-between items-center">
+        <Link href="/" className="flex items-center gap-1.5 group">
           <Image
             src="/favicon.svg"
             alt="اسپاتی‌کد"
-            width={40}
-            height={40}
-            className="w-10 h-10 group-hover:scale-110 transition-transform"
+            width={15}
+            height={15}
+            className="w-8 h-8 group-hover:-rotate-45 transition-transform"
           />
-          <span className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white">
-            اسپاتی<span className="text-primary">کد</span>
+          <span className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white group-hover:scale-105 transition-transform duration-300">
+            <span className="text-primary-dark/80">اسپاتی</span> کد
           </span>
         </Link>
 
@@ -40,7 +40,7 @@ export default function AuthHeader() {
           <ThemeToggle />
           <Link
             href="/"
-            className="hidden sm:flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-white dark:bg-surface-dark shadow-sm border border-gray-100 dark:border-gray-700 text-sm font-bold text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-all hover:scale-[1.02] active:scale-95"
+            className="hidden sm:flex items-center gap-2 px-6 py-3 rounded-4xl bg-white dark:bg-surface-dark shadow-sm border border-gray-100 dark:border-gray-700 text-sm font-bold text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-all hover:scale-[1.02] active:scale-95"
           >
             صفحه اصلی
             <span className="material-symbols-outlined text-xl">home</span>
@@ -53,7 +53,7 @@ export default function AuthHeader() {
             <span className="material-symbols-outlined text-xl">home</span>
           </Link>
         </div>
-      </div>
+      </nav>
     </header>
   );
 }

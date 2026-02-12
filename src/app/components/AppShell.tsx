@@ -22,7 +22,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {isAuthPage ? <AuthHeader /> : <Header />}
       <div
         className={`flex-1 min-h-0 overflow-hidden ${
-          isAuthPage ? "" : "pt-20 md:pt-24 lg:pt-24"
+          isAuthPage ? "pt-24 md:pt-28 lg:pt-28" : "pt-20 md:pt-24 lg:pt-24"
         }`}
       >
         {children}
