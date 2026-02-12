@@ -8,6 +8,18 @@ export default function CartSidebar() {
   const { cart, isCartOpen, removeFromCart, toggleCart } = useCart();
   const sidebarRef = useRef<HTMLDivElement>(null);
 
+  // Prevent body scroll when cart is open
+  useEffect(() => {
+    if (isCartOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isCartOpen]);
+
   // Close sidebar when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
