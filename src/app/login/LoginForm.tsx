@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { InputOTP, REGEXP_ONLY_DIGITS } from "@/components/ui/input-otp";
 
@@ -8,6 +9,8 @@ export default function LoginForm() {
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
+
+  const router = useRouter();
 
   const handlePhoneSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,6 +27,7 @@ export default function LoginForm() {
     e.preventDefault();
     if (otp.length === 6) {
       // TODO: verify OTP
+      router.push("/panel");
     }
   };
 

@@ -49,7 +49,7 @@ export default function CourseHero() {
       <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent pointer-events-none" />
       <div
         ref={gridRef}
-        className="relative grid grid-cols-1 grid-rows-[auto_auto] lg:grid-cols-[minmax(0,var(--hero-col1,1fr))_1fr] lg:grid-rows-1 rounded-4xl bg-white/20 dark:bg-white/5 overflow-hidden backdrop-blur-sm min-h-[500px] lg:min-h-[480px] transition-[grid-template-columns] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]"
+        className="relative grid grid-cols-1 grid-rows-[auto_auto] lg:grid-cols-[minmax(0,var(--hero-col1,1fr))_1fr] lg:grid-rows-1 rounded-4xl bg-white/20 dark:bg-white/[0.03] overflow-hidden backdrop-blur-sm min-h-[500px] lg:min-h-[480px] transition-[grid-template-columns] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]"
         style={
           {
             "--hero-col1": isVideoExpanded ? "0fr" : "1fr",
