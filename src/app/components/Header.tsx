@@ -50,8 +50,7 @@ export default function Header() {
     { label: "خانه", href: "/" },
     { label: "دوره‌ها", href: "/courses" },
     { label: "مسیر یادگیری", href: "/learning-path" },
-    { label: "درباره ما", href: "/about" },
-    { label: "ارتباط با ما", href: "/contact" },
+    { label: "اسپاتی هاب", href: "/social" },
   ];
 
   return (
@@ -84,7 +83,7 @@ export default function Header() {
                 key={item.href}
                 href={item.href}
                 label={item.label}
-                isActive={pathname === item.href}
+                isActive={item.href === "/social" ? pathname?.startsWith("/social") : pathname === item.href}
               />
             ))}
           </div>
@@ -161,7 +160,7 @@ export default function Header() {
           <div className="absolute top-full left-0 right-0 p-4 animate-in slide-in-from-top-2 fade-in duration-200">
             <div className="bg-white dark:bg-surface-dark rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700 p-2 flex flex-col gap-1">
               {menuItems.map((item) => {
-                const isActive = pathname === item.href;
+                const isActive = item.href === "/social" ? pathname?.startsWith("/social") : pathname === item.href;
                 return (
                   <Link
                     key={item.href}
