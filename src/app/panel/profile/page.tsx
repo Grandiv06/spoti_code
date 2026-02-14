@@ -111,7 +111,7 @@ export default function PanelProfilePage() {
               />
             </div>
             <div className="flex gap-2 mb-2">
-              <SocialButton variant="outline" onClick={() => router.push("/social/profile/edit")}>
+              <SocialButton variant="outline" onClick={() => router.push("/social/profile/edit?from=panel")}>
                 ویرایش پروفایل
               </SocialButton>
             </div>

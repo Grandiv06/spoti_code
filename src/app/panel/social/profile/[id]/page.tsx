@@ -42,7 +42,13 @@ export default function PanelProfilePage(props: PageProps) {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="relative bg-white dark:bg-gray-900 rounded-3xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-800">
-        <div className="h-48 bg-gradient-to-r from-green-400 to-emerald-600 opacity-90" />
+        <div className="relative h-48 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-green-50/90 to-teal-50/70 dark:bg-[linear-gradient(135deg,#0a0a0a_0%,#0d1210_25%,#051008_50%,#0a0f0c_75%,#080c0a_100%)]" />
+          <div
+            className="absolute inset-0 bg-repeat bg-[url('/patterns/spoticode-banner-pattern-light.svg')] dark:bg-[url('/patterns/spoticode-banner-pattern.svg')]"
+            style={{ backgroundSize: "480px 480px" }}
+          />
+        </div>
         <div className="px-8 pb-8">
           <div className="relative flex justify-between items-end -mt-12 mb-6">
             <div className="border-4 border-white dark:border-gray-900 rounded-full bg-white dark:bg-gray-900">

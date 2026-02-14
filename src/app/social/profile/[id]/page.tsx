@@ -74,18 +74,16 @@ export default function ProfilePage(props: PageProps) {
        <div className="relative bg-white dark:bg-[#1c1e26] rounded-3xl overflow-hidden shadow-sm border border-gray-100 dark:border-white/[0.06]">
            {/* Banner */}
            <div
-             className={cn(
-               "group/banner relative h-48 overflow-hidden transition-colors duration-300",
-               !isCurrentUser && !settings.bannerImage && "bg-gradient-to-r from-green-400 to-emerald-600 opacity-90"
-             )}
-             style={isCurrentUser && !settings.useDefaultBanner && settings.bannerImage
+             className="group/banner relative h-48 overflow-hidden transition-colors duration-300"
+             style={isCurrentUser && settings.bannerImage
                ? { backgroundImage: `url(${settings.bannerImage})`, backgroundSize: "cover", backgroundPosition: "center" }
                : isCurrentUser && !settings.useDefaultBanner && !settings.bannerImage
                ? { backgroundColor: settings.bannerColor }
                : undefined
              }
            >
-             {isCurrentUser && settings.useDefaultBanner && !settings.bannerImage && (
+             {/* Default banner: for current user (when default) OR for all other users */}
+             {((isCurrentUser && settings.useDefaultBanner && !settings.bannerImage) || !isCurrentUser) && (
                <>
                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-green-50/90 to-teal-50/70 dark:bg-[linear-gradient(135deg,#0a0a0a_0%,#0d1210_25%,#051008_50%,#0a0f0c_75%,#080c0a_100%)]" />
                  <div

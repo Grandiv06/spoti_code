@@ -126,23 +126,31 @@ export default function Header() {
             onMouseLeave={() => setLoginMousePos(null)}
             className="hidden md:block relative"
           >
-            <Link
-              href={isAuthenticated ? "/panel" : "/login"}
-              className="relative flex items-center justify-center gap-2 rounded-4xl px-8 py-3 text-sm font-bold text-white transition-all duration-300 hover:scale-[1.02] active:scale-95 overflow-hidden bg-primary/85 dark:bg-primary/80 backdrop-blur-xl border border-white/25 dark:border-white/15 shadow-xl shadow-primary/25 hover:bg-primary dark:hover:bg-primary-hover"
-            >
-              {loginMousePos && (
-                <span
-                  className="pointer-events-none absolute inset-0"
-                  style={{
-                    background: `radial-gradient(circle 60px at ${loginMousePos.x}% ${loginMousePos.y}%, rgba(255,255,255,0.2) 0%, transparent 70%)`,
-                  }}
-                />
-              )}
-              <span className="relative z-10">{isAuthenticated ? "پنل کاربری" : "ورود / ثبت‌نام"}</span>
-              <span className="material-symbols-outlined relative z-10 text-xl">
-                {isAuthenticated ? "dashboard" : "login"}
-              </span>
-            </Link>
+            {isAuthenticated ? (
+              <Link
+                href="/panel"
+                title="پنل کاربری"
+                className="relative flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/20 dark:bg-[#14161c]/10 backdrop-blur-xl border border-white/15 dark:border-white/[0.04] hover:bg-white/30 dark:hover:bg-[#14161c]/20 transition-colors duration-300 overflow-visible text-gray-700 dark:text-gray-300 hover:text-primary"
+              >
+                <span className="material-symbols-outlined text-xl">person</span>
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="relative flex items-center justify-center gap-2 rounded-4xl px-8 py-3 text-sm font-bold text-white transition-all duration-300 hover:scale-[1.02] active:scale-95 overflow-hidden bg-primary/85 dark:bg-primary/80 backdrop-blur-xl border border-white/25 dark:border-white/15 shadow-xl shadow-primary/25 hover:bg-primary dark:hover:bg-primary-hover"
+              >
+                {loginMousePos && (
+                  <span
+                    className="pointer-events-none absolute inset-0"
+                    style={{
+                      background: `radial-gradient(circle 60px at ${loginMousePos.x}% ${loginMousePos.y}%, rgba(255,255,255,0.2) 0%, transparent 70%)`,
+                    }}
+                  />
+                )}
+                <span className="relative z-10">ورود / ثبت‌نام</span>
+                <span className="material-symbols-outlined relative z-10 text-xl">login</span>
+              </Link>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -183,11 +191,22 @@ export default function Header() {
               })}
               <div className="h-px bg-gray-100 dark:bg-gray-700 my-1 mx-2"></div>
               <Link
-                className="px-6 py-4 text-sm font-bold bg-primary text-white text-center rounded-2xl shadow-lg shadow-primary/20 hover:bg-primary-hover transition-colors"
+                className={`px-6 py-4 text-sm font-bold rounded-2xl transition-all flex items-center justify-center gap-2 ${
+                  isAuthenticated
+                    ? "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    : "bg-primary text-white hover:bg-primary-hover shadow-lg shadow-primary/20"
+                }`}
                 href={isAuthenticated ? "/panel" : "/login"}
                 onClick={() => setIsMenuOpen(false)}
               >
-                {isAuthenticated ? "پنل کاربری" : "ورود / ثبت‌نام"}
+                {isAuthenticated ? (
+                  <>
+                    <span className="material-symbols-outlined text-lg">person</span>
+                    پنل کاربری
+                  </>
+                ) : (
+                  "ورود / ثبت‌نام"
+                )}
               </Link>
             </div>
           </div>

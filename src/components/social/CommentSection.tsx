@@ -43,7 +43,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, depth = 0 }) => {
       <Avatar src={comment.author.avatarUrl} alt={comment.author.displayName} size="sm" />
       
       <div className="flex-1 space-y-2">
-        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl rounded-tr-none p-4 border border-gray-100 dark:border-gray-800">
+        <div className="bg-gray-50 dark:bg-[#16181e] rounded-2xl rounded-tr-none p-4 border border-gray-100 dark:border-white/[0.06]">
            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                  <span className="font-bold text-sm text-gray-900 dark:text-gray-100">{comment.author.displayName}</span>
@@ -83,7 +83,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, depth = 0 }) => {
                   value={replyContent}
                   onChange={(e) => setReplyContent(e.target.value)}
                   placeholder={`پاسخ به ${comment.author.displayName}...`}
-                  className="flex-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-green-500"
+                  className="flex-1 bg-white dark:bg-[#16181e] border border-gray-200 dark:border-white/[0.06] rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-green-500"
                   autoFocus
                 />
                 <SocialButton size="sm" variant="primary" onClick={() => { setIsReplying(false); setReplyContent(''); }}>
@@ -94,7 +94,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, depth = 0 }) => {
 
         {/* Nested Replies */}
         {comment.replies && comment.replies.length > 0 && (
-          <div className="pr-4 border-r-2 border-gray-100 dark:border-gray-800 space-y-4">
+          <div className="pr-4 border-r-2 border-gray-100 dark:border-white/[0.06] space-y-4">
              {comment.replies.map(reply => (
                <CommentItem key={reply.id} comment={reply} depth={depth + 1} />
              ))}
@@ -125,7 +125,7 @@ export const CommentSection: React.FC<{ comments: SocialComment[] }> = ({ commen
         <div className="space-y-8">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                 دیدگاه‌ها
-                <span className="text-sm font-normal text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">{comments.length}</span>
+                <span className="text-sm font-normal text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-[#16181e] px-2 py-0.5 rounded-full">{comments.length}</span>
             </h3>
 
             {/* Comment Form */}
@@ -136,7 +136,7 @@ export const CommentSection: React.FC<{ comments: SocialComment[] }> = ({ commen
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     placeholder={currentUser ? "دیدگاه خود را بنویسید..." : "برای نوشتن دیدگاه وارد شوید"}
-                    className="w-full bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 min-h-[100px] text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 resize-none transition-all"
+                    className="w-full bg-gray-50 dark:bg-[#16181e] border border-gray-200 dark:border-white/[0.06] rounded-2xl p-4 min-h-[100px] text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 resize-none transition-all"
                     disabled={!currentUser}
                   />
                   <div className="absolute bottom-3 left-3">

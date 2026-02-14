@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useSocial } from "@/context/SocialContext";
 import { useProfileSettings } from "@/context/ProfileSettingsContext";
@@ -22,7 +22,9 @@ const PRESET_COLORS = [
 
 export default function ProfileEditPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const bannerInputRef = useRef<HTMLInputElement>(null);
+  const fromPanel = searchParams.get("from") === "panel";
   const { isAuthenticated, user: authUser } = useAuth();
   const { currentUser } = useSocial();
   const { settings, updateSettings } = useProfileSettings();
@@ -241,7 +243,7 @@ export default function ProfileEditPage() {
           <div className="flex gap-3 pt-4">
             <SocialButton
               variant="primary"
-              onClick={() => router.push(`/social/profile/${profileId}`)}
+              onClick={() => router.push(fromPanel ? "/panel/profile" : `/social/profile/${profileId}`)}
             >
               ذخیره و مشاهده پروفایل
             </SocialButton>

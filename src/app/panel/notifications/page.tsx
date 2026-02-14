@@ -25,7 +25,9 @@ export default function PanelNotificationsPage() {
           >
             بازگشت
           </SocialButton>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">اعلان‌ها</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            اعلان‌ها
+          </h1>
           {unreadCount > 0 && (
             <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
               {unreadCount} جدید
@@ -48,11 +50,16 @@ export default function PanelNotificationsPage() {
       <div className="space-y-2">
         {notifications && notifications.length > 0 ? (
           notifications.map((notification) => (
-            <NotificationItem key={notification.id} notification={notification} />
+            <NotificationItem
+              key={notification.id}
+              notification={notification}
+            />
           ))
         ) : (
           <div className="text-center py-20">
-            <p className="text-gray-500 dark:text-gray-400">هیچ اعلان جدیدی ندارید.</p>
+            <p className="text-gray-500 dark:text-gray-400">
+              هیچ اعلان جدیدی ندارید.
+            </p>
           </div>
         )}
       </div>
