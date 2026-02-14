@@ -104,7 +104,10 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const getPostById = (id: string) => posts.find(p => p.id === id);
-  const getUserById = (id: string) => users.find(u => u.id === id);
+  const getUserById = (id: string) => {
+    if (currentUser && currentUser.id === id) return currentUser;
+    return users.find(u => u.id === id);
+  };
   const getUserPosts = (userId: string) => posts.filter(p => p.authorId === userId);
 
   const createPost = (newPostData: Omit<SocialPost, 'id' | 'author' | 'createdAt' | 'updatedAt' | 'viewsCount' | 'likesCount' | 'commentsCount'>) => {

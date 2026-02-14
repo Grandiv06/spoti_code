@@ -3,12 +3,12 @@
 import React, { use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSocial } from '@/context/SocialContext';
+import { useProfileSettings } from '@/context/ProfileSettingsContext';
 import { Avatar } from '@/components/social/Avatar';
 import { SocialButton } from '@/components/social/SocialButton';
 import { PostCard } from '@/components/social/PostCard';
-import { MapPin, Link as LinkIcon, Calendar, Users, Star, ArrowRight } from 'lucide-react';
+import { MapPin, Link as LinkIcon, Calendar, ArrowRight, Pencil, Camera, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { SocialUser } from '@/types/social';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -33,10 +33,30 @@ export default function ProfilePage(props: PageProps) {
   }
 
   const isCurrentUser = currentUser?.id === user.id;
+  const { settings, updateSettings } = useProfileSettings();
 
   const handleFollow = () => {
       if (!currentUser) return alert("برای دنبال کردن باید وارد شوید");
       followUser(user.id);
+  };
+
+  const bannerInputRef = React.useRef<HTMLInputElement>(null);
+  const avatarInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'banner' | 'avatar') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      if (type === 'banner') {
+        updateSettings({ bannerImage: result });
+      } else {
+        updateSettings({ avatarImage: result });
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -44,16 +64,63 @@ export default function ProfilePage(props: PageProps) {
        {/* Profile Header Card */}
        <div className="relative bg-white dark:bg-[#1c1e26] rounded-3xl overflow-hidden shadow-sm border border-gray-100 dark:border-white/[0.06]">
            {/* Banner */}
-           <div className="h-48 bg-gradient-to-r from-green-400 to-emerald-600 opacity-90" />
+           <div
+             className={cn(
+               "group/banner relative h-48 transition-colors duration-300 bg-cover bg-center",
+               !isCurrentUser && "bg-gradient-to-r from-green-400 to-emerald-600 opacity-90"
+             )}
+             style={{ 
+               backgroundColor: isCurrentUser ? settings.bannerColor : undefined,
+               backgroundImage: isCurrentUser && settings.bannerImage ? `url(${settings.bannerImage})` : undefined
+             }}
+           >
+             <input 
+               type="file" 
+               ref={bannerInputRef} 
+               className="hidden" 
+               accept="image/*"
+               onChange={(e) => handleImageUpload(e, 'banner')}
+             />
+             {isCurrentUser && (
+               <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/banner:bg-black/20 transition-colors duration-200">
+                 <button
+                   onClick={() => bannerInputRef.current?.click()}
+                   className="opacity-0 group-hover/banner:opacity-100 transition-opacity duration-200 p-2.5 rounded-full bg-white/90 dark:bg-white/90 text-gray-800 shadow-lg hover:scale-105 active:scale-95 transition-transform cursor-pointer"
+                   aria-label="تغییر بنر"
+                 >
+                   <Camera className="w-5 h-5" />
+                 </button>
+               </div>
+             )}
+           </div>
            
            <div className="px-8 pb-8">
                <div className="relative flex justify-between items-end -mt-12 mb-6">
-                   <div className="border-4 border-white dark:border-[#1c1e26] rounded-full bg-white dark:bg-[#1c1e26]">
-                       <Avatar src={user.avatarUrl} alt={user.displayName} size="xl" />
+                   <div className="relative group/avatar border-4 border-white dark:border-[#1c1e26] rounded-full bg-white dark:bg-[#1c1e26]">
+                       <Avatar 
+                         src={isCurrentUser && settings.avatarImage ? settings.avatarImage : user.avatarUrl} 
+                         alt={user.displayName} 
+                         size="xl" 
+                       />
+                       {isCurrentUser && (
+                         <div 
+                           className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/avatar:bg-black/40 rounded-full transition-colors duration-200 cursor-pointer"
+                           onClick={() => avatarInputRef.current?.click()}
+                         >
+                            <Camera className="w-8 h-8 text-white opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-200" />
+                         </div>
+                       )}
+                       <input 
+                         type="file" 
+                         ref={avatarInputRef} 
+                         className="hidden" 
+                         accept="image/*"
+                         onChange={(e) => handleImageUpload(e, 'avatar')}
+                       />
                    </div>
                    <div className="flex gap-2 mb-2">
                        {isCurrentUser ? (
-                           <SocialButton variant="outline" onClick={() => router.push('/social/dashboard')}>
+                           <SocialButton variant="outline" onClick={() => router.push('/social/profile/edit')}>
                                ویرایش پروفایل
                            </SocialButton>
                        ) : (
@@ -67,7 +134,7 @@ export default function ProfilePage(props: PageProps) {
                <div className="space-y-4">
                    <div>
                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                           {user.displayName}
+                           {isCurrentUser && settings.displayName ? settings.displayName : user.displayName}
                            {/* Verified Badge Mock */}
                            <span className="text-blue-500" title="تایید شده">
                                <svg className="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" fillRule="evenodd"></path></svg>
@@ -77,17 +144,19 @@ export default function ProfilePage(props: PageProps) {
                    </div>
 
                    <p className="max-w-2xl text-gray-700 dark:text-gray-300 leading-relaxed">
-                       {user.bio}
+                       {isCurrentUser && settings.bio ? settings.bio : user.bio}
                    </p>
 
                    <div className="flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400">
                        <div className="flex items-center gap-1.5">
                            <MapPin className="w-4 h-4" />
-                           <span>تهران، ایران</span>
+                           <span>{isCurrentUser && settings.location ? settings.location : "تهران، ایران"}</span>
                        </div>
                        <div className="flex items-center gap-1.5">
                            <LinkIcon className="w-4 h-4" />
-                           <a href="#" className="hover:text-green-500 transition-colors">github.com/{user.username}</a>
+                           <a href={isCurrentUser && settings.githubUrl ? settings.githubUrl : "#"} className="hover:text-green-500 transition-colors" target="_blank" rel="noopener noreferrer">
+                             {isCurrentUser && settings.githubUrl ? settings.githubUrl.replace(/^https?:\/\//, "") : `github.com/${user.username}`}
+                           </a>
                        </div>
                        <div className="flex items-center gap-1.5">
                            <Calendar className="w-4 h-4" />

@@ -6,12 +6,14 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Plus, User, Compass, School } from "lucide-react";
 import { useSocial } from "@/context/SocialContext";
+import { useProfileSettings } from "@/context/ProfileSettingsContext";
 import { CreatePostModal } from "./CreatePostModal";
 import { cn } from "@/lib/utils";
 
 export default function SocialSidebar() {
   const pathname = usePathname();
   const { currentUser } = useSocial();
+  const { settings } = useProfileSettings();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   if (!currentUser) return null;
@@ -44,6 +46,12 @@ export default function SocialSidebar() {
     },
   ];
 
+  const tooltip = (label: string) => (
+    <span className="absolute right-full mr-2 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-lg bg-gray-900 dark:bg-gray-800 text-white text-xs font-medium whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150 shadow-lg z-50">
+      {label}
+    </span>
+  );
+
   const iconButton = (item: (typeof navItems)[0], idx: number) => {
     const Icon = item.icon;
     if (item.center) {
@@ -51,9 +59,10 @@ export default function SocialSidebar() {
         <button
           key={idx}
           onClick={item.action}
-          className="group flex items-center justify-center size-10 rounded-xl text-gray-700 dark:text-gray-200 hover:text-primary dark:hover:text-primary transition-colors"
+          className="group relative flex items-center justify-center size-10 rounded-xl text-gray-700 dark:text-gray-200 hover:text-primary dark:hover:text-primary transition-colors"
           aria-label={item.label}
         >
+          {tooltip(item.label)}
           <Icon className="w-6 h-6" />
         </button>
       );
@@ -64,13 +73,14 @@ export default function SocialSidebar() {
           key={idx}
           href={item.href!}
           className={cn(
-            "flex items-center justify-center size-10 rounded-xl overflow-hidden transition-opacity hover:opacity-80",
+            "group relative flex items-center justify-center size-10 rounded-xl overflow-hidden transition-opacity hover:opacity-80",
             item.active && "ring-2 ring-primary ring-offset-2 dark:ring-offset-[#0B0D11]"
           )}
           aria-label={item.label}
         >
+          {tooltip(item.label)}
           <Image
-            src={currentUser.avatarUrl}
+            src={settings.avatarImage || currentUser.avatarUrl}
             alt={currentUser.displayName}
             width={40}
             height={40}
@@ -84,13 +94,14 @@ export default function SocialSidebar() {
         key={idx}
         href={item.href!}
         className={cn(
-          "flex items-center justify-center size-10 rounded-xl transition-colors",
+          "group relative flex items-center justify-center size-10 rounded-xl transition-colors",
           item.active
             ? "text-primary"
             : "text-gray-700 dark:text-gray-200 hover:text-primary dark:hover:text-primary"
         )}
         aria-label={item.label}
       >
+        {tooltip(item.label)}
         <Icon className="w-6 h-6" />
       </Link>
     );
@@ -129,7 +140,7 @@ export default function SocialSidebar() {
               {item.isProfile && currentUser ? (
                 <span className="flex items-center justify-center size-9 rounded-xl overflow-hidden">
                   <Image
-                    src={currentUser.avatarUrl}
+                    src={settings.avatarImage || currentUser.avatarUrl}
                     alt={currentUser.displayName}
                     width={36}
                     height={36}
