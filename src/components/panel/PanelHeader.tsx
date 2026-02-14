@@ -14,9 +14,9 @@ export default function PanelHeader() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-2 border-b px-4",
+        "lg:hidden sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-2 border-b px-4",
         "bg-white/80 dark:bg-[#0B0D11]/80 backdrop-blur-md",
-        "border-gray-200/50 dark:border-white/5"
+        "border-gray-200/50 dark:border-white/5",
       )}
       dir="rtl"
     >
@@ -39,7 +39,13 @@ export default function PanelHeader() {
         <ThemeToggle />
         <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-primary/50 flex items-center justify-center bg-primary/10 dark:bg-primary/20 shrink-0">
           {user?.avatarUrl ? (
-            <Image src={user.avatarUrl} alt="" width={36} height={36} className="object-cover w-full h-full" />
+            <Image
+              src={user.avatarUrl}
+              alt=""
+              width={36}
+              height={36}
+              className="object-cover w-full h-full"
+            />
           ) : (
             <User className="w-5 h-5 text-primary" />
           )}
