@@ -5,11 +5,13 @@ import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import ThemeToggle from "./ThemeToggle";
 import { useCart } from "../../context/CartContext";
+import { useAuth } from "../../context/AuthContext";
 import NavLink from "./NavLink";
 import { usePathname } from "next/navigation";
 
 export default function Header() {
   const { cart, toggleCart } = useCart();
+  const { isAuthenticated } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [loginMousePos, setLoginMousePos] = useState<{
@@ -125,7 +127,7 @@ export default function Header() {
             className="hidden md:block relative"
           >
             <Link
-              href="/login"
+              href={isAuthenticated ? "/panel" : "/login"}
               className="relative flex items-center justify-center gap-2 rounded-4xl px-8 py-3 text-sm font-bold text-white transition-all duration-300 hover:scale-[1.02] active:scale-95 overflow-hidden bg-primary/85 dark:bg-primary/80 backdrop-blur-xl border border-white/25 dark:border-white/15 shadow-xl shadow-primary/25 hover:bg-primary dark:hover:bg-primary-hover"
             >
               {loginMousePos && (
@@ -136,9 +138,9 @@ export default function Header() {
                   }}
                 />
               )}
-              <span className="relative z-10">ورود / ثبت‌نام</span>
+              <span className="relative z-10">{isAuthenticated ? "پنل کاربری" : "ورود / ثبت‌نام"}</span>
               <span className="material-symbols-outlined relative z-10 text-xl">
-                login
+                {isAuthenticated ? "dashboard" : "login"}
               </span>
             </Link>
           </div>
@@ -182,10 +184,10 @@ export default function Header() {
               <div className="h-px bg-gray-100 dark:bg-gray-700 my-1 mx-2"></div>
               <Link
                 className="px-6 py-4 text-sm font-bold bg-primary text-white text-center rounded-2xl shadow-lg shadow-primary/20 hover:bg-primary-hover transition-colors"
-                href="/login"
+                href={isAuthenticated ? "/panel" : "/login"}
                 onClick={() => setIsMenuOpen(false)}
               >
-                ورود / ثبت‌نام
+                {isAuthenticated ? "پنل کاربری" : "ورود / ثبت‌نام"}
               </Link>
             </div>
           </div>

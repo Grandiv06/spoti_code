@@ -13,6 +13,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     pathname?.startsWith("/login/") ||
     pathname?.startsWith("/register/");
   const isPanelPage = pathname?.startsWith("/panel");
+  const isSocialPage = pathname?.startsWith("/social");
 
   return (
     <div

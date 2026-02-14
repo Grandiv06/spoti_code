@@ -6,6 +6,7 @@ import { ThemeProvider } from "next-themes";
 import ThemeWrapper from "./components/ThemeWrapper";
 import AppShell from "./components/AppShell";
 import { CartProvider } from "../context/CartContext";
+import { AuthProvider } from "../context/AuthContext";
 import CartSidebar from "./components/CartSidebar";
 
 export const metadata: Metadata = {
@@ -56,10 +57,12 @@ export default function RootLayout({
           storageKey="spoticode-theme"
         >
           <ThemeWrapper>
-            <CartProvider>
-              <AppShell>{children}</AppShell>
-              <CartSidebar />
-            </CartProvider>
+            <AuthProvider>
+              <CartProvider>
+                <AppShell>{children}</AppShell>
+                <CartSidebar />
+              </CartProvider>
+            </AuthProvider>
           </ThemeWrapper>
         </ThemeProvider>
       </body>

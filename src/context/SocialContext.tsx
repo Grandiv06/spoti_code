@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { SocialUser, SocialPost, SocialComment, PostVisibility } from '@/types/social';
+import { useAuth } from './AuthContext';
 
 // --- Seed Data Generators ---
 
@@ -71,26 +72,35 @@ interface SocialContextType {
 
 const SocialContext = createContext<SocialContextType | undefined>(undefined);
 
+function authToSocialUser(auth: { id: string; displayName: string; avatarUrl?: string }): SocialUser {
+  return {
+    id: auth.id,
+    username: auth.id.replace(/-/g, '_'),
+    displayName: auth.displayName,
+    avatarUrl: auth.avatarUrl || `https://i.pravatar.cc/150?u=${auth.id}`,
+    bio: "عضو اسپاتی هاب",
+    createdAt: new Date().toISOString(),
+    followersCount: 0,
+    followingCount: 0,
+    postsCount: 0,
+  };
+}
+
 export const SocialProvider = ({ children }: { children: ReactNode }) => {
-  const [currentUser, setCurrentUser] = useState<SocialUser | null>(null); // Default guest
+  const { user: authUser } = useAuth();
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [users, setUsers] = useState<SocialUser[]>([]);
 
-  // Initialize Data
+  const currentUser: SocialUser | null = authUser ? authToSocialUser(authUser) : null;
+
   useEffect(() => {
     setUsers(MOCK_USERS);
-    // Sort posts by date desc initially
     const sortedPosts = [...MOCK_POSTS].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     setPosts(sortedPosts);
   }, []);
 
   const toggleAuth = () => {
-    if (currentUser) {
-      setCurrentUser(null);
-    } else {
-      // Login as the first mock user
-      setCurrentUser(MOCK_USERS[0]);
-    }
+    // No-op: auth is now managed by AuthContext
   };
 
   const getPostById = (id: string) => posts.find(p => p.id === id);

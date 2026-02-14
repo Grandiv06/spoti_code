@@ -42,13 +42,13 @@ export default function ProfilePage(props: PageProps) {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
        {/* Profile Header Card */}
-       <div className="relative bg-white dark:bg-gray-900 rounded-3xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-800">
+       <div className="relative bg-white dark:bg-[#1c1e26] rounded-3xl overflow-hidden shadow-sm border border-gray-100 dark:border-white/[0.06]">
            {/* Banner */}
            <div className="h-48 bg-gradient-to-r from-green-400 to-emerald-600 opacity-90" />
            
            <div className="px-8 pb-8">
                <div className="relative flex justify-between items-end -mt-12 mb-6">
-                   <div className="border-4 border-white dark:border-gray-900 rounded-full bg-white dark:bg-gray-900">
+                   <div className="border-4 border-white dark:border-[#1c1e26] rounded-full bg-white dark:bg-[#1c1e26]">
                        <Avatar src={user.avatarUrl} alt={user.displayName} size="xl" />
                    </div>
                    <div className="flex gap-2 mb-2">
@@ -95,7 +95,7 @@ export default function ProfilePage(props: PageProps) {
                        </div>
                    </div>
 
-                   <div className="flex gap-6 pt-4 border-t border-gray-100 dark:border-gray-800">
+                   <div className="flex gap-6 pt-4 border-t border-gray-100 dark:border-white/[0.06]">
                        <div className="flex items-center gap-1">
                            <span className="font-bold text-gray-900 dark:text-white">{user.followersCount}</span>
                            <span className="text-gray-500 text-sm">دنبال‌کننده</span>
@@ -114,7 +114,7 @@ export default function ProfilePage(props: PageProps) {
        </div>
 
        {/* Tabs */}
-       <div className="border-b border-gray-200 dark:border-gray-800">
+       <div className="border-b border-gray-200 dark:border-white/[0.06]">
            <nav className="flex gap-8" aria-label="Tabs">
                <button className="border-b-2 border-green-500 py-4 px-1 text-sm font-medium text-green-600 dark:text-green-400" aria-current="page">
                    پروژه‌ها

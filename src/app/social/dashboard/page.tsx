@@ -17,7 +17,7 @@ export default function DashboardPage() {
   if (!currentUser) {
       return (
           <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6 animate-in zoom-in-95 duration-500">
-              <div className="w-24 h-24 bg-gray-100 dark:bg-gray-800/50 rounded-full flex items-center justify-center">
+              <div className="w-24 h-24 bg-gray-100 dark:bg-[#1c1e26] rounded-full flex items-center justify-center">
                   <Lock className="w-10 h-10 text-gray-400" />
               </div>
               <div>
@@ -49,7 +49,7 @@ export default function DashboardPage() {
 
         {/* Stats Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 flex items-center gap-4">
+            <div className="bg-white dark:bg-[#1c1e26] p-6 rounded-2xl border border-gray-100 dark:border-white/[0.06] flex items-center gap-4">
                 <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl">
                     <LayoutGrid className="w-6 h-6" />
                 </div>
@@ -58,7 +58,7 @@ export default function DashboardPage() {
                     <span className="text-sm text-gray-500">پروژه فعال</span>
                 </div>
             </div>
-            <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 flex items-center gap-4">
+            <div className="bg-white dark:bg-[#1c1e26] p-6 rounded-2xl border border-gray-100 dark:border-white/[0.06] flex items-center gap-4">
                 <div className="p-3 bg-pink-50 dark:bg-pink-900/20 text-pink-600 rounded-xl">
                     <BarChart3 className="w-6 h-6" />
                 </div>

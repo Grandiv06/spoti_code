@@ -87,7 +87,7 @@ export default function PostDetailPage(props: PageProps) {
           onClick={() => router.back()}
           className="group flex items-center gap-2 text-gray-500 hover:text-green-600 transition-colors"
         >
-            <div className="p-1 rounded-lg bg-gray-100 dark:bg-gray-800 group-hover:bg-green-100 dark:group-hover:bg-green-900/20 transition-colors">
+            <div className="p-1 rounded-lg bg-gray-100 dark:bg-[#1c1e26] group-hover:bg-green-100 dark:group-hover:bg-green-900/20 transition-colors">
                 <ArrowRight className="w-5 h-5" />
             </div>
             <span className="text-sm font-medium">بازگشت</span>
@@ -187,7 +187,7 @@ export default function PostDetailPage(props: PageProps) {
         {post.galleryImageUrls.length > 0 && (
             <div className="grid grid-cols-2 gap-4">
                 {post.galleryImageUrls.map((url, idx) => (
-                    <div key={idx} className="relative aspect-video rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800">
+                    <div key={idx} className="relative aspect-video rounded-xl overflow-hidden bg-gray-100 dark:bg-[#1c1e26]">
                          <Image src={url} alt={`Gallery ${idx}`} fill className="object-cover hover:scale-105 transition-transform duration-500" />
                     </div>
                 ))}
@@ -195,7 +195,7 @@ export default function PostDetailPage(props: PageProps) {
         )}
 
         {/* Separator */}
-        <div className="h-px w-full bg-gray-100 dark:bg-gray-800 my-8" />
+        <div className="h-px w-full bg-gray-100 dark:bg-white/[0.06] my-8" />
 
         {/* Comments */}
         <CommentSection comments={COMMENTS} />

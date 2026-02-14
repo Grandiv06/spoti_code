@@ -14,10 +14,11 @@ import { cn } from '@/lib/utils';
 interface PostCardProps {
   post: SocialPost;
   compact?: boolean;
+  basePath?: string;
 }
 
-export const PostCard: React.FC<PostCardProps> = ({ post, compact = false }) => {
-  const { toggleAuth, currentUser, likePost, bookmarkPost } = useSocial();
+export const PostCard: React.FC<PostCardProps> = ({ post, compact = false, basePath = "/social" }) => {
+  const { currentUser, likePost, bookmarkPost } = useSocial();
   // const { toast } = useToast();
 
   const handleLike = (e: React.MouseEvent) => {
@@ -43,8 +44,8 @@ export const PostCard: React.FC<PostCardProps> = ({ post, compact = false }) => 
   };
 
   return (
-    <Link href={`/social/post/${post.id}`} className="block group">
-      <div className="relative bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl overflow-hidden hover:shadow-xl hover:shadow-green-500/5 transition-all duration-300 dark:hover:border-gray-700">
+    <Link href={`${basePath}/post/${post.id}`} className="block group">
+      <div className="relative bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/[0.06] rounded-2xl overflow-hidden hover:shadow-xl hover:shadow-green-500/5 transition-all duration-300 dark:hover:border-white/[0.08]">
         
         {/* Cover Image */}
         {post.coverImageUrl && (
@@ -83,7 +84,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, compact = false }) => 
            </p>
 
            {/* Footer Stats / Actions */}
-           <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-800">
+           <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-white/[0.06]">
               <div className="flex items-center gap-4 text-gray-500 dark:text-gray-400 text-sm">
                  <div className="flex items-center gap-1.5" title="بازدید">
                     <Eye className="w-4 h-4" />
@@ -99,7 +100,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, compact = false }) => 
                  <button 
                    onClick={handleBookmark}
                    className={cn(
-                     "p-2 rounded-full transition-colors hover:bg-gray-100 dark:hover:bg-gray-800",
+                     "p-2 rounded-full transition-colors hover:bg-gray-100 dark:hover:bg-white/5",
                      post.isBookmarkedByCurrentUser && "text-green-500"
                    )}
                  >

@@ -10,7 +10,7 @@ interface BadgeProps {
 
 const variants = {
   primary: 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20',
-  secondary: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300',
+  secondary: 'bg-gray-100 dark:bg-[#1c1e26] text-gray-600 dark:text-gray-300',
   outline: 'border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300',
   glass: 'bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-sm',
 };

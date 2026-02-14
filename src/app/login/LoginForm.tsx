@@ -1,23 +1,42 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { InputOTP, REGEXP_ONLY_DIGITS } from "@/components/ui/input-otp";
+import { InputOTP } from "@/components/ui/input-otp";
+import { useAuth } from "@/context/AuthContext";
+
+const DEV_OTP = "123456";
+
+/** اعداد فارسی/عربی را به انگلیسی تبدیل می‌کند */
+function normalizeDigits(str: string): string {
+  const persian = "۰۱۲۳۴۵۶۷۸۹";
+  const arabic = "٠١٢٣٤٥٦٧٨٩";
+  let result = str;
+  for (let i = 0; i < 10; i++) {
+    result = result.replace(new RegExp(persian[i], "g"), String(i));
+    result = result.replace(new RegExp(arabic[i], "g"), String(i));
+  }
+  return result.replace(/\s/g, "").replace(/-/g, "");
+}
 
 export default function LoginForm() {
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
-
+  const [error, setError] = useState("");
+  const { login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get("returnUrl") || "/panel";
 
   const handlePhoneSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     const form = e.target as HTMLFormElement;
     const phoneInput = form.querySelector('input[name="phone"]') as HTMLInputElement;
-    const value = phoneInput?.value?.trim() || "";
-    if (value) {
+    const value = normalizeDigits(phoneInput?.value?.trim() || "");
+    if (value.length >= 10) {
       setPhone(value);
       setStep("otp");
     }
@@ -25,10 +44,22 @@ export default function LoginForm() {
 
   const handleOtpSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (otp.length === 6) {
-      // TODO: verify OTP
-      router.push("/panel");
+    setError("");
+    if (otp.length !== 6) return;
+    const normalizedOtp = normalizeDigits(otp);
+    // برای تست: هر شماره + کد 123456
+    if (normalizedOtp === DEV_OTP) {
+      const normalizedPhone = normalizeDigits(phone) || "09123456789";
+      login({
+        id: "user-dev-1",
+        phone: normalizedPhone,
+        displayName: "کاربر تست",
+        avatarUrl: "https://i.pravatar.cc/150?u=dev-user",
+      });
+      router.push(returnUrl);
+      return;
     }
+    setError("کد تایید نامعتبر است. برای تست کد ۱۲۳۴۵۶ را وارد کنید.");
   };
 
   const handleBackToPhone = () => {
@@ -45,17 +76,23 @@ export default function LoginForm() {
         <p className="text-gray-500 dark:text-gray-400 font-medium text-sm leading-relaxed">
           کد ۶ رقمی ارسال شده به {phone} را وارد کنید
         </p>
+        <p className="text-green-600 dark:text-green-400 text-sm font-medium mt-2">
+            برای تست: کد <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded">123456</code> را وارد کنید
+          </p>
 
         <form
           onSubmit={handleOtpSubmit}
           className="space-y-6 mt-8"
         >
+          {error && (
+            <p className="text-red-500 dark:text-red-400 text-sm font-medium text-center">{error}</p>
+          )}
           <div className="flex justify-center" dir="ltr">
             <InputOTP
               maxLength={6}
-              pattern={REGEXP_ONLY_DIGITS}
+              pattern="^[0-9۰-۹٠-٩]+$"
               value={otp}
-              onChange={setOtp}
+              onChange={(v) => setOtp(normalizeDigits(v))}
               placeholder="•"
               textAlign="left"
               dir="ltr"
@@ -103,6 +140,9 @@ export default function LoginForm() {
         </h1>
         <p className="text-gray-500 dark:text-gray-400 font-medium text-sm leading-relaxed">
           برای استفاده از خدمات آکادمی، شماره موبایل خود را وارد کنید
+        </p>
+        <p className="text-green-600 dark:text-green-400 text-xs font-medium mt-2">
+          برای تست: هر شماره‌ای + کد ۱۲۳۴۵۶
         </p>
       </div>
 

@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Bookmark, Heart, MessageCircle, Plus, User, Compass } from "lucide-react";
+import { Plus, User, Compass, School } from "lucide-react";
 import { useSocial } from "@/context/SocialContext";
 import { CreatePostModal } from "./CreatePostModal";
 import { cn } from "@/lib/utils";
@@ -14,7 +14,22 @@ export default function SocialSidebar() {
   const { currentUser } = useSocial();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
+  if (!currentUser) return null;
+
   const navItems = [
+    {
+      icon: User,
+      href: currentUser ? `/social/profile/${currentUser.id}` : "/login",
+      label: "پروفایل",
+      active: pathname?.startsWith("/social/profile"),
+      isProfile: true,
+    },
+    {
+      icon: School,
+      href: "/panel/courses",
+      label: "دوره‌های من",
+      active: pathname === "/panel/courses",
+    },
     {
       icon: Compass,
       href: "/social",
@@ -22,36 +37,10 @@ export default function SocialSidebar() {
       active: pathname === "/social",
     },
     {
-      icon: Bookmark,
-      href: "/social/saved",
-      label: "ذخیره‌شده",
-      active: pathname === "/social/saved",
-    },
-    {
-      icon: Heart,
-      href: "/social/liked",
-      label: "لایک‌شده",
-      active: pathname === "/social/liked",
-    },
-    {
-      icon: MessageCircle,
-      href: "#",
-      label: "چت",
-      disabled: true,
-      active: false,
-    },
-    {
       icon: Plus,
       action: () => setIsCreateModalOpen(true),
       label: "پست جدید",
       center: true,
-    },
-    {
-      icon: User,
-      href: currentUser ? `/social/profile/${currentUser.id}` : "/login",
-      label: "پروفایل",
-      active: pathname?.startsWith("/social/profile"),
-      isProfile: true,
     },
   ];
 
@@ -67,17 +56,6 @@ export default function SocialSidebar() {
         >
           <Icon className="w-6 h-6" />
         </button>
-      );
-    }
-    if (item.disabled) {
-      return (
-        <span
-          key={idx}
-          className="flex items-center justify-center size-10 rounded-xl text-gray-500 dark:text-gray-500 opacity-60 cursor-not-allowed"
-          title="به زودی"
-        >
-          <Icon className="w-6 h-6" />
-        </span>
       );
     }
     if (item.isProfile && currentUser) {
@@ -120,8 +98,8 @@ export default function SocialSidebar() {
 
   return (
     <>
-      {/* Desktop: Left vertical sidebar - Instagram style */}
-      <aside className="hidden md:flex fixed top-0 left-0 bottom-0 z-40 flex-col items-center pt-24 pb-6 w-[72px] gap-2">
+      {/* Desktop: Right vertical sidebar - وسط ستون */}
+      <aside className="hidden md:flex fixed top-0 right-0 bottom-0 z-40 flex-col items-center justify-center w-[72px] gap-2">
         {navItems.map((item, idx) => iconButton(item, idx))}
       </aside>
 
@@ -144,16 +122,6 @@ export default function SocialSidebar() {
                   {item.label}
                 </span>
               </button>
-            );
-          }
-          if (item.disabled) {
-            return (
-              <span key={idx} className="flex flex-col items-center gap-0.5 shrink-0 opacity-60">
-                <span className="flex items-center justify-center size-9 rounded-xl">
-                  <Icon className="w-4 h-4 text-gray-500" />
-                </span>
-                <span className="text-[9px] font-medium text-gray-500">{item.label}</span>
-              </span>
             );
           }
           const content = (
