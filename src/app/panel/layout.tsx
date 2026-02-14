@@ -2,6 +2,7 @@ import PanelSidebar from "@/components/panel/PanelSidebar";
 import PanelHeader from "@/components/panel/PanelHeader";
 import PanelAuthGuard from "@/components/panel/PanelAuthGuard";
 import { PanelSidebarProvider } from "@/context/PanelSidebarContext";
+import { SocialProvider } from "@/context/SocialContext";
 
 export default function PanelLayout({
   children,
@@ -10,6 +11,7 @@ export default function PanelLayout({
 }) {
   return (
     <PanelAuthGuard>
+      <SocialProvider>
       <PanelSidebarProvider>
         <div className="flex min-h-screen w-full overflow-x-hidden bg-gray-50 dark:bg-[#14161c]">
           <PanelSidebar />
@@ -21,6 +23,7 @@ export default function PanelLayout({
           </div>
         </div>
       </PanelSidebarProvider>
+      </SocialProvider>
     </PanelAuthGuard>
   );
 }

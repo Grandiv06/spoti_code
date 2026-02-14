@@ -1,20 +1,21 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Search, Filter, Flame, Clock, Sparkles } from "lucide-react";
+import { Search, Filter, Flame, Clock, Sparkles, Plus } from "lucide-react";
 import { useSocial } from "@/context/SocialContext";
 import { PostCard } from "@/components/social/PostCard";
-import { Badge } from "@/components/social/Badge";
 import { SocialButton } from "@/components/social/SocialButton";
+import { CreatePostModal } from "@/components/social/CreatePostModal";
 import { cn } from "@/lib/utils";
 
 type SortOption = "newest" | "trending" | "popular";
 
 export default function SocialExplorePage() {
-  const { posts, searchPosts } = useSocial();
+  const { posts, searchPosts, currentUser } = useSocial();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | undefined>(undefined);
   const [activeSort, setActiveSort] = useState<SortOption>("newest");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const filteredPosts = useMemo(() => {
     let result = searchPosts(searchQuery, selectedTag);
@@ -46,17 +47,29 @@ export default function SocialExplorePage() {
             برترین پروژه‌های برنامه‌نویسی را کشف کنید و الهام بگیرید.
           </p>
         </div>
-        <div className="relative w-full md:w-96 group">
-          <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-gray-400 group-focus-within:text-green-500 transition-colors" />
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          {currentUser && (
+            <SocialButton
+              variant="primary"
+              onClick={() => setIsCreateModalOpen(true)}
+              className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-2xl shadow-lg shadow-green-500/20 hover:shadow-green-500/30 transition-shadow"
+            >
+              <Plus className="w-5 h-5" />
+              ایجاد پست
+            </SocialButton>
+          )}
+          <div className="relative flex-1 md:w-80 group">
+            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-gray-400 group-focus-within:text-green-500 transition-colors" />
+            </div>
+            <input
+              type="text"
+              className="w-full bg-white dark:bg-[#14161c] border border-gray-200 dark:border-white/[0.08] rounded-xl py-3 pr-10 pl-4 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all placeholder:text-gray-500 dark:placeholder:text-gray-400 text-gray-900 dark:text-white"
+              placeholder="جستجو در نام، توضیحات، نویسنده..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
-          <input
-            type="text"
-            className="w-full bg-white dark:bg-[#14161c] border border-gray-200 dark:border-white/[0.08] rounded-xl py-3 pr-10 pl-4 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all placeholder:text-gray-500 dark:placeholder:text-gray-400 text-gray-900 dark:text-white"
-            placeholder="جستجو در نام، توضیحات، نویسنده..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
         </div>
       </div>
 
@@ -129,7 +142,7 @@ export default function SocialExplorePage() {
       </div>
 
       {filteredPosts.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-8">
           {filteredPosts.map((post) => (
             <PostCard key={post.id} post={post} basePath="/social" />
           ))}
@@ -154,6 +167,10 @@ export default function SocialExplorePage() {
             پاک کردن فیلترها
           </SocialButton>
         </div>
+      )}
+
+      {isCreateModalOpen && (
+        <CreatePostModal onClose={() => setIsCreateModalOpen(false)} />
       )}
     </div>
   );

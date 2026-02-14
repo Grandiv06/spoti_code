@@ -63,7 +63,10 @@ export default function SocialSidebar() {
           aria-label={item.label}
         >
           {tooltip(item.label)}
-          <Icon className="w-6 h-6" />
+          <div className="relative">
+            <Icon className="w-6 h-6" />
+            {/* Badge for center button if needed, though usually not */}
+          </div>
         </button>
       );
     }
@@ -91,7 +94,7 @@ export default function SocialSidebar() {
     }
     return (
       <Link
-        key={idx}
+         key={idx}
         href={item.href!}
         className={cn(
           "group relative flex items-center justify-center size-10 rounded-xl transition-colors",

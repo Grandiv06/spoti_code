@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { SocialUser, SocialPost, SocialComment, PostVisibility } from '@/types/social';
+import { SocialUser, SocialPost, SocialComment, PostVisibility, SocialNotification } from '@/types/social';
 import { useAuth } from './AuthContext';
 
 // --- Seed Data Generators ---
@@ -44,6 +44,26 @@ const MOCK_POSTS: SocialPost[] = Array.from({ length: 30 }).map((_, i) => {
   };
 });
 
+// Mock Notifications Generator
+const generateMockNotifications = (users: SocialUser[]): SocialNotification[] => {
+  return Array.from({ length: 15 }).map((_, i) => {
+    const actor = users[Math.floor(Math.random() * users.length)];
+    const type = ['LIKE', 'COMMENT', 'FOLLOW', 'MENTION'][Math.floor(Math.random() * 4)] as 'LIKE' | 'COMMENT' | 'FOLLOW' | 'MENTION';
+    
+    return {
+      id: `notif-${i}`,
+      userId: 'current-user-id', // Placeholder, will filter by actual current user ID logic if needed or just show all for demo
+      type,
+      actorId: actor.id,
+      actor,
+      entityId: `post-${Math.floor(Math.random() * 30) + 1}`,
+      entityType: (type === 'FOLLOW' ? undefined : 'POST') as 'POST' | 'COMMENT' | undefined,
+      isRead: i > 4, // First 5 are unread
+      createdAt: new Date(Date.now() - Math.floor(Math.random() * 86400000 * 3)).toISOString(), // Last 3 days
+    };
+  }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+};
+
 // --- Context Definition ---
 
 interface SocialContextType {
@@ -51,6 +71,7 @@ interface SocialContextType {
   currentUser: SocialUser | null;
   posts: SocialPost[];
   users: SocialUser[];
+  notifications: SocialNotification[];
   
   // Actions
   toggleAuth: () => void;
@@ -68,6 +89,10 @@ interface SocialContextType {
   
   // Search/Filter
   searchPosts: (query: string, tag?: string) => SocialPost[];
+  
+  // Notifications
+  markAllNotificationsAsRead: () => void;
+  markNotificationAsRead: (id: string) => void;
 }
 
 const SocialContext = createContext<SocialContextType | undefined>(undefined);
@@ -90,6 +115,7 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
   const { user: authUser } = useAuth();
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [users, setUsers] = useState<SocialUser[]>([]);
+  const [notifications, setNotifications] = useState<SocialNotification[]>([]);
 
   const currentUser: SocialUser | null = authUser ? authToSocialUser(authUser) : null;
 
@@ -97,6 +123,7 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
     setUsers(MOCK_USERS);
     const sortedPosts = [...MOCK_POSTS].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     setPosts(sortedPosts);
+    setNotifications(generateMockNotifications(MOCK_USERS));
   }, []);
 
   const toggleAuth = () => {
@@ -182,11 +209,20 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const markAllNotificationsAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+  };
+
+  const markNotificationAsRead = (id: string) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+  };
+
   return (
     <SocialContext.Provider value={{
       currentUser,
       posts,
       users,
+      notifications,
       toggleAuth,
       getPostById,
       getUserById,
@@ -198,6 +234,8 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
       bookmarkPost,
       followUser,
       searchPosts,
+      markAllNotificationsAsRead,
+      markNotificationAsRead,
     }}>
       {children}
     </SocialContext.Provider>

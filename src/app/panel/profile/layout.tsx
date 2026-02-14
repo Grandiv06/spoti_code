@@ -1,4 +1,3 @@
-import { SocialProvider } from "@/context/SocialContext";
 import { ProfileSettingsProvider } from "@/context/ProfileSettingsContext";
 
 export default function PanelProfileLayout({
@@ -6,11 +5,5 @@ export default function PanelProfileLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <SocialProvider>
-      <ProfileSettingsProvider>
-        {children}
-      </ProfileSettingsProvider>
-    </SocialProvider>
-  );
+  return <ProfileSettingsProvider>{children}</ProfileSettingsProvider>;
 }

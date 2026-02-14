@@ -45,18 +45,18 @@ export const PostCard: React.FC<PostCardProps> = ({ post, compact = false, baseP
 
   return (
     <Link href={`${basePath}/post/${post.id}`} className="block group">
-      <div className="relative bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/[0.06] rounded-2xl overflow-hidden hover:shadow-xl hover:shadow-green-500/5 transition-all duration-300 dark:hover:border-white/[0.08]">
+      <div className="relative bg-white dark:bg-[#1c1e26] border border-gray-100/80 dark:border-white/[0.06] rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-green-500/10 transition-all duration-300 dark:hover:border-white/[0.1] hover:-translate-y-0.5">
         
         {/* Cover Image */}
         {post.coverImageUrl && (
-          <div className="relative h-48 w-full overflow-hidden">
+          <div className="relative h-48 w-full overflow-hidden rounded-t-[1.25rem]">
              <Image 
                src={post.coverImageUrl} 
                alt={post.title}
                fill
                className="object-cover transition-transform duration-500 group-hover:scale-105"
              />
-             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60" />
+             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
              <div className="absolute bottom-4 right-4 flex gap-2">
                 {post.tags.slice(0, 2).map(tag => (
                   <Badge key={tag} variant="glass" size="sm">{tag}</Badge>
@@ -84,7 +84,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, compact = false, baseP
            </p>
 
            {/* Footer Stats / Actions */}
-           <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-white/[0.06]">
+           <div className="flex items-center justify-between pt-4 border-t border-gray-100/80 dark:border-white/[0.06]">
               <div className="flex items-center gap-4 text-gray-500 dark:text-gray-400 text-sm">
                  <div className="flex items-center gap-1.5" title="بازدید">
                     <Eye className="w-4 h-4" />

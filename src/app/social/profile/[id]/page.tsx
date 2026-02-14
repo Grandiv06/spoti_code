@@ -61,6 +61,15 @@ export default function ProfilePage(props: PageProps) {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+       <SocialButton
+         variant="outline"
+         onClick={() => router.back()}
+         leftIcon={<ArrowRight className="w-4 h-4" />}
+         className="mb-2"
+       >
+         بازگشت
+       </SocialButton>
+
        {/* Profile Header Card */}
        <div className="relative bg-white dark:bg-[#1c1e26] rounded-3xl overflow-hidden shadow-sm border border-gray-100 dark:border-white/[0.06]">
            {/* Banner */}
