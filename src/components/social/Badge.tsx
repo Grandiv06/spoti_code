@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 
 interface BadgeProps {
   children: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'outline' | 'glass';
+  variant?: 'primary' | 'secondary' | 'outline' | 'glass' | 'success' | 'warning';
   className?: string;
   size?: 'sm' | 'md';
 }
@@ -13,6 +13,8 @@ const variants = {
   secondary: 'bg-gray-100 dark:bg-[#1c1e26] text-gray-600 dark:text-gray-300',
   outline: 'border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300',
   glass: 'bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-sm',
+  success: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20',
+  warning: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20',
 };
 
 const sizes = {

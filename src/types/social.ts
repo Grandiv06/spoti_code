@@ -37,6 +37,16 @@ export type SocialPost = {
   createdAt: string;
   updatedAt: string;
   isDraft?: boolean;
+  // Enhanced project fields
+  status?: 'COMPLETED' | 'IN_PROGRESS' | 'NEEDS_FEEDBACK';
+  difficulty?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+  extendedDescription?: {
+    idea?: string;
+    challenges?: string;
+    learned?: string;
+    future?: string;
+  };
+
   // Local user state (optimistic UI)
   isLikedByCurrentUser?: boolean;
   isBookmarkedByCurrentUser?: boolean;
