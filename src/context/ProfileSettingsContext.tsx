@@ -6,20 +6,26 @@ const PROFILE_SETTINGS_KEY = "spoticode-profile-settings";
 
 export type ProfileSettings = {
   bannerColor: string;
+  useDefaultBanner: boolean;
   displayName: string;
   bio: string;
   location: string;
   githubUrl: string;
-  avatarImage?: string; // Base64 string
-  bannerImage?: string; // Base64 string
+  linkedinUrl: string;
+  telegramUrl: string;
+  avatarImage?: string;
+  bannerImage?: string;
 };
 
 const DEFAULT: ProfileSettings = {
   bannerColor: "#22c55e",
+  useDefaultBanner: true,
   displayName: "",
   bio: "",
   location: "تهران، ایران",
   githubUrl: "",
+  linkedinUrl: "",
+  telegramUrl: "",
   avatarImage: "",
   bannerImage: "",
 };
@@ -37,7 +43,12 @@ function loadFromStorage(): ProfileSettings {
     const raw = localStorage.getItem(PROFILE_SETTINGS_KEY);
     if (!raw) return { ...DEFAULT };
     const parsed = JSON.parse(raw) as Partial<ProfileSettings>;
-    return { ...DEFAULT, ...parsed };
+    const merged = { ...DEFAULT, ...parsed };
+    // Migration: existing users had custom banner, keep it
+    if (parsed && !("useDefaultBanner" in parsed) && parsed.bannerColor) {
+      merged.useDefaultBanner = false;
+    }
+    return merged;
   } catch {
     return { ...DEFAULT };
   }

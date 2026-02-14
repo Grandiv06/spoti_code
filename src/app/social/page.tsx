@@ -80,7 +80,7 @@ export default function SocialExplorePage() {
           </div>
           <input
             type="text"
-            className="w-full h-14 pl-5 pr-12 rounded-2xl bg-white dark:bg-[#1c1e26] border border-gray-200 dark:border-white/[0.08] text-base placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-green-500/25 focus:border-green-500 focus:shadow-lg focus:shadow-green-500/10 transition-all duration-200"
+            className="w-full h-14 pl-5 pr-12 rounded-2xl bg-white dark:bg-[#16181e] border border-gray-200 dark:border-white/[0.06] text-base placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-green-500/25 focus:border-green-500 focus:shadow-lg focus:shadow-green-500/10 transition-all duration-200"
             placeholder="جستجو در نام، توضیحات، نویسنده..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -89,7 +89,7 @@ export default function SocialExplorePage() {
 
         {/* Sort + Filter Row */}
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex p-1 rounded-xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/[0.06] gap-1">
+          <div className="flex p-1 rounded-xl bg-white dark:bg-[#16181e] border border-gray-100 dark:border-white/[0.06] gap-1">
             <button
               onClick={() => setActiveSort("newest")}
               className={cn(
@@ -133,7 +133,7 @@ export default function SocialExplorePage() {
                 "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all border",
                 selectedTag
                   ? "bg-primary/10 dark:bg-primary/20 border-primary/30 text-primary"
-                  : "bg-white dark:bg-[#1c1e26] border-gray-200 dark:border-white/[0.08] text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/15"
+                  : "bg-white dark:bg-[#16181e] border-gray-200 dark:border-white/[0.06] text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/10"
               )}
             >
               <Filter className="w-4 h-4" />
@@ -160,7 +160,7 @@ export default function SocialExplorePage() {
             </button>
 
             {isFilterOpen && (
-              <div className="absolute top-full right-0 mt-2 w-56 max-h-64 overflow-y-auto py-2 rounded-xl bg-white dark:bg-[#1c1e26] border border-gray-200 dark:border-white/[0.08] shadow-xl z-30">
+              <div className="absolute top-full right-0 mt-2 w-56 max-h-64 overflow-y-auto py-2 rounded-xl bg-white dark:bg-[#16181e] border border-gray-200 dark:border-white/[0.06] shadow-xl z-30">
                 <button
                   onClick={() => {
                     setSelectedTag(undefined);
@@ -202,7 +202,7 @@ export default function SocialExplorePage() {
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-24 h-24 bg-gray-100 dark:bg-[#1c1e26] rounded-full flex items-center justify-center mb-6">
+          <div className="w-24 h-24 bg-gray-100 dark:bg-[#16181e] rounded-full flex items-center justify-center mb-6">
             <Filter className="w-10 h-10 text-gray-400" />
           </div>
           <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">موردی یافت نشد</h3>

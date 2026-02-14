@@ -7,7 +7,7 @@ import { useProfileSettings } from "@/context/ProfileSettingsContext";
 import { Avatar } from "@/components/social/Avatar";
 import { SocialButton } from "@/components/social/SocialButton";
 import { PostCard } from "@/components/social/PostCard";
-import { MapPin, Link as LinkIcon, Calendar, Camera } from "lucide-react";
+import { MapPin, Link as LinkIcon, Calendar, Camera, Linkedin, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function PanelProfilePage() {
@@ -24,7 +24,7 @@ export default function PanelProfilePage() {
     const reader = new FileReader();
     reader.onloadend = () => {
       const result = reader.result as string;
-      if (type === "banner") updateSettings({ bannerImage: result });
+      if (type === "banner") updateSettings({ bannerImage: result, useDefaultBanner: false });
       else updateSettings({ avatarImage: result });
     };
     reader.readAsDataURL(file);
@@ -50,13 +50,26 @@ export default function PanelProfilePage() {
         {/* Banner */}
         <div
           className={cn(
-            "group/banner relative h-48 transition-colors duration-300 bg-cover bg-center"
+            "group/banner relative h-48 overflow-hidden transition-colors duration-300",
+            !settings.useDefaultBanner && !settings.bannerImage && "bg-cover bg-center"
           )}
-          style={{
-            backgroundColor: settings.bannerColor,
-            backgroundImage: settings.bannerImage ? `url(${settings.bannerImage})` : undefined,
-          }}
+          style={
+            settings.bannerImage
+              ? { backgroundImage: `url(${settings.bannerImage})`, backgroundSize: "cover", backgroundPosition: "center" }
+              : !settings.useDefaultBanner
+              ? { backgroundColor: settings.bannerColor }
+              : undefined
+          }
         >
+          {settings.useDefaultBanner && !settings.bannerImage && (
+            <>
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-green-50/90 to-teal-50/70 dark:bg-[linear-gradient(135deg,#0a0a0a_0%,#0d1210_25%,#051008_50%,#0a0f0c_75%,#080c0a_100%)]" />
+              <div
+                className="absolute inset-0 bg-repeat bg-[url('/patterns/spoticode-banner-pattern-light.svg')] dark:bg-[url('/patterns/spoticode-banner-pattern.svg')]"
+                style={{ backgroundSize: "480px 480px" }}
+              />
+            </>
+          )}
           <input
             type="file"
             ref={bannerInputRef}
@@ -128,10 +141,26 @@ export default function PanelProfilePage() {
               </div>
               <div className="flex items-center gap-1.5">
                 <LinkIcon className="w-4 h-4" />
-                <a href={settings.githubUrl || "#"} className="hover:text-green-500 transition-colors" target="_blank" rel="noopener noreferrer">
+                <a href={settings.githubUrl || `https://github.com/${currentUser.username}`} className="hover:text-green-500 transition-colors" target="_blank" rel="noopener noreferrer">
                   {settings.githubUrl ? settings.githubUrl.replace(/^https?:\/\//, "") : `github.com/${currentUser.username}`}
                 </a>
               </div>
+              {settings.linkedinUrl && (
+                <div className="flex items-center gap-1.5">
+                  <Linkedin className="w-4 h-4" />
+                  <a href={settings.linkedinUrl} className="hover:text-green-500 transition-colors" target="_blank" rel="noopener noreferrer">
+                    {settings.linkedinUrl.replace(/^https?:\/\//, "")}
+                  </a>
+                </div>
+              )}
+              {settings.telegramUrl && (
+                <div className="flex items-center gap-1.5">
+                  <Send className="w-4 h-4" />
+                  <a href={settings.telegramUrl} className="hover:text-green-500 transition-colors" target="_blank" rel="noopener noreferrer">
+                    {settings.telegramUrl.replace(/^https?:\/\//, "")}
+                  </a>
+                </div>
+              )}
               <div className="flex items-center gap-1.5">
                 <Calendar className="w-4 h-4" />
                 <span>عضویت: {new Date(currentUser.createdAt).toLocaleDateString("fa-IR")}</span>

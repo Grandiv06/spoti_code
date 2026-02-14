@@ -7,7 +7,7 @@ import { useProfileSettings } from '@/context/ProfileSettingsContext';
 import { Avatar } from '@/components/social/Avatar';
 import { SocialButton } from '@/components/social/SocialButton';
 import { PostCard } from '@/components/social/PostCard';
-import { MapPin, Link as LinkIcon, Calendar, ArrowRight, Pencil, Camera, Upload } from 'lucide-react';
+import { MapPin, Link as LinkIcon, Calendar, ArrowRight, Camera, Linkedin, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PageProps {
@@ -51,7 +51,7 @@ export default function ProfilePage(props: PageProps) {
     reader.onloadend = () => {
       const result = reader.result as string;
       if (type === 'banner') {
-        updateSettings({ bannerImage: result });
+        updateSettings({ bannerImage: result, useDefaultBanner: false });
       } else {
         updateSettings({ avatarImage: result });
       }
@@ -75,14 +75,25 @@ export default function ProfilePage(props: PageProps) {
            {/* Banner */}
            <div
              className={cn(
-               "group/banner relative h-48 transition-colors duration-300 bg-cover bg-center",
-               !isCurrentUser && "bg-gradient-to-r from-green-400 to-emerald-600 opacity-90"
+               "group/banner relative h-48 overflow-hidden transition-colors duration-300",
+               !isCurrentUser && !settings.bannerImage && "bg-gradient-to-r from-green-400 to-emerald-600 opacity-90"
              )}
-             style={{ 
-               backgroundColor: isCurrentUser ? settings.bannerColor : undefined,
-               backgroundImage: isCurrentUser && settings.bannerImage ? `url(${settings.bannerImage})` : undefined
-             }}
+             style={isCurrentUser && !settings.useDefaultBanner && settings.bannerImage
+               ? { backgroundImage: `url(${settings.bannerImage})`, backgroundSize: "cover", backgroundPosition: "center" }
+               : isCurrentUser && !settings.useDefaultBanner && !settings.bannerImage
+               ? { backgroundColor: settings.bannerColor }
+               : undefined
+             }
            >
+             {isCurrentUser && settings.useDefaultBanner && !settings.bannerImage && (
+               <>
+                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-green-50/90 to-teal-50/70 dark:bg-[linear-gradient(135deg,#0a0a0a_0%,#0d1210_25%,#051008_50%,#0a0f0c_75%,#080c0a_100%)]" />
+                 <div
+                   className="absolute inset-0 bg-repeat bg-[url('/patterns/spoticode-banner-pattern-light.svg')] dark:bg-[url('/patterns/spoticode-banner-pattern.svg')]"
+                   style={{ backgroundSize: "480px 480px" }}
+                 />
+               </>
+             )}
              <input 
                type="file" 
                ref={bannerInputRef} 
@@ -163,10 +174,26 @@ export default function ProfilePage(props: PageProps) {
                        </div>
                        <div className="flex items-center gap-1.5">
                            <LinkIcon className="w-4 h-4" />
-                           <a href={isCurrentUser && settings.githubUrl ? settings.githubUrl : "#"} className="hover:text-green-500 transition-colors" target="_blank" rel="noopener noreferrer">
-                             {isCurrentUser && settings.githubUrl ? settings.githubUrl.replace(/^https?:\/\//, "") : `github.com/${user.username}`}
+                           <a href={(isCurrentUser ? settings.githubUrl : undefined) || `https://github.com/${user.username}`} className="hover:text-green-500 transition-colors" target="_blank" rel="noopener noreferrer">
+                             {(isCurrentUser ? settings.githubUrl : `github.com/${user.username}`)?.replace(/^https?:\/\//, "") || `github.com/${user.username}`}
                            </a>
                        </div>
+                       {isCurrentUser && settings.linkedinUrl && (
+                         <div className="flex items-center gap-1.5">
+                           <Linkedin className="w-4 h-4" />
+                           <a href={settings.linkedinUrl} className="hover:text-green-500 transition-colors" target="_blank" rel="noopener noreferrer">
+                             {settings.linkedinUrl.replace(/^https?:\/\//, "")}
+                           </a>
+                         </div>
+                       )}
+                       {isCurrentUser && settings.telegramUrl && (
+                         <div className="flex items-center gap-1.5">
+                           <Send className="w-4 h-4" />
+                           <a href={settings.telegramUrl} className="hover:text-green-500 transition-colors" target="_blank" rel="noopener noreferrer">
+                             {settings.telegramUrl.replace(/^https?:\/\//, "")}
+                           </a>
+                         </div>
+                       )}
                        <div className="flex items-center gap-1.5">
                            <Calendar className="w-4 h-4" />
                            <span>عضویت: {new Date(user.createdAt).toLocaleDateString('fa-IR')}</span>

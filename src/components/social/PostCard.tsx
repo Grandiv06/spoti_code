@@ -45,7 +45,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, compact = false, baseP
 
   return (
     <Link href={`${basePath}/post/${post.id}`} className="block group">
-      <div className="relative bg-white dark:bg-[#1c1e26] border border-gray-100/80 dark:border-white/[0.06] rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-green-500/10 transition-all duration-300 dark:hover:border-white/[0.1] hover:-translate-y-0.5">
+      <div className="relative bg-white dark:bg-[#16181e] border border-gray-100/80 dark:border-white/[0.06] rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-green-500/10 transition-all duration-300 dark:hover:border-white/[0.08] hover:-translate-y-0.5">
         
         {/* Cover Image */}
         {post.coverImageUrl && (

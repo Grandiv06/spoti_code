@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="480" viewBox="0 0 480 480">
+  <defs>
+    <g id="logo">
+      <path fill="none" stroke="rgba(34,197,94,0.5)" stroke-width="8" stroke-miterlimit="10" d="M124.3,84.01c-5.96-5.96-20.06-10.1-32.78-12.75,13.36-2.26,28.47-6.06,34.61-12.2,12.05-12.05,8.63-28.17-3.43-40.22-12.05-12.05-26.64-14.06-38.69-2-5.96,5.96-10.1,20.06-12.75,32.78-2.26-13.36-6.06-28.47-12.2-34.61-12.05-12.05-28.17-8.63-40.22,3.43-12.05,12.05-14.06,26.64-2,38.69,5.96,5.96,20.06,10.1,32.78,12.75-13.36,2.26-28.47,6.06-34.61,12.2-12.05,12.05-8.63,28.17,3.43,40.22,12.05,12.05,26.64,14.06,38.69,2,5.96-5.96,10.1-20.06,12.75-32.78,2.26,13.36,6.06,28.47,12.2,34.61,12.05,12.05,28.17,8.63,40.22-3.43,12.05-12.05,14.06-26.64,2-38.69Z" transform="translate(-70,-70)"/>
+    </g>
+  </defs>
+  <!-- Telegram-style: numerous, irregular, organic - like TCN watermark -->
+  <use href="#logo" transform="translate(38,52) scale(0.18) rotate(-12)" />
+  <use href="#logo" transform="translate(142,28) scale(0.22) rotate(18)" />
+  <use href="#logo" transform="translate(265,67) scale(0.16) rotate(-22)" />
+  <use href="#logo" transform="translate(380,95) scale(0.2) rotate(8)" />
+  <use href="#logo" transform="translate(95,118) scale(0.24) rotate(-5)" />
+  <use href="#logo" transform="translate(218,142) scale(0.19) rotate(25)" />
+  <use href="#logo" transform="translate(345,168) scale(0.17) rotate(-15)" />
+  <use href="#logo" transform="translate(52,195) scale(0.21) rotate(12)" />
+  <use href="#logo" transform="translate(175,220) scale(0.18) rotate(-8)" />
+  <use href="#logo" transform="translate(298,245) scale(0.23) rotate(14)" />
+  <use href="#logo" transform="translate(412,272) scale(0.15) rotate(-18)" />
+  <use href="#logo" transform="translate(28,305) scale(0.2) rotate(6)" />
+  <use href="#logo" transform="translate(155,332) scale(0.19) rotate(-25)" />
+  <use href="#logo" transform="translate(278,358) scale(0.22) rotate(10)" />
+  <use href="#logo" transform="translate(395,385) scale(0.16) rotate(-11)" />
+  <use href="#logo" transform="translate(88,412) scale(0.21) rotate(20)" />
+  <use href="#logo" transform="translate(205,38) scale(0.15) rotate(-7)" />
+  <use href="#logo" transform="translate(322,125) scale(0.2) rotate(16)" />
+  <use href="#logo" transform="translate(45,268) scale(0.17) rotate(-14)" />
+  <use href="#logo" transform="translate(168,395) scale(0.18) rotate(9)" />
+  <use href="#logo" transform="translate(435,210) scale(0.19) rotate(-20)" />
+  <use href="#logo" transform="translate(312,42) scale(0.16) rotate(11)" />
+  <use href="#logo" transform="translate(125,275) scale(0.2) rotate(-9)" />
+  <use href="#logo" transform="translate(248,398) scale(0.17) rotate(22)" />
+  <use href="#logo" transform="translate(365,315) scale(0.21) rotate(-16)" />
+</svg>
