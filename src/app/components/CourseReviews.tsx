@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useState, useEffect } from "react";
 
 export interface Review {
@@ -10,6 +11,7 @@ export interface Review {
   avatar: string;
   comment: string;
   date: string;
+  userId?: string;
 }
 
 const MOCK_REVIEWS: Review[] = [
@@ -21,6 +23,7 @@ const MOCK_REVIEWS: Review[] = [
     comment:
       "پروژه‌های عملی این دوره باعث شد ترس من از کدنویسی بریزه. محتوا بسیار کاربردی و به‌روز است. الان در یک شرکت معتبر مشغولم.",
     date: "۲ هفته پیش",
+    userId: "user-1",
   },
   {
     id: "2",
@@ -30,6 +33,7 @@ const MOCK_REVIEWS: Review[] = [
     comment:
       "بهترین تصمیمی که برای آینده‌ام گرفتم شرکت در این دوره بود. منتورها واقعاً دلسوزانه کمک می‌کنند و محتوا عالیه.",
     date: "۱ ماه پیش",
+    userId: "user-2",
   },
   {
     id: "3",
@@ -39,6 +43,7 @@ const MOCK_REVIEWS: Review[] = [
     comment:
       "محتوای آموزشی بسیار به‌روز و با کیفیت هست. پشتیبانی ۲۴ ساعته واقعاً یک مزیت بزرگه. فقط امیدوارم مباحث پیشرفته‌تر هم اضافه بشه.",
     date: "۲ ماه پیش",
+    userId: "user-3",
   },
 ];
 
@@ -223,20 +228,44 @@ export default function CourseReviews({
           >
             <div className="flex flex-col sm:flex-row gap-6">
               <div className="flex items-center gap-4 shrink-0">
-                <div className="relative size-16 rounded-2xl overflow-hidden border-2 border-white dark:border-gray-700 shadow-lg">
-                  <Image
-                    src={review.avatar}
-                    alt={review.author}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <div>
-                  <h4 className="font-bold text-lg text-gray-900 dark:text-white">
-                    {review.author}
-                  </h4>
-                  <span className="text-sm text-primary font-bold">{review.role}</span>
-                </div>
+                {review.userId ? (
+                  <Link
+                    href={`/social/profile/${review.userId}`}
+                    className="flex items-center gap-4 group/profile shrink-0"
+                  >
+                    <div className="relative size-16 rounded-2xl overflow-hidden border-2 border-white dark:border-gray-700 shadow-lg transition-transform group-hover/profile:scale-105">
+                      <Image
+                        src={review.avatar}
+                        alt={review.author}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg text-gray-900 dark:text-white group-hover/profile:text-primary transition-colors">
+                        {review.author}
+                      </h4>
+                      <span className="text-sm text-primary font-bold">{review.role}</span>
+                    </div>
+                  </Link>
+                ) : (
+                  <div className="flex items-center gap-4 shrink-0">
+                    <div className="relative size-16 rounded-2xl overflow-hidden border-2 border-white dark:border-gray-700 shadow-lg">
+                      <Image
+                        src={review.avatar}
+                        alt={review.author}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg text-gray-900 dark:text-white">
+                        {review.author}
+                      </h4>
+                      <span className="text-sm text-primary font-bold">{review.role}</span>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="flex-1">
                 <p className="text-gray-600 dark:text-gray-300 leading-relaxed font-medium">
