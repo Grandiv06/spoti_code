@@ -36,7 +36,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user }) => {
   return (
     <div className="relative w-full mb-12 md:mb-16 overflow-visible">
       {/* Banner - Default pattern */}
-      <div className="h-48 md:h-64 w-full rounded-2xl overflow-hidden relative">
+      <div className="h-48 md:h-64 w-full rounded-4xl overflow-hidden relative">
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-green-50/90 to-teal-50/70 dark:bg-[linear-gradient(135deg,#0a0a0a_0%,#0d1210_25%,#051008_50%,#0a0f0c_75%,#080c0a_100%)]" />
         <div
           className="absolute inset-0 bg-repeat bg-[url('/patterns/spoticode-banner-pattern-light.svg')] dark:bg-[url('/patterns/spoticode-banner-pattern.svg')]"
