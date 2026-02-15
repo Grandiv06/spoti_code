@@ -49,7 +49,7 @@ export default function ProfilePage() {
         {/* Header Section */}
         <ProfileHeader user={user} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-6 md:mt-10">
           {/* Left Column (Main Content) - Wide */}
           <div className="lg:col-span-8 space-y-8">
             <GrowthRoadmap />
