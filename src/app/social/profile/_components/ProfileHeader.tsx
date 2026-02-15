@@ -64,7 +64,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user }) => {
           </div>
 
           {/* User Details */}
-          <div className="pt-4 md:pt-20 flex-1 w-full">
+          <div className="pt-8 md:pt-28 flex-1 w-full">
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
