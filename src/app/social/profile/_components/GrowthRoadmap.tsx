@@ -1,8 +1,18 @@
 "use client";
 
 import React from "react";
-import { CheckCircle2, Lock, ArrowUpCircle, CircleDot } from "lucide-react";
+import { Lock } from "lucide-react";
+import { SiHtml5, SiCss3, SiJavascript, SiGit, SiReact, SiNextdotjs } from "react-icons/si";
 import { cn } from "@/lib/utils";
+
+const stageIcons: Record<number, React.ComponentType<{ className?: string }>> = {
+  1: SiHtml5,
+  2: SiCss3,
+  3: SiJavascript,
+  4: SiGit,
+  5: SiReact,
+  6: SiNextdotjs,
+};
 
 const stages = [
   { id: 1, title: "HTML & Semantic Web", status: "completed", progress: 100 },
@@ -32,27 +42,46 @@ const GrowthRoadmap = () => {
         </div>
       </div>
 
-      <div className="relative pr-4">
-        {/* Connector Line */}
-        <div className="absolute top-4 bottom-4 right-[19px] w-0.5 bg-gray-200 dark:bg-gray-800" />
-
+      <div className="relative">
         <div className="space-y-8 relative">
-          {stages.map((stage, index) => (
+          {stages.map((stage) => {
+            const IconComponent = stageIcons[stage.id];
+            return (
             <div key={stage.id} className="relative flex items-start gap-4 group">
-              {/* Node Indicator */}
-              <div
-                className={cn(
-                  "relative z-10 w-10 h-10 rounded-full flex items-center justify-center border-4 transition-all duration-300",
-                  stage.status === "completed"
-                    ? "bg-green-500 border-green-100 dark:border-green-900 text-white shadow-lg shadow-green-500/20"
-                    : stage.status === "active"
-                    ? "bg-white dark:bg-[#1c1e26] border-green-500 text-green-500 scale-110 shadow-xl shadow-green-500/10 ring-4 ring-green-500/20"
-                    : "bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400"
+              {/* Icon column - line passes through center */}
+              <div className="relative w-10 shrink-0 flex flex-col items-center">
+                {/* Connector line segment - centered on icon, extends to next row */}
+                <div className="absolute top-5 left-1/2 -translate-x-1/2 -bottom-8 w-0.5 bg-gray-200 dark:bg-gray-800 -z-0" />
+                {/* Node Indicator - Tech Icon */}
+                <div
+                  className={cn(
+                    "relative z-10 w-10 h-10 rounded-full flex items-center justify-center border-4 transition-all duration-300 overflow-visible",
+                    stage.status === "completed"
+                      ? "bg-white dark:bg-gray-100 border-green-200 dark:border-green-800 shadow-lg shadow-green-500/20"
+                      : stage.status === "active"
+                      ? "bg-white dark:bg-[#1c1e26] border-green-200 dark:border-green-800 shadow-lg shadow-green-500/20 animate-float-subtle"
+                      : "bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 grayscale opacity-60"
+                  )}
+                >
+                {IconComponent && (
+                  <IconComponent
+                    className={cn(
+                      "w-5 h-5 shrink-0",
+                      stage.id === 1 && (stage.status === "completed" || stage.status === "active") && "text-[#E34F26]",
+                      stage.id === 2 && (stage.status === "completed" || stage.status === "active") && "text-[#1572B6]",
+                      stage.id === 3 && (stage.status === "completed" || stage.status === "active") && "text-[#F7DF1E]",
+                      stage.id === 4 && (stage.status === "completed" || stage.status === "active") && "text-[#F05032]",
+                      stage.id === 5 && stage.status === "locked" && "text-[#61DAFB]",
+                      stage.id === 6 && stage.status === "locked" && "text-gray-900 dark:text-white"
+                    )}
+                  />
                 )}
-              >
-                {stage.status === "completed" && <CheckCircle2 className="w-5 h-5" />}
-                {stage.status === "active" && <CircleDot className="w-5 h-5 animate-pulse" />}
-                {stage.status === "locked" && <Lock className="w-4 h-4" />}
+                {stage.status === "locked" && (
+                  <div className="absolute -bottom-0.5 -right-0.5 z-20 w-5 h-5 bg-gray-700 dark:bg-gray-600 rounded-full flex items-center justify-center shadow-md border-2 border-white dark:border-[#1c1e26]">
+                    <Lock className="w-3 h-3 text-white" />
+                  </div>
+                )}
+              </div>
               </div>
 
               {/* Content Card */}
@@ -88,7 +117,8 @@ const GrowthRoadmap = () => {
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

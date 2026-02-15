@@ -180,6 +180,19 @@
   }
 }
 
+@keyframes float-border-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 4px rgb(34 197 94 / 0.3), 0 0 12px rgb(34 197 94 / 0.15);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgb(34 197 94 / 0.6), 0 0 20px rgb(34 197 94 / 0.35);
+  }
+}
+
+.animate-float-subtle {
+  animation: float-border-glow 2.5s ease-in-out infinite;
+}
+
 @keyframes drift {
   0% {
     transform: translate(0, 0) rotate(0deg);
