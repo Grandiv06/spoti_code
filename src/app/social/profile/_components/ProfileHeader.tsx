@@ -34,7 +34,7 @@ interface ProfileHeaderProps {
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user }) => {
   return (
-    <div className="relative w-full mb-12 md:mb-6">
+    <div className="relative w-full mb-12 md:mb-16 overflow-visible">
       {/* Banner - Default pattern */}
       <div className="h-48 md:h-64 w-full rounded-2xl overflow-hidden relative">
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-green-50/90 to-teal-50/70 dark:bg-[linear-gradient(135deg,#0a0a0a_0%,#0d1210_25%,#051008_50%,#0a0f0c_75%,#080c0a_100%)]" />
@@ -59,8 +59,13 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user }) => {
                 sizes="(max-width: 768px) 128px, 160px"
               />
             </div>
-            {/* Online/Status Indicator (Optional) */}
-            <div className="absolute bottom-4 right-4 md:bottom-5 md:right-5 w-5 h-5 bg-green-500 border-4 border-white dark:border-[#14161c] rounded-full" />
+            {/* Vertical connector line - profile to growth path */}
+            <div
+              className="absolute top-full left-1/2 -translate-x-1/2 w-0.5 min-h-[80px] h-28 md:h-36 pointer-events-none"
+              aria-hidden
+            >
+              <div className="w-full h-full bg-gradient-to-b from-green-500/70 via-green-500/45 to-transparent rounded-full" />
+            </div>
           </div>
 
           {/* User Details */}
