@@ -5,6 +5,12 @@ import ProjectsTabs from "../_components/ProjectsTabs";
 import ActivityTabs from "../_components/ActivityTabs";
 import ProfileSidebar from "../_components/ProfileSidebar";
 
+const USER_IDS = Array.from({ length: 10 }, (_, i) => `user-${i + 1}`);
+
+export function generateStaticParams() {
+  return USER_IDS.map((id) => ({ id }));
+}
+
 export default function ProfilePage() {
   // Mock Data
   const user = {

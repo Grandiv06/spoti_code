@@ -5,6 +5,12 @@ import CourseReviews from "../../components/CourseReviews";
 import CourseHero from "../../components/CourseHero";
 import AddToCartButton from "../../components/AddToCartButton";
 
+const COURSE_IDS = ["html", "css", "javascript", "react", "nextjs"];
+
+export function generateStaticParams() {
+  return COURSE_IDS.map((id) => ({ id }));
+}
+
 export default function CourseDetailPage({
   params,
 }: {

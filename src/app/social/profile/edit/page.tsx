@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { Suspense, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useSocial } from "@/context/SocialContext";
@@ -20,7 +20,7 @@ const PRESET_COLORS = [
   "#84cc16",
 ];
 
-export default function ProfileEditPage() {
+function ProfileEditContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const bannerInputRef = useRef<HTMLInputElement>(null);
@@ -254,5 +254,13 @@ export default function ProfileEditPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ProfileEditPage() {
+  return (
+    <Suspense fallback={<div className="max-w-2xl mx-auto py-12 flex justify-center"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
+      <ProfileEditContent />
+    </Suspense>
   );
 }
