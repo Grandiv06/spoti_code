@@ -245,9 +245,38 @@
 
 .roadmap-card:hover {
   transform: translateY(-5px) scale(1.01);
-  box-shadow:
-    0 30px 60px -15px rgba(16, 185, 129, 0.2),
-    0 0 0 2px rgba(255, 255, 255, 1) inset;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 25px 50px -12px rgba(16, 185, 129, 0.18);
+}
+.dark .roadmap-card:hover {
+  box-shadow: 0 25px 50px -12px rgba(16, 185, 129, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* سایه بدون بوردر سفید برای کارت‌های مسیر یادگیری */
+.shadow-glass-no-border {
+  box-shadow: 0 20px 40px -10px rgba(16, 185, 129, 0.08);
+}
+.hover\:shadow-glass-no-border:hover {
+  box-shadow: 0 25px 50px -12px rgba(16, 185, 129, 0.15);
+}
+
+.shadow-card-soft-no-border {
+  box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.05);
+}
+
+/* سایه و بوردر برای حالت لایت - کارت‌ها مشخص‌تر باشند */
+.shadow-learning-card-light {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 20px 40px -10px rgba(16, 185, 129, 0.12);
+}
+.hover\:shadow-learning-card-light:hover {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 25px 50px -12px rgba(16, 185, 129, 0.18);
+}
+
+/* سایه و بوردر برای حالت دارک - کارت‌ها مشخص‌تر باشند */
+.dark .dark\:shadow-learning-card-dark {
+  box-shadow: 0 20px 40px -10px rgba(16, 185, 129, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.dark .dark\:hover\:shadow-learning-card-dark:hover {
+  box-shadow: 0 25px 50px -12px rgba(16, 185, 129, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .roadmap-connector::before {

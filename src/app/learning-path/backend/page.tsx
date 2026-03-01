@@ -34,7 +34,7 @@ export default function BackendRoadmap() {
               <span>شروع یادگیری</span>
               <span className="material-symbols-outlined text-2xl">arrow_back</span>
             </button>
-            <button className="bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 text-text-main border border-white dark:border-white/10 px-10 py-5 rounded-2xl font-medium text-xl shadow-glass hover:shadow-glass-hover backdrop-blur-md transition-all">
+            <button className="bg-gray-50 dark:bg-slate-800/60 hover:bg-gray-100 dark:hover:bg-slate-800 text-text-main border border-gray-200/80 dark:border-white/[0.06] px-10 py-5 rounded-2xl font-medium text-xl shadow-learning-card-light dark:shadow-learning-card-dark backdrop-blur-md transition-all">
               مشاهده سرفصل‌ها
             </button>
           </div>
@@ -51,7 +51,7 @@ export default function BackendRoadmap() {
           
           <div className="relative flex flex-col md:flex-row items-center justify-between gap-12 mb-40 group roadmap-connector">
             <div className="w-full md:w-5/12 order-2 md:order-1 text-center md:text-left rtl:md:text-right" dir="rtl">
-              <div className="roadmap-card bg-glass-surface hover:bg-glass-surface-hover border border-glass-border p-10 rounded-4xl backdrop-blur-2xl shadow-glass relative overflow-hidden group-hover:border-emerald-300 dark:group-hover:border-emerald-700">
+              <div className="roadmap-card bg-gray-50 dark:bg-[#1c1e26] hover:bg-gray-100 dark:hover:bg-[#24262e] p-10 rounded-4xl border border-gray-200/80 dark:border-white/[0.06] shadow-learning-card-light dark:shadow-learning-card-dark backdrop-blur-2xl relative overflow-hidden">
                 <div className="absolute -right-20 -top-20 w-40 h-40 bg-emerald-100 dark:bg-emerald-900/20 rounded-full blur-3xl opacity-50 group-hover:opacity-80 transition-opacity"></div>
                 <div className="relative z-10 flex flex-col gap-5">
                   <h3 className="text-4xl font-extrabold text-text-main">جاوااسکریپت پیشرفته</h3>
@@ -94,7 +94,7 @@ export default function BackendRoadmap() {
               </div>
             </div>
             <div className="w-full md:w-5/12 order-2 md:order-3 text-center md:text-right" dir="rtl">
-              <div className="roadmap-card bg-glass-surface hover:bg-glass-surface-hover border border-glass-border p-10 rounded-4xl backdrop-blur-2xl shadow-glass relative overflow-hidden group-hover:border-teal-300 dark:group-hover:border-teal-700">
+              <div className="roadmap-card bg-gray-50 dark:bg-[#1c1e26] hover:bg-gray-100 dark:hover:bg-[#24262e] p-10 rounded-4xl border border-gray-200/80 dark:border-white/[0.06] shadow-learning-card-light dark:shadow-learning-card-dark backdrop-blur-2xl relative overflow-hidden">
                 <div className="absolute -left-20 -bottom-20 w-40 h-40 bg-teal-100 dark:bg-teal-900/20 rounded-full blur-3xl opacity-50 group-hover:opacity-80 transition-opacity"></div>
                 <div className="relative z-10 flex flex-col gap-5">
                   <h3 className="text-4xl font-extrabold text-text-main">هسته Node.js</h3>
@@ -111,7 +111,7 @@ export default function BackendRoadmap() {
 
           <div className="relative flex flex-col md:flex-row items-center justify-between gap-12 mb-40 group">
             <div className="w-full md:w-5/12 order-2 md:order-1 text-center md:text-left rtl:md:text-right" dir="rtl">
-              <div className="roadmap-card bg-glass-surface hover:bg-glass-surface-hover border border-glass-border p-10 rounded-4xl backdrop-blur-2xl shadow-glass relative overflow-hidden group-hover:border-emerald-300 dark:group-hover:border-emerald-700">
+              <div className="roadmap-card bg-gray-50 dark:bg-[#1c1e26] hover:bg-gray-100 dark:hover:bg-[#24262e] p-10 rounded-4xl border border-gray-200/80 dark:border-white/[0.06] shadow-learning-card-light dark:shadow-learning-card-dark backdrop-blur-2xl relative overflow-hidden">
                 <div className="absolute -right-20 -top-20 w-40 h-40 bg-green-100 dark:bg-green-900/20 rounded-full blur-3xl opacity-50 group-hover:opacity-80 transition-opacity"></div>
                 <div className="relative z-10 flex flex-col gap-5">
                   <h3 className="text-4xl font-extrabold text-text-main">پایگاه‌های داده</h3>
@@ -154,7 +154,7 @@ export default function BackendRoadmap() {
               </div>
             </div>
             <div className="w-full md:w-5/12 order-2 md:order-3 text-center md:text-right" dir="rtl">
-              <div className="roadmap-card bg-glass-surface hover:bg-glass-surface-hover border border-glass-border p-10 rounded-4xl backdrop-blur-2xl shadow-glass relative overflow-hidden group-hover:border-emerald-300 dark:group-hover:border-emerald-700">
+              <div className="roadmap-card bg-gray-50 dark:bg-[#1c1e26] hover:bg-gray-100 dark:hover:bg-[#24262e] p-10 rounded-4xl border border-gray-200/80 dark:border-white/[0.06] shadow-learning-card-light dark:shadow-learning-card-dark backdrop-blur-2xl relative overflow-hidden">
                 <div className="absolute -left-20 -bottom-20 w-40 h-40 bg-emerald-100 dark:bg-emerald-900/20 rounded-full blur-3xl opacity-50 group-hover:opacity-80 transition-opacity"></div>
                 <div className="relative z-10 flex flex-col gap-5">
                   <h3 className="text-4xl font-extrabold text-text-main">فریمورک Express.js</h3>
@@ -171,7 +171,7 @@ export default function BackendRoadmap() {
 
           <div className="relative flex flex-col md:flex-row items-center justify-between gap-12 mb-40 group">
             <div className="w-full md:w-5/12 order-2 md:order-1 text-center md:text-left rtl:md:text-right" dir="rtl">
-              <div className="roadmap-card bg-glass-surface hover:bg-glass-surface-hover border border-glass-border p-10 rounded-4xl backdrop-blur-2xl shadow-glass relative overflow-hidden group-hover:border-teal-300 dark:group-hover:border-teal-700">
+              <div className="roadmap-card bg-gray-50 dark:bg-[#1c1e26] hover:bg-gray-100 dark:hover:bg-[#24262e] p-10 rounded-4xl border border-gray-200/80 dark:border-white/[0.06] shadow-learning-card-light dark:shadow-learning-card-dark backdrop-blur-2xl relative overflow-hidden">
                 <div className="absolute -right-20 -top-20 w-40 h-40 bg-teal-100 dark:bg-teal-900/20 rounded-full blur-3xl opacity-50 group-hover:opacity-80 transition-opacity"></div>
                 <div className="relative z-10 flex flex-col gap-5">
                   <h3 className="text-4xl font-extrabold text-text-main">ارتباطات درنگ (Real-time)</h3>
@@ -214,7 +214,7 @@ export default function BackendRoadmap() {
               </div>
             </div>
             <div className="w-full md:w-5/12 order-2 md:order-3 text-center md:text-right" dir="rtl">
-              <div className="roadmap-card bg-glass-surface hover:bg-glass-surface-hover border border-glass-border p-10 rounded-4xl backdrop-blur-2xl shadow-glass relative overflow-hidden group-hover:border-emerald-300 dark:group-hover:border-emerald-700">
+              <div className="roadmap-card bg-gray-50 dark:bg-[#1c1e26] hover:bg-gray-100 dark:hover:bg-[#24262e] p-10 rounded-4xl border border-gray-200/80 dark:border-white/[0.06] shadow-learning-card-light dark:shadow-learning-card-dark backdrop-blur-2xl relative overflow-hidden">
                 <div className="absolute -left-20 -bottom-20 w-40 h-40 bg-emerald-100 dark:bg-emerald-900/20 rounded-full blur-3xl opacity-50 group-hover:opacity-80 transition-opacity"></div>
                 <div className="relative z-10 flex flex-col gap-5">
                   <h3 className="text-4xl font-extrabold text-text-main">تست و استقرار</h3>
@@ -238,28 +238,28 @@ export default function BackendRoadmap() {
             <p className="text-text-muted text-lg">آمار و ارقامی که نشان‌دهنده کیفیت این دوره آموزشی بک‌اند است</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="bg-white/60 dark:bg-slate-800/60 border border-white dark:border-white/10 p-8 rounded-[2rem] shadow-sm hover:shadow-xl transition-all flex flex-col items-center gap-3 group">
+            <div className="bg-gray-50 dark:bg-[#1c1e26] border border-gray-200/80 dark:border-white/[0.06] p-8 rounded-[2rem] shadow-learning-card-light dark:shadow-learning-card-dark hover:shadow-learning-card-light dark:hover:shadow-learning-card-dark transition-all flex flex-col items-center gap-3 group">
               <div className="bg-emerald-50 dark:bg-emerald-900/30 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
                 <span className="material-symbols-outlined text-emerald-500 text-4xl">groups</span>
               </div>
               <span className="text-5xl font-black text-text-main">3.2k+</span>
               <span className="text-base text-text-muted font-medium">دانشجوی فعال</span>
             </div>
-            <div className="bg-white/60 dark:bg-slate-800/60 border border-white dark:border-white/10 p-8 rounded-[2rem] shadow-sm hover:shadow-xl transition-all flex flex-col items-center gap-3 group">
+            <div className="bg-gray-50 dark:bg-[#1c1e26] border border-gray-200/80 dark:border-white/[0.06] p-8 rounded-[2rem] shadow-learning-card-light dark:shadow-learning-card-dark hover:shadow-learning-card-light dark:hover:shadow-learning-card-dark transition-all flex flex-col items-center gap-3 group">
               <div className="bg-emerald-50 dark:bg-emerald-900/30 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
                 <span className="material-symbols-outlined text-emerald-500 text-4xl">schedule</span>
               </div>
               <span className="text-5xl font-black text-text-main">140h</span>
               <span className="text-base text-text-muted font-medium">محتوای ویدیویی</span>
             </div>
-            <div className="bg-white/60 dark:bg-slate-800/60 border border-white dark:border-white/10 p-8 rounded-[2rem] shadow-sm hover:shadow-xl transition-all flex flex-col items-center gap-3 group">
+            <div className="bg-gray-50 dark:bg-[#1c1e26] border border-gray-200/80 dark:border-white/[0.06] p-8 rounded-[2rem] shadow-learning-card-light dark:shadow-learning-card-dark hover:shadow-learning-card-light dark:hover:shadow-learning-card-dark transition-all flex flex-col items-center gap-3 group">
               <div className="bg-emerald-50 dark:bg-emerald-900/30 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
                 <span className="material-symbols-outlined text-emerald-500 text-4xl">dns</span>
               </div>
               <span className="text-5xl font-black text-text-main">20+</span>
               <span className="text-base text-text-muted font-medium">پروژه عملی</span>
             </div>
-            <div className="bg-white/60 dark:bg-slate-800/60 border border-white dark:border-white/10 p-8 rounded-[2rem] shadow-sm hover:shadow-xl transition-all flex flex-col items-center gap-3 group">
+            <div className="bg-gray-50 dark:bg-[#1c1e26] border border-gray-200/80 dark:border-white/[0.06] p-8 rounded-[2rem] shadow-learning-card-light dark:shadow-learning-card-dark hover:shadow-learning-card-light dark:hover:shadow-learning-card-dark transition-all flex flex-col items-center gap-3 group">
               <div className="bg-emerald-50 dark:bg-emerald-900/30 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
                 <span className="material-symbols-outlined text-emerald-500 text-4xl">verified</span>
               </div>
