@@ -118,23 +118,33 @@ export default function LearningPathsOverview() {
                 </ul>
               </div>
               <div className="w-full lg:w-1/2 relative flex justify-center">
-                <div className="relative w-full max-w-md aspect-square">
-                  <div className="absolute inset-0 bg-gradient-to-tr from-emerald-50 to-white dark:from-slate-800 dark:to-slate-900 rounded-4xl shadow-card-soft-no-border flex items-center justify-center p-8">
-                    <div className="relative w-full h-full border-2 border-dashed border-emerald-200 dark:border-emerald-800/50 rounded-3xl flex flex-col justify-between p-6">
-                      <div className="self-end bg-white dark:bg-surface-dark p-3 rounded-2xl shadow-sm border border-emerald-100 dark:border-emerald-800/30 animate-float">
-                        <span className="material-symbols-outlined text-4xl text-emerald-500">flag</span>
-                      </div>
-                      <div className="self-center bg-white dark:bg-surface-dark p-4 rounded-2xl shadow-sm border border-emerald-100 dark:border-emerald-800/30 animate-float" style={{ animationDelay: '1s' }}>
-                        <span className="material-symbols-outlined text-4xl text-emerald-400">route</span>
-                      </div>
-                      <div className="self-start bg-white dark:bg-surface-dark p-3 rounded-2xl shadow-sm border border-emerald-100 dark:border-emerald-800/30 animate-float" style={{ animationDelay: '2s' }}>
-                        <span className="material-symbols-outlined text-4xl text-emerald-300">start</span>
-                      </div>
-                      <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20" preserveAspectRatio="none" viewBox="0 0 100 100">
-                        <path d="M20,80 Q50,50 80,20" fill="none" stroke="#10b981" strokeDasharray="4 4" strokeWidth="2"></path>
-                      </svg>
+                <div className="relative w-full max-w-md flex flex-col gap-4">
+                  <Link
+                    href="/learning-path/frontend"
+                    className="flex items-center gap-4 p-6 rounded-3xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-100 dark:border-emerald-800/30 hover:from-emerald-100 hover:to-teal-100 dark:hover:from-emerald-900/30 dark:hover:to-teal-900/30 transition-all group"
+                  >
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center shadow-lg shadow-emerald-200/50 dark:shadow-emerald-900/30 group-hover:scale-110 transition-transform">
+                      <span className="material-symbols-outlined text-3xl text-white">devices</span>
                     </div>
-                  </div>
+                    <div className="flex-1 text-right">
+                      <p className="font-bold text-lg text-text-main">مسیر فرانت‌اند</p>
+                      <p className="text-sm text-text-muted">HTML، CSS، React، Next.js</p>
+                    </div>
+                    <span className="material-symbols-outlined text-emerald-500 group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                  </Link>
+                  <Link
+                    href="/learning-path/backend"
+                    className="flex items-center gap-4 p-6 rounded-3xl bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50 border border-slate-200 dark:border-slate-700/50 hover:from-slate-100 hover:to-slate-200 dark:hover:from-slate-800 dark:hover:to-slate-700 transition-all group"
+                  >
+                    <div className="w-16 h-16 rounded-2xl bg-sage dark:bg-sage flex items-center justify-center shadow-lg shadow-slate-200/50 dark:shadow-slate-900/30 group-hover:scale-110 transition-transform">
+                      <span className="material-symbols-outlined text-3xl text-white">dns</span>
+                    </div>
+                    <div className="flex-1 text-right">
+                      <p className="font-bold text-lg text-text-main">مسیر بک‌اند</p>
+                      <p className="text-sm text-text-muted">Node.js، Express، Database</p>
+                    </div>
+                    <span className="material-symbols-outlined text-sage dark:text-emerald-400 group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                  </Link>
                 </div>
               </div>
             </div>
