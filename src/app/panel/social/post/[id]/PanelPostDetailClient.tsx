@@ -57,7 +57,7 @@ export default function PanelPostDetailClient({ params }: { params: Promise<{ id
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <button onClick={() => router.back()} className="group flex items-center gap-2 text-gray-500 hover:text-green-600 transition-colors">
+      <button onClick={() => router.back()} className="group flex items-center gap-2 text-gray-500 hover:text-green-600 transition-colors cursor-pointer">
         <div className="p-1 rounded-lg bg-gray-100 dark:bg-gray-800 group-hover:bg-green-100 dark:group-hover:bg-green-900/20 transition-colors">
           <ArrowRight className="w-5 h-5" />
         </div>

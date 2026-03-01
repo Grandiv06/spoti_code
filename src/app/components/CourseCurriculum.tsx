@@ -138,7 +138,7 @@ export default function CourseCurriculum({
         <button
           type="button"
           onClick={showCurriculum}
-          className="w-full glass-panel rounded-4xl px-8 py-8 flex items-center justify-between gap-4 hover:bg-white/20 dark:hover:bg-white/10 transition-all duration-300 group"
+          className="w-full glass-panel rounded-4xl px-8 py-8 flex items-center justify-between gap-4 hover:bg-white/20 dark:hover:bg-white/10 transition-all duration-300 group cursor-pointer"
         >
           <div className="flex items-center gap-4">
             <span className="flex items-center justify-center size-14 rounded-3xl bg-primary/20 dark:bg-primary/30 text-primary group-hover:scale-110 transition-transform">
@@ -164,8 +164,8 @@ export default function CourseCurriculum({
   }
 
   return (
-    <section className="space-y-6">
-      <div className="glass-panel rounded-4xl px-8 py-6 flex flex-wrap items-center justify-between gap-4 mb-2">
+    <section className="glass-panel rounded-4xl overflow-hidden border border-white/60 dark:border-gray-700">
+      <div className="px-8 py-6 flex flex-wrap items-center justify-between gap-4 border-b border-white/50 dark:border-gray-700">
         <h2 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3">
           <span className="material-symbols-outlined filled text-primary">
             toc
@@ -176,9 +176,9 @@ export default function CourseCurriculum({
           <button
             type="button"
             onClick={collapseAll}
-            className="text-sm font-bold text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary px-4 py-2 rounded-2xl bg-white/30 dark:bg-white/5 hover:bg-white/50 dark:hover:bg-white/10 transition-colors flex items-center gap-2"
+            className="text-sm font-bold text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary px-4 py-2 rounded-2xl bg-white/30 dark:bg-white/5 hover:bg-white/50 dark:hover:bg-white/10 transition-colors flex items-center gap-2 cursor-pointer"
           >
-            بستن همه
+            بستن
           </button>
           <span className="text-sm font-bold text-primary bg-white/50 dark:bg-white/10 px-4 py-2 rounded-2xl shadow-sm">
             {totalLessons} جلسه
@@ -186,7 +186,7 @@ export default function CourseCurriculum({
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="p-6 space-y-6">
         {chapters.map((chapter) => {
           const isOpen = openChapterId === chapter.id;
           return (
@@ -201,7 +201,7 @@ export default function CourseCurriculum({
               <button
                 type="button"
                 onClick={() => toggleChapter(chapter.id)}
-                className="w-full flex items-center justify-between p-6 md:p-8 text-right"
+                className="w-full flex items-center justify-between p-6 md:p-8 text-right cursor-pointer"
               >
                 <div className="flex items-center gap-6">
                   <span
@@ -296,3 +296,4 @@ export default function CourseCurriculum({
     </section>
   );
 }
+

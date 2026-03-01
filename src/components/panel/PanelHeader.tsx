@@ -23,7 +23,7 @@ export default function PanelHeader() {
       {/* Right: Hamburger (mobile/tablet) */}
       <button
         onClick={toggleMobile}
-        className="lg:hidden p-2 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+        className="lg:hidden p-2 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
         aria-label="باز کردن منو"
       >
         <Menu className="w-6 h-6" />

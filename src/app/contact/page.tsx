@@ -122,7 +122,7 @@ export default function ContactPage() {
                     <button
                       type="button"
                       onClick={() => setIsSubmitted(false)}
-                      className="text-primary font-bold hover:text-primary-hover transition-colors flex items-center gap-2"
+                      className="text-primary font-bold hover:text-primary-hover transition-colors flex items-center gap-2 cursor-pointer"
                     >
                       ارسال پیام جدید
                       <span className="material-symbols-outlined text-lg">add</span>
@@ -211,7 +211,7 @@ export default function ContactPage() {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full md:w-auto bg-primary hover:bg-primary-hover disabled:opacity-70 disabled:cursor-not-allowed text-white px-12 py-4 rounded-2xl font-black text-lg transition-all shadow-lg shadow-primary/30 hover:shadow-primary/40 flex items-center justify-center gap-2"
+                      className="w-full md:w-auto bg-primary hover:bg-primary-hover disabled:opacity-70 disabled:cursor-not-allowed text-white px-12 py-4 rounded-2xl font-black text-lg transition-all shadow-lg shadow-primary/30 hover:shadow-primary/40 flex items-center justify-center gap-2 cursor-pointer"
                     >
                       {isSubmitting ? (
                         <>

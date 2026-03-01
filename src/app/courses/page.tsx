@@ -11,7 +11,7 @@ export default function CoursesPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 font-bold">
-              <Link className="hover:text-primary transition-colors" href="/">
+              <Link className="hover:text-primary transition-colors cursor-pointer" href="/">
                 خانه
               </Link>
               <span className="material-symbols-outlined text-xs">
@@ -218,12 +218,12 @@ export default function CoursesPage() {
                         {course.difficulty}
                       </span>
                       <div className="flex flex-col gap-2 translate-x-[-10px] opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-500 delay-100">
-                        <button className="size-10 rounded-full bg-white/20 backdrop-blur-xl border border-white/20 text-white hover:bg-white hover:text-red-500 flex items-center justify-center transition-all shadow-lg">
+                        <button className="size-10 rounded-full bg-white/20 backdrop-blur-xl border border-white/20 text-white hover:bg-white hover:text-red-500 flex items-center justify-center transition-all shadow-lg cursor-pointer">
                           <span className="material-symbols-outlined text-[20px]">
                             favorite
                           </span>
                         </button>
-                        <button className="size-10 rounded-full bg-white/20 backdrop-blur-xl border border-white/20 text-white hover:bg-white hover:text-blue-500 flex items-center justify-center transition-all shadow-lg">
+                        <button className="size-10 rounded-full bg-white/20 backdrop-blur-xl border border-white/20 text-white hover:bg-white hover:text-blue-500 flex items-center justify-center transition-all shadow-lg cursor-pointer">
                           <span className="material-symbols-outlined text-[20px]">
                             share
                           </span>
@@ -288,21 +288,21 @@ export default function CoursesPage() {
 
             {/* Pagination */}
             <div className="mt-24 flex justify-center gap-4">
-              <button className="size-16 rounded-full border border-white/60 bg-white/40 dark:bg-white/5 dark:border-white/10 flex items-center justify-center hover:bg-primary hover:border-primary hover:text-background-dark transition-all duration-300 backdrop-blur-md shadow-lg group">
+              <button className="size-16 rounded-full border border-white/60 bg-white/40 dark:bg-white/5 dark:border-white/10 flex items-center justify-center hover:bg-primary hover:border-primary hover:text-background-dark transition-all duration-300 backdrop-blur-md shadow-lg group cursor-pointer">
                 <span className="material-symbols-outlined group-hover:-translate-x-1 transition-transform">
                   chevron_right
                 </span>
               </button>
-              <button className="size-16 rounded-full bg-primary text-background-dark font-black text-xl flex items-center justify-center shadow-[0_0_25px_rgba(34,197,94,0.5)] scale-110">
+              <button className="size-16 rounded-full bg-primary text-background-dark font-black text-xl flex items-center justify-center shadow-[0_0_25px_rgba(34,197,94,0.5)] scale-110 cursor-pointer">
                 ۱
               </button>
-              <button className="size-16 rounded-full border border-white/60 bg-white/40 dark:bg-white/5 dark:border-white/10 flex items-center justify-center hover:bg-white hover:text-primary transition-colors font-bold backdrop-blur-md shadow-lg">
+              <button className="size-16 rounded-full border border-white/60 bg-white/40 dark:bg-white/5 dark:border-white/10 flex items-center justify-center hover:bg-white hover:text-primary transition-colors font-bold backdrop-blur-md shadow-lg cursor-pointer">
                 ۲
               </button>
-              <button className="size-16 rounded-full border border-white/60 bg-white/40 dark:bg-white/5 dark:border-white/10 flex items-center justify-center hover:bg-white hover:text-primary transition-colors font-bold backdrop-blur-md shadow-lg">
+              <button className="size-16 rounded-full border border-white/60 bg-white/40 dark:bg-white/5 dark:border-white/10 flex items-center justify-center hover:bg-white hover:text-primary transition-colors font-bold backdrop-blur-md shadow-lg cursor-pointer">
                 ۳
               </button>
-              <button className="size-16 rounded-full border border-white/60 bg-white/40 dark:bg-white/5 dark:border-white/10 flex items-center justify-center hover:bg-primary hover:border-primary hover:text-background-dark transition-all duration-300 backdrop-blur-md shadow-lg group">
+              <button className="size-16 rounded-full border border-white/60 bg-white/40 dark:bg-white/5 dark:border-white/10 flex items-center justify-center hover:bg-primary hover:border-primary hover:text-background-dark transition-all duration-300 backdrop-blur-md shadow-lg group cursor-pointer">
                 <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">
                   chevron_left
                 </span>

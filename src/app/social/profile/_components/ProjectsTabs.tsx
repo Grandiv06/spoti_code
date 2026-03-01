@@ -79,8 +79,8 @@ const ProjectsTabs = () => {
           className={cn(
             "pb-4 -mb-[17px] px-2 font-bold text-lg transition-colors border-b-2",
             activeTab === "spoticode"
-              ? "text-green-500 border-green-500"
-              : "text-gray-400 border-transparent hover:text-gray-600 dark:hover:text-gray-300",
+              ? "text-green-500 border-green-500 cursor-pointer"
+              : "text-gray-400 border-transparent hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer",
           )}
         >
           پروژه‌های اسپاتی کد
@@ -90,8 +90,8 @@ const ProjectsTabs = () => {
           className={cn(
             "pb-4 -mb-[17px] px-2 font-bold text-lg transition-colors border-b-2",
             activeTab === "free"
-              ? "text-green-500 border-green-500"
-              : "text-gray-400 border-transparent hover:text-gray-600 dark:hover:text-gray-300",
+              ? "text-green-500 border-green-500 cursor-pointer"
+              : "text-gray-400 border-transparent hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer",
           )}
         >
           پروژه‌های آزاد
@@ -103,7 +103,7 @@ const ProjectsTabs = () => {
         {["جدیدترین", "تایید شده ✅", "ویژه ⭐"].map((filter) => (
           <button
             key={filter}
-            className="px-4 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-sm hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-600 dark:hover:text-green-400 transition-colors whitespace-nowrap"
+            className="px-4 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-sm hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-600 dark:hover:text-green-400 transition-colors whitespace-nowrap cursor-pointer"
           >
             {filter}
           </button>

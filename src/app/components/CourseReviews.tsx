@@ -102,7 +102,7 @@ export default function CourseReviews({
         <button
           type="button"
           onClick={() => setIsModalOpen(true)}
-          className="text-sm font-bold text-white bg-primary hover:bg-primary-dark dark:bg-primary dark:hover:bg-primary-dark px-5 py-2.5 rounded-2xl shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all flex items-center gap-2"
+          className="text-sm font-bold text-white bg-primary hover:bg-primary-dark dark:bg-primary dark:hover:bg-primary-dark px-5 py-2.5 rounded-2xl shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all flex items-center gap-2 cursor-pointer"
         >
           <span className="material-symbols-outlined text-lg">edit_square</span>
           ثبت نظر
@@ -112,7 +112,7 @@ export default function CourseReviews({
       {/* Modal ثبت نظر */}
       {isModalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm cursor-pointer"
           onClick={() => setIsModalOpen(false)}
         >
           <div
@@ -129,7 +129,7 @@ export default function CourseReviews({
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="size-10 rounded-2xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 transition-colors"
+                className="size-10 rounded-2xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 transition-colors cursor-pointer"
                 aria-label="بستن"
               >
                 <span className="material-symbols-outlined text-xl">close</span>
@@ -202,7 +202,7 @@ export default function CourseReviews({
               <div className="flex gap-3 pt-2">
                 <button
                   type="submit"
-                  className="flex-1 h-12 bg-primary hover:bg-primary-dark text-white font-bold rounded-2xl shadow-lg shadow-primary/25 flex items-center justify-center gap-2 transition-all"
+                  className="flex-1 h-12 bg-primary hover:bg-primary-dark text-white font-bold rounded-2xl shadow-lg shadow-primary/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-lg">send</span>
                   ارسال نظر
@@ -210,7 +210,7 @@ export default function CourseReviews({
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="h-12 px-6 rounded-2xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold transition-colors"
+                  className="h-12 px-6 rounded-2xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold transition-colors cursor-pointer"
                 >
                   انصراف
                 </button>

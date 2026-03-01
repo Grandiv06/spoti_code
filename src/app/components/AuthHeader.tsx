@@ -23,7 +23,7 @@ export default function AuthHeader() {
       }`}
     >
       <nav className="max-w-7xl mx-auto flex justify-between items-center">
-        <Link href="/" className="flex items-center gap-1.5 group">
+        <Link href="/" className="flex items-center gap-1.5 group cursor-pointer">
           <Image
             src="/favicon.svg"
             alt="اسپاتی‌کد"

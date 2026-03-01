@@ -48,7 +48,7 @@ function ProfileEditContent() {
     <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-500">
       <button
         onClick={() => router.back()}
-        className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-primary transition-colors"
+        className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-primary transition-colors cursor-pointer"
       >
         <ArrowRight className="w-5 h-5" />
         <span className="text-sm font-medium">بازگشت</span>
@@ -87,7 +87,7 @@ function ProfileEditContent() {
                   "flex items-center gap-2 px-4 py-3 rounded-xl border-2 transition-all",
                   settings.useDefaultBanner && !settings.bannerImage
                     ? "border-primary bg-primary/10 dark:bg-primary/20"
-                    : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20"
+                    : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20 cursor-pointer"
                 )}
               >
                 <div className="w-12 h-8 rounded-lg relative overflow-hidden">
@@ -102,7 +102,7 @@ function ProfileEditContent() {
                   "flex items-center gap-2 px-4 py-3 rounded-xl border-2 transition-all",
                   !settings.useDefaultBanner && !settings.bannerImage
                     ? "border-primary bg-primary/10 dark:bg-primary/20"
-                    : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20"
+                    : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20 cursor-pointer"
                 )}
               >
                 <div className="w-12 h-8 rounded-lg" style={{ backgroundColor: settings.bannerColor }} />
@@ -114,7 +114,7 @@ function ProfileEditContent() {
                   "flex items-center gap-2 px-4 py-3 rounded-xl border-2 transition-all",
                   settings.bannerImage
                     ? "border-primary bg-primary/10 dark:bg-primary/20"
-                    : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20"
+                    : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20 cursor-pointer"
                 )}
               >
                 <ImagePlus className="w-5 h-5" />
@@ -131,7 +131,7 @@ function ProfileEditContent() {
                       "w-10 h-10 rounded-xl transition-all ring-2 ring-offset-2 dark:ring-offset-[#1c1e26]",
                       settings.bannerColor === color
                         ? "ring-gray-900 dark:ring-white scale-110"
-                        : "ring-transparent hover:scale-105"
+                        : "ring-transparent hover:scale-105 cursor-pointer"
                     )}
                     style={{ backgroundColor: color }}
                     title={color}

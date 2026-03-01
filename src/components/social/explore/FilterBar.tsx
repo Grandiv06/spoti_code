@@ -68,8 +68,8 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 className={cn(
                   "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap",
                   activeSort === "newest"
-                    ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md"
-                    : "text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5"
+                    ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md cursor-pointer"
+                    : "text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
                 )}
               >
                 <Clock className="w-4 h-4" /> جدیدترین
@@ -79,8 +79,8 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 className={cn(
                   "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap",
                   activeSort === "trending"
-                    ? "bg-orange-500 text-white shadow-md shadow-orange-500/20"
-                    : "text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5"
+                    ? "bg-orange-500 text-white shadow-md shadow-orange-500/20 cursor-pointer"
+                    : "text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
                 )}
               >
                 <Flame className="w-4 h-4" /> داغ
@@ -90,8 +90,8 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 className={cn(
                   "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap",
                   activeSort === "popular"
-                    ? "bg-blue-500 text-white shadow-md shadow-blue-500/20"
-                    : "text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5"
+                    ? "bg-blue-500 text-white shadow-md shadow-blue-500/20 cursor-pointer"
+                    : "text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
                 )}
               >
                 <Sparkles className="w-4 h-4" /> محبوب
@@ -110,8 +110,8 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                     className={cn(
                         "w-full lg:w-48 flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium border transition-all",
                         selectedTag
-                        ? "bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400"
-                        : "bg-white dark:bg-[#1c1e26] border-gray-200 dark:border-white/[0.06] hover:border-gray-300"
+                        ? "bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400 cursor-pointer"
+                        : "bg-white dark:bg-[#1c1e26] border-gray-200 dark:border-white/[0.06] hover:border-gray-300 cursor-pointer"
                     )}
                 >
                     <span className="flex items-center gap-2 truncate">
@@ -119,7 +119,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                         {selectedTag || "همه تکنولوژی‌ها"}
                     </span>
                     {selectedTag ? (
-                        <div onClick={(e) => { e.stopPropagation(); onTagSelect(undefined); }} className="hover:bg-black/10 rounded p-0.5">
+                        <div onClick={(e) => { e.stopPropagation(); onTagSelect(undefined); }} className="hover:bg-black/10 rounded p-0.5 cursor-pointer">
                             <X className="w-3 h-3" />
                         </div>
                     ) : (
@@ -137,8 +137,8 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                                 className={cn(
                                     "w-full text-right px-3 py-2 rounded-lg text-sm transition-colors",
                                     selectedTag === tag 
-                                        ? "bg-green-500/10 text-green-600 dark:text-green-400" 
-                                        : "hover:bg-gray-100 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300"
+                                        ? "bg-green-500/10 text-green-600 dark:text-green-400 cursor-pointer" 
+                                        : "hover:bg-gray-100 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300 cursor-pointer"
                                 )}
                              >
                                  {tag}
@@ -152,13 +152,13 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               <div className="flex bg-gray-100 dark:bg-[#1c1e26] p-1 rounded-xl">
                   <button 
                     onClick={() => onViewModeChange('grid')}
-                    className={cn("p-2 rounded-lg transition-all", viewMode === 'grid' ? "bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white" : "text-gray-400")}
+                    className={cn("p-2 rounded-lg transition-all cursor-pointer", viewMode === 'grid' ? "bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white" : "text-gray-400")}
                   >
                       <LayoutGrid className="w-4 h-4" />
                   </button>
                   <button 
                     onClick={() => onViewModeChange('list')}
-                    className={cn("p-2 rounded-lg transition-all", viewMode === 'list' ? "bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white" : "text-gray-400")}
+                    className={cn("p-2 rounded-lg transition-all cursor-pointer", viewMode === 'list' ? "bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white" : "text-gray-400")}
                   >
                       <List className="w-4 h-4" />
                   </button>

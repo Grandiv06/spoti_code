@@ -49,7 +49,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, depth = 0 }) => {
                  <span className="font-bold text-sm text-gray-900 dark:text-gray-100">{comment.author.displayName}</span>
                  <span className="text-xs text-gray-500">{new Date(comment.createdAt).toLocaleDateString('fa-IR')}</span>
               </div>
-              <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+              <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer">
                  <MoreHorizontal className="w-4 h-4" />
               </button>
            </div>
@@ -61,7 +61,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, depth = 0 }) => {
         <div className="flex items-center gap-4 px-2">
            <button 
              onClick={handleLike}
-             className={cn("flex items-center gap-1.5 text-xs font-medium transition-colors", comment.isLikedByCurrentUser ? "text-pink-500" : "text-gray-500 hover:text-pink-500")}
+             className={cn("flex items-center gap-1.5 text-xs font-medium transition-colors cursor-pointer", comment.isLikedByCurrentUser ? "text-pink-500" : "text-gray-500 hover:text-pink-500")}
            >
               <Heart className={cn("w-3.5 h-3.5", comment.isLikedByCurrentUser && "fill-current")} />
               {comment.likesCount > 0 && <span>{comment.likesCount}</span>}
@@ -69,7 +69,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, depth = 0 }) => {
            </button>
            <button 
              onClick={handleReplyClick}
-             className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-green-500 transition-colors"
+             className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-green-500 transition-colors cursor-pointer"
            >
               <CornerDownRight className="w-3.5 h-3.5" />
               پاسخ

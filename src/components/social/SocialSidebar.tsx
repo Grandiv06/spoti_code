@@ -59,7 +59,7 @@ export default function SocialSidebar() {
         <button
           key={idx}
           onClick={item.action}
-          className="group relative flex items-center justify-center size-10 rounded-xl text-gray-700 dark:text-gray-200 hover:text-primary dark:hover:text-primary transition-colors"
+          className="group relative flex items-center justify-center size-10 rounded-xl text-gray-700 dark:text-gray-200 hover:text-primary dark:hover:text-primary transition-colors cursor-pointer"
           aria-label={item.label}
         >
           {tooltip(item.label)}
@@ -126,7 +126,7 @@ export default function SocialSidebar() {
               <button
                 key={idx}
                 onClick={item.action}
-                className="group flex flex-col items-center gap-0.5 shrink-0 py-1 px-1"
+                className="group flex flex-col items-center gap-0.5 shrink-0 py-1 px-1 cursor-pointer"
                 aria-label={item.label}
               >
                 <span className="flex items-center justify-center size-9 rounded-xl text-gray-700 dark:text-gray-200 group-hover:text-primary">

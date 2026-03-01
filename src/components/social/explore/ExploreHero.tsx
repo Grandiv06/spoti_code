@@ -38,7 +38,7 @@ export const ExploreHero: React.FC<ExploreHeroProps> = ({ onCreatePost, showCrea
                 <div className="absolute -inset-1 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl blur opacity-70 group-hover:opacity-100 transition duration-500" />
                 <button
                     onClick={onCreatePost}
-                    className="relative flex items-center gap-3 bg-gray-900 hover:bg-black text-white px-8 py-4 rounded-2xl font-bold text-lg transition-transform active:scale-95"
+                    className="relative flex items-center gap-3 bg-gray-900 hover:bg-black text-white px-8 py-4 rounded-2xl font-bold text-lg transition-transform active:scale-95 cursor-pointer"
                 >
                     <Plus className="w-6 h-6 text-green-500" />
                     <span>ایجاد پروژه جدید</span>

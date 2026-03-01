@@ -58,10 +58,10 @@ export default function CourseDetailPage({
               </div>
             </section>
 
-            {/* Curriculum Section */}
+            {/* سرفصل‌های آموزشی - باکس جدا با دکمه بستن */}
             <CourseCurriculum totalLessons={120} />
 
-            {/* FAQ Section */}
+            {/* سوالات متداول - باکس جدا با دکمه بستن */}
             <CourseFAQ />
 
             {/* Instructor Section */}

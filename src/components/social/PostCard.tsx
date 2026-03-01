@@ -100,7 +100,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, compact = false, baseP
                  <button 
                    onClick={handleBookmark}
                    className={cn(
-                     "p-2 rounded-full transition-colors hover:bg-gray-100 dark:hover:bg-white/5",
+                     "p-2 rounded-full transition-colors hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer",
                      post.isBookmarkedByCurrentUser && "text-green-500"
                    )}
                  >
@@ -109,7 +109,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, compact = false, baseP
                  <button 
                    onClick={handleLike}
                    className={cn(
-                     "flex items-center gap-1.5 p-2 rounded-full transition-colors hover:bg-pink-50 dark:hover:bg-pink-900/20",
+                     "flex items-center gap-1.5 p-2 rounded-full transition-colors hover:bg-pink-50 dark:hover:bg-pink-900/20 cursor-pointer",
                      post.isLikedByCurrentUser ? "text-pink-500" : "text-gray-500 dark:text-gray-400"
                    )}
                  >

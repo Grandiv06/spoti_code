@@ -144,7 +144,7 @@ export default function VideoControls({
           <button
             type="button"
             onClick={togglePlay}
-            className="size-10 shrink-0 rounded-2xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors border border-white/10"
+            className="size-10 shrink-0 rounded-2xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors border border-white/10 cursor-pointer"
             aria-label={isPlaying ? "توقف" : "پخش"}
           >
             <span className="material-symbols-outlined text-2xl">
@@ -168,7 +168,7 @@ export default function VideoControls({
             <button
               type="button"
               onClick={toggleMute}
-              className="size-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors border border-white/10"
+              className="size-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors border border-white/10 cursor-pointer"
               aria-label={isMuted ? "صدای بلند" : "بی‌صدا"}
             >
               <span className="material-symbols-outlined text-xl">
@@ -193,7 +193,7 @@ export default function VideoControls({
             download="video.mp4"
             target="_blank"
             rel="noopener noreferrer"
-            className="size-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors border border-white/10 hover:bg-white/25"
+            className="size-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors border border-white/10 hover:bg-white/25 cursor-pointer"
             aria-label="دانلود ویدیو"
           >
             <span className="material-symbols-outlined text-xl">download</span>
@@ -203,7 +203,7 @@ export default function VideoControls({
           <button
             type="button"
             onClick={toggleFullscreen}
-            className="size-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors border border-white/10"
+            className="size-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors border border-white/10 cursor-pointer"
             aria-label={isFullscreen ? "خروج از تمام‌صفحه" : "تمام‌صفحه"}
           >
             <span className="material-symbols-outlined text-xl">

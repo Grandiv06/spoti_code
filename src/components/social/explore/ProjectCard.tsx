@@ -74,10 +74,10 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <button onClick={handleBookmark} className={cn("p-2 rounded-xl transition-colors hover:bg-gray-100 dark:hover:bg-white/10", post.isBookmarkedByCurrentUser && "text-green-500")}>
+                    <button onClick={handleBookmark} className={cn("p-2 rounded-xl transition-colors hover:bg-gray-100 dark:hover:bg-white/10 cursor-pointer", post.isBookmarkedByCurrentUser && "text-green-500")}>
                         <Bookmark className={cn("w-5 h-5", post.isBookmarkedByCurrentUser && "fill-current")} />
                     </button>
-                    <button onClick={handleLike} className={cn("p-2 rounded-xl transition-colors hover:bg-pink-50 dark:hover:bg-pink-900/20", post.isLikedByCurrentUser ? "text-pink-500" : "text-gray-400 dark:text-gray-500")}>
+                    <button onClick={handleLike} className={cn("p-2 rounded-xl transition-colors hover:bg-pink-50 dark:hover:bg-pink-900/20 cursor-pointer", post.isLikedByCurrentUser ? "text-pink-500" : "text-gray-400 dark:text-gray-500")}>
                         <Heart className={cn("w-5 h-5", post.isLikedByCurrentUser && "fill-current")} />
                     </button>
                 </div>
@@ -139,7 +139,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                     <button 
                         onClick={handleBookmark}
                         className={cn(
-                            "p-2 rounded-full bg-white/10 backdrop-blur-md hover:bg-white/20 transition-all text-white",
+                            "p-2 rounded-full bg-white/10 backdrop-blur-md hover:bg-white/20 transition-all text-white cursor-pointer",
                             post.isBookmarkedByCurrentUser && "text-green-400 bg-white/20"
                         )}
                     >
@@ -162,12 +162,12 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                 {/* Quick Actions Overlay (Hover Reveal) */}
                 <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center gap-3">
                     {post.demoUrl && (
-                        <button onClick={(e) => { e.preventDefault(); window.open(post.demoUrl, '_blank'); }} className="p-3 rounded-full bg-white text-gray-900 hover:scale-110 transition-transform" title="مشاهده دمو">
+                        <button onClick={(e) => { e.preventDefault(); window.open(post.demoUrl, '_blank'); }} className="p-3 rounded-full bg-white text-gray-900 hover:scale-110 transition-transform cursor-pointer" title="مشاهده دمو">
                             <ExternalLink className="w-5 h-5" />
                         </button>
                     )}
                     {post.githubUrl && (
-                        <button onClick={(e) => { e.preventDefault(); window.open(post.githubUrl, '_blank'); }} className="p-3 rounded-full bg-gray-900 text-white hover:scale-110 transition-transform" title="گیت‌هاب">
+                        <button onClick={(e) => { e.preventDefault(); window.open(post.githubUrl, '_blank'); }} className="p-3 rounded-full bg-gray-900 text-white hover:scale-110 transition-transform cursor-pointer" title="گیت‌هاب">
                             <Github className="w-5 h-5" />
                         </button>
                     )}

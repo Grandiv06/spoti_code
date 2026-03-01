@@ -154,10 +154,10 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto mt-20 pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 gap-6">
         <p>تمامی حقوق مادی و معنوی برای آکادمی اسپاتی کد محفوظ است © ۱۴۰۵</p>
         <div className="flex gap-10">
-          <a className="hover:text-white transition-colors" href="#">
+          <a className="hover:text-white transition-colors cursor-pointer" href="#">
             حریم خصوصی
           </a>
-          <a className="hover:text-white transition-colors" href="#">
+          <a className="hover:text-white transition-colors cursor-pointer" href="#">
             شرایط استفاده
           </a>
         </div>

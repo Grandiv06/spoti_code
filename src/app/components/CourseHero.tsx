@@ -188,7 +188,7 @@ export default function CourseHero() {
             <button
               type="button"
               onClick={handleToggle}
-              className="relative focus:outline-none focus:ring-0 pointer-events-auto"
+              className="relative focus:outline-none focus:ring-0 pointer-events-auto cursor-pointer"
               aria-label={isVideoExpanded ? "بستن ویدیو" : "پخش ویدیو"}
             >
               {!isVideoExpanded ? (

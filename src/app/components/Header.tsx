@@ -155,7 +155,7 @@ export default function Header() {
 
           {/* Mobile Menu Button */}
           <button
-            className="lg:hidden p-3 rounded-2xl bg-white dark:bg-surface-dark shadow-sm border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            className="lg:hidden p-3 rounded-2xl bg-white dark:bg-surface-dark shadow-sm border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-label="Toggle menu"
           >
@@ -174,7 +174,7 @@ export default function Header() {
                 return (
                   <Link
                     key={item.href}
-                    className={`px-6 py-4 text-sm font-bold rounded-2xl transition-all flex items-center justify-between ${
+                    className={`px-6 py-4 text-sm font-bold rounded-2xl transition-all flex items-center justify-between cursor-pointer ${
                       isActive
                         ? "bg-primary/10 text-primary"
                         : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
@@ -191,8 +191,8 @@ export default function Header() {
               })}
               <div className="h-px bg-gray-100 dark:bg-gray-700 my-1 mx-2"></div>
               <Link
-                className={`px-6 py-4 text-sm font-bold rounded-2xl transition-all flex items-center justify-center gap-2 ${
-                  isAuthenticated
+className={`px-6 py-4 text-sm font-bold rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                isAuthenticated
                     ? "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                     : "bg-primary text-white hover:bg-primary-hover shadow-lg shadow-primary/20"
                 }`}

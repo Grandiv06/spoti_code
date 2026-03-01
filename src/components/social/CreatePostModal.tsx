@@ -62,7 +62,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ onClose }) => 
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">انتشار پروژه جدید</h2>
-              <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer">
                   <X className="w-5 h-5 text-gray-500" />
               </button>
           </div>
@@ -108,7 +108,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ onClose }) => 
                           {tags.map(tag => (
                               <Badge key={tag} variant="primary" className="flex items-center gap-1">
                                   {tag}
-                                  <button onClick={() => setTags(tags.filter(t => t !== tag))} className="hover:text-red-500 ml-1"><X className="w-3 h-3" /></button>
+                                  <button onClick={() => setTags(tags.filter(t => t !== tag))} className="hover:text-red-500 ml-1 cursor-pointer"><X className="w-3 h-3" /></button>
                               </Badge>
                           ))}
                           <input 
@@ -139,7 +139,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ onClose }) => 
                           <button 
                             type="button"
                             onClick={() => setVisibility('PUBLIC')}
-                            className={cn("flex-1 p-3 rounded-xl border transition-all flex flex-col items-center gap-2", visibility === 'PUBLIC' ? "border-green-500 bg-green-50 dark:bg-green-900/10 text-green-600" : "border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800")}
+                            className={cn("flex-1 p-3 rounded-xl border transition-all flex flex-col items-center gap-2", visibility === 'PUBLIC' ? "border-green-500 bg-green-50 dark:bg-green-900/10 text-green-600" : "border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer")}
                           >
                              <Globe className="w-5 h-5" />
                              <span className="text-sm font-bold">عمومی</span>
@@ -147,7 +147,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ onClose }) => 
                           <button 
                             type="button"
                             onClick={() => setVisibility('UNLISTED')}
-                            className={cn("flex-1 p-3 rounded-xl border transition-all flex flex-col items-center gap-2", visibility === 'UNLISTED' ? "border-orange-500 bg-orange-50 dark:bg-orange-900/10 text-orange-600" : "border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800")}
+                            className={cn("flex-1 p-3 rounded-xl border transition-all flex flex-col items-center gap-2", visibility === 'UNLISTED' ? "border-orange-500 bg-orange-50 dark:bg-orange-900/10 text-orange-600" : "border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer")}
                           >
                              <LinkIcon className="w-5 h-5" />
                              <span className="text-sm font-bold">فقط با لینک</span>
@@ -155,7 +155,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ onClose }) => 
                           <button 
                             type="button"
                             onClick={() => setVisibility('PRIVATE')}
-                            className={cn("flex-1 p-3 rounded-xl border transition-all flex flex-col items-center gap-2", visibility === 'PRIVATE' ? "border-red-500 bg-red-50 dark:bg-red-900/10 text-red-600" : "border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800")}
+                            className={cn("flex-1 p-3 rounded-xl border transition-all flex flex-col items-center gap-2", visibility === 'PRIVATE' ? "border-red-500 bg-red-50 dark:bg-red-900/10 text-red-600" : "border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer")}
                           >
                              <Lock className="w-5 h-5" />
                              <span className="text-sm font-bold">خصوصی</span>

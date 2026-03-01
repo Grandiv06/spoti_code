@@ -107,7 +107,7 @@ export default function PostDetailClient({ params }: PostDetailClientProps) {
       <nav className="flex items-center justify-between mb-8">
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-gray-500 hover:text-green-600 transition-colors group"
+          className="flex items-center gap-2 text-gray-500 hover:text-green-600 transition-colors group cursor-pointer"
         >
           <ArrowRight className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
           <span className="font-medium">بازگشت به لیست</span>
@@ -209,7 +209,7 @@ export default function PostDetailClient({ params }: PostDetailClientProps) {
                       onClick={() => setActiveImageIndex(idx)}
                       className={cn(
                         "relative w-24 h-16 rounded-xl overflow-hidden shrink-0 border-2 transition-all",
-                        activeImageIndex === idx ? "border-green-500 ring-2 ring-green-500/20" : "border-transparent opacity-60 hover:opacity-100"
+                        activeImageIndex === idx ? "border-green-500 ring-2 ring-green-500/20" : "border-transparent opacity-60 hover:opacity-100 cursor-pointer"
                       )}
                     >
                       <Image src={img} alt="" fill className="object-cover" />
@@ -290,7 +290,7 @@ export default function PostDetailClient({ params }: PostDetailClientProps) {
               اگر دوست داری در توسعه این پروژه مشارکت کنی، می‌تونی به ریپازیتوری گیت‌هاب سر بزنی و PR ارسال کنی!
             </p>
             <a href={post.githubUrl} target="_blank" rel="noopener noreferrer">
-              <button className="w-full py-3 bg-white text-green-600 font-bold rounded-xl hover:bg-gray-50 transition-colors">
+              <button className="w-full py-3 bg-white text-green-600 font-bold rounded-xl hover:bg-gray-50 transition-colors cursor-pointer">
                 مشارکت در پروژه
               </button>
             </a>

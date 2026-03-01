@@ -59,7 +59,7 @@ export default function PanelSidebar() {
       {/* Mobile Overlay */}
       {isMobileOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-[40] lg:hidden"
+          className="fixed inset-0 bg-black/50 z-[40] lg:hidden cursor-pointer"
           onClick={closeMobile}
           aria-hidden="true"
         />
@@ -82,7 +82,7 @@ export default function PanelSidebar() {
           {/* Mobile Close */}
           <button
             onClick={closeMobile}
-            className="lg:hidden absolute right-4 top-4 z-10 p-2 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-white/20 dark:hover:bg-white/10 transition-colors"
+            className="lg:hidden absolute right-4 top-4 z-10 p-2 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-white/20 dark:hover:bg-white/10 transition-colors cursor-pointer"
             aria-label="بستن منو"
           >
             <X className="w-6 h-6" />
@@ -90,7 +90,7 @@ export default function PanelSidebar() {
 
           {/* Logo */}
           <div className="flex justify-center pt-6 pb-4">
-            <Link href="/" className="flex items-center gap-2 group" onClick={closeMobile}>
+            <Link href="/" className="flex items-center gap-2 group cursor-pointer" onClick={closeMobile}>
               <Image
                 src="/favicon.svg"
                 alt="اسپاتی‌کد"
@@ -128,7 +128,7 @@ export default function PanelSidebar() {
                 <Link
                   href="/panel/profile"
                   onClick={closeMobile}
-                  className="flex items-center justify-center gap-2 rounded-[14px] py-2 px-4 bg-primary hover:bg-primary-hover text-white text-xs font-medium transition-colors"
+                  className="flex items-center justify-center gap-2 rounded-[14px] py-2 px-4 bg-primary hover:bg-primary-hover text-white text-xs font-medium transition-colors cursor-pointer"
                 >
                   تنظیمات حساب
                 </Link>
@@ -148,7 +148,7 @@ export default function PanelSidebar() {
                   href={item.href}
                   onClick={closeMobile}
                   className={cn(
-                    "group relative flex items-center gap-3 py-3.5 px-4 rounded-[14px] transition-all duration-200 w-full min-h-[48px]",
+                    "group relative flex items-center gap-3 py-3.5 px-4 rounded-[14px] transition-all duration-200 w-full min-h-[48px] cursor-pointer",
                     "justify-start text-right",
                     isActive
                       ? "bg-white dark:bg-white text-primary dark:text-primary"
@@ -179,7 +179,7 @@ export default function PanelSidebar() {
           <div className="px-3 pb-4">
             <button
               onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 rounded-2xl py-3 px-4 bg-primary hover:bg-primary-hover text-white text-sm font-medium transition-colors"
+              className="w-full flex items-center justify-center gap-2 rounded-2xl py-3 px-4 bg-primary hover:bg-primary-hover text-white text-sm font-medium transition-colors cursor-pointer"
               aria-label="خروج"
             >
               <LogOut size={18} strokeWidth={1.5} />

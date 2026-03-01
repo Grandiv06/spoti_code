@@ -75,7 +75,7 @@ export default function CartSidebar() {
           </h2>
           <button
             onClick={toggleCart}
-            className="size-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors text-gray-500 dark:text-gray-400 hover:text-red-500"
+            className="size-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors text-gray-500 dark:text-gray-400 hover:text-red-500 cursor-pointer"
           >
             <span className="material-symbols-outlined">close</span>
           </button>
@@ -91,7 +91,7 @@ export default function CartSidebar() {
               <p className="text-lg font-bold">سبد خرید شما خالی است</p>
               <button
                 onClick={toggleCart}
-                className="mt-6 px-6 py-2 bg-primary/10 text-primary rounded-xl font-bold hover:bg-primary hover:text-white transition-all"
+                className="mt-6 px-6 py-2 bg-primary/10 text-primary rounded-xl font-bold hover:bg-primary hover:text-white transition-all cursor-pointer"
               >
                 مشاهده دوره‌ها
               </button>
@@ -117,7 +117,7 @@ export default function CartSidebar() {
                     </h3>
                     <button
                       onClick={() => removeFromCart(item.id)}
-                      className="text-gray-400 hover:text-red-500 transition-colors"
+                      className="text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-xl">
                         delete
@@ -157,7 +157,7 @@ export default function CartSidebar() {
                 </span>
               </div>
             </div>
-            <button className="w-full py-4 bg-primary text-white text-lg font-black rounded-2xl shadow-[0_0_20px_rgba(34,197,94,0.4)] hover:shadow-[0_0_30px_rgba(34,197,94,0.6)] hover:-translate-y-1 transition-all flex items-center justify-center gap-2 group">
+            <button className="w-full py-4 bg-primary text-white text-lg font-black rounded-2xl shadow-[0_0_20px_rgba(34,197,94,0.4)] hover:shadow-[0_0_30px_rgba(34,197,94,0.6)] hover:-translate-y-1 transition-all flex items-center justify-center gap-2 group cursor-pointer">
               تکمیل خرید
               <span className="material-symbols-outlined group-hover:-translate-x-1 transition-transform">
                 arrow_back

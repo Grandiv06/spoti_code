@@ -64,7 +64,7 @@ export default function PanelCourses() {
               </div>
             </div>
             
-            <button className="w-full mt-6 py-3 rounded-xl bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white font-bold hover:bg-primary hover:text-white transition-all">
+            <button className="w-full mt-6 py-3 rounded-xl bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white font-bold hover:bg-primary hover:text-white transition-all cursor-pointer">
                 ادامه یادگیری
             </button>
           </div>

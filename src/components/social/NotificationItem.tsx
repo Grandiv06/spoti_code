@@ -98,7 +98,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
         !notification.isRead && markNotificationAsRead(notification.id)
       }
       className={cn(
-        "flex items-start gap-4 p-4 rounded-2xl transition-colors relative overflow-hidden group",
+        "flex items-start gap-4 p-4 rounded-2xl transition-colors relative overflow-hidden group cursor-pointer",
         notification.isRead
           ? "bg-white dark:bg-[#1c1e26] hover:bg-gray-50 dark:hover:bg-white/[0.02]"
           : "bg-blue-50/50 dark:bg-blue-500/5 hover:bg-blue-50 dark:hover:bg-blue-500/10",

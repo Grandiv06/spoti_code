@@ -58,8 +58,8 @@ const ActivityTabs = () => {
           className={cn(
             "pb-4 -mb-[17px] px-2 font-bold text-lg transition-colors border-b-2 flex items-center gap-2",
             activeTab === "comments"
-              ? "text-blue-500 border-blue-500"
-              : "text-gray-400 border-transparent hover:text-gray-600 dark:hover:text-gray-300"
+              ? "text-blue-500 border-blue-500 cursor-pointer"
+              : "text-gray-400 border-transparent hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer"
           )}
         >
           <MessageSquare className="w-5 h-5" />
@@ -70,8 +70,8 @@ const ActivityTabs = () => {
           className={cn(
             "pb-4 -mb-[17px] px-2 font-bold text-lg transition-colors border-b-2 flex items-center gap-2",
             activeTab === "likes"
-              ? "text-red-500 border-red-500"
-              : "text-gray-400 border-transparent hover:text-gray-600 dark:hover:text-gray-300"
+              ? "text-red-500 border-red-500 cursor-pointer"
+              : "text-gray-400 border-transparent hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer"
           )}
         >
           <Heart className="w-5 h-5" />

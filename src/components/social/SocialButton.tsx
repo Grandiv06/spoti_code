@@ -42,7 +42,7 @@ export const SocialButton: React.FC<ButtonProps> = ({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none active:scale-95",
+        "inline-flex items-center justify-center rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none active:scale-95 cursor-pointer",
         variants[variant],
         sizes[size],
         className

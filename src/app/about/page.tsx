@@ -48,7 +48,7 @@ export default function AboutPage() {
                 هر ایرانی بتواند به دانشی دسترسی داشته باشد که در سیلیکون ولی
                 تدریس می‌شود.
               </p>
-              <button className="w-fit mt-2 text-primary font-bold hover:text-gray-900 dark:hover:text-white transition-colors flex items-center gap-2 group-hover:gap-4 transition-all">
+              <button className="w-fit mt-2 text-primary font-bold hover:text-gray-900 dark:hover:text-white transition-colors flex items-center gap-2 group-hover:gap-4 transition-all cursor-pointer">
                 بیشتر بخوانید
                 <span className="material-symbols-outlined rotate-180 text-sm">
                   arrow_right_alt

@@ -30,11 +30,11 @@ export default function FrontendRoadmap() {
             با طراحی زیبا و محتوای عمیق، آینده شغلی خود را بسازید.
           </p>
           <div className="flex flex-col sm:flex-row gap-6 mt-10">
-            <button className="bg-gradient-to-r from-emerald-500 to-emerald-400 text-white px-10 py-5 rounded-2xl font-bold text-xl shadow-lg shadow-emerald-200 dark:shadow-emerald-900/30 hover:shadow-emerald-300 dark:hover:shadow-emerald-900/50 hover:scale-105 transition-all flex items-center justify-center gap-3">
+            <button className="bg-gradient-to-r from-emerald-500 to-emerald-400 text-white px-10 py-5 rounded-2xl font-bold text-xl shadow-lg shadow-emerald-200 dark:shadow-emerald-900/30 hover:shadow-emerald-300 dark:hover:shadow-emerald-900/50 hover:scale-105 transition-all flex items-center justify-center gap-3 cursor-pointer">
               <span>شروع یادگیری</span>
               <span className="material-symbols-outlined text-2xl">arrow_back</span>
             </button>
-            <button className="bg-gray-50 dark:bg-slate-800/60 hover:bg-gray-100 dark:hover:bg-slate-800 text-text-main border border-gray-200/80 dark:border-white/[0.06] px-10 py-5 rounded-2xl font-medium text-xl shadow-learning-card-light dark:shadow-learning-card-dark backdrop-blur-md transition-all">
+            <button className="bg-gray-50 dark:bg-slate-800/60 hover:bg-gray-100 dark:hover:bg-slate-800 text-text-main border border-gray-200/80 dark:border-white/[0.06] px-10 py-5 rounded-2xl font-medium text-xl shadow-learning-card-light dark:shadow-learning-card-dark backdrop-blur-md transition-all cursor-pointer">
               مشاهده سرفصل‌ها
             </button>
           </div>
