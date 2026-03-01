@@ -193,12 +193,14 @@ export default function CourseHero() {
             >
               {!isVideoExpanded ? (
                 <div className="relative group/btn">
-                  <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
-                  <div className="absolute -inset-4 rounded-full bg-primary/10 blur-xl" />
-                  <div className="size-24 rounded-full bg-white/10 backdrop-blur-lg border border-white/50 flex items-center justify-center group-hover/btn:scale-110 transition-all duration-300 shadow-[0_0_40px_rgba(34,197,94,0.8)]">
-                    <span className="material-symbols-outlined text-4xl filled pl-1">
-                      play_arrow
-                    </span>
+                  <div className="size-[72px] rounded-full bg-white flex items-center justify-center shadow-[0_4px_24px_rgba(0,0,0,0.25)] transition-all duration-300 group-hover/btn:scale-110 group-hover/btn:shadow-[0_8px_32px_rgba(34,197,94,0.4)]">
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="size-10 text-primary flex-shrink-0"
+                      fill="currentColor"
+                    >
+                      <path d="M9 6v12l9-6z" />
+                    </svg>
                   </div>
                 </div>
               ) : (
