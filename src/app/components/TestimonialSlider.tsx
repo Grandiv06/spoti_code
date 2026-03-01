@@ -66,28 +66,29 @@ export default function TestimonialSlider() {
           بشنوید از کسانی که این مسیر را با موفقیت پیموده‌اند.
         </p>
 
-        {/* Navigation Arrows - با فاصله بیشتر از باکس‌ها */}
-        <div className="absolute top-1/2 left-0 right-0 flex justify-between z-20 pointer-events-none md:-mx-20 lg:-mx-28">
-          <button 
-            type="button"
-            onClick={handleNext}
-            className="w-12 h-12 md:w-14 md:h-14 bg-white dark:bg-surface-dark rounded-full shadow-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center text-gray-500 hover:text-primary hover:scale-110 transition-all pointer-events-auto z-20 ml-2 mr-6 md:mr-10"
-            aria-label="بعدی"
-          >
-            <ChevronRight className="w-6 h-6 md:w-8 md:h-8" />
-          </button>
-          
-          <button 
-            type="button" 
-            onClick={handlePrev}
-            className="w-12 h-12 md:w-14 md:h-14 bg-white dark:bg-surface-dark rounded-full shadow-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center text-gray-500 hover:text-primary hover:scale-110 transition-all pointer-events-auto z-20 mr-2 ml-6 md:ml-10"
-            aria-label="قبلی"
-          >
-            <ChevronLeft className="w-6 h-6 md:w-8 md:h-8" />
-          </button>
-        </div>
+        <div className="relative mt-8">
+          {/* Navigation Arrows - همتراز با مرکز باکس‌های نظرات */}
+          <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 flex justify-between z-20 pointer-events-none md:-mx-20 lg:-mx-28">
+            <button 
+              type="button"
+              onClick={handleNext}
+              className="w-12 h-12 md:w-14 md:h-14 bg-white dark:bg-surface-dark rounded-full shadow-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center text-gray-500 hover:text-primary hover:scale-110 transition-all pointer-events-auto z-20 ml-2 mr-6 md:mr-10"
+              aria-label="بعدی"
+            >
+              <ChevronRight className="w-6 h-6 md:w-8 md:h-8" />
+            </button>
+            
+            <button 
+              type="button" 
+              onClick={handlePrev}
+              className="w-12 h-12 md:w-14 md:h-14 bg-white dark:bg-surface-dark rounded-full shadow-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center text-gray-500 hover:text-primary hover:scale-110 transition-all pointer-events-auto z-20 mr-2 ml-6 md:ml-10"
+              aria-label="قبلی"
+            >
+              <ChevronLeft className="w-6 h-6 md:w-8 md:h-8" />
+            </button>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mt-8 relative">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 relative">
           {/* بکگراند سبز - همیشه زیر کارت وسط (ستون وسط) */}
           <div
             className="hidden md:block absolute inset-0 pointer-events-none"
@@ -115,7 +116,7 @@ export default function TestimonialSlider() {
                 key={t.id}
                 className={`transition-[transform,box-shadow] duration-500 ease-in-out ${orderClass}
                   ${isCenter 
-                    ? "bg-primary md:bg-primary/0 p-10 rounded-4xl relative scale-105 z-10 text-white" 
+                    ? "bg-primary md:bg-primary/0 p-10 rounded-4xl relative z-10 text-white" 
                     : "bg-white dark:bg-surface-dark p-10 rounded-4xl shadow-xl relative mt-8" 
                   }
                   ${(!isCenter && !isRight && !isLeft) ? "hidden" : "block"}
@@ -131,7 +132,7 @@ export default function TestimonialSlider() {
                   height={isCenter ? 96 : 80}
                 />
                 
-                <p className={`leading-loose italic transition-all duration-500 ${isCenter ? "mt-8 text-white/90" : "mt-6 text-gray-600 dark:text-gray-400"}`}>
+                <p className={`text-base md:text-lg leading-loose font-normal transition-colors duration-500 ${isCenter ? "mt-8 text-white/90" : "mt-6 text-gray-600 dark:text-gray-400"}`}>
                   &quot;{t.content}&quot;
                 </p>
                 
@@ -149,6 +150,7 @@ export default function TestimonialSlider() {
               </div>
             );
           })}
+          </div>
         </div>
       </div>
     </section>
