@@ -35,17 +35,15 @@ export default function TestimonialSlider() {
   const handleNext = () => {
     if (isAnimating) return;
     setIsAnimating(true);
-    // Move "Next" in RTL means shifting everything Right (ActiveIndex decreases? Wait)
     setActiveIndex((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1));
-    setTimeout(() => setIsAnimating(false), 500);
+    setTimeout(() => setIsAnimating(false), 1000);
   };
 
   const handlePrev = () => {
     if (isAnimating) return;
     setIsAnimating(true);
-    // Move "Prev" in RTL means shifting everything Left (ActiveIndex increases)
     setActiveIndex((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1));
-    setTimeout(() => setIsAnimating(false), 500);
+    setTimeout(() => setIsAnimating(false), 1000);
   };
 
   const getPosition = (index: number) => {
@@ -72,7 +70,7 @@ export default function TestimonialSlider() {
             <button 
               type="button"
               onClick={handleNext}
-              className="w-12 h-12 md:w-14 md:h-14 bg-white dark:bg-surface-dark rounded-full shadow-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center text-gray-500 hover:text-primary hover:scale-110 transition-all pointer-events-auto z-20 ml-2 mr-6 md:mr-10"
+              className="w-12 h-12 md:w-14 md:h-14 bg-white dark:bg-surface-dark rounded-full shadow-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center text-gray-500 hover:text-primary hover:scale-110 transition-all duration-300 cursor-pointer pointer-events-auto z-20 ml-2 mr-6 md:mr-10"
               aria-label="بعدی"
             >
               <ChevronRight className="w-6 h-6 md:w-8 md:h-8" />
@@ -81,75 +79,92 @@ export default function TestimonialSlider() {
             <button 
               type="button" 
               onClick={handlePrev}
-              className="w-12 h-12 md:w-14 md:h-14 bg-white dark:bg-surface-dark rounded-full shadow-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center text-gray-500 hover:text-primary hover:scale-110 transition-all pointer-events-auto z-20 mr-2 ml-6 md:ml-10"
+              className="w-12 h-12 md:w-14 md:h-14 bg-white dark:bg-surface-dark rounded-full shadow-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center text-gray-500 hover:text-primary hover:scale-110 transition-all duration-300 cursor-pointer pointer-events-auto z-20 mr-2 ml-6 md:ml-10"
               aria-label="قبلی"
             >
               <ChevronLeft className="w-6 h-6 md:w-8 md:h-8" />
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 relative">
-          {/* بکگراند سبز - همیشه زیر کارت وسط (ستون وسط) */}
-          <div
-            className="hidden md:block absolute inset-0 pointer-events-none"
-            aria-hidden
-          >
-            <div
-              className="absolute top-0 rounded-4xl bg-primary shadow-2xl shadow-primary/30"
-              style={{
-                width: "calc((100% - 5rem) / 3)",
-                left: "calc((100% - 5rem) / 3 + 2.5rem)",
-                height: "100%",
-              }}
-            />
+          {/* موبایل - فقط کارت فعال با fade */}
+          <div className="md:hidden min-h-[320px]">
+            {testimonials.map((t, index) => {
+              if (index !== activeIndex) return null;
+              return (
+                <div key={`${t.id}-${activeIndex}`} className="p-10 rounded-4xl relative bg-primary text-white animate-in fade-in duration-500">
+                  <Image alt="Student" className="rounded-full border-4 border-white shadow-lg mx-auto block w-24 h-24" src={t.image} width={96} height={96} />
+                  <p className="leading-loose font-normal mt-6 text-white/90">&quot;{t.content}&quot;</p>
+                  <h4 className="font-black text-2xl mt-6">{t.name}</h4>
+                  <span className="bg-white/20 px-4 py-1 rounded-full text-xs font-bold mt-2 inline-block">{t.role}</span>
+                </div>
+              );
+            })}
           </div>
 
-          {testimonials.map((t, index) => {
-            const position = getPosition(index);
-            const isCenter = position === 0;
-            const isLeft = position === -1;
-            const isRight = position === 1;
-            const orderClass = isLeft ? "order-1" : isCenter ? "order-2" : "order-3";
+          {/* دسکتاپ - انیمیشن اسلاید نرم با scale و fade (dir=ltr برای محاسبه صحیح translateX) */}
+          <div className="hidden md:flex gap-10 relative min-h-[400px] items-end overflow-hidden" dir="ltr">
+            {testimonials.map((t, index) => {
+              const position = getPosition(index);
+              const isCenter = position === 0;
+              const isLeft = position === -1;
+              const isRight = position === 1;
+              if (!isCenter && !isLeft && !isRight) return null;
 
-            return (
-              <div 
-                key={t.id}
-                className={`transition-[transform,box-shadow] duration-500 ease-in-out ${orderClass}
-                  ${isCenter 
-                    ? "bg-primary md:bg-primary/0 p-10 rounded-4xl relative z-10 text-white" 
-                    : "bg-white dark:bg-surface-dark p-10 rounded-4xl shadow-xl relative mt-8" 
-                  }
-                  ${(!isCenter && !isRight && !isLeft) ? "hidden" : "block"}
-                `}
-              >
-                <Image
-                  alt="Student"
-                  className={`rounded-full border-4 shadow-lg absolute left-1/2 -translate-x-1/2 transition-all duration-500
-                    ${isCenter ? "w-24 h-24 border-white -top-12 z-20" : "w-20 h-20 border-white dark:border-gray-800 -top-10"}
-                  `}
-                  src={t.image}
-                  width={isCenter ? 96 : 80}
-                  height={isCenter ? 96 : 80}
-                />
-                
-                <p className={`text-base md:text-lg leading-loose font-normal transition-colors duration-500 ${isCenter ? "mt-8 text-white/90" : "mt-6 text-gray-600 dark:text-gray-400"}`}>
-                  &quot;{t.content}&quot;
-                </p>
-                
-                <h4 className={`transition-all duration-500 ${isCenter ? "font-black text-2xl mt-6" : "font-bold text-xl mt-6"}`}>{t.name}</h4>
-                  
-                {isCenter ? (
-                  <span className="bg-white/20 px-4 py-1 rounded-full text-xs font-bold mt-2 inline-block">
-                    {t.role}
-                  </span>
-                ) : (
-                  <span className="text-primary text-sm font-bold block mt-0">
-                    {t.role}
-                  </span>
-                )}
-              </div>
-            );
-          })}
+              const slotIndex = position + 1;
+              const translateX = `calc(${slotIndex - index} * (100% + 2.5rem))`;
+              const scale = isCenter ? 1.03 : 0.97;
+              const opacity = isCenter ? 1 : 0.8;
+              const zIndex = isCenter ? 20 : 10;
+
+              return (
+                <div
+                  key={t.id}
+                  className="flex-1 min-w-0 flex justify-center origin-center"
+                  style={{
+                    transform: `translateX(${translateX}) scale(${scale})`,
+                    opacity,
+                    zIndex,
+                    transition: "transform 1s cubic-bezier(0.16, 1, 0.3, 1), opacity 1s cubic-bezier(0.16, 1, 0.3, 1)",
+                  }}
+                >
+                  <div
+                    className={`w-full max-w-md rounded-4xl p-10 relative
+                      ${isCenter 
+                        ? "bg-primary/0 text-white" 
+                        : "bg-white dark:bg-surface-dark shadow-xl mt-8"
+                      }`}
+                    dir="rtl"
+                  >
+                    {/* بکگراند سبز فقط برای کارت وسط */}
+                    {isCenter && (
+                      <div className="absolute inset-0 rounded-4xl bg-primary shadow-2xl shadow-primary/30 -z-10" aria-hidden />
+                    )}
+                    <Image
+                      alt="Student"
+                      className={`rounded-full border-4 shadow-lg absolute left-1/2 -translate-x-1/2 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
+                        ${isCenter ? "w-24 h-24 border-white -top-12 z-20" : "w-20 h-20 border-white dark:border-gray-800 -top-10"}
+                      `}
+                      src={t.image}
+                      width={isCenter ? 96 : 80}
+                      height={isCenter ? 96 : 80}
+                    />
+                    <p className={`text-base md:text-lg leading-loose font-normal transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${isCenter ? "mt-8 text-white/90" : "mt-6 text-gray-600 dark:text-gray-400"}`}>
+                      &quot;{t.content}&quot;
+                    </p>
+                    <h4 className={`transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${isCenter ? "font-black text-2xl mt-6" : "font-bold text-xl mt-6"}`}>{t.name}</h4>
+                    {isCenter ? (
+                      <span className="bg-white/20 px-4 py-1 rounded-full text-xs font-bold mt-2 inline-block transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]">
+                        {t.role}
+                      </span>
+                    ) : (
+                      <span className="text-primary text-sm font-bold block mt-0 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]">
+                        {t.role}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
