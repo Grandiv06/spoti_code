@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import TestimonialSlider from "./components/TestimonialSlider";
 
 export default function Home() {
   return (
@@ -305,67 +306,7 @@ export default function Home() {
         </section>
 
         {/* Testimonials Section */}
-        <section className="py-24 bg-gray-50 dark:bg-transparent">
-          <div className="max-w-7xl mx-auto px-6 text-center">
-            <h2 className="text-4xl font-black mb-4">نظرات دانشجویان ما</h2>
-            <p className="text-gray-500 dark:text-gray-400 mb-20 text-lg">
-              بشنوید از کسانی که این مسیر را با موفقیت پیموده‌اند.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-              <div className="bg-white dark:bg-surface-dark p-10 rounded-4xl shadow-xl relative mt-8">
-                <Image
-                  alt="Student"
-                  className="w-20 h-20 rounded-full border-4 border-white dark:border-gray-800 shadow-lg absolute -top-10 left-1/2 -translate-x-1/2"
-                  src="/images/student1.jpg"
-                  width={80}
-                  height={80}
-                />
-                <p className="text-gray-600 dark:text-gray-400 leading-loose italic mt-6">
-                  &quot;پروژه‌های عملی این آکادمی باعث شد ترس من از کدنویسی
-                  بریزه و الان در یک شرکت معتبر مشغولم.&quot;
-                </p>
-                <h4 className="font-bold text-xl mt-6">سهراب امینی</h4>
-                <span className="text-primary text-sm font-bold">
-                  توسعه‌دهنده React
-                </span>
-              </div>
-              <div className="bg-primary p-10 rounded-4xl shadow-2xl shadow-primary/30 relative scale-105 z-10 text-white">
-                <Image
-                  alt="Student"
-                  className="w-24 h-24 rounded-full border-4 border-white shadow-lg absolute -top-12 left-1/2 -translate-x-1/2"
-                  src="/images/student2.jpg"
-                  width={96}
-                  height={96}
-                />
-                <p className="leading-loose italic mt-8 text-white/90">
-                  &quot;بهترین تصمیمی که برای آینده‌ام گرفتم شرکت در دوره موبایل
-                  بود. منتورها واقعاً دلسوزانه کمک می‌کنند.&quot;
-                </p>
-                <h4 className="font-black text-2xl mt-6">سارا رضایی</h4>
-                <span className="bg-white/20 px-4 py-1 rounded-full text-xs font-bold mt-2 inline-block">
-                  توسعه‌دهنده موبایل
-                </span>
-              </div>
-              <div className="bg-white dark:bg-surface-dark p-10 rounded-4xl shadow-xl relative mt-8">
-                <Image
-                  alt="Student"
-                  className="w-20 h-20 rounded-full border-4 border-white dark:border-gray-800 shadow-lg absolute -top-10 left-1/2 -translate-x-1/2"
-                  src="/images/student3.jpg"
-                  width={80}
-                  height={80}
-                />
-                <p className="text-gray-600 dark:text-gray-400 leading-loose italic mt-6">
-                  &quot;محتوای آموزشی بسیار به‌روز و با کیفیت هست. پشتیبانی ۲۴
-                  ساعته واقعاً یک مزیت بزرگه.&quot;
-                </p>
-                <h4 className="font-bold text-xl mt-6">نیما حسینی</h4>
-                <span className="text-primary text-sm font-bold">
-                  متخصص دیتاساینس
-                </span>
-              </div>
-            </div>
-          </div>
-        </section>
+        <TestimonialSlider />
       </main>
     </div>
   );
