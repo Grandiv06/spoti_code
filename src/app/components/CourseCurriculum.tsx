@@ -138,7 +138,7 @@ export default function CourseCurriculum({
         <button
           type="button"
           onClick={showCurriculum}
-          className="w-full glass-panel rounded-4xl px-8 py-8 flex items-center justify-between gap-4 hover:bg-white/20 dark:hover:bg-white/10 transition-all duration-300 group cursor-pointer"
+          className="w-full rounded-4xl px-8 py-8 flex items-center justify-between gap-4 bg-white dark:bg-[#1c1e26]/90 border border-gray-200/80 dark:border-white/[0.06] shadow-learning-card-light dark:shadow-learning-card-dark hover:bg-gray-50 dark:hover:bg-white/10 transition-all duration-300 group cursor-pointer"
         >
           <div className="flex items-center gap-4">
             <span className="flex items-center justify-center size-14 rounded-3xl bg-primary/20 dark:bg-primary/30 text-primary group-hover:scale-110 transition-transform">
@@ -164,8 +164,8 @@ export default function CourseCurriculum({
   }
 
   return (
-    <section className="glass-panel rounded-4xl overflow-hidden border border-white/60 dark:border-gray-700">
-      <div className="px-8 py-6 flex flex-wrap items-center justify-between gap-4 border-b border-white/50 dark:border-gray-700">
+    <section className="rounded-4xl overflow-hidden bg-white dark:bg-[#1c1e26]/90 border border-gray-200/80 dark:border-white/[0.06] shadow-learning-card-light dark:shadow-learning-card-dark">
+      <div className="px-8 py-6 flex flex-wrap items-center justify-between gap-4 border-b border-gray-200/80 dark:border-white/[0.06]">
         <h2 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3">
           <span className="material-symbols-outlined filled text-primary">
             toc
@@ -176,11 +176,11 @@ export default function CourseCurriculum({
           <button
             type="button"
             onClick={collapseAll}
-            className="text-sm font-bold text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary px-4 py-2 rounded-2xl bg-white/30 dark:bg-white/5 hover:bg-white/50 dark:hover:bg-white/10 transition-colors flex items-center gap-2 cursor-pointer"
+            className="text-sm font-bold text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary px-4 py-2 rounded-2xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors flex items-center gap-2 cursor-pointer"
           >
             بستن
           </button>
-          <span className="text-sm font-bold text-primary bg-white/50 dark:bg-white/10 px-4 py-2 rounded-2xl shadow-sm">
+          <span className="text-sm font-bold text-primary bg-primary/10 dark:bg-white/10 px-4 py-2 rounded-2xl shadow-sm">
             {totalLessons} جلسه
           </span>
         </div>
@@ -192,10 +192,10 @@ export default function CourseCurriculum({
           return (
             <div
               key={chapter.id}
-              className={`glass-panel rounded-4xl overflow-hidden transition-all duration-300 group ${
+              className={`rounded-4xl overflow-hidden transition-all duration-300 group ${
                 isOpen
-                  ? "bg-white/40 dark:bg-white/5 border border-white/80 dark:border-gray-700 shadow-lg"
-                  : "hover:bg-white/40 dark:hover:bg-white/5"
+                  ? "bg-gray-50 dark:bg-white/5 border border-gray-200/80 dark:border-white/[0.06] shadow-learning-card-light dark:shadow-learning-card-dark"
+                  : "bg-white dark:bg-white/[0.02] border border-gray-200/60 dark:border-transparent hover:bg-gray-50 dark:hover:bg-white/5 hover:border-gray-200/80 dark:hover:border-white/[0.06] hover:shadow-learning-card-light dark:hover:shadow-learning-card-dark"
               }`}
             >
               <button
@@ -208,7 +208,7 @@ export default function CourseCurriculum({
                     className={`flex items-center justify-center size-14 rounded-3xl text-2xl font-black transition-all ${
                       isOpen
                         ? "bg-primary text-white shadow-[0_0_20px_rgba(34,197,94,0.5)]"
-                        : "bg-white dark:bg-gray-800 shadow-md text-primary group-hover:text-primary-dark group-hover:scale-110"
+                        : "bg-gray-100 dark:bg-gray-800 shadow-md text-primary group-hover:text-primary-dark group-hover:scale-110"
                     }`}
                   >
                     {chapter.number}
@@ -232,7 +232,7 @@ export default function CourseCurriculum({
                   className={`size-10 rounded-full flex items-center justify-center transition-all ${
                     isOpen
                       ? "bg-primary text-white shadow-[0_0_20px_rgba(34,197,94,0.5)]"
-                      : "bg-white/50 dark:bg-white/10 group-hover:bg-primary group-hover:text-white"
+                      : "bg-gray-100 dark:bg-white/10 group-hover:bg-primary group-hover:text-white"
                   }`}
                 >
                   <span
@@ -246,7 +246,7 @@ export default function CourseCurriculum({
               </button>
 
               {isOpen && (
-                <div className="p-6 md:p-8 bg-white/20 dark:bg-white/5 backdrop-blur-sm border-t border-white/50 dark:border-gray-700">
+                <div className="p-6 md:p-8 bg-gray-50/80 dark:bg-white/5 backdrop-blur-sm border-t border-gray-200/80 dark:border-white/[0.06]">
                   <ul className="space-y-4 border-r-2 border-primary/30 pr-6 mr-3">
                     {chapter.lessons.map((lesson) => (
                       <li
@@ -278,8 +278,8 @@ export default function CourseCurriculum({
                         <span
                           className={`text-xs font-bold px-2 py-1 rounded ${
                             lesson.isLocked
-                              ? "bg-gray-100/50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-500"
-                              : "bg-white/50 dark:bg-white/10 text-primary"
+                              ? "bg-gray-200/80 dark:bg-gray-800/50 text-gray-500 dark:text-gray-500"
+                              : "bg-primary/10 dark:bg-white/10 text-primary"
                           }`}
                         >
                           {lesson.isLocked ? "قفل" : lesson.duration}
