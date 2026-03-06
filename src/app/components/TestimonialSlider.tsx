@@ -69,18 +69,18 @@ export default function TestimonialSlider() {
           <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 flex justify-between z-20 pointer-events-none md:-mx-20 lg:-mx-28">
             <button 
               type="button"
-              onClick={handleNext}
+              onClick={handlePrev}
               className="w-12 h-12 md:w-14 md:h-14 bg-white dark:bg-surface-dark rounded-full shadow-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center text-gray-500 hover:text-primary hover:scale-110 transition-all duration-300 cursor-pointer pointer-events-auto z-20 ml-2 mr-6 md:mr-10"
-              aria-label="بعدی"
+              aria-label="قبلی"
             >
               <ChevronRight className="w-6 h-6 md:w-8 md:h-8" />
             </button>
             
             <button 
               type="button" 
-              onClick={handlePrev}
+              onClick={handleNext}
               className="w-12 h-12 md:w-14 md:h-14 bg-white dark:bg-surface-dark rounded-full shadow-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center text-gray-500 hover:text-primary hover:scale-110 transition-all duration-300 cursor-pointer pointer-events-auto z-20 mr-2 ml-6 md:ml-10"
-              aria-label="قبلی"
+              aria-label="بعدی"
             >
               <ChevronLeft className="w-6 h-6 md:w-8 md:h-8" />
             </button>
