@@ -21,6 +21,12 @@ export default function LearningPathsOverview() {
             نقشه راهی برای تبدیل شدن به یک متخصص. ما مسیر را برای شما روشن کرده‌ایم تا بدون سردرگمی، قدم به قدم پیش بروید.
           </p>
         </div>
+
+        {/* نشانگر اسکرول - انیمیشن نرم بالا پایین */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 z-20">
+          <span className="text-sm font-medium text-text-muted">اسکرول کنید به پایین</span>
+          <span className="material-symbols-outlined text-3xl text-primary animate-bounce-smooth">keyboard_double_arrow_down</span>
+        </div>
       </header>
 
       <main className="relative pb-32 px-4 z-10 max-w-7xl mx-auto">
