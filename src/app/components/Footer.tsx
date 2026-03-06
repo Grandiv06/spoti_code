@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { FaTelegramPlane, FaInstagram, FaLinkedinIn, FaYoutube } from "react-icons/fa";
 
 export default function Footer() {
   return (
@@ -22,16 +23,34 @@ export default function Footer() {
           </p>
           <div className="flex gap-4">
             <a
-              className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center hover:bg-primary transition-all hover:-translate-y-1"
-              href="#"
+              className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center hover:bg-primary transition-all hover:-translate-y-1 text-xl"
+              href="https://t.me/spoticode"
+              target="_blank"
+              rel="noopener noreferrer"
             >
-              <span className="material-icons-round">alternate_email</span>
+              <FaTelegramPlane />
             </a>
             <a
-              className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center hover:bg-primary transition-all hover:-translate-y-1"
+              className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center hover:bg-primary transition-all hover:-translate-y-1 text-xl"
+              href="https://www.instagram.com/spoti_code?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=="
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <FaInstagram />
+            </a>
+            <a
+              className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center hover:bg-primary transition-all hover:-translate-y-1 text-xl"
               href="#"
             >
-              <span className="material-icons-round">camera_alt</span>
+              <FaLinkedinIn />
+            </a>
+            <a
+              className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center hover:bg-primary transition-all hover:-translate-y-1 text-xl"
+              href="https://www.youtube.com/@spoticode"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <FaYoutube />
             </a>
           </div>
         </div>
