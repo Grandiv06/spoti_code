@@ -57,7 +57,7 @@ export default function TestimonialSlider() {
   };
 
   return (
-    <section className="py-24 bg-gray-50 dark:bg-transparent relative overflow-hidden">
+    <section className="py-24 bg-gray-50 dark:bg-transparent relative">
       <div className="max-w-7xl mx-auto px-6 text-center relative">
         <h2 className="text-4xl font-black mb-4">نظرات دانشجویان ما</h2>
         <p className="text-gray-500 dark:text-gray-400 mb-20 text-lg">
@@ -65,8 +65,10 @@ export default function TestimonialSlider() {
         </p>
 
         <div className="relative mt-8">
-          {/* Navigation Arrows - همتراز با مرکز باکس‌های نظرات */}
-          <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 flex justify-between z-20 pointer-events-none md:-mx-20 lg:-mx-28">
+          {/* Wrapper برای همترازی فلش‌ها با مرکز کارت‌ها */}
+          <div className="relative">
+            {/* Navigation Arrows - وسط چین باکس‌های نظرات */}
+            <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 flex justify-between z-20 pointer-events-none md:-mx-20 lg:-mx-28">
             <button 
               type="button"
               onClick={handlePrev}
@@ -86,7 +88,7 @@ export default function TestimonialSlider() {
             </button>
           </div>
 
-          {/* موبایل - فقط کارت فعال با fade */}
+            {/* موبایل - فقط کارت فعال با fade */}
           <div className="md:hidden min-h-[320px]">
             {testimonials.map((t, index) => {
               if (index !== activeIndex) return null;
@@ -101,8 +103,8 @@ export default function TestimonialSlider() {
             })}
           </div>
 
-          {/* دسکتاپ - انیمیشن اسلاید نرم با scale و fade (dir=ltr برای محاسبه صحیح translateX) */}
-          <div className="hidden md:flex gap-10 relative min-h-[400px] items-end overflow-hidden" dir="ltr">
+            {/* دسکتاپ - انیمیشن اسلاید نرم با scale و fade (dir=ltr برای محاسبه صحیح translateX) */}
+          <div className="hidden md:flex gap-10 relative min-h-[420px] items-center overflow-hidden pt-20 pb-4" dir="ltr">
             {testimonials.map((t, index) => {
               const position = getPosition(index);
               const isCenter = position === 0;
@@ -128,7 +130,7 @@ export default function TestimonialSlider() {
                   }}
                 >
                   <div
-                    className={`w-full max-w-md rounded-4xl p-10 relative
+                    className={`w-full max-w-md rounded-4xl p-10 relative overflow-visible
                       ${isCenter 
                         ? "bg-primary/0 text-white" 
                         : "bg-white dark:bg-surface-dark shadow-xl mt-8"
@@ -137,7 +139,7 @@ export default function TestimonialSlider() {
                   >
                     {/* بکگراند سبز فقط برای کارت وسط */}
                     {isCenter && (
-                      <div className="absolute inset-0 rounded-4xl bg-primary shadow-2xl shadow-primary/30 -z-10" aria-hidden />
+                      <div className="absolute inset-0 rounded-4xl bg-primary shadow-lg shadow-primary/20 -z-10" aria-hidden />
                     )}
                     <Image
                       alt="Student"
@@ -165,6 +167,7 @@ export default function TestimonialSlider() {
                 </div>
               );
             })}
+          </div>
           </div>
         </div>
       </div>
