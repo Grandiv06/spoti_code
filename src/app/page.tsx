@@ -124,68 +124,85 @@ export default function Home() {
           </div>
         </header>
 
-        {/* Stats Section */}
-        <section className="py-12 relative z-10">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              <div className="glass-card rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-[0_12px_40px_-8px_rgba(34,197,94,0.15)] dark:shadow-none border border-white dark:border-gray-800 hover:-translate-y-2 transition-all duration-300 group">
-                <div className="w-14 h-14 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/40 dark:to-green-900/20 rounded-2xl flex items-center justify-center mb-4 text-primary shadow-inner group-hover:rotate-6 transition-transform">
-                  <span className="material-symbols-outlined text-3xl font-light">
+        {/* Ultra-Premium Stats Section */}
+        <section className="py-20 relative overflow-hidden bg-transparent mt-10">
+          {/* Ambient Glows for Stats */}
+          <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 dark:bg-primary/5 rounded-full blur-[150px] pointer-events-none -z-10"></div>
+          <div className="absolute top-1/2 right-1/4 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/5 dark:bg-blue-500/5 rounded-full blur-[150px] pointer-events-none -z-10"></div>
+
+          <div className="max-w-7xl mx-auto px-6 relative z-10 w-full">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+              
+              {/* Stat 1: Students */}
+              <div className="bg-gradient-to-b from-white to-gray-50/50 dark:from-surface-dark dark:to-[#1a1c23] backdrop-blur-3xl border border-gray-100 dark:border-white/5 rounded-3xl p-6 relative overflow-hidden hover:border-emerald-200 dark:hover:border-emerald-500/30 transition-all duration-500 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.15)] group flex flex-col items-center justify-center text-center">
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-400/10 rounded-full blur-2xl group-hover:bg-emerald-400/20 transition-all duration-700"></div>
+                <div className="w-14 h-14 bg-emerald-50 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-4 shadow-sm group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-500 border border-emerald-100 dark:border-white/5">
+                  <span className="material-symbols-outlined text-2xl font-light">
                     school
                   </span>
                 </div>
-                <h3 className="text-3xl font-black text-gray-900 dark:text-white mb-1 tracking-tighter">
-                  ۱۰,۰۰۰+
+                <h3 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white mb-2 tracking-tighter group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                  +۱۰,۰۰۰
                 </h3>
-                <p className="text-sm font-bold text-gray-500 dark:text-gray-400">
+                <p className="text-xs md:text-sm font-bold text-gray-500 dark:text-gray-400">
                   دانشجوی مستعد
                 </p>
               </div>
-              <div className="glass-card rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-[0_12px_40px_-8px_rgba(34,197,94,0.15)] dark:shadow-none border border-white dark:border-gray-800 hover:-translate-y-2 transition-all duration-300 group">
-                <div className="w-14 h-14 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/40 dark:to-blue-900/20 rounded-2xl flex items-center justify-center mb-4 text-blue-500 shadow-inner group-hover:rotate-6 transition-transform">
-                  <span className="material-symbols-outlined text-3xl font-light">
+
+              {/* Stat 2: Courses */}
+              <div className="bg-gradient-to-b from-white to-gray-50/50 dark:from-surface-dark dark:to-[#1a1c23] backdrop-blur-3xl border border-gray-100 dark:border-white/5 rounded-3xl p-6 relative overflow-hidden hover:border-blue-200 dark:hover:border-blue-500/30 transition-all duration-500 hover:shadow-[0_20px_40px_-15px_rgba(59,130,246,0.15)] group flex flex-col items-center justify-center text-center">
+                 <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-blue-400/10 rounded-full blur-2xl group-hover:bg-blue-400/20 transition-all duration-700"></div>
+                <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400 mb-4 shadow-sm group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500 border border-blue-100 dark:border-white/5">
+                  <span className="material-symbols-outlined text-2xl font-light">
                     menu_book
                   </span>
                 </div>
-                <h3 className="text-3xl font-black text-gray-900 dark:text-white mb-1 tracking-tighter">
-                  ۵۰+
+                <h3 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white mb-2 tracking-tighter group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                  +۵۰
                 </h3>
-                <p className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-3">
+                <p className="text-xs md:text-sm font-bold text-gray-500 dark:text-gray-400 mb-4">
                   دوره تخصصی
                 </p>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 text-blue-600 dark:text-blue-300 rounded-2xl text-xs font-black border border-blue-500/20">
-                  <span className="material-symbols-outlined text-sm">
+                <div className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-md text-[10px] sm:text-xs font-bold border border-blue-100 dark:border-white/10 shadow-sm mt-auto">
+                  <span className="material-symbols-outlined text-[12px] sm:text-[14px]">
                     timer
                   </span>
-                  ۱۵۰۰+ ساعت محتوا
+                  ۱۵۰۰+ ساعت مدون
                 </div>
               </div>
-              <div className="glass-card rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-[0_12px_40px_-8px_rgba(34,197,94,0.15)] dark:shadow-none border border-white dark:border-gray-800 hover:-translate-y-2 transition-all duration-300 group">
-                <div className="w-14 h-14 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/40 dark:to-purple-900/20 rounded-2xl flex items-center justify-center mb-4 text-purple-500 shadow-inner group-hover:rotate-6 transition-transform">
-                  <span className="material-symbols-outlined text-3xl font-light">
+
+              {/* Stat 3: Support */}
+              <div className="bg-gradient-to-b from-white to-gray-50/50 dark:from-surface-dark dark:to-[#1a1c23] backdrop-blur-3xl border border-gray-100 dark:border-white/5 rounded-3xl p-6 relative overflow-hidden hover:border-purple-200 dark:hover:border-purple-500/30 transition-all duration-500 hover:shadow-[0_20px_40px_-15px_rgba(168,85,247,0.15)] group flex flex-col items-center justify-center text-center">
+                <div className="absolute top-10 left-10 w-32 h-32 bg-purple-400/10 rounded-full blur-2xl group-hover:bg-purple-400/20 transition-all duration-700"></div>
+                <div className="w-14 h-14 bg-purple-50 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center text-purple-600 dark:text-purple-400 mb-4 shadow-sm group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-500 border border-purple-100 dark:border-white/5">
+                  <span className="material-symbols-outlined text-2xl font-light">
                     support_agent
                   </span>
                 </div>
-                <h3 className="text-3xl font-black text-gray-900 dark:text-white mb-1 tracking-tighter">
+                <h3 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white mb-2 tracking-widest group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors" dir="ltr">
                   ۲۴/۷
                 </h3>
-                <p className="text-sm font-bold text-gray-500 dark:text-gray-400">
+                <p className="text-xs md:text-sm font-bold text-gray-500 dark:text-gray-400">
                   پشتیبانی اختصاصی
                 </p>
               </div>
-              <div className="glass-card rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-[0_12px_40px_-8px_rgba(34,197,94,0.15)] dark:shadow-none border border-white dark:border-gray-800 hover:-translate-y-2 transition-all duration-300 group">
-                <div className="w-14 h-14 bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/40 dark:to-amber-900/20 rounded-2xl flex items-center justify-center mb-4 text-amber-600 dark:text-amber-400 shadow-inner group-hover:rotate-6 transition-transform">
-                  <span className="material-symbols-outlined text-3xl font-light">
-                    verified
+
+               {/* Stat 4: Practical Projects (Replaced Student Satisfaction) */}
+               <div className="bg-gradient-to-b from-white to-gray-50/50 dark:from-surface-dark dark:to-[#1a1c23] backdrop-blur-3xl border border-gray-100 dark:border-white/5 rounded-3xl p-6 relative overflow-hidden hover:border-amber-200 dark:hover:border-amber-500/30 transition-all duration-500 hover:shadow-[0_20px_40px_-15px_rgba(245,158,11,0.15)] group flex flex-col items-center justify-center text-center">
+                <div className="absolute -bottom-10 space-y-2 -right-10 w-32 h-32 bg-amber-400/10 rounded-full blur-2xl group-hover:bg-amber-400/20 transition-all duration-700"></div>
+                <div className="w-14 h-14 bg-amber-50 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center text-amber-600 dark:text-amber-400 mb-4 shadow-sm group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500 border border-amber-100 dark:border-white/5">
+                  <span className="material-symbols-outlined text-2xl font-light">
+                    rocket_launch
                   </span>
                 </div>
-                <h3 className="text-3xl font-black text-gray-900 dark:text-white mb-1 tracking-tighter">
-                  ۹۸٪
+                <h3 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white mb-2 tracking-tighter group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                  +۱۵۰
                 </h3>
-                <p className="text-sm font-bold text-gray-500 dark:text-gray-400">
-                  رضایت دانشجویان
+                <p className="text-xs md:text-sm font-bold text-gray-500 dark:text-gray-400">
+                  پروژه عملی و واقعی
                 </p>
               </div>
+
             </div>
           </div>
         </section>
@@ -199,7 +216,7 @@ export default function Home() {
                   <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
                   پیشنهاد ویژه
                 </div>
-                <h2 className="text-4xl md:text-5xl font-black tracking-tight text-gray-900 dark:text-white">
+                <h2 className="text-3xl md:text-4xl font-black tracking-tight text-gray-900 dark:text-white">
                   دوره‌های{" "}
                   <span className="text-transparent bg-clip-text bg-gradient-to-l from-primary to-green-600 relative inline-block">
                     پرطرفدار
@@ -401,7 +418,7 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-6 relative z-10 w-full">
             {/* Section Header */}
             <div className="text-center mb-28">
-              <h2 className="text-4xl md:text-5xl lg:text-6xl font-black mb-6 tracking-tight text-gray-900 dark:text-white">
+              <h2 className="text-3xl md:text-4xl lg:text-6xl font-black mb-6 tracking-tight text-gray-900 dark:text-white">
                 تخصص‌های طلایی اپلیکیشن‌سازی
               </h2>
               <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
@@ -413,12 +430,12 @@ export default function Home() {
             <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24 mb-32 group">
               {/* Content (Right Side in RTL) */}
               <div className="w-full lg:w-1/2 rtl:lg:pl-10">
-                <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/40 rounded-3xl flex items-center justify-center text-blue-600 dark:text-blue-400 mb-8 shadow-sm">
+                <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/40 rounded-3xl flex items-center justify-center text-blue-600 dark:text-blue-400 mb-8 shadow-sm">
                   <span className="material-symbols-outlined text-3xl font-bold">
                     code_blocks
                   </span>
                 </div>
-                <h3 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-6 leading-tight">
+                <h3 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white mb-6 leading-tight">
                   جادوی خلقِ <br/>
                   <span className="text-blue-600 dark:text-blue-400">رابط کاربری مسحورکننده</span>
                 </h3>
@@ -504,12 +521,12 @@ export default function Home() {
             <div className="flex flex-col lg:flex-row-reverse items-center gap-16 lg:gap-24 group">
               {/* Content (Left Side in RTL) */}
               <div className="w-full lg:w-1/2 rtl:lg:pr-10">
-                <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/40 rounded-3xl flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-8 shadow-sm">
+                <div className="w-14 h-14 bg-emerald-50 dark:bg-emerald-900/40 rounded-3xl flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-8 shadow-sm">
                   <span className="material-symbols-outlined text-3xl font-bold">
                     storage
                   </span>
                 </div>
-                <h3 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-6 leading-tight">
+                <h3 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white mb-6 leading-tight">
                   معماریِ پنهان <br/>
                   <span className="text-emerald-600 dark:text-emerald-400">یک هسته‌ی بی‌نقص</span>
                 </h3>
