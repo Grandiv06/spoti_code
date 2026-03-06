@@ -57,10 +57,10 @@ export default function Header() {
 
   return (
     <header
-      className={`fixed z-50 px-6 transition-all duration-300 ease-out bg-white/10 dark:bg-[#14161c]/10 backdrop-blur-[8px] border-gray-200/10 dark:border-slate-400/10 ${
+      className={`fixed z-50 px-4 md:px-6 transition-all duration-300 ease-out bg-white/10 dark:bg-[#14161c]/10 backdrop-blur-[8px] border-gray-200/10 dark:border-slate-400/10 ${
         isScrolled
-          ? "top-4 left-44 right-44 py-3 rounded-4xl shadow-lg border"
-          : "top-0 left-0 right-0 py-6 rounded-none border-b shadow-sm"
+          ? "top-2 md:top-4 left-4 right-4 md:left-44 md:right-44 py-3 rounded-4xl md:rounded-4xl shadow-lg border"
+          : "top-0 left-0 right-0 py-4 md:py-6 rounded-none border-b shadow-sm"
       }`}
     >
       <nav className="max-w-7xl mx-auto flex justify-between items-center">
@@ -85,7 +85,13 @@ export default function Header() {
                 key={item.href}
                 href={item.href}
                 label={item.label}
-                isActive={item.href === "/social" ? pathname?.startsWith("/social") : item.href === "/learning-path" ? pathname?.startsWith("/learning-path") : pathname === item.href}
+                isActive={
+                  item.href === "/social"
+                    ? pathname?.startsWith("/social")
+                    : item.href === "/learning-path"
+                      ? pathname?.startsWith("/learning-path")
+                      : pathname === item.href
+                }
               />
             ))}
           </div>
@@ -132,7 +138,9 @@ export default function Header() {
                 title="پنل کاربری"
                 className="relative flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/20 dark:bg-[#14161c]/10 backdrop-blur-xl border border-white/15 dark:border-white/[0.04] hover:bg-white/30 dark:hover:bg-[#14161c]/20 transition-colors duration-300 overflow-visible text-gray-700 dark:text-gray-300 hover:text-primary"
               >
-                <span className="material-symbols-outlined text-xl">person</span>
+                <span className="material-symbols-outlined text-xl">
+                  person
+                </span>
               </Link>
             ) : (
               <Link
@@ -148,7 +156,9 @@ export default function Header() {
                   />
                 )}
                 <span className="relative z-10">ورود / ثبت‌نام</span>
-                <span className="material-symbols-outlined relative z-10 text-xl">login</span>
+                <span className="material-symbols-outlined relative z-10 text-xl">
+                  login
+                </span>
               </Link>
             )}
           </div>
@@ -170,7 +180,12 @@ export default function Header() {
           <div className="absolute top-full left-0 right-0 p-4 animate-in slide-in-from-top-2 fade-in duration-200">
             <div className="bg-white dark:bg-surface-dark rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700 p-2 flex flex-col gap-1">
               {menuItems.map((item) => {
-                const isActive = item.href === "/social" ? pathname?.startsWith("/social") : item.href === "/learning-path" ? pathname?.startsWith("/learning-path") : pathname === item.href;
+                const isActive =
+                  item.href === "/social"
+                    ? pathname?.startsWith("/social")
+                    : item.href === "/learning-path"
+                      ? pathname?.startsWith("/learning-path")
+                      : pathname === item.href;
                 return (
                   <Link
                     key={item.href}
@@ -191,8 +206,8 @@ export default function Header() {
               })}
               <div className="h-px bg-gray-100 dark:bg-gray-700 my-1 mx-2"></div>
               <Link
-className={`px-6 py-4 text-sm font-bold rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                isAuthenticated
+                className={`px-6 py-4 text-sm font-bold rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  isAuthenticated
                     ? "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                     : "bg-primary text-white hover:bg-primary-hover shadow-lg shadow-primary/20"
                 }`}
@@ -201,7 +216,9 @@ className={`px-6 py-4 text-sm font-bold rounded-2xl transition-all flex items-ce
               >
                 {isAuthenticated ? (
                   <>
-                    <span className="material-symbols-outlined text-lg">person</span>
+                    <span className="material-symbols-outlined text-lg">
+                      person
+                    </span>
                     پنل کاربری
                   </>
                 ) : (
