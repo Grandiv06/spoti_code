@@ -393,118 +393,190 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Categories Section */}
-        <section className="py-24">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
-              <div>
-                <h2 className="text-5xl font-black mb-6 tracking-tight text-gray-900 dark:text-white">
-                  دسته‌بندی‌های طلایی
-                </h2>
-                <p className="text-xl text-gray-500 dark:text-gray-400 max-w-xl leading-relaxed">
-                  تخصص مورد علاقه خود را پیدا کنید و با بهترین اساتید وارد بازار
-                  کار شوید.
-                </p>
-              </div>
-              <a
-                className="hidden md:flex items-center gap-3 text-primary font-black hover:gap-5 transition-all text-xl group"
-                href="#"
-              >
-                مشاهده همـه دوره‌ها
-                <span className="material-symbols-outlined font-bold">
-                  keyboard_backspace
-                </span>
-              </a>
+        {/* Zig-Zag Learning Paths Section */}
+        <section className="py-32 relative overflow-hidden">
+          {/* Global Ambient Glow */}
+          <div className="absolute top-0 right-1/4 w-[800px] h-[800px] bg-primary/5 dark:bg-primary/5 rounded-full blur-[150px] pointer-events-none -z-10"></div>
+          
+          <div className="max-w-7xl mx-auto px-6 relative z-10 w-full">
+            {/* Section Header */}
+            <div className="text-center mb-28">
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-black mb-6 tracking-tight text-gray-900 dark:text-white">
+                تخصص‌های طلایی اپلیکیشن‌سازی
+              </h2>
+              <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
+                اسپاتی‌کد شما را با دو مسیر کاملاً تخصصی و تضمین‌شده، از نقطه‌ی صفر تا تبدیل شدن به یک برنامه‌نویس ارشد همراهی می‌کند.
+              </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-              <div className="group bg-white dark:bg-surface-dark rounded-4xl p-10 border border-gray-100 dark:border-gray-800 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-500 shadow-sm hover:shadow-2xl hover:shadow-blue-500/10 relative overflow-hidden">
-                <div className="flex justify-between items-start mb-10">
-                  <div className="w-20 h-20 bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-blue-500/40 group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500">
-                    <span className="material-symbols-outlined text-4xl">
-                      html
-                    </span>
-                  </div>
-                  <div className="px-6 py-3 bg-blue-50 dark:bg-blue-900/30 rounded-4xl border border-blue-100 dark:border-blue-800/50 text-blue-600 dark:text-blue-300 font-black shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
-                    ۸۵ ساعت
-                  </div>
-                </div>
-                <h3 className="text-3xl font-black mb-5 text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors">
-                  توسعه وب (Full Stack)
-                </h3>
-                <p className="text-lg text-gray-500 dark:text-gray-400 mb-10 leading-relaxed">
-                  تسلط بر اکوسیستم مدرن وب؛ از React و Next.js تا Node.js و
-                  پایگاه‌داده‌های پیشرفته.
-                </p>
-                <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800 pt-8">
-                  <span className="text-sm font-black text-gray-400 uppercase tracking-widest">
-                    ۲۰ پروژه حرفه‌ای
+
+            {/* Feature 1: Front-End (Text Right, Image Left) */}
+            <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24 mb-32 group">
+              {/* Content (Right Side in RTL) */}
+              <div className="w-full lg:w-1/2 rtl:lg:pl-10">
+                <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/40 rounded-3xl flex items-center justify-center text-blue-600 dark:text-blue-400 mb-8 shadow-sm">
+                  <span className="material-symbols-outlined text-3xl font-bold">
+                    code_blocks
                   </span>
-                  <div className="w-12 h-12 rounded-4xl bg-blue-50 dark:bg-blue-900/40 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white group-hover:scale-110 transition-all">
-                    <span className="material-symbols-outlined font-bold">
-                      chevron_left
-                    </span>
-                  </div>
                 </div>
+                <h3 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-6 leading-tight">
+                  جادوی خلقِ <br/>
+                  <span className="text-blue-600 dark:text-blue-400">رابط کاربری مسحورکننده</span>
+                </h3>
+                <p className="text-xl text-gray-600 dark:text-gray-400 leading-relaxed mb-10">
+                  در مسیر مهندسی فرانت‌اند، یاد می‌گیرید چگونه طرح‌های بی‌جان را با قدرت جاوااسکریپت و ری‌اکت به اپلیکیشن‌های زنده، تعاملی و بی‌نهایت روان تبدیل کنید.
+                </p>
+                
+                <ul className="space-y-4 mb-12">
+                  {[
+                    "تسلط کامل بر HTML, CSS و JavaScript",
+                    "ساخت رابط‌های پیچیده با React و Next.js",
+                    "مدیریت استیت‌ها و اتصال به APIهای قدرتمند"
+                  ].map((item, idx) => (
+                    <li key={idx} className="flex items-center gap-4 text-lg text-gray-700 dark:text-gray-300 font-medium">
+                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                        <span className="material-symbols-outlined text-sm font-bold">check</span>
+                      </div>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+
+                <a href="/roadmaps" className="inline-flex w-full md:w-auto items-center justify-center gap-3 px-8 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-blue-600 dark:hover:bg-blue-500 rounded-2xl font-black text-lg transition-colors shadow-lg">
+                  شروع مسیر فرانت‌اند
+                  <span className="material-symbols-outlined rtl:rotate-180">
+                    arrow_right_alt
+                  </span>
+                </a>
               </div>
-              <div className="group bg-white dark:bg-surface-dark rounded-4xl p-10 border border-gray-100 dark:border-gray-800 hover:border-purple-300 dark:hover:border-purple-700 transition-all duration-500 shadow-sm hover:shadow-2xl hover:shadow-purple-500/10 relative overflow-hidden">
-                <div className="flex justify-between items-start mb-10">
-                  <div className="w-20 h-20 bg-gradient-to-tr from-purple-600 to-pink-400 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-purple-500/40 group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500">
-                    <span className="material-symbols-outlined text-4xl">
-                      smartphone
+              
+              {/* Graphic (Left Side in RTL) */}
+              <div className="w-full lg:w-1/2 relative">
+                <div className="absolute inset-0 bg-gradient-to-tr from-blue-400/20 to-transparent rounded-[3rem] blur-3xl -z-10 group-hover:bg-blue-400/30 transition-all duration-1000"></div>
+                
+                {/* Main Card */}
+                <div className="bg-white/50 dark:bg-[#1a1c23]/50 backdrop-blur-3xl border border-white/20 dark:border-white/5 rounded-[3rem] p-8 shadow-2xl relative group-hover:-translate-y-4 transition-transform duration-700">
+                  {/* Decorative terminal/browser header */}
+                  <div className="flex gap-2 mb-6">
+                    <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                    <div className="w-3 h-3 rounded-full bg-amber-400"></div>
+                    <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                  </div>
+                  {/* Abstract code representation */}
+                  <div className="space-y-4">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded-full w-3/4"></div>
+                    <div className="h-4 bg-blue-100 dark:bg-blue-900/50 rounded-full w-1/2"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded-full w-5/6"></div>
+                    <div className="flex gap-4 pt-4">
+                      <div className="h-24 w-1/3 bg-blue-50 dark:bg-blue-900/30 rounded-2xl"></div>
+                      <div className="h-24 w-2/3 bg-gray-100 dark:bg-gray-800/50 rounded-2xl"></div>
+                    </div>
+                  </div>
+                  
+                  {/* Floating UI Elements */}
+                  <div className="absolute -bottom-8 -right-8 bg-white/95 dark:bg-[#252836]/95 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-4 shadow-2xl flex flex-col gap-2 group-hover:-translate-y-4 group-hover:-rotate-6 transition-all duration-700 delay-100 z-20">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                        <span className="material-symbols-outlined">view_quilt</span>
+                      </div>
+                      <div>
+                        <div className="text-sm font-black text-gray-900 dark:text-white mb-1">کامپوننت‌های مدرن</div>
+                        <div className="flex gap-1 w-full justify-start rtl:justify-end">
+                          <div className="w-8 h-1.5 bg-blue-500 rounded-full"></div>
+                          <div className="w-4 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+                          <div className="w-10 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="absolute top-1/3 -left-10 bg-white/95 dark:bg-[#252836]/95 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl py-2 px-4 shadow-xl flex items-center gap-3 group-hover:-translate-y-4 group-hover:rotate-6 transition-all duration-700 delay-300 z-20">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
                     </span>
-                  </div>
-                  <div className="px-6 py-3 bg-purple-50 dark:bg-purple-900/30 rounded-4xl border border-purple-100 dark:border-purple-800/50 text-purple-600 dark:text-purple-300 font-black shadow-sm group-hover:bg-purple-600 group-hover:text-white transition-all duration-300">
-                    ۶۰ ساعت
-                  </div>
-                </div>
-                <h3 className="text-3xl font-black mb-5 text-gray-900 dark:text-white group-hover:text-purple-600 transition-colors">
-                  برنامه‌نویسی موبایل
-                </h3>
-                <p className="text-lg text-gray-500 dark:text-gray-400 mb-10 leading-relaxed">
-                  ساخت اپلیکیشن‌های Native و Cross-platform با Flutter و کاتلین
-                  برای بازار جهانی.
-                </p>
-                <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800 pt-8">
-                  <span className="text-sm font-black text-gray-400 uppercase tracking-widest">
-                    ۱۵ پروژه حرفه‌ای
-                  </span>
-                  <div className="w-12 h-12 rounded-4xl bg-purple-50 dark:bg-purple-900/40 text-purple-600 flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white group-hover:scale-110 transition-all">
-                    <span className="material-symbols-outlined font-bold">
-                      chevron_left
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="group bg-white dark:bg-surface-dark rounded-4xl p-10 border border-gray-100 dark:border-gray-800 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all duration-500 shadow-sm hover:shadow-2xl hover:shadow-emerald-500/10 relative overflow-hidden">
-                <div className="flex justify-between items-start mb-10">
-                  <div className="w-20 h-20 bg-gradient-to-tr from-emerald-600 to-teal-400 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-emerald-500/40 group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500">
-                    <span className="material-symbols-outlined text-4xl">
-                      psychology
-                    </span>
-                  </div>
-                  <div className="px-6 py-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-4xl border border-emerald-100 dark:border-emerald-800/50 text-emerald-600 dark:text-emerald-300 font-black shadow-sm group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300">
-                    ۱۲۰ ساعت
-                  </div>
-                </div>
-                <h3 className="text-3xl font-black mb-5 text-gray-900 dark:text-white group-hover:text-emerald-600 transition-colors">
-                  هوش مصنوعی و داده
-                </h3>
-                <p className="text-lg text-gray-500 dark:text-gray-400 mb-10 leading-relaxed">
-                  ورود به دنیای پایتون، یادگیری ماشین و تحلیل داده؛ پردرآمدترین
-                  تخصص عصر حاضر.
-                </p>
-                <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800 pt-8">
-                  <span className="text-sm font-black text-gray-400 uppercase tracking-widest">
-                    ۳۰ پروژه حرفه‌ای
-                  </span>
-                  <div className="w-12 h-12 rounded-4xl bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white group-hover:scale-110 transition-all">
-                    <span className="material-symbols-outlined font-bold">
-                      chevron_left
-                    </span>
+                    <span className="text-xs font-bold text-gray-800 dark:text-gray-200 tracking-wider">UX بی‌نظیر</span>
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Feature 2: Back-End (Text Left, Image Right -> Reversed Visual Flow) */}
+            <div className="flex flex-col lg:flex-row-reverse items-center gap-16 lg:gap-24 group">
+              {/* Content (Left Side in RTL) */}
+              <div className="w-full lg:w-1/2 rtl:lg:pr-10">
+                <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/40 rounded-3xl flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-8 shadow-sm">
+                  <span className="material-symbols-outlined text-3xl font-bold">
+                    storage
+                  </span>
+                </div>
+                <h3 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-6 leading-tight">
+                  معماریِ پنهان <br/>
+                  <span className="text-emerald-600 dark:text-emerald-400">یک هسته‌ی بی‌نقص</span>
+                </h3>
+                <p className="text-xl text-gray-600 dark:text-gray-400 leading-relaxed mb-10">
+                  در مهندسی بک‌اند، شما مغز متفکر سیستم‌ها را با Node.js خلق می‌کنید. طراحی دیتابیس‌های چندمیلیونی، تامین امنیت و ساخت APIهای سریع تخصص واقعی شماست.
+                </p>
+                
+                <ul className="space-y-4 mb-12">
+                  {[
+                    "توسعه سرورهای پرسرعت با Node.js",
+                    "معماری پایگاه‌های داده پیشرفته و NoSQL",
+                    "تست نفوذ، امنیت بالا و رمزنگاری داده‌ها"
+                  ].map((item, idx) => (
+                    <li key={idx} className="flex items-center gap-4 text-lg text-gray-700 dark:text-gray-300 font-medium">
+                      <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                        <span className="material-symbols-outlined text-sm font-bold">check</span>
+                      </div>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+
+                <a href="/roadmaps" className="inline-flex w-full md:w-auto items-center justify-center gap-3 px-8 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-emerald-600 dark:hover:bg-emerald-500 rounded-2xl font-black text-lg transition-colors shadow-lg">
+                  شروع مسیر بک‌اند
+                  <span className="material-symbols-outlined rtl:rotate-180">
+                    arrow_right_alt
+                  </span>
+                </a>
+              </div>
+              
+              {/* Graphic (Right Side in RTL) */}
+              <div className="w-full lg:w-1/2 relative">
+                <div className="absolute inset-0 bg-gradient-to-bl from-emerald-400/20 to-transparent rounded-[3rem] blur-3xl -z-10 group-hover:bg-emerald-400/30 transition-all duration-1000"></div>
+                
+                {/* Main Card */}
+                <div className="bg-white/50 dark:bg-[#1a1c23]/50 backdrop-blur-3xl border border-white/20 dark:border-white/5 rounded-[3rem] p-8 shadow-2xl relative group-hover:-translate-y-4 transition-transform duration-700">
+                  {/* Decorative server grid layout */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="h-32 bg-gray-100 dark:bg-gray-800/50 rounded-2xl flex items-center justify-center">
+                       <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-700">dns</span>
+                    </div>
+                    <div className="h-32 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800/50 rounded-2xl flex flex-col items-center justify-center text-emerald-500">
+                      <span className="material-symbols-outlined text-3xl mb-2">cloud_done</span>
+                      <span className="text-xs font-bold">API Active</span>
+                    </div>
+                    <div className="col-span-2 h-20 bg-gray-200/50 dark:bg-gray-800/80 rounded-2xl flex items-center px-6 gap-4">
+                      <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></div>
+                      <div className="h-2 w-full bg-emerald-400/20 rounded-full">
+                         <div className="h-full w-2/3 bg-emerald-400 rounded-full"></div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Floating UI Element */}
+                  <div className="absolute -top-8 -left-8 bg-white/95 dark:bg-[#252836]/95 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-4 shadow-2xl flex items-center gap-4 group-hover:-translate-y-4 group-hover:-rotate-6 transition-all duration-700 delay-100 z-20">
+                    <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                      <span className="material-symbols-outlined text-lg">rocket_launch</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold mb-0.5 tracking-widest leading-none">LATENCY</span>
+                      <span className="text-sm font-black text-gray-900 dark:text-white font-mono leading-none" dir="ltr">~2 ms</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
         </section>
 
