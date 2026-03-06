@@ -181,6 +181,9 @@ export default function CourseCurriculum({
             بستن
           </button>
           <span className="text-sm font-bold text-primary bg-primary/10 dark:bg-white/10 px-4 py-2 rounded-2xl shadow-sm">
+            {chapters.length} فصل
+          </span>
+          <span className="text-sm font-bold text-primary bg-primary/10 dark:bg-white/10 px-4 py-2 rounded-2xl shadow-sm">
             {totalLessons} جلسه
           </span>
         </div>
