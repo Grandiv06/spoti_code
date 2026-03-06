@@ -190,6 +190,209 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Featured Courses Section */}
+        <section className="py-24">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary-dark dark:text-primary rounded-full text-xs font-black mb-4 border border-primary/20">
+                  <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
+                  پیشنهاد ویژه
+                </div>
+                <h2 className="text-4xl md:text-5xl font-black tracking-tight text-gray-900 dark:text-white">
+                  دوره‌های{" "}
+                  <span className="text-transparent bg-clip-text bg-gradient-to-l from-primary to-green-600 relative inline-block">
+                    پرطرفدار
+                  </span>
+                </h2>
+              </div>
+              <a
+                className="hidden md:flex items-center gap-3 text-primary font-black hover:gap-5 transition-all text-lg group"
+                href="/courses"
+              >
+                مشاهده همه دوره‌ها
+                <span className="material-symbols-outlined font-bold rtl:rotate-180">
+                  arrow_right_alt
+                </span>
+              </a>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+              {[
+                {
+                  id: "javascript",
+                  title: "جادوی جاوااسکریپت",
+                  description: "قلب تعاملات — ES6+، DOM، Fetch API و مدیریت داده",
+                  instructor: "امیررضا رضایی",
+                  instructorImg: "/images/inst1.jpg",
+                  image: "/images/js-green.png",
+                  difficulty: "متوسط",
+                  hours: "۳۲",
+                  students: "۱,۶۵۰",
+                  price: "۲,۲۰۰,۰۰۰",
+                  alt: "JavaScript course",
+                },
+                {
+                  id: "react",
+                  title: "فریمورک React",
+                  description: "تفکر کامپوننتی — هوک‌ها، مدیریت وضعیت و اکوسیستم React",
+                  instructor: "مهرداد حیدری",
+                  instructorImg: "/images/inst4.jpg",
+                  image: "/images/react-green.png",
+                  difficulty: "متوسط",
+                  hours: "۴۰",
+                  students: "۱,۲۴۰",
+                  price: "۳,۵۰۰,۰۰۰",
+                  alt: "React course",
+                },
+                {
+                  id: "nextjs",
+                  title: "Next.js پیشرفته",
+                  description: "قدرت فول‌استک — SSR، SSG و بهینه‌سازی عملکرد",
+                  instructor: "امیررضا رضایی",
+                  instructorImg: "/images/inst1.jpg",
+                  image: "/images/nextjs-green.png",
+                  difficulty: "پیشرفته",
+                  hours: "۴۸",
+                  students: "۸۹۰",
+                  price: "۴,۵۰۰,۰۰۰",
+                  alt: "Next.js course",
+                },
+                {
+                  id: "html",
+                  title: "آشنایی با HTML",
+                  description: "اسکلت‌بندی وب — تگ‌های معنایی، دسترسی‌پذیری و اصول سئو",
+                  instructor: "نیما علوی",
+                  instructorImg: "/images/inst3.jpg",
+                  image: "/images/html-green.png",
+                  difficulty: "مقدماتی",
+                  hours: "۱۲",
+                  students: "۱,۸۵۰",
+                  price: "۹۸۰,۰۰۰",
+                  alt: "HTML course",
+                },
+                {
+                  id: "css",
+                  title: "استایل‌دهی با CSS",
+                  description: "جادوی بصری وب — Flexbox، Grid و طراحی واکنش‌گرا",
+                  instructor: "سارا محمدی",
+                  instructorImg: "/images/inst2.jpg",
+                  image: "/images/css-green.png",
+                  difficulty: "مقدماتی",
+                  hours: "۱۸",
+                  students: "۲,۱۲۰",
+                  price: "۱,۴۵۰,۰۰۰",
+                  alt: "CSS course",
+                },
+                {
+                  id: "python",
+                  title: "ورود به دنیای پایتون",
+                  description: "برنامه‌نویسی، ساخت اسکریپت و تحلیل داده مقدماتی",
+                  instructor: "امیرحسین عباسی",
+                  instructorImg: "/images/inst3.jpg",
+                  image: "/images/js-green.png",
+                  difficulty: "مقدماتی",
+                  hours: "۲۵",
+                  students: "۳,۲۰۰",
+                  price: "۱,۸۰۰,۰۰۰",
+                  alt: "Python course",
+                },
+              ].map((course) => (
+                <div
+                  key={course.id}
+                  className="group flex flex-col bg-white/60 dark:bg-surface-dark border border-gray-200/80 dark:border-white/5 rounded-4xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none hover:-translate-y-3 hover:shadow-[0_20px_40px_-15px_rgba(34,197,94,0.15)] transition-all duration-500 backdrop-blur-xl"
+                >
+                  <div className="relative h-60 overflow-hidden rounded-t-4xl isolate">
+                    <Image
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      alt={course.alt}
+                      src={course.image}
+                      fill
+                      style={{ objectFit: "cover" }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-70"></div>
+                    <div className="absolute top-5 left-5 right-5 flex justify-between items-start z-20">
+                      <span className="bg-white/20 backdrop-blur-md border border-white/10 text-white px-3 py-1 rounded-2xl text-[10px] font-black uppercase tracking-wider shadow-lg">
+                        {course.difficulty}
+                      </span>
+                      <div className="flex flex-col gap-2 translate-x-[-10px] opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-500 delay-100">
+                        <button className="size-9 rounded-full bg-white/20 backdrop-blur-xl border border-white/20 text-white hover:bg-white hover:text-red-500 flex items-center justify-center transition-all shadow-lg cursor-pointer">
+                          <span className="material-symbols-outlined text-[18px]">
+                            favorite
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-7 flex flex-col flex-1 relative z-10 bg-gradient-to-b from-transparent to-white/40 dark:to-transparent">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="size-8 rounded-full border border-gray-200 dark:border-white/20 p-0.5 shadow-sm bg-white dark:bg-transparent">
+                        <Image
+                          className="w-full h-full rounded-full object-cover"
+                          alt={course.instructor}
+                          src={course.instructorImg}
+                          width={32}
+                          height={32}
+                        />
+                      </div>
+                      <span className="text-xs text-gray-600 dark:text-gray-400 font-bold">
+                        {course.instructor}
+                      </span>
+                    </div>
+                    <h3 className="text-xl font-black text-gray-900 dark:text-white mb-3 leading-snug group-hover:text-primary transition-colors">
+                      {course.title}
+                    </h3>
+                    <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 font-bold mb-8">
+                      <div className="flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[16px]">
+                          schedule
+                        </span>
+                        <span>{course.hours} ساعت</span>
+                      </div>
+                      <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600"></span>
+                      <div className="flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[16px]">
+                          groups
+                        </span>
+                        <span>{course.students}</span>
+                      </div>
+                    </div>
+                    <div className="mt-auto flex items-center justify-between gap-4 pt-6 border-t border-gray-100 dark:border-white/5">
+                      <span className="bg-primary/10 text-primary-dark dark:text-primary px-4 py-2 rounded-2xl font-black text-sm whitespace-nowrap">
+                        {course.price}{" "}
+                        <span className="text-[10px] opacity-80 font-bold mr-0.5">
+                          تومان
+                        </span>
+                      </span>
+                      <Link
+                        href={`/courses/${course.id}`}
+                        className="flex-1 bg-gray-50 dark:bg-white/5 hover:bg-primary hover:text-background-dark text-gray-700 dark:text-white border border-gray-200/50 dark:border-transparent rounded-2xl py-2 font-bold transition-all flex items-center justify-center gap-2 group/btn"
+                      >
+                        مشاهده 
+                        <span className="material-symbols-outlined text-[18px] rtl:rotate-180 group-hover/btn:translate-x-1 transition-transform">
+                          arrow_right_alt
+                        </span>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="mt-12 flex justify-end">
+              <a
+                className="inline-flex items-center gap-2 text-primary hover:text-primary-hover font-bold transition-colors group"
+                href="/courses"
+              >
+                مشاهده همه دوره‌ها
+                <span className="material-symbols-outlined rtl:rotate-180 group-hover:-translate-x-1 transition-transform">
+                  arrow_right_alt
+                </span>
+              </a>
+            </div>
+          </div>
+        </section>
+
         {/* Categories Section */}
         <section className="py-24">
           <div className="max-w-7xl mx-auto px-6">

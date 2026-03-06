@@ -10,17 +10,6 @@ export default function CoursesPage() {
         {/* Breadcrumb and Title */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
           <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 font-bold">
-              <Link className="hover:text-primary transition-colors cursor-pointer" href="/">
-                خانه
-              </Link>
-              <span className="material-symbols-outlined text-xs">
-                chevron_left
-              </span>
-              <span className="text-text-light dark:text-white">
-                دوره‌های وب
-              </span>
-            </div>
             <h2 className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white leading-tight">
               کاوش در دنیای{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-l from-primary to-green-600 relative inline-block">
