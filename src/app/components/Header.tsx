@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import ThemeToggle from "./ThemeToggle";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
@@ -63,9 +64,10 @@ export default function Header() {
           : "top-0 left-0 right-0 py-4 md:py-6 rounded-none border-b shadow-sm"
       }`}
     >
-      <nav className="max-w-7xl mx-auto flex justify-between items-center">
+      <nav className="max-w-7xl mx-auto flex justify-between items-center relative flex-row-reverse lg:flex-row">
+        {/* دسکتاپ: لوگو و منو */}
         <div className="flex items-center gap-10">
-          <Link href="/" className="flex items-center gap-1.5 group">
+          <Link href="/" className="hidden lg:flex items-center gap-1.5 group">
             <Image
               src="/favicon.svg"
               alt="اسپاتی‌کد"
@@ -74,6 +76,20 @@ export default function Header() {
               className="w-8 h-8 group-hover:-rotate-45 transition-transform"
             />
             <span className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white  group-hover:scale-105 transition-transform duration-300">
+              <span className="text-primary-dark/80">اسپاتی</span> کد
+            </span>
+          </Link>
+
+          {/* موبایل: لوگو وسط‌چین */}
+          <Link href="/" className="lg:hidden absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 group">
+            <Image
+              src="/favicon.svg"
+              alt="اسپاتی‌کد"
+              width={15}
+              height={15}
+              className="w-8 h-8 group-hover:-rotate-45 transition-transform"
+            />
+            <span className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white group-hover:scale-105 transition-transform duration-300">
               <span className="text-primary-dark/80">اسپاتی</span> کد
             </span>
           </Link>
@@ -97,7 +113,7 @@ export default function Header() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-row-reverse lg:flex-row">
           {cart.length > 0 && (
             <button
               ref={cartRef}
@@ -125,7 +141,9 @@ export default function Header() {
               </span>
             </button>
           )}
-          <ThemeToggle />
+          <div className="hidden lg:flex">
+            <ThemeToggle />
+          </div>
           <div
             ref={loginRef}
             onMouseMove={handleLoginMouseMove}
@@ -163,71 +181,101 @@ export default function Header() {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile Menu Button - استایل مشابه ThemeToggle */}
           <button
-            className="lg:hidden p-3 rounded-2xl bg-white dark:bg-surface-dark shadow-sm border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+            className="lg:hidden relative flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/20 dark:bg-[#14161c]/10 backdrop-blur-xl border border-white/15 dark:border-white/[0.04] hover:bg-white/30 dark:hover:bg-[#14161c]/20 transition-colors duration-300 cursor-pointer"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            aria-label="Toggle menu"
+            aria-label="منو"
           >
-            <span className="material-symbols-outlined">
+            <span className="material-symbols-outlined text-xl">
               {isMenuOpen ? "close" : "menu"}
             </span>
           </button>
         </div>
 
-        {/* Mobile Menu */}
-        {isMenuOpen && (
-          <div className="absolute top-full left-0 right-0 p-4 animate-in slide-in-from-top-2 fade-in duration-200">
-            <div className="bg-white dark:bg-surface-dark rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700 p-2 flex flex-col gap-1">
-              {menuItems.map((item) => {
-                const isActive =
-                  item.href === "/social"
-                    ? pathname?.startsWith("/social")
-                    : item.href === "/learning-path"
-                      ? pathname?.startsWith("/learning-path")
-                      : pathname === item.href;
-                return (
+        {/* Mobile Drawer - با Portal در body تا درست نمایش داده شود */}
+        {isMenuOpen &&
+          typeof document !== "undefined" &&
+          createPortal(
+            <div className="lg:hidden">
+              <div
+                className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+                onClick={() => setIsMenuOpen(false)}
+                aria-hidden="true"
+              />
+              <div
+                className="fixed top-0 right-0 bottom-0 z-[70] w-[min(320px,100%)] min-h-screen bg-white dark:bg-surface-dark shadow-2xl border-l border-gray-100 dark:border-gray-700 flex flex-col animate-slide-in-from-right"
+                role="dialog"
+                aria-label="منو"
+              >
+                {/* هدر دراور: دکمه بستن سمت راست */}
+                <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700 shrink-0">
+                  <button
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex size-10 items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    aria-label="بستن منو"
+                  >
+                    <span className="material-symbols-outlined text-xl">close</span>
+                  </button>
+                  <span className="text-sm font-bold text-gray-500 dark:text-gray-400">منو</span>
+                </div>
+                <div className="p-4 flex flex-col gap-1 flex-1 overflow-y-auto min-h-0">
+                  {menuItems.map((item) => {
+                    const isActive =
+                      item.href === "/social"
+                        ? pathname?.startsWith("/social")
+                        : item.href === "/learning-path"
+                          ? pathname?.startsWith("/learning-path")
+                          : pathname === item.href;
+                    return (
+                      <Link
+                        key={item.href}
+                        className={`px-6 py-4 text-sm font-bold rounded-2xl transition-all flex items-center justify-between cursor-pointer ${
+                          isActive
+                            ? "bg-primary/10 text-primary"
+                            : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                        }`}
+                        href={item.href}
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        {item.label}
+                        {isActive && (
+                          <span className="w-2 h-2 bg-primary rounded-full"></span>
+                        )}
+                      </Link>
+                    );
+                  })}
+                  <div className="h-px bg-gray-100 dark:bg-gray-700 my-2 mx-2"></div>
+                  <div className="flex items-center gap-3 px-2 py-2">
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">تغییر تم</span>
+                    <ThemeToggle />
+                  </div>
+                  <div className="h-px bg-gray-100 dark:bg-gray-700 my-2 mx-2"></div>
                   <Link
-                    key={item.href}
-                    className={`px-6 py-4 text-sm font-bold rounded-2xl transition-all flex items-center justify-between cursor-pointer ${
-                      isActive
-                        ? "bg-primary/10 text-primary"
-                        : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    className={`px-6 py-4 text-sm font-bold rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                      isAuthenticated
+                        ? "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                        : "bg-primary text-white hover:bg-primary-hover shadow-lg shadow-primary/20"
                     }`}
-                    href={item.href}
+                    href={isAuthenticated ? "/panel" : "/login"}
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    {item.label}
-                    {isActive && (
-                      <span className="w-2 h-2 bg-primary rounded-full"></span>
+                    {isAuthenticated ? (
+                      <>
+                        <span className="material-symbols-outlined text-lg">
+                          person
+                        </span>
+                        پنل کاربری
+                      </>
+                    ) : (
+                      "ورود / ثبت‌نام"
                     )}
                   </Link>
-                );
-              })}
-              <div className="h-px bg-gray-100 dark:bg-gray-700 my-1 mx-2"></div>
-              <Link
-                className={`px-6 py-4 text-sm font-bold rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                  isAuthenticated
-                    ? "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                    : "bg-primary text-white hover:bg-primary-hover shadow-lg shadow-primary/20"
-                }`}
-                href={isAuthenticated ? "/panel" : "/login"}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                {isAuthenticated ? (
-                  <>
-                    <span className="material-symbols-outlined text-lg">
-                      person
-                    </span>
-                    پنل کاربری
-                  </>
-                ) : (
-                  "ورود / ثبت‌نام"
-                )}
-              </Link>
-            </div>
-          </div>
-        )}
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
       </nav>
     </header>
   );
