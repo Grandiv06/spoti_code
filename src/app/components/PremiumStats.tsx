@@ -173,7 +173,7 @@ export default function PremiumStats() {
 
               <div className="relative z-10 flex flex-col h-full">
                 {/* Header: Icon */}
-                <div className="flex justify-between items-start mb-8">
+                <div className="flex justify-start mb-8">
                   <div
                     className={`
                       w-16 h-16 rounded-2xl flex items-center justify-center 
@@ -187,39 +187,38 @@ export default function PremiumStats() {
                       {stat.icon}
                     </span>
                   </div>
-                  <div className={`w-8 h-8 rounded-full bg-gray-50 dark:bg-white/5 flex items-center justify-center text-gray-400 dark:text-gray-500 font-bold font-mono text-sm border border-gray-100 dark:border-white/5`}>
-                    0{index + 1}
-                  </div>
                 </div>
 
                 {/* Body: Number and Label */}
                 <div className="mt-auto">
-                  <h3 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-2 flex flex-row-reverse justify-end items-end gap-1 font-mono tracking-tighter" dir="ltr">
-                    <span className={`text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r ${stat.gradient}`}>
+                  <div className="flex items-center justify-end gap-1 mb-2 tracking-tight" dir="ltr">
+                    <h3 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white flex items-center">
+                      {inView ? (
+                        <CountUp
+                          end={stat.value}
+                          duration={3}
+                          separator=","
+                          useEasing={true}
+                          preserveValue={true}
+                        />
+                      ) : (
+                        "0"
+                      )}
+                    </h3>
+                    <span className={`text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r ${stat.gradient} mb-1`}>
                       {stat.suffix}
                     </span>
-                    {inView ? (
-                      <CountUp
-                        end={stat.value}
-                        duration={3}
-                        separator=","
-                        useEasing={true}
-                        preserveValue={true}
-                      />
-                    ) : (
-                      "0"
-                    )}
-                  </h3>
+                  </div>
                   
-                  <div className="flex items-center gap-3">
-                    <div className={`w-1 h-8 rounded-full bg-gradient-to-b ${stat.gradient}`}></div>
-                    <div>
-                      <p className="text-base font-black text-gray-700 dark:text-gray-200">
+                  <div className="flex items-start gap-4">
+                    <div className={`w-1.5 h-10 rounded-full bg-gradient-to-b ${stat.gradient}`}></div>
+                    <div className="pt-0.5">
+                      <p className="text-lg font-black text-gray-800 dark:text-gray-100">
                         {stat.label}
                       </p>
                       {stat.extra && (
-                        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[14px]">{stat.extra.icon}</span>
+                        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mt-1.5 flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[16px]">{stat.extra.icon}</span>
                           {stat.extra.text}
                         </p>
                       )}
