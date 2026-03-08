@@ -39,9 +39,9 @@ export default function FAQ() {
 
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark font-[family-name:var(--font-vazir)] transition-colors duration-300 relative overflow-hidden">
-      {/* Background Mesh/Blobs */}
-      <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[150px] pointer-events-none -z-10"></div>
-      <div className="absolute bottom-0 left-1/4 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[150px] pointer-events-none -z-10"></div>
+      {/* Background Mesh/Blobs - Removed entirely on mobile to save GPU */}
+      <div className="hidden lg:block absolute top-0 right-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] pointer-events-none -z-10 transform-gpu"></div>
+      <div className="hidden lg:block absolute bottom-0 left-1/4 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none -z-10 transform-gpu"></div>
 
       <main className="max-w-4xl mx-auto px-6 pt-20 sm:pt-24 lg:pt-32 pb-20 relative z-10">
         <div className="text-center mb-16">
@@ -61,50 +61,55 @@ export default function FAQ() {
         </div>
 
         <div className="space-y-4 relative z-20">
-          {faqs.map((faq, index) => (
-            <div
-              key={index}
-              className={`rounded-[2rem] border transition-all duration-300 ${
-                openIndex === index
-                  ? "bg-white dark:bg-[#1a1c23]/90 border-primary/30 shadow-[0_10px_30px_-10px_rgba(34,197,94,0.15)]"
-                  : "bg-white/80 dark:bg-[#1a1c23]/60 backdrop-blur-md border-gray-100 dark:border-white/5 hover:border-primary/20 hover:bg-white dark:hover:bg-[#1a1c23]"
-              }`}
-            >
-              <button
-                onClick={() => toggleFAQ(index)}
-                className="w-full flex items-center justify-between p-6 text-right cursor-pointer group"
-              >
-                <span
-                  className={`text-lg font-black transition-colors ${
-                    openIndex === index
-                      ? "text-primary-dark dark:text-primary"
-                      : "text-gray-900 dark:text-white group-hover:text-primary"
-                  }`}
-                >
-                  {faq.question}
-                </span>
-                <span
-                  className={`material-symbols-outlined text-[24px] transition-transform duration-300 ${
-                    openIndex === index
-                      ? "text-primary rotate-180"
-                      : "text-gray-400 rotate-0 group-hover:text-primary"
-                  }`}
-                >
-                  keyboard_arrow_down
-                </span>
-              </button>
-
+          {faqs.map((faq, index) => {
+            const isOpen = openIndex === index;
+            return (
               <div
-                className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                  openIndex === index ? "max-h-64 opacity-100" : "max-h-0 opacity-0"
+                key={index}
+                className={`rounded-[2rem] border overflow-hidden ${
+                  isOpen
+                    ? "bg-white dark:bg-[#1a1c23] border-primary/30"
+                    : "bg-white/90 dark:bg-[#1a1c23]/90 border-gray-100 dark:border-white/5"
                 }`}
               >
-                <p className="px-6 pb-6 text-gray-600 dark:text-gray-400 leading-loose font-medium">
-                  {faq.answer}
-                </p>
+                <div
+                  onClick={() => toggleFAQ(index)}
+                  className="w-full flex items-center justify-between p-5 md:p-6 text-right cursor-pointer select-none"
+                  role="button"
+                  aria-expanded={isOpen}
+                >
+                  <span
+                    className={`text-base md:text-lg font-black ${
+                      isOpen
+                        ? "text-primary-dark dark:text-primary"
+                        : "text-gray-900 dark:text-white"
+                    }`}
+                  >
+                    {faq.question}
+                  </span>
+                  <span
+                    className={`material-symbols-outlined text-[24px] shrink-0 mr-4 transform-gpu transition-transform duration-200 ${
+                      isOpen ? "text-primary rotate-180" : "text-gray-400 rotate-0"
+                    }`}
+                  >
+                    keyboard_arrow_down
+                  </span>
+                </div>
+
+                <div
+                  className={`grid transition-all duration-200 ease-out transform-gpu ${
+                    isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                  }`}
+                >
+                  <div className="overflow-hidden">
+                    <p className="px-5 md:px-6 pb-5 md:pb-6 text-sm md:text-base text-gray-600 dark:text-gray-400 leading-loose font-medium m-0">
+                      {faq.answer}
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* CTA Contact Section */}
