@@ -119,8 +119,8 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-              <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-yellow-400 rounded-4xl -z-10 rotate-12 opacity-80 blur-sm"></div>
-              <div className="absolute -top-8 -left-8 w-24 h-24 bg-blue-500 rounded-full -z-10 opacity-40 blur-xl"></div>
+              <div className="hidden md:block absolute -bottom-8 -right-8 w-32 h-32 bg-yellow-400 rounded-4xl -z-10 rotate-12 opacity-80 blur-sm transform-gpu"></div>
+              <div className="hidden md:block absolute -top-8 -left-8 w-24 h-24 bg-blue-500 rounded-full -z-10 opacity-40 blur-xl transform-gpu"></div>
             </div>
           </div>
         </header>
@@ -250,16 +250,16 @@ export default function Home() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-60"></div>
                     <div className="absolute top-5 left-5 right-5 flex justify-between items-start z-20">
-                      <span className="bg-white/20 backdrop-blur-md border border-white/10 text-white px-4 py-1.5 rounded-2xl text-[10px] font-black uppercase tracking-wider shadow-lg">
+                      <span className="bg-black/40 md:bg-white/20 md:backdrop-blur-md border border-white/10 text-white px-4 py-1.5 rounded-2xl text-[10px] font-black uppercase tracking-wider shadow-lg">
                         {course.difficulty}
                       </span>
                       <div className="flex flex-col gap-2 translate-x-[-10px] opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-500 delay-100">
-                        <button className="size-10 rounded-full bg-white/20 backdrop-blur-xl border border-white/20 text-white hover:bg-white hover:text-red-500 flex items-center justify-center transition-all shadow-lg cursor-pointer">
+                        <button className="size-10 rounded-full bg-black/40 md:bg-white/20 md:backdrop-blur-xl border border-white/20 text-white hover:bg-white hover:text-red-500 flex items-center justify-center transition-all shadow-lg cursor-pointer transform-gpu">
                           <span className="material-symbols-outlined text-[20px]">
                             favorite
                           </span>
                         </button>
-                        <button className="size-10 rounded-full bg-white/20 backdrop-blur-xl border border-white/20 text-white hover:bg-white hover:text-blue-500 flex items-center justify-center transition-all shadow-lg cursor-pointer">
+                        <button className="size-10 rounded-full bg-black/40 md:bg-white/20 md:backdrop-blur-xl border border-white/20 text-white hover:bg-white hover:text-blue-500 flex items-center justify-center transition-all shadow-lg cursor-pointer transform-gpu">
                           <span className="material-symbols-outlined text-[20px]">
                             share
                           </span>
@@ -338,8 +338,8 @@ export default function Home() {
 
         {/* Zig-Zag Learning Paths Section */}
         <section className="py-32 relative overflow-hidden">
-          {/* Global Ambient Glow */}
-          <div className="absolute top-0 right-1/4 w-[800px] h-[800px] bg-primary/5 dark:bg-primary/5 rounded-full blur-[150px] pointer-events-none -z-10"></div>
+          {/* Global Ambient Glow - Hidden on mobile for performance */}
+          <div className="hidden md:block absolute top-0 right-1/4 w-[800px] h-[800px] bg-primary/5 dark:bg-primary/5 rounded-full blur-[150px] pointer-events-none -z-10 transform-gpu"></div>
           
           <div className="max-w-7xl mx-auto px-6 relative z-10 w-full">
             {/* Section Header */}
@@ -394,10 +394,11 @@ export default function Home() {
               
               {/* Graphic (Left Side in RTL) */}
               <div className="w-full lg:w-1/2 relative">
-                <div className="absolute inset-0 bg-gradient-to-tr from-blue-400/20 to-transparent rounded-[3rem] blur-3xl -z-10 group-hover:bg-blue-400/30 transition-all duration-1000"></div>
+                {/* Background glow optimized */}
+                <div className="hidden md:block absolute inset-0 bg-gradient-to-tr from-blue-400/20 to-transparent rounded-[3rem] blur-3xl -z-10 group-hover:bg-blue-400/30 transition-all duration-1000 transform-gpu"></div>
                 
                 {/* Main Card */}
-                <div className="bg-white/50 dark:bg-[#1a1c23]/50 backdrop-blur-3xl border border-white/20 dark:border-white/5 rounded-[3rem] p-8 shadow-2xl relative group-hover:-translate-y-4 transition-transform duration-700">
+                <div className="bg-white dark:bg-[#1a1c23] md:bg-white/95 md:dark:bg-[#1a1c23]/95 md:backdrop-blur-md border border-gray-100 dark:border-white/5 rounded-[3rem] p-8 shadow-xl relative md:group-hover:-translate-y-4 transition-transform duration-700 transform-gpu">
                   {/* Decorative terminal/browser header */}
                   <div className="flex gap-2 mb-6">
                     <div className="w-3 h-3 rounded-full bg-red-400"></div>
@@ -416,7 +417,7 @@ export default function Home() {
                   </div>
                   
                   {/* Floating UI Elements */}
-                  <div className="absolute -bottom-8 -right-8 bg-white/95 dark:bg-[#252836]/95 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-4 shadow-2xl flex flex-col gap-2 group-hover:-translate-y-4 group-hover:-rotate-6 transition-all duration-700 delay-100 z-20">
+                  <div className="absolute -bottom-4 -right-4 md:-bottom-8 md:-right-8 bg-white dark:bg-[#252836] md:bg-white/95 md:dark:bg-[#252836]/95 md:backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-4 shadow-2xl flex flex-col gap-2 md:group-hover:-translate-y-4 md:group-hover:-rotate-6 transition-all duration-700 delay-100 z-20 transform-gpu">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
                         <span className="material-symbols-outlined">view_quilt</span>
@@ -432,7 +433,7 @@ export default function Home() {
                     </div>
                   </div>
                   
-                  <div className="absolute top-1/3 -left-10 bg-white/95 dark:bg-[#252836]/95 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl py-2 px-4 shadow-xl flex items-center gap-3 group-hover:-translate-y-4 group-hover:rotate-6 transition-all duration-700 delay-300 z-20">
+                  <div className="hidden md:flex absolute top-1/3 -left-10 bg-white/95 dark:bg-[#252836]/95 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl py-2 px-4 shadow-xl items-center gap-3 group-hover:-translate-y-4 group-hover:rotate-6 transition-all duration-700 delay-300 z-20 transform-gpu">
                     <span className="relative flex h-3 w-3">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
@@ -485,10 +486,11 @@ export default function Home() {
               
               {/* Graphic (Right Side in RTL) */}
               <div className="w-full lg:w-1/2 relative">
-                <div className="absolute inset-0 bg-gradient-to-bl from-emerald-400/20 to-transparent rounded-[3rem] blur-3xl -z-10 group-hover:bg-emerald-400/30 transition-all duration-1000"></div>
+                {/* Background glow optimized */}
+                <div className="hidden md:block absolute inset-0 bg-gradient-to-bl from-emerald-400/20 to-transparent rounded-[3rem] blur-3xl -z-10 group-hover:bg-emerald-400/30 transition-all duration-1000 transform-gpu"></div>
                 
                 {/* Main Card */}
-                <div className="bg-white/50 dark:bg-[#1a1c23]/50 backdrop-blur-3xl border border-white/20 dark:border-white/5 rounded-[3rem] p-8 shadow-2xl relative group-hover:-translate-y-4 transition-transform duration-700">
+                <div className="bg-white dark:bg-[#1a1c23] md:bg-white/95 md:dark:bg-[#1a1c23]/95 md:backdrop-blur-md border border-gray-100 dark:border-white/5 rounded-[3rem] p-8 shadow-xl relative md:group-hover:-translate-y-4 transition-transform duration-700 transform-gpu">
                   {/* Decorative server grid layout */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="h-32 bg-gray-100 dark:bg-gray-800/50 rounded-2xl flex items-center justify-center">
@@ -507,7 +509,7 @@ export default function Home() {
                   </div>
                   
                   {/* Floating UI Element */}
-                  <div className="absolute -top-8 -left-8 bg-white/95 dark:bg-[#252836]/95 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-4 shadow-2xl flex items-center gap-4 group-hover:-translate-y-4 group-hover:-rotate-6 transition-all duration-700 delay-100 z-20">
+                  <div className="absolute -top-4 -left-4 md:-top-8 md:-left-8 bg-white dark:bg-[#252836] md:bg-white/95 md:dark:bg-[#252836]/95 md:backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-4 shadow-2xl flex items-center gap-4 md:group-hover:-translate-y-4 md:group-hover:-rotate-6 transition-all duration-700 delay-100 z-20 transform-gpu">
                     <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                       <span className="material-symbols-outlined text-lg">rocket_launch</span>
                     </div>
