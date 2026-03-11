@@ -3,7 +3,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import ThemeToggle from "./ThemeToggle";
 
 export default function AuthHeader() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -37,7 +36,6 @@ export default function AuthHeader() {
         </Link>
 
         <div className="flex items-center gap-4">
-          <ThemeToggle />
           <Link
             href="/"
             className="hidden sm:flex items-center gap-2 px-6 py-3 rounded-4xl bg-white dark:bg-surface-dark shadow-sm border border-gray-100 dark:border-gray-700 text-sm font-bold text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-all hover:scale-[1.02] active:scale-95"

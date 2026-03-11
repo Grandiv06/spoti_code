@@ -1,5 +1,7 @@
-import Link from "next/link";
 import type { Metadata } from "next";
+import Link from "next/link";
+import Image from "next/image";
+import RegisterForm from "./RegisterForm";
 
 export const metadata: Metadata = {
   title: "ثبت‌نام - آکادمی برنامه‌نویسی",
@@ -8,100 +10,30 @@ export const metadata: Metadata = {
 
 export default function RegisterPage() {
   return (
-    <div className="bg-auth-modern h-full min-h-0 flex flex-col relative overflow-hidden text-gray-800 dark:text-gray-200">
+    <div className="auth-page-shell bg-auth-modern h-full min-h-0 flex flex-col relative overflow-hidden text-gray-800 dark:text-gray-200">
       {/* Blobs */}
       <div className="blob-auth bg-green-200/60 dark:bg-green-950/20 w-96 h-96 top-0 -right-20 animate-pulse" />
       <div className="blob-auth bg-green-300/40 dark:bg-green-950/15 w-[30rem] h-[30rem] bottom-0 -left-20" />
 
 
-      <main className="flex-grow flex items-center justify-center p-4 relative z-10">
-        <div className="w-full max-w-[460px] bg-white dark:bg-[#1c1e26] rounded-[2.5rem] shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1),0_0_0_1px_rgba(0,0,0,0.02)] dark:shadow-xl border border-white/60 dark:border-white/[0.08] backdrop-blur-sm relative">
-          <div className="p-8 sm:p-10">
-            <div className="text-center mb-8">
-              <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">
-                ثبت‌نام در آکادمی
-              </h1>
-              <p className="text-gray-500 dark:text-gray-400 font-medium text-sm leading-relaxed">
-                با پر کردن فرم زیر، حساب کاربری خود را ایجاد کنید
-              </p>
-            </div>
-
-            <form className="space-y-5" action="#" method="post">
-              <div className="space-y-2">
-                <label
-                  htmlFor="name"
-                  className="block text-gray-700 dark:text-gray-300 text-sm font-bold pr-1"
-                >
-                  نام و نام خانوادگی
-                </label>
-                <div className="relative group">
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    className="w-full h-14 px-6 pr-14 rounded-[2.5rem] border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#00c853]/20 focus:border-[#00c853] focus:bg-white dark:focus:bg-gray-700 outline-none transition-all duration-300 placeholder:text-gray-400 font-medium text-lg tracking-wide"
-                    placeholder="علی محمدی"
-                  />
-                  <span className="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#00c853] dark:group-focus-within:text-green-400 transition-colors text-2xl">
-                    person
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label
-                  htmlFor="phone"
-                  className="block text-gray-700 dark:text-gray-300 text-sm font-bold pr-1"
-                >
-                  شماره تلفن
-                </label>
-                <div className="relative group">
-                  <input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    dir="ltr"
-                    className="w-full h-14 px-6 pr-14 rounded-[2.5rem] border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#00c853]/20 focus:border-[#00c853] focus:bg-white dark:focus:bg-gray-700 outline-none transition-all duration-300 placeholder:text-gray-400 font-medium text-lg tracking-wider text-left"
-                    placeholder="0912 345 6789"
-                  />
-                  <span className="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#00c853] dark:group-focus-within:text-green-400 transition-colors text-2xl">
-                    smartphone
-                  </span>
-                </div>
-              </div>
-
-
-
-              <button
-                type="submit"
-                className="w-full h-14 bg-[#00c853] hover:bg-[#009624] dark:bg-[#00c853] dark:hover:bg-[#009624] text-white text-lg font-bold rounded-[2.5rem] shadow-lg shadow-green-500/20 hover:shadow-green-600/30 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 mt-4 cursor-pointer"
-              >
-                <span>ثبت‌نام</span>
-              </button>
-            </form>
-
-            <div className="mt-8 space-y-5 text-center">
-              <div className="relative py-2">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-100 dark:border-gray-600" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-white dark:bg-[#1c1e26] text-gray-400 font-medium">
-                    یا
-                  </span>
-                </div>
-              </div>
-              <div>
-                <p className="text-gray-500 dark:text-gray-400 font-medium text-sm">
-                  قبلاً ثبت‌نام کرده‌اید؟{" "}
-                  <Link
-                    href="/login"
-                    className="text-[#00c853] dark:text-green-400 font-black hover:underline decoration-2 underline-offset-4 mr-1"
-                  >
-                    ورود
-                  </Link>
-                </p>
-              </div>
+      <main className="flex-1 min-h-0 flex items-center justify-center p-4 relative z-10">
+        <div className="w-full max-w-[460px] flex flex-col items-center gap-6">
+          <Link href="/" className="group flex items-center gap-3">
+            <Image
+              src="/favicon.svg"
+              alt="اسپاتی‌کد"
+              width={48}
+              height={48}
+              className="w-11 h-11 sm:w-12 sm:h-12 group-hover:-rotate-45 transition-transform"
+            />
+            <span className="text-[32px] sm:text-[36px] leading-none font-black tracking-tighter text-gray-900 dark:text-white">
+              <span className="text-primary-dark/80">اسپاتی</span> کد
+            </span>
+          </Link>
+          <div className="w-full rounded-[2.5rem] border border-slate-300/70 dark:border-slate-700/80 bg-white dark:bg-gradient-to-b dark:from-[#1b1d26] dark:via-[#161922] dark:to-[#12141b] shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1),0_0_0_1px_rgba(0,0,0,0.02)] dark:shadow-[0_24px_60px_-18px_rgba(0,0,0,0.65),0_0_0_1px_rgba(255,255,255,0.06)] backdrop-blur-sm relative overflow-hidden">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(34,197,94,0.12),transparent_45%)]" />
+            <div className="p-8 sm:p-10">
+              <RegisterForm />
             </div>
           </div>
         </div>

@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { InputOTP } from "@/components/ui/input-otp";
 import { useAuth } from "@/context/AuthContext";
+import AuthTransitionLink from "@/app/components/AuthTransitionLink";
 
 const DEV_OTP = "123456";
 
@@ -22,6 +22,7 @@ function normalizeDigits(str: string): string {
 
 export default function LoginForm() {
   const [step, setStep] = useState<"phone" | "otp">("phone");
+  const [phoneInput, setPhoneInput] = useState("");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
@@ -30,16 +31,23 @@ export default function LoginForm() {
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get("returnUrl") || "/panel";
 
+  useEffect(() => {
+    document.documentElement.classList.remove("auth-route-transitioning");
+  }, []);
+
   const handlePhoneSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    const form = e.target as HTMLFormElement;
-    const phoneInput = form.querySelector('input[name="phone"]') as HTMLInputElement;
-    const value = normalizeDigits(phoneInput?.value?.trim() || "");
+    const value = normalizeDigits(phoneInput).replace(/[^0-9]/g, "");
     if (value.length >= 10) {
       setPhone(value);
       setStep("otp");
     }
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const normalized = normalizeDigits(e.target.value).replace(/[^0-9]/g, "");
+    setPhoneInput(normalized);
   };
 
   const handleOtpSubmit = (e: React.FormEvent) => {
@@ -120,12 +128,12 @@ export default function LoginForm() {
         <div className="mt-8 text-center">
           <p className="text-gray-500 dark:text-gray-400 font-medium text-sm">
             حساب کاربری ندارید؟{" "}
-            <Link
+            <AuthTransitionLink
               href="/register"
-              className="text-[#00c853] dark:text-green-400 font-black hover:underline decoration-2 underline-offset-4 mr-1"
+              className="text-[#00c853] dark:text-green-400 font-black mr-1"
             >
               ایجاد حساب
-            </Link>
+            </AuthTransitionLink>
           </p>
         </div>
       </div>
@@ -140,9 +148,6 @@ export default function LoginForm() {
         </h1>
         <p className="text-gray-500 dark:text-gray-400 font-medium text-sm leading-relaxed">
           برای استفاده از خدمات آکادمی، شماره موبایل خود را وارد کنید
-        </p>
-        <p className="text-green-600 dark:text-green-400 text-xs font-medium mt-2">
-          برای تست: هر شماره‌ای + کد ۱۲۳۴۵۶
         </p>
       </div>
 
@@ -161,7 +166,12 @@ export default function LoginForm() {
               type="tel"
               dir="ltr"
               required
-              className="w-full h-14 px-6 pr-14 rounded-[2.5rem] border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#00c853]/20 focus:border-[#00c853] focus:bg-white dark:focus:bg-gray-700 outline-none transition-all duration-300 placeholder:text-gray-400 font-medium text-lg tracking-wider text-left"
+              value={phoneInput}
+              onChange={handlePhoneChange}
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={11}
+              className="w-full h-14 px-6 pr-14 rounded-[2.5rem] border border-gray-300 dark:border-slate-700/85 bg-gray-50 dark:bg-[#171922] text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-[#00c853]/20 focus:border-[#00c853] focus:bg-white dark:focus:bg-[#14161d] outline-none transition-all duration-300 placeholder:text-gray-400 dark:placeholder:text-gray-500 placeholder:text-base placeholder:tracking-normal font-medium text-base tracking-normal text-left"
               placeholder="0912 345 6789"
             />
             <span className="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#00c853] dark:group-focus-within:text-green-400 transition-colors text-2xl">
@@ -178,25 +188,15 @@ export default function LoginForm() {
       </form>
 
       <div className="mt-8 space-y-5 text-center">
-        <div className="relative py-2">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-100 dark:border-gray-600" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-4 bg-white dark:bg-[#1c1e26] text-gray-400 font-medium">
-              یا
-            </span>
-          </div>
-        </div>
         <div>
           <p className="text-gray-500 dark:text-gray-400 font-medium text-sm">
             حساب کاربری ندارید؟{" "}
-            <Link
+            <AuthTransitionLink
               href="/register"
-              className="text-[#00c853] dark:text-green-400 font-black hover:underline decoration-2 underline-offset-4 mr-1"
+              className="text-[#00c853] dark:text-green-400 font-black mr-1"
             >
               ایجاد حساب
-            </Link>
+            </AuthTransitionLink>
           </p>
         </div>
       </div>

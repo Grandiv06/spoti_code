@@ -21,7 +21,6 @@ export default function Header() {
     y: number;
   } | null>(null);
   const loginRef = useRef<HTMLDivElement>(null);
-  const cartRef = useRef<HTMLButtonElement>(null);
   const [cartMousePos, setCartMousePos] = useState<{
     x: number;
     y: number;
@@ -29,8 +28,7 @@ export default function Header() {
   const pathname = usePathname();
 
   const handleCartMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
-    const rect = cartRef.current?.getBoundingClientRect();
-    if (!rect) return;
+    const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
     setCartMousePos({ x, y });
@@ -73,6 +71,35 @@ export default function Header() {
     { label: "اسپاتی هاب", href: "/social", icon: "tag" },
   ];
 
+  const renderCartButton = (className = "") => {
+    if (cart.length === 0) return null;
+
+    return (
+      <button
+        onClick={toggleCart}
+        onMouseMove={handleCartMouseMove}
+        onMouseLeave={() => setCartMousePos(null)}
+        className={`relative flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/20 dark:bg-[#14161c]/10 backdrop-blur-xl border border-white/15 dark:border-white/[0.04] hover:bg-white/30 dark:hover:bg-[#14161c]/20 transition-colors duration-300 cursor-pointer overflow-visible ${className}`}
+        aria-label="سبد خرید"
+      >
+        {cartMousePos && (
+          <span
+            className="pointer-events-none absolute inset-0 rounded-2xl overflow-hidden"
+            style={{
+              background: `radial-gradient(circle 35px at ${cartMousePos.x}% ${cartMousePos.y}%, rgba(34, 197, 94, 0.12) 0%, transparent 70%)`,
+            }}
+          />
+        )}
+        <span className="relative z-10 flex items-center justify-center">
+          <span className="material-symbols-outlined text-xl">shopping_cart</span>
+        </span>
+        <span className="absolute -top-1 -right-1 z-20 min-w-5 h-5 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white dark:border-[#14161c] leading-[0] tabular-nums [font-family:ui-sans-serif,system-ui,sans-serif]">
+          {cart.length}
+        </span>
+      </button>
+    );
+  };
+
   return (
     <header
       className={`fixed z-50 px-4 md:px-6 transition-all duration-300 ease-out bg-white/10 dark:bg-[#14161c]/10 backdrop-blur-[8px] border-gray-200/10 dark:border-slate-400/10 ${
@@ -82,6 +109,8 @@ export default function Header() {
       } ${isMenuOpen ? "opacity-0 pointer-events-none" : ""} lg:!opacity-100 lg:!pointer-events-auto`}
     >
       <nav className="max-w-7xl mx-auto flex justify-between items-center relative flex-row-reverse lg:flex-row">
+        {renderCartButton("lg:hidden absolute left-0 z-20")}
+
         {/* دسکتاپ: لوگو و منو */}
         <div className="flex items-center gap-10">
           <Link href="/" className="hidden lg:flex items-center gap-1.5 group">
@@ -131,33 +160,7 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-4 flex-row-reverse lg:flex-row">
-          {cart.length > 0 && (
-            <button
-              ref={cartRef}
-              onClick={toggleCart}
-              onMouseMove={handleCartMouseMove}
-              onMouseLeave={() => setCartMousePos(null)}
-              className="relative flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/20 dark:bg-[#14161c]/10 backdrop-blur-xl border border-white/15 dark:border-white/[0.04] hover:bg-white/30 dark:hover:bg-[#14161c]/20 transition-colors duration-300 cursor-pointer overflow-visible"
-              aria-label="سبد خرید"
-            >
-              {cartMousePos && (
-                <span
-                  className="pointer-events-none absolute inset-0 rounded-2xl overflow-hidden"
-                  style={{
-                    background: `radial-gradient(circle 35px at ${cartMousePos.x}% ${cartMousePos.y}%, rgba(34, 197, 94, 0.12) 0%, transparent 70%)`,
-                  }}
-                />
-              )}
-              <span className="relative z-10 flex items-center justify-center">
-                <span className="material-symbols-outlined text-xl">
-                  shopping_cart
-                </span>
-              </span>
-              <span className="absolute -top-1 -right-1 z-20 min-w-5 h-5 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white dark:border-[#14161c] leading-[0] tabular-nums [font-family:ui-sans-serif,system-ui,sans-serif]">
-                {cart.length}
-              </span>
-            </button>
-          )}
+          {renderCartButton("hidden lg:flex")}
           <div className="hidden lg:flex">
             <ThemeToggle />
           </div>
