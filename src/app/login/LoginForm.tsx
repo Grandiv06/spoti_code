@@ -7,6 +7,8 @@ import { useAuth } from "@/context/AuthContext";
 import AuthTransitionLink from "@/app/components/AuthTransitionLink";
 
 const DEV_OTP = "123456";
+const ADMIN_PHONE = "09000000001";
+const USER_PHONE = "09000000002";
 
 /** اعداد فارسی/عربی را به انگلیسی تبدیل می‌کند */
 function normalizeDigits(str: string): string {
@@ -29,7 +31,7 @@ export default function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const returnUrl = searchParams.get("returnUrl") || "/panel";
+  const requestedReturnUrl = searchParams.get("returnUrl");
 
   useEffect(() => {
     document.documentElement.classList.remove("auth-route-transitioning");
@@ -39,10 +41,12 @@ export default function LoginForm() {
     e.preventDefault();
     setError("");
     const value = normalizeDigits(phoneInput).replace(/[^0-9]/g, "");
-    if (value.length >= 10) {
+    if (value === ADMIN_PHONE || value === USER_PHONE) {
       setPhone(value);
       setStep("otp");
+      return;
     }
+    setError("شماره معتبر نیست. برای تست از شماره‌های تعیین‌شده استفاده کنید.");
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,13 +62,16 @@ export default function LoginForm() {
     // برای تست: هر شماره + کد 123456
     if (normalizedOtp === DEV_OTP) {
       const normalizedPhone = normalizeDigits(phone) || "09123456789";
+      const role = normalizedPhone === ADMIN_PHONE ? "admin" : "user";
       login({
-        id: "user-dev-1",
+        id: role === "admin" ? "admin-dev-1" : "user-dev-1",
         phone: normalizedPhone,
-        displayName: "کاربر تست",
-        avatarUrl: "https://i.pravatar.cc/150?u=dev-user",
+        displayName: role === "admin" ? "ادمین تست" : "کاربر تست",
+        avatarUrl: `https://i.pravatar.cc/150?u=dev-${role}`,
+        role,
       });
-      router.push(returnUrl);
+      const fallbackPath = role === "admin" ? "/admin" : "/panel";
+      router.push(requestedReturnUrl || fallbackPath);
       return;
     }
     setError("کد تایید نامعتبر است. برای تست کد ۱۲۳۴۵۶ را وارد کنید.");
@@ -149,9 +156,22 @@ export default function LoginForm() {
         <p className="text-gray-500 dark:text-gray-400 font-medium text-sm leading-relaxed">
           برای استفاده از خدمات آکادمی، شماره موبایل خود را وارد کنید
         </p>
+        <div className="mt-3 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 px-4 py-3 text-right text-xs sm:text-sm text-emerald-800 dark:text-emerald-200 space-y-1">
+          <p>
+            شماره ادمین:{" "}
+            <code className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/20">{ADMIN_PHONE}</code>
+          </p>
+          <p>
+            شماره کاربر:{" "}
+            <code className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/20">{USER_PHONE}</code>
+          </p>
+        </div>
       </div>
 
       <form className="space-y-6" onSubmit={handlePhoneSubmit}>
+        {error && (
+          <p className="text-red-500 dark:text-red-400 text-sm font-medium text-center">{error}</p>
+        )}
         <div className="space-y-2">
           <label
             htmlFor="phone"

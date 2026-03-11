@@ -12,7 +12,7 @@ import { usePathname } from "next/navigation";
 
 export default function Header() {
   const { cart, toggleCart } = useCart();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -172,7 +172,7 @@ export default function Header() {
           >
             {isAuthenticated ? (
               <Link
-                href="/panel"
+                href={user?.role === "admin" ? "/admin" : "/panel"}
                 title="پنل کاربری"
                 className="relative flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/20 dark:bg-[#14161c]/10 backdrop-blur-xl border border-white/15 dark:border-white/[0.04] hover:bg-white/30 dark:hover:bg-[#14161c]/20 transition-colors duration-300 overflow-visible text-gray-700 dark:text-gray-300 hover:text-primary"
               >

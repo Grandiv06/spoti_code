@@ -165,7 +165,7 @@ export default function Footer() {
               <span className="material-symbols-outlined text-primary">
                 mail
               </span>
-              <p className="text-sm">support@codeacademy.ir</p>
+              <p className="text-sm">spoticode.academy@gmail.com</p>
             </div>
           </div>
         </div>

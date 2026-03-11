@@ -1,25 +1,27 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
-export default function PanelAuthGuard({ children }: { children: React.ReactNode }) {
+export default function AdminAuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
     if (isLoading) return;
+
     if (!isAuthenticated) {
-      const returnUrl = encodeURIComponent(pathname || "/panel");
+      const returnUrl = encodeURIComponent(pathname || "/admin");
       router.replace(`/login?returnUrl=${returnUrl}`);
       return;
     }
-    if (user?.role === "admin") {
-      router.replace("/admin");
+
+    if (user?.role !== "admin") {
+      router.replace("/panel");
     }
-  }, [isAuthenticated, isLoading, router, pathname, user?.role]);
+  }, [isAuthenticated, isLoading, pathname, router, user?.role]);
 
   if (isLoading) {
     return (
@@ -29,11 +31,7 @@ export default function PanelAuthGuard({ children }: { children: React.ReactNode
     );
   }
 
-  if (!isAuthenticated) {
-    return null;
-  }
-
-  if (user?.role !== "user") {
+  if (!isAuthenticated || user?.role !== "admin") {
     return null;
   }
 

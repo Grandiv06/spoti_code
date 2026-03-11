@@ -175,7 +175,7 @@ export default function CourseDetailPage({
                         all_inclusive
                       </span>
                     </span>
-                    دسترسی همیشگی به آپدیت‌ها
+                    دسترسی همیشگی به دوره و آپدیت‌ها
                   </li>
                   <li className="flex items-center gap-3 md:gap-4 text-gray-700 dark:text-gray-300 font-bold text-xs md:text-sm">
                     <span className="size-8 md:size-10 rounded-xl md:rounded-2xl bg-white dark:bg-gray-800 shadow-sm text-blue-500 flex items-center justify-center shrink-0 border border-blue-100 dark:border-blue-900/30">
@@ -191,7 +191,7 @@ export default function CourseDetailPage({
                         forum
                       </span>
                     </span>
-                    پشتیبانی اختصاصی در دیسکورد
+                    پشتیبانی اختصاصی در تلگرام
                   </li>
                 </ul>
               </div>

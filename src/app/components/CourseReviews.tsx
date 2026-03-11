@@ -57,7 +57,7 @@ export default function CourseReviews({
   totalReviews = "۱۲۸",
 }: CourseReviewsProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ name: "", comment: "" });
+  const [formData, setFormData] = useState({ comment: "" });
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
 
@@ -65,7 +65,7 @@ export default function CourseReviews({
     e.preventDefault();
     // TODO: submit to API (formData + rating)
     setIsModalOpen(false);
-    setFormData({ name: "", comment: "" });
+    setFormData({ comment: "" });
     setRating(5);
   };
 
@@ -116,10 +116,10 @@ export default function CourseReviews({
           onClick={() => setIsModalOpen(false)}
         >
           <div
-            className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white dark:bg-[#14161c] rounded-[2rem] md:rounded-4xl p-6 md:p-8 shadow-2xl border border-gray-200 dark:border-gray-700/50 my-auto"
+            className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white dark:bg-[#0f1115] rounded-[2rem] md:rounded-4xl p-6 md:p-8 shadow-2xl border border-gray-200 dark:border-gray-700/50 my-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-6 md:mb-8 sticky top-0 bg-white dark:bg-[#14161c] z-10 pb-4 border-b border-gray-100 dark:border-gray-800">
+            <div className="flex items-center justify-between mb-6 md:mb-8 sticky top-0 bg-white dark:bg-[#0f1115] z-10 pb-4 border-b border-gray-100 dark:border-gray-800">
               <div className="flex items-center gap-2 md:gap-3">
                 <span className="flex items-center justify-center size-8 md:size-10 rounded-xl md:rounded-2xl bg-primary/20 dark:bg-primary/30 text-primary shrink-0">
                   <span className="material-symbols-outlined filled text-lg md:text-xl">rate_review</span>
@@ -129,7 +129,7 @@ export default function CourseReviews({
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="size-8 md:size-10 rounded-xl md:rounded-2xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 transition-colors cursor-pointer shrink-0"
+                className="size-8 md:size-10 rounded-xl md:rounded-2xl bg-transparent hover:bg-transparent flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-colors cursor-pointer shrink-0"
                 aria-label="بستن"
               >
                 <span className="material-symbols-outlined text-lg md:text-xl">close</span>
@@ -138,51 +138,56 @@ export default function CourseReviews({
 
             <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
               <div className="space-y-1.5 md:space-y-2">
-                <label htmlFor="review-name" className="block text-gray-700 dark:text-gray-300 text-xs md:text-sm font-bold pr-1">
-                  نام و نام خانوادگی
-                </label>
-                <input
-                  id="review-name"
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
-                  required
-                  className="w-full h-10 md:h-12 px-4 md:px-5 rounded-xl md:rounded-2xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/80 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-sm md:text-base"
-                  placeholder=""
-                />
-              </div>
-              <div className="space-y-1.5 md:space-y-2">
                 <span className="block text-gray-700 dark:text-gray-300 text-xs md:text-sm font-bold pr-1 mb-1 md:mb-2">
                   امتیاز شما
                 </span>
                 <div
-                  className="flex gap-1 cursor-pointer justify-center sm:justify-start"
+                  className="flex items-center cursor-pointer justify-between"
                   dir="ltr"
                   onMouseLeave={() => setHoverRating(null)}
                 >
-                  {[1, 2, 3, 4, 5].map((star) => {
-                    const displayRating = hoverRating ?? rating;
-                    const isFilled = star <= displayRating;
-                    return (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setRating(star)}
-                        onMouseEnter={() => setHoverRating(star)}
-                        className="p-1 rounded-lg hover:scale-110 transition-transform cursor-pointer focus:outline-none focus:ring-0 border-0"
-                        aria-label={`${star} ستاره`}
-                      >
-                        <span
-                          className={`material-symbols-outlined text-2xl md:text-3xl transition-colors ${
-                            isFilled ? "filled text-amber-400" : "text-gray-300 dark:text-gray-600"
-                          }`}
-                          style={{ fontVariationSettings: isFilled ? '"FILL" 1, "wght" 400' : '"FILL" 0, "wght" 400' }}
+                  <div className="flex items-center gap-0">
+                    {[1, 2, 3, 4, 5].map((star) => {
+                      const displayRating = hoverRating ?? rating;
+                      const isFilled = star <= displayRating;
+                      return (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setRating(star)}
+                          onMouseEnter={() => setHoverRating(star)}
+                          className="p-0 rounded-md hover:scale-110 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-0 border-0"
+                          aria-label={`${star} ستاره`}
                         >
-                          star
-                        </span>
-                      </button>
-                    );
-                  })}
+                          <svg
+                            viewBox="0 0 24 24"
+                            className={`size-6 md:size-7 transition-all duration-200 ${
+                              isFilled
+                                ? "text-amber-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.45)]"
+                                : "text-gray-300 dark:text-gray-600"
+                            }`}
+                            fill={isFilled ? "currentColor" : "none"}
+                            stroke="currentColor"
+                            strokeWidth={isFilled ? 1.4 : 1.8}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M12 3.7l2.6 5.26 5.8.84-4.2 4.1.99 5.78L12 16.9l-5.19 2.78.99-5.78-4.2-4.1 5.8-.84L12 3.7z" />
+                          </svg>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <span
+                    dir="rtl"
+                    className="inline-flex items-center gap-1 text-[11px] md:text-xs text-gray-500 dark:text-gray-400 font-semibold select-none whitespace-nowrap"
+                    style={{ unicodeBidi: "isolate" }}
+                  >
+                    <span>{(hoverRating ?? rating).toLocaleString("fa-IR")}</span>
+                    <span>از</span>
+                    <span>۵</span>
+                  </span>
                 </div>
               </div>
               <div className="space-y-1.5 md:space-y-2">
@@ -195,14 +200,14 @@ export default function CourseReviews({
                   onChange={(e) => setFormData((p) => ({ ...p, comment: e.target.value }))}
                   required
                   rows={4}
-                  className="w-full px-4 md:px-5 py-3 md:py-4 rounded-xl md:rounded-2xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/80 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-gray-400 font-medium resize-none text-sm md:text-base"
+                  className="w-full px-4 md:px-5 py-3 md:py-4 rounded-xl md:rounded-2xl border border-gray-200 dark:border-[#2a2e36] bg-gray-50 dark:bg-[#0b0d12] text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400/90 font-medium resize-none text-sm md:text-base"
                   placeholder="تجربه خود از این دوره را با دیگران به اشتراک بگذارید..."
                 />
               </div>
               <div className="flex flex-col sm:flex-row gap-2 md:gap-3 pt-2">
                 <button
                   type="submit"
-                  className="w-full sm:flex-1 h-10 md:h-12 bg-primary hover:bg-primary-dark text-white font-bold rounded-xl md:rounded-2xl shadow-lg shadow-primary/25 flex items-center justify-center gap-2 transition-all cursor-pointer text-sm md:text-base order-1 sm:order-none"
+                  className="w-full sm:flex-1 h-10 md:h-12 bg-primary hover:bg-primary-dark text-white font-bold rounded-xl md:rounded-2xl flex items-center justify-center gap-2 transition-all cursor-pointer text-sm md:text-base order-1 sm:order-none"
                 >
                   <span className="material-symbols-outlined text-base md:text-lg">send</span>
                   ارسال نظر

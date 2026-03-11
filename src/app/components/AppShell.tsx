@@ -12,22 +12,24 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     pathname?.startsWith("/login/") ||
     pathname?.startsWith("/register/");
   const isPanelPage = pathname?.startsWith("/panel");
+  const isAdminPage = pathname?.startsWith("/admin");
+  const isDashboardPage = isPanelPage || isAdminPage;
 
   return (
     <div
       className={`flex flex-col ${
-        isAuthPage ? "h-[100dvh] overflow-hidden" : isPanelPage ? "h-[100dvh] overflow-hidden" : "min-h-screen"
+        isAuthPage ? "h-[100dvh] overflow-hidden" : isDashboardPage ? "h-[100dvh] overflow-hidden" : "min-h-screen"
       }`}
     >
-      {!isPanelPage && !isAuthPage && <Header />}
+      {!isDashboardPage && !isAuthPage && <Header />}
       <div
         className={`flex-1 min-h-0 overflow-hidden ${
-          isPanelPage ? "" : isAuthPage ? "" : "pt-20 md:pt-24 lg:pt-24"
+          isDashboardPage ? "" : isAuthPage ? "" : "pt-20 md:pt-24 lg:pt-24"
         }`}
       >
         {children}
       </div>
-      {!isAuthPage && !isPanelPage && <Footer />}
+      {!isAuthPage && !isDashboardPage && <Footer />}
     </div>
   );
 }
