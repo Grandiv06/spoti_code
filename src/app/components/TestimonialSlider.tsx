@@ -61,8 +61,8 @@ export default function TestimonialSlider() {
         <div className="relative mt-8">
           {/* Wrapper برای همترازی فلش‌ها با مرکز کارت‌ها */}
           <div className="relative">
-            {/* Navigation Arrows - وسط چین باکس‌های نظرات */}
-            <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 flex justify-between z-20 pointer-events-none md:-mx-20 lg:-mx-28">
+            {/* Navigation Arrows - وسط چین باکس‌های نظرات - پنهان در موبایل */}
+            <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 hidden md:flex justify-between z-20 pointer-events-none md:-mx-20 lg:-mx-28">
             <button 
               type="button"
               onClick={handlePrev}
@@ -82,22 +82,45 @@ export default function TestimonialSlider() {
             </button>
           </div>
 
-            {/* موبایل - فقط کارت فعال با fade */}
-          <div className="md:hidden min-h-[320px]">
+          {/* موبایل - فقط کارت فعال با fade */}
+          <div className="md:hidden">
             {testimonials.map((t, index) => {
               if (index !== activeIndex) return null;
               return (
-                <Link href="/social" key={`${t.id}-${activeIndex}`} className="block p-10 rounded-4xl relative bg-primary text-white animate-in fade-in duration-500 hover:shadow-[0_20px_40px_-15px_rgba(34,197,94,0.4)] transition-shadow group cursor-pointer">
-                  <div className="relative w-24 h-24 mx-auto">
-                    <Image alt="Student" className="rounded-full border-4 border-white shadow-lg object-cover transform-gpu group-hover:scale-105 transition-transform duration-300" src={t.image} fill />
+                <div key={`${t.id}-${activeIndex}`} className="flex flex-col items-center animate-in fade-in duration-500">
+                  <Link href="/social" className="w-full block p-10 pb-16 rounded-4xl relative bg-primary text-white hover:shadow-[0_20px_40px_-15px_rgba(34,197,94,0.4)] transition-shadow group cursor-pointer mb-8">
+                    <div className="relative w-24 h-24 mx-auto">
+                      <Image alt="Student" className="rounded-full border-4 border-white shadow-lg object-cover transform-gpu group-hover:scale-105 transition-transform duration-300" src={t.image} fill />
+                    </div>
+                    <p className="leading-loose font-normal mt-6 text-white/90">&quot;{t.content}&quot;</p>
+                    <h4 className="font-black text-2xl mt-6 group-hover:text-background-dark transition-colors">{t.name}</h4>
+                    <span className="bg-white/20 px-4 py-1 rounded-full text-xs font-bold mt-2 inline-block group-hover:bg-background-dark/10 transition-colors">{t.role}</span>
+                    <div className="absolute top-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="material-symbols-outlined text-white/70">open_in_new</span>
+                    </div>
+                  </Link>
+
+                  {/* Navigation Arrows برای موبایل زیر کامنت */}
+                  <div className="flex items-center justify-center gap-6">
+                    <button 
+                      type="button" 
+                      onClick={handleNext}
+                      className="w-12 h-12 bg-white dark:bg-surface-dark rounded-full shadow border border-gray-100 dark:border-gray-800 flex items-center justify-center text-gray-500 hover:text-primary hover:scale-110 transition-all duration-300 cursor-pointer"
+                      aria-label="بعدی"
+                    >
+                      <ChevronRight className="w-6 h-6 " />
+                    </button>
+
+                    <button 
+                      type="button"
+                      onClick={handlePrev}
+                      className="w-12 h-12 bg-white dark:bg-surface-dark rounded-full shadow border border-gray-100 dark:border-gray-800 flex items-center justify-center text-gray-500 hover:text-primary hover:scale-110 transition-all duration-300 cursor-pointer"
+                      aria-label="قبلی"
+                    >
+                      <ChevronLeft className="w-6 h-6 " />
+                    </button>
                   </div>
-                  <p className="leading-loose font-normal mt-6 text-white/90">&quot;{t.content}&quot;</p>
-                  <h4 className="font-black text-2xl mt-6 group-hover:text-background-dark transition-colors">{t.name}</h4>
-                  <span className="bg-white/20 px-4 py-1 rounded-full text-xs font-bold mt-2 inline-block group-hover:bg-background-dark/10 transition-colors">{t.role}</span>
-                  <div className="absolute top-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="material-symbols-outlined text-white/70">open_in_new</span>
-                  </div>
-                </Link>
+                </div>
               );
             })}
           </div>
