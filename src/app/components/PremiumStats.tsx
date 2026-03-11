@@ -130,8 +130,7 @@ export default function PremiumStats() {
                 <span className="material-symbols-outlined text-primary text-[18px]">workspace_premium</span>
               </div>
               <span className="ml-1 tracking-tight mt-0.5">مهم ترین هزینه برای یادگیری، وقت شماست</span>
-           </motion.div>
-           
+           </motion.div>           
            <motion.h2 
              initial={{ opacity: 0, y: 20 }}
              animate={inView ? { opacity: 1, y: 0 } : {}}

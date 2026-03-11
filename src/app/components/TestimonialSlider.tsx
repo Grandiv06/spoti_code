@@ -31,20 +31,13 @@ export const testimonials = [
 
 export default function TestimonialSlider() {
   const [activeIndex, setActiveIndex] = useState(1);
-  const [isAnimating, setIsAnimating] = useState(false);
 
   const handleNext = () => {
-    if (isAnimating) return;
-    setIsAnimating(true);
     setActiveIndex((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1));
-    setTimeout(() => setIsAnimating(false), 1000);
   };
 
   const handlePrev = () => {
-    if (isAnimating) return;
-    setIsAnimating(true);
     setActiveIndex((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1));
-    setTimeout(() => setIsAnimating(false), 1000);
   };
 
   const getPosition = (index: number) => {
