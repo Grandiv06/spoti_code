@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { ChevronRight, ChevronLeft } from "lucide-react";
 
 export const testimonials = [
@@ -93,12 +94,17 @@ export default function TestimonialSlider() {
             {testimonials.map((t, index) => {
               if (index !== activeIndex) return null;
               return (
-                <div key={`${t.id}-${activeIndex}`} className="p-10 rounded-4xl relative bg-primary text-white animate-in fade-in duration-500">
-                  <Image alt="Student" className="rounded-full border-4 border-white shadow-lg mx-auto block w-24 h-24" src={t.image} width={96} height={96} />
+                <Link href="/social" key={`${t.id}-${activeIndex}`} className="block p-10 rounded-4xl relative bg-primary text-white animate-in fade-in duration-500 hover:shadow-[0_20px_40px_-15px_rgba(34,197,94,0.4)] transition-shadow group cursor-pointer">
+                  <div className="relative w-24 h-24 mx-auto">
+                    <Image alt="Student" className="rounded-full border-4 border-white shadow-lg object-cover transform-gpu group-hover:scale-105 transition-transform duration-300" src={t.image} fill />
+                  </div>
                   <p className="leading-loose font-normal mt-6 text-white/90">&quot;{t.content}&quot;</p>
-                  <h4 className="font-black text-2xl mt-6">{t.name}</h4>
-                  <span className="bg-white/20 px-4 py-1 rounded-full text-xs font-bold mt-2 inline-block">{t.role}</span>
-                </div>
+                  <h4 className="font-black text-2xl mt-6 group-hover:text-background-dark transition-colors">{t.name}</h4>
+                  <span className="bg-white/20 px-4 py-1 rounded-full text-xs font-bold mt-2 inline-block group-hover:bg-background-dark/10 transition-colors">{t.role}</span>
+                  <div className="absolute top-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="material-symbols-outlined text-white/70">open_in_new</span>
+                  </div>
+                </Link>
               );
             })}
           </div>
@@ -129,33 +135,41 @@ export default function TestimonialSlider() {
                     transition: "transform 1s cubic-bezier(0.16, 1, 0.3, 1), opacity 1s cubic-bezier(0.16, 1, 0.3, 1)",
                   }}
                 >
-                  <div
-                    className={`w-full max-w-md rounded-4xl p-10 relative overflow-visible
+                  <Link
+                    href="/social"
+                    className={`block w-full max-w-md rounded-4xl p-10 relative overflow-visible group cursor-pointer transition-all duration-300
                       ${isCenter 
-                        ? "bg-primary/0 text-white" 
-                        : "bg-white dark:bg-surface-dark shadow-xl mt-8"
+                        ? "bg-primary/0 text-white hover:shadow-[0_30px_60px_-15px_rgba(34,197,94,0.4)]" 
+                        : "bg-white dark:bg-surface-dark shadow-xl mt-8 hover:shadow-2xl hover:-translate-y-2"
                       }`}
                     dir="rtl"
                   >
                     {/* بکگراند سبز فقط برای کارت وسط */}
                     {isCenter && (
-                      <div className="absolute inset-0 rounded-4xl bg-primary shadow-lg shadow-primary/20 -z-10" aria-hidden />
+                      <div className="absolute inset-0 rounded-4xl bg-primary shadow-lg shadow-primary/20 -z-10 transition-transform duration-300 group-hover:scale-[1.02]" aria-hidden />
                     )}
-                    <Image
-                      alt="Student"
-                      className={`rounded-full border-4 shadow-lg absolute left-1/2 -translate-x-1/2 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
-                        ${isCenter ? "w-24 h-24 border-white -top-12 z-20" : "w-20 h-20 border-white dark:border-gray-800 -top-10"}
+                    <div className={`absolute left-1/2 -translate-x-1/2 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
+                        ${isCenter ? "w-24 h-24 -top-12 z-20 group-hover:-top-14" : "w-20 h-20 -top-10 group-hover:-top-12"}
                       `}
-                      src={t.image}
-                      width={isCenter ? 96 : 80}
-                      height={isCenter ? 96 : 80}
-                    />
-                    <p className={`text-base md:text-lg leading-loose font-normal transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${isCenter ? "mt-8 text-white/90" : "mt-6 text-gray-600 dark:text-gray-400"}`}>
+                    >
+                      <Image
+                        alt={t.name}
+                        className={`rounded-full shadow-lg object-cover transform-gpu transition-all duration-300
+                          ${isCenter ? "border-4 border-white group-hover:scale-110" : "border-4 border-white dark:border-gray-800 group-hover:scale-110"}
+                        `}
+                        src={t.image}
+                        fill
+                      />
+                    </div>
+                    <div className="absolute top-6 left-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-30">
+                      <span className={`material-symbols-outlined ${isCenter ? "text-white/80" : "text-gray-400"}`}>open_in_new</span>
+                    </div>
+                    <p className={`text-base md:text-lg leading-loose font-normal transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${isCenter ? "mt-8 text-white/90" : "mt-6 text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200"}`}>
                       &quot;{t.content}&quot;
                     </p>
-                    <h4 className={`transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${isCenter ? "font-black text-2xl mt-6" : "font-bold text-xl mt-6"}`}>{t.name}</h4>
+                    <h4 className={`transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${isCenter ? "font-black text-2xl mt-6 group-hover:text-background-dark" : "font-bold text-xl mt-6 group-hover:text-primary"}`}>{t.name}</h4>
                     {isCenter ? (
-                      <span className="bg-white/20 px-4 py-1 rounded-full text-xs font-bold mt-2 inline-block transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]">
+                      <span className="bg-white/20 px-4 py-1 rounded-full text-xs font-bold mt-2 inline-block transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:bg-background-dark/10">
                         {t.role}
                       </span>
                     ) : (
@@ -163,7 +177,7 @@ export default function TestimonialSlider() {
                         {t.role}
                       </span>
                     )}
-                  </div>
+                  </Link>
                 </div>
               );
             })}
