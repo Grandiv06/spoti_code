@@ -14,6 +14,7 @@ export default function Header() {
   const { cart, toggleCart } = useCart();
   const { isAuthenticated } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [loginMousePos, setLoginMousePos] = useState<{
     x: number;
@@ -36,6 +37,7 @@ export default function Header() {
   };
 
   useEffect(() => {
+    setIsMounted(true);
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
@@ -65,10 +67,10 @@ export default function Header() {
   };
 
   const menuItems = [
-    { label: "خانه", href: "/" },
-    { label: "دوره‌ها", href: "/courses" },
-    { label: "مسیر یادگیری", href: "/learning-path" },
-    { label: "اسپاتی هاب", href: "/social" },
+    { label: "خانه", href: "/", icon: "home" },
+    { label: "دوره‌ها", href: "/courses", icon: "school" },
+    { label: "مسیر یادگیری", href: "/learning-path", icon: "route" },
+    { label: "اسپاتی هاب", href: "/social", icon: "tag" },
   ];
 
   return (
@@ -100,12 +102,12 @@ export default function Header() {
             <Image
               src="/favicon.svg"
               alt="اسپاتی‌کد"
-              width={15}
-              height={15}
-              className="w-8 h-8 group-hover:-rotate-45 transition-transform"
-            />
-            <span className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white group-hover:scale-105 transition-transform duration-300">
-              <span className="text-primary-dark/80">اسپاتی</span> کد
+                width={36}
+                height={36}
+                className="w-8 h-8 md:w-9 md:h-9 lg:group-hover:-rotate-45 transition-transform"
+              />
+              <span className="text-xl md:text-2xl font-black tracking-tighter text-gray-900 dark:text-white lg:group-hover:scale-105 transition-transform duration-300">
+                <span className="text-primary-dark/80">اسپاتی</span> کد
             </span>
           </Link>
 
@@ -209,53 +211,70 @@ export default function Header() {
         </div>
 
         {/* Mobile Drawer - با Portal در body تا درست نمایش داده شود */}
-        {isMenuOpen &&
+        {isMounted &&
           typeof document !== "undefined" &&
           createPortal(
-            <div className="lg:hidden">
+            <div className={`lg:hidden fixed inset-0 z-[60] transition-all duration-300 ${isMenuOpen ? "visible" : "invisible"}`}>
+              {/* Overlay */}
               <div
-                className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+                className={`absolute inset-0 bg-black/60 transition-opacity duration-300 ${isMenuOpen ? "opacity-100" : "opacity-0"}`}
                 onClick={() => setIsMenuOpen(false)}
                 aria-hidden="true"
               />
+              {/* Drawer */}
               <div
-                className="fixed top-0 right-0 bottom-0 z-[70] w-[min(320px,100%)] min-h-screen flex flex-col animate-slide-in-from-right"
+                className={`absolute top-0 right-0 bottom-0 z-[70] w-[min(320px,100%)] h-[100dvh] flex flex-col transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isMenuOpen ? "translate-x-0" : "translate-x-full"}`}
                 role="dialog"
                 aria-label="منو"
               >
-                {/* پنل شفاف مثل والرت */}
+                {/* پنل سالید برای پرفورمنس بهتر در موبایل */}
                 <div
-                  className="h-full rounded-l-[40px] flex flex-col shadow-lg border p-2 transition-colors duration-300 bg-gray-100/80 border-gray-200/50 backdrop-blur-sm dark:bg-[#02000B]/30 dark:border-white/5"
+                  className="h-full rounded-l-[2rem] flex flex-col shadow-2xl border-l p-2 bg-white border-gray-100 dark:bg-[#111216] dark:border-white/5"
                 >
-                {/* هدر دراور: لوگو اسپاتی‌کد وسط، دکمه بستن سمت راست */}
-                <div className="flex items-center justify-between p-4 border-b border-gray-200/50 dark:border-white/5 shrink-0 relative">
-                  <button
-                    onClick={() => setIsMenuOpen(false)}
-                    className="flex size-10 items-center justify-center rounded-xl hover:bg-gray-200/50 dark:hover:bg-white/5 transition-colors z-10"
-                    aria-label="بستن منو"
-                  >
-                    <span className="material-symbols-outlined text-xl">close</span>
-                  </button>
-                  <Link
-                    href="/"
-                    onClick={() => setIsMenuOpen(false)}
-                    className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 group"
-                  >
-                    <Image
-                      src="/favicon.svg"
-                      alt="اسپاتی‌کد"
-                      width={15}
-                      height={15}
-                      className="w-8 h-8 group-hover:-rotate-45 transition-transform"
-                    />
-                    <span className="text-xl font-black tracking-tighter text-gray-900 dark:text-white">
-                      <span className="text-primary-dark/80">اسپاتی</span> کد
-                    </span>
-                  </Link>
-                  <div className="w-10" aria-hidden />
+                {/* Farmeto "Gold Standard" Header */}
+                <div className="flex flex-col p-4 shrink-0 border-b border-gray-100 dark:border-white/5 bg-white dark:bg-[#111216] rounded-tl-[2rem]">
+                  {/* Row 1: Logo & Close */}
+                  <div className="flex items-center justify-between mb-4">
+                    <Link
+                      href="/"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-2"
+                    >
+                      <Image
+                        src="/favicon.svg"
+                        alt="اسپاتی‌کد"
+                        width={28}
+                        height={28}
+                      />
+                      <span className="text-xl font-black text-gray-900 dark:text-white">
+                        <span className="text-primary">اسپاتی</span> کد
+                      </span>
+                    </Link>
+                    <button
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex size-10 items-center justify-center rounded-2xl bg-gray-100 text-gray-600 hover:text-gray-900 border border-gray-200 dark:bg-white/5 dark:text-gray-400 dark:border-white/10 dark:hover:text-white transition-colors"
+                      aria-label="بستن منو"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">close</span>
+                    </button>
+                  </div>
+
+                  {/* Row 2: Date & Theme Toggle */}
+                  <div className="flex items-center justify-between bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/5 p-2 rounded-[2rem]">
+                    <div className="flex items-center gap-2 px-3">
+                      <span className="material-symbols-outlined text-gray-400 text-lg">calendar_today</span>
+                      <span className="text-sm font-bold text-gray-600 dark:text-gray-300">
+                        {new Date().toLocaleDateString('fa-IR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                      </span>
+                    </div>
+                    <div className="bg-white dark:bg-white/5 rounded-[1.5rem] shadow-sm border border-gray-100 dark:border-white/10 p-0.5">
+                      <ThemeToggle />
+                    </div>
+                  </div>
                 </div>
-                {/* آیتم‌های منو - اسکرول می‌شوند */}
-                <div className="p-4 flex flex-col gap-1 flex-1 overflow-y-auto min-h-0">
+
+                {/* Navigation Links */}
+                <div className="px-4 py-6 flex flex-col gap-1.5 flex-1 overflow-y-auto">
                   {menuItems.map((item) => {
                     const isActive =
                       item.href === "/social"
@@ -263,50 +282,43 @@ export default function Header() {
                         : item.href === "/learning-path"
                           ? pathname?.startsWith("/learning-path")
                           : pathname === item.href;
+                            
                     return (
                       <Link
                         key={item.href}
-                        className={`px-6 py-4 text-sm font-bold rounded-2xl transition-all flex items-center justify-between cursor-pointer ${
+                        className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all font-bold text-[15px] ${
                           isActive
                             ? "bg-primary/10 text-primary"
-                            : "text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-white/5"
+                            : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5"
                         }`}
                         href={item.href}
                         onClick={() => setIsMenuOpen(false)}
                       >
-                        {item.label}
-                        {isActive && (
-                          <span className="w-2 h-2 bg-primary rounded-full"></span>
-                        )}
+                         <span className={`material-symbols-outlined text-[22px] ${isActive ? "text-primary fill-current" : "text-gray-400 dark:text-gray-500"}`}>
+                           {item.icon}
+                         </span>
+                         {item.label}
                       </Link>
                     );
                   })}
                 </div>
-                {/* بخش پایین منو - چسبیده به ته */}
-                <div className="shrink-0 p-4 pt-2 border-t border-gray-200/50 dark:border-white/5 space-y-3">
-                  <div className="flex items-center gap-3 px-2 py-2">
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">تغییر تم</span>
-                    <ThemeToggle />
-                  </div>
+                {/* Auth Footer */}
+                <div className="shrink-0 p-4 border-t border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02]">
                   <Link
-                    className={`block w-full px-6 py-4 text-sm font-bold rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                      isAuthenticated
-                        ? "text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-white/5"
-                        : "bg-primary text-white hover:bg-primary-hover shadow-lg shadow-primary/20"
-                    }`}
                     href={isAuthenticated ? "/panel" : "/login"}
                     onClick={() => setIsMenuOpen(false)}
+                    className={`flex items-center justify-between w-full px-5 py-4 rounded-[2rem] font-bold text-[15px] transition-transform active:scale-[0.98] ${
+                      isAuthenticated
+                        ? "bg-gray-200 dark:bg-white/10 text-gray-800 dark:text-white"
+                        : "bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md"
+                    }`}
                   >
-                    {isAuthenticated ? (
-                      <>
-                        <span className="material-symbols-outlined text-lg">
-                          person
-                        </span>
-                        پنل کاربری
-                      </>
-                    ) : (
-                      "ورود / ثبت‌نام"
-                    )}
+                    <span className="flex items-center gap-2">
+                       {isAuthenticated ? "پنل کاربری" : "ورود به حساب"}
+                    </span>
+                    <div className={`w-8 h-8 rounded-[1rem] flex items-center justify-center ${isAuthenticated ? "bg-white dark:bg-black/20" : "bg-white/20 dark:bg-black/10"}`}>
+                       <span className="material-symbols-outlined text-[18px] rtl:rotate-180">east</span>
+                    </div>
                   </Link>
                 </div>
                 </div>

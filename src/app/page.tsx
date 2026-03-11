@@ -60,7 +60,7 @@ export default function Home() {
                   </span>
                 </a>
                 <a
-                  className="bg-white/70 dark:bg-[#14161c]/10 backdrop-blur-xl hover:bg-white/90 dark:hover:bg-[#14161c]/20 text-text-light dark:text-white px-10 py-5 rounded-4xl text-lg font-extrabold transition-all duration-300 shadow-lg flex items-center justify-center gap-3 border border-white/30 dark:border-white/10"
+                  className="bg-white/70 dark:bg-surface-dark/80 md:backdrop-blur-xl md:hover:bg-white/90 md:dark:hover:bg-surface-dark text-text-light dark:text-white px-10 py-5 rounded-4xl text-lg font-extrabold transition-all duration-300 shadow-lg flex items-center justify-center gap-3 border border-white/30 dark:border-white/10"
                   href="/courses"
                 >
                   <span className="material-symbols-outlined text-primary">
@@ -106,13 +106,13 @@ export default function Home() {
                 <div className="absolute inset-0 bg-gradient-to-br from-gray-900/60 to-black/90 z-10"></div>
                 <Image
                   alt="Coding workspace"
-                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                  className="absolute inset-0 w-full h-full object-cover md:group-hover:scale-110 transition-transform duration-1000 transform-gpu"
                   src="/images/hero_image.jpg"
                   fill
                   style={{ objectFit: "cover" }}
                 />
                 <div className="absolute inset-0 flex items-center justify-center z-20">
-                  <div className="w-24 h-24 bg-primary/90 backdrop-blur-md rounded-full flex items-center justify-center pl-1 text-white shadow-[0_0_50px_rgba(34,197,94,0.6)] group-hover:scale-110 transition-transform duration-500">
+                  <div className="w-24 h-24 bg-primary/90 md:backdrop-blur-md rounded-full flex items-center justify-center pl-1 text-white shadow-[0_0_50px_rgba(34,197,94,0.6)] md:group-hover:scale-110 transition-transform duration-500 transform-gpu">
                     <span className="material-icons-round text-6xl">
                       play_arrow
                     </span>
@@ -132,12 +132,12 @@ export default function Home() {
         <section className="py-24">
           <div className="max-w-7xl mx-auto px-6">
             <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
-              <div>
+              <div className="flex flex-col items-center justify-center md:items-start md:text-right w-full md:w-auto">
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary-dark dark:text-primary rounded-full text-xs font-black mb-4 border border-primary/20">
                   <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
                   پیشنهاد ویژه
                 </div>
-                <h2 className="text-3xl md:text-4xl font-black tracking-tight text-gray-900 dark:text-white">
+                <h2 className="text-3xl md:text-4xl font-black tracking-tight text-gray-900 dark:text-white text-center md:text-right">
                   دوره‌های{" "}
                   <span className="text-transparent bg-clip-text bg-gradient-to-l from-primary to-green-600 relative inline-block">
                     پرطرفدار
@@ -238,33 +238,17 @@ export default function Home() {
               ].map((course) => (
                  <div
                   key={course.id}
-                  className="group flex flex-col bg-white dark:bg-transparent dark:glass-premium rounded-4xl border border-gray-200 dark:border-white/5 overflow-hidden shadow-sm dark:shadow-none transition-all duration-500 hover:-translate-y-3 hover:shadow-[0_30px_60px_-15px_rgba(34,197,94,0.15)]"
+                  className="group flex flex-col h-full bg-white dark:bg-transparent dark:glass-premium rounded-4xl border border-gray-200 dark:border-white/5 overflow-hidden shadow-sm dark:shadow-none transition-all duration-500 md:hover:-translate-y-3 md:hover:shadow-[0_30px_60px_-15px_rgba(34,197,94,0.15)]"
                 >
                   <div className="relative h-64 overflow-hidden rounded-t-4xl isolate">
                     <Image
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                      alt={course.alt}
                       src={course.image}
+                      alt={course.title}
                       fill
-                      style={{ objectFit: "cover" }}
+                      className="object-cover transform-gpu md:group-hover:scale-105 transition-transform duration-700 ease-out"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-60"></div>
                     <div className="absolute top-5 left-5 right-5 flex justify-between items-start z-20">
-                      <span className="bg-black/40 md:bg-white/20 md:backdrop-blur-md border border-white/10 text-white px-4 py-1.5 rounded-2xl text-[10px] font-black uppercase tracking-wider shadow-lg">
-                        {course.difficulty}
-                      </span>
-                      <div className="flex flex-col gap-2 translate-x-[-10px] opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-500 delay-100">
-                        <button className="size-10 rounded-full bg-black/40 md:bg-white/20 md:backdrop-blur-xl border border-white/20 text-white hover:bg-white hover:text-red-500 flex items-center justify-center transition-all shadow-lg cursor-pointer transform-gpu">
-                          <span className="material-symbols-outlined text-[20px]">
-                            favorite
-                          </span>
-                        </button>
-                        <button className="size-10 rounded-full bg-black/40 md:bg-white/20 md:backdrop-blur-xl border border-white/20 text-white hover:bg-white hover:text-blue-500 flex items-center justify-center transition-all shadow-lg cursor-pointer transform-gpu">
-                          <span className="material-symbols-outlined text-[20px]">
-                            share
-                          </span>
-                        </button>
-                      </div>
                     </div>
                   </div>
                   <div className="p-7 flex flex-col flex-1">
@@ -417,7 +401,7 @@ export default function Home() {
                   </div>
                   
                   {/* Floating UI Elements */}
-                  <div className="absolute -bottom-4 -right-4 md:-bottom-8 md:-right-8 bg-white dark:bg-[#252836] md:bg-white/95 md:dark:bg-[#252836]/95 md:backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-4 shadow-2xl flex flex-col gap-2 md:group-hover:-translate-y-4 md:group-hover:-rotate-6 transition-all duration-700 delay-100 z-20 transform-gpu">
+                  <div className="hidden md:flex absolute -bottom-4 -right-4 md:-bottom-8 md:-right-8 bg-white dark:bg-[#252836] md:bg-white/95 md:dark:bg-[#252836]/95 md:backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-4 shadow-2xl flex-col gap-2 md:group-hover:-translate-y-4 md:group-hover:-rotate-6 transition-all duration-700 delay-100 z-20 transform-gpu">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
                         <span className="material-symbols-outlined">view_quilt</span>
@@ -509,7 +493,7 @@ export default function Home() {
                   </div>
                   
                   {/* Floating UI Element */}
-                  <div className="absolute -top-4 -left-4 md:-top-8 md:-left-8 bg-white dark:bg-[#252836] md:bg-white/95 md:dark:bg-[#252836]/95 md:backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-4 shadow-2xl flex items-center gap-4 md:group-hover:-translate-y-4 md:group-hover:-rotate-6 transition-all duration-700 delay-100 z-20 transform-gpu">
+                  <div className="hidden md:flex absolute -top-4 -left-4 md:-top-8 md:-left-8 bg-white dark:bg-[#252836] md:bg-white/95 md:dark:bg-[#252836]/95 md:backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-4 shadow-2xl items-center gap-4 md:group-hover:-translate-y-4 md:group-hover:-rotate-6 transition-all duration-700 delay-100 z-20 transform-gpu">
                     <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                       <span className="material-symbols-outlined text-lg">rocket_launch</span>
                     </div>

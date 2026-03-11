@@ -37,10 +37,6 @@ const stats = [
     borderLight: "border-blue-200",
     borderDark: "dark:border-blue-500/20",
     shadow: "hover:shadow-[0_20px_40px_-15px_rgba(59,130,246,0.3)]",
-    extra: {
-      icon: "timer",
-      text: "۱۵۰۰+ ساعت مدون",
-    },
   },
   {
     id: 3,
@@ -117,20 +113,23 @@ export default function PremiumStats() {
 
   return (
     <section className="py-24 relative overflow-hidden" ref={ref}>
-      {/* Decorative Background Elements */}
-      <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 dark:bg-primary/5 rounded-full blur-[150px] pointer-events-none -z-10 mix-blend-screen"></div>
-      <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-blue-500/5 dark:bg-blue-500/5 rounded-full blur-[120px] pointer-events-none -z-10 mix-blend-screen"></div>
+      {/* Decorative Background Elements - Hidden on mobile for performance */}
+      <div className="hidden md:block absolute top-1/2 left-0 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 dark:bg-primary/5 rounded-full blur-[150px] pointer-events-none -z-10 mix-blend-screen"></div>
+      <div className="hidden md:block absolute bottom-0 right-0 w-[600px] h-[600px] bg-blue-500/5 dark:bg-blue-500/5 rounded-full blur-[120px] pointer-events-none -z-10 mix-blend-screen"></div>
 
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         <div className="text-center mb-16">
-           <motion.div 
-             initial={{ opacity: 0, y: 20 }}
-             animate={inView ? { opacity: 1, y: 0 } : {}}
-             transition={{ duration: 0.6 }}
-             className="inline-flex items-center gap-2 px-4 py-2 bg-white/50 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 rounded-full text-sm font-bold text-gray-700 dark:text-gray-300 shadow-sm mb-6"
-           >
-             <span className="material-symbols-outlined text-primary text-[18px]">workspace_premium</span>
-             اعداد ما، اعتبار ماست
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center p-1.5 pl-5 pr-1.5 bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-xl border border-gray-200/50 dark:border-white/10 rounded-full text-sm font-black text-gray-700 dark:text-gray-300 shadow-sm mb-6 group hover:border-primary/30 dark:hover:bg-white/[0.05] transition-all duration-300 transform-gpu cursor-default"
+            >
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center ml-3 ml-2s shadow-inner group-hover:bg-primary/20 transition-colors">
+                <span className="material-symbols-outlined text-primary text-[18px]">workspace_premium</span>
+              </div>
+              <span className="ml-1 tracking-tight mt-0.5">مهم ترین هزینه برای یادگیری، وقت شماست</span>
            </motion.div>
            
            <motion.h2 
@@ -151,80 +150,57 @@ export default function PremiumStats() {
           variants={containerVariants}
           initial="hidden"
           animate={inView ? "visible" : "hidden"}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8"
+          className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-12 md:gap-8 lg:divide-x-0"
         >
           {stats.map((stat, index) => (
             <motion.div
               key={stat.id}
               variants={itemVariants}
-              whileHover={{ y: -10, scale: 1.02 }}
               className={`
-                relative bg-white dark:bg-[#161920] rounded-[2rem] p-8 overflow-hidden
-                border border-gray-100 dark:border-white/5
-                shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none
-                ${stat.shadow} transition-all duration-300 group
+                relative flex flex-col items-center justify-center text-center px-2 py-4
+                group transition-all duration-300 transform-gpu
               `}
             >
-              {/* Card Hover Gradient Background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-white/0 to-gray-50/50 dark:from-transparent dark:to-white/[0.02] z-0"></div>
-              
-              {/* Corner Glow based on stat color */}
-              <div className={`absolute -top-20 -right-20 w-40 h-40 bg-${stat.color}-400/20 dark:bg-${stat.color}-500/20 rounded-full blur-[40px] group-hover:bg-${stat.color}-400/30 transition-all duration-500`}></div>
+              {/* Subtle background glow on hover */}
+              <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-${stat.color}-400/20 dark:bg-${stat.color}-500/10 rounded-full blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`}></div>
 
-              <div className="relative z-10 flex flex-col h-full">
+              <div className="relative z-10 flex flex-col items-center w-full">
                 {/* Header: Icon */}
-                <div className="flex justify-start mb-8">
-                  <div
-                    className={`
-                      w-16 h-16 rounded-2xl flex items-center justify-center 
-                      ${stat.bgLight} ${stat.bgDark}
-                      ${stat.borderLight} ${stat.borderDark}
-                      border shadow-inner
-                      group-hover:rotate-[-5deg] group-hover:scale-110 transition-transform duration-500
-                    `}
-                  >
-                    <span className={`material-symbols-outlined text-3xl font-black ${stat.textLight} ${stat.textDark}`}>
-                      {stat.icon}
-                    </span>
-                  </div>
+                <div className={`
+                    w-14 h-14 md:w-16 md:h-16 rounded-2xl flex items-center justify-center mb-5 md:mb-6
+                    ${stat.bgLight} ${stat.bgDark}
+                    ${stat.textLight} ${stat.textDark}
+                    group-hover:-translate-y-1.5 transition-transform duration-500
+                  `}
+                >
+                  <span className="material-symbols-outlined text-3xl md:text-4xl font-black">
+                    {stat.icon}
+                  </span>
                 </div>
 
                 {/* Body: Number and Label */}
-                <div className="mt-auto">
-                  <div className="flex items-center justify-end gap-1 mb-2 tracking-tight" dir="ltr">
-                    <h3 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white flex items-center">
-                      {inView ? (
-                        <CountUp
-                          end={stat.value}
-                          duration={3}
-                          separator=","
-                          useEasing={true}
-                          preserveValue={true}
-                        />
-                      ) : (
-                        "0"
-                      )}
-                    </h3>
-                    <span className={`text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r ${stat.gradient} mb-1`}>
-                      {stat.suffix}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-start gap-4">
-                    <div className={`w-1.5 h-10 rounded-full bg-gradient-to-b ${stat.gradient}`}></div>
-                    <div className="pt-0.5">
-                      <p className="text-lg font-black text-gray-800 dark:text-gray-100">
-                        {stat.label}
-                      </p>
-                      {stat.extra && (
-                        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mt-1.5 flex items-center gap-1.5">
-                          <span className="material-symbols-outlined text-[16px]">{stat.extra.icon}</span>
-                          {stat.extra.text}
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                <div className="flex items-center justify-center gap-1 mb-2 md:mb-3 tracking-tight" dir="ltr">
+                  <h3 className="text-3xl md:text-5xl lg:text-5xl font-black text-gray-900 dark:text-white flex items-center">
+                    {inView ? (
+                      <CountUp
+                        end={stat.value}
+                        duration={3}
+                        separator=","
+                        useEasing={true}
+                        preserveValue={true}
+                      />
+                    ) : (
+                      "0"
+                    )}
+                  </h3>
+                  <span className={`text-xl md:text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r ${stat.gradient}`}>
+                    {stat.suffix}
+                  </span>
                 </div>
+                
+                <p className="text-base md:text-lg font-bold text-gray-700 dark:text-gray-300">
+                  {stat.label}
+                </p>
               </div>
             </motion.div>
           ))}
