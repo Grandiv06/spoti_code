@@ -59,29 +59,29 @@ export default function CourseHero() {
       >
         {/* Course Info - collapses smoothly when video expands */}
         <div
-          className={`min-w-0 overflow-hidden p-8 md:p-12 lg:p-16 flex flex-col justify-center relative z-10 row-start-2 lg:row-start-1 transition-opacity duration-500 ease-out ${
+          className={`min-w-0 overflow-hidden p-6 md:p-12 lg:p-16 flex flex-col justify-center relative z-10 row-start-2 lg:row-start-1 transition-opacity duration-500 ease-out ${
             isVideoExpanded ? "opacity-0 pointer-events-none" : "opacity-100"
           }`}
         >
-          <div className="flex flex-wrap items-center gap-3 mb-8">
-            <span className="bg-emerald-100/80 dark:bg-emerald-900/30 backdrop-blur-md text-emerald-700 dark:text-emerald-300 px-4 py-2 rounded-2xl text-xs font-black uppercase tracking-wider border border-emerald-200 dark:border-emerald-700">
+          <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-6 md:mb-8">
+            <span className="bg-emerald-100/80 dark:bg-emerald-900/30 backdrop-blur-md text-emerald-700 dark:text-emerald-300 px-3 md:px-4 py-1.5 md:py-2 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-black uppercase tracking-wider border border-emerald-200 dark:border-emerald-700">
               فرانت‌اند
             </span>
-            <span className="bg-amber-100/80 dark:bg-amber-900/30 backdrop-blur-md text-amber-700 dark:text-amber-300 px-4 py-2 rounded-2xl text-xs font-black uppercase tracking-wider border border-amber-200 dark:border-amber-700 flex items-center gap-1">
-              <span className="material-symbols-outlined text-[16px] filled">star</span>
+            <span className="bg-amber-100/80 dark:bg-amber-900/30 backdrop-blur-md text-amber-700 dark:text-amber-300 px-3 md:px-4 py-1.5 md:py-2 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-black uppercase tracking-wider border border-amber-200 dark:border-amber-700 flex items-center gap-1">
+              <span className="material-symbols-outlined text-[14px] md:text-[16px] filled">star</span>
               ۴.۹
             </span>
           </div>
-          <h1 className="text-4xl md:text-5xl lg:text-7xl font-black text-gray-900 dark:text-white leading-[1.2] mb-8">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-black text-gray-900 dark:text-white leading-[1.3] md:leading-[1.2] mb-4 md:mb-8">
             متخصص{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-l from-primary-dark to-emerald-500 drop-shadow-sm">
               React
             </span>{" "}
             و{" "}
-            <span className="relative inline-block">
+            <span className="relative inline-block mt-2 sm:mt-0">
               Next.js
               <svg
-                className="absolute w-full h-3 -bottom-1 right-0 text-primary opacity-60"
+                className="absolute w-full h-2 md:h-3 -bottom-1 right-0 text-primary opacity-60"
                 preserveAspectRatio="none"
                 viewBox="0 0 100 10"
               >
@@ -94,31 +94,31 @@ export default function CourseHero() {
               </svg>
             </span>
           </h1>
-          <p className="text-gray-600 dark:text-gray-300 text-lg md:text-xl font-medium leading-loose max-w-xl mb-10">
+          <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base md:text-xl font-medium leading-loose max-w-xl mb-8 md:mb-10 text-justify md:text-right">
             مسیر صفر تا صد ورود به بازار کار جهانی. یادگیری عمیق هوک‌ها، SSR، و
             معماری مدرن وب با جدیدترین نسخه Next.js 14.
           </p>
-          <div className="flex flex-wrap items-center gap-6 md:gap-12 pt-8 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-4">
-              <div className="size-12 rounded-2xl bg-white/60 dark:bg-white/10 flex items-center justify-center text-primary shadow-sm border border-white dark:border-gray-700">
-                <span className="material-symbols-outlined text-2xl">school</span>
+          <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-6 md:gap-12 pt-6 md:pt-8 border-t border-gray-200 dark:border-gray-700 w-full">
+            <div className="flex items-center gap-4 w-full sm:w-auto">
+              <div className="size-10 md:size-12 rounded-2xl bg-white/60 dark:bg-white/10 flex items-center justify-center text-primary shadow-sm border border-white dark:border-gray-700 shrink-0">
+                <span className="material-symbols-outlined text-xl md:text-2xl">school</span>
               </div>
               <div className="flex flex-col">
-                <span className="text-xs text-gray-500 dark:text-gray-400 font-bold mb-1">
+                <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 font-bold mb-0.5 md:mb-1">
                   سطح دوره
                 </span>
-                <span className="font-extrabold text-gray-900 dark:text-white">پیشرفته</span>
+                <span className="text-sm md:text-base font-extrabold text-gray-900 dark:text-white">پیشرفته</span>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="size-12 rounded-2xl bg-white/60 dark:bg-white/10 flex items-center justify-center text-primary shadow-sm border border-white dark:border-gray-700">
-                <span className="material-symbols-outlined text-2xl">schedule</span>
+            <div className="flex items-center gap-4 w-full sm:w-auto">
+              <div className="size-10 md:size-12 rounded-2xl bg-white/60 dark:bg-white/10 flex items-center justify-center text-primary shadow-sm border border-white dark:border-gray-700 shrink-0">
+                <span className="material-symbols-outlined text-xl md:text-2xl">schedule</span>
               </div>
               <div className="flex flex-col">
-                <span className="text-xs text-gray-500 dark:text-gray-400 font-bold mb-1">
+                <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 font-bold mb-0.5 md:mb-1">
                   مدت زمان
                 </span>
-                <span className="font-extrabold text-gray-900 dark:text-white">۶۵ ساعت</span>
+                <span className="text-sm md:text-base font-extrabold text-gray-900 dark:text-white">۶۵ ساعت</span>
               </div>
             </div>
           </div>

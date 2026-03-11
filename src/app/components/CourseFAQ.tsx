@@ -118,21 +118,21 @@ export default function CourseFAQ({ items = MOCK_FAQS }: CourseFAQProps) {
               <button
                 type="button"
                 onClick={() => toggle(item.id)}
-                className="w-full flex items-center justify-between p-6 md:p-8 text-right cursor-pointer"
+                className="w-full flex items-center justify-between p-4 md:p-6 lg:p-8 text-right cursor-pointer gap-2 md:gap-4"
               >
-                <div className="flex items-center gap-4">
+                <div className="flex items-start md:items-center gap-3 md:gap-4 w-[calc(100%-40px)]">
                   <span
-className={`flex items-center justify-center size-10 rounded-2xl shrink-0 transition-all ${
+className={`flex items-center justify-center size-8 md:size-10 rounded-xl md:rounded-2xl shrink-0 transition-all ${
                     isOpen
                         ? "bg-primary/20 dark:bg-primary/30 text-primary"
                         : "bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-400 group-hover:text-primary"
                     }`}
                   >
-                    <span className="material-symbols-outlined text-xl">
+                    <span className="material-symbols-outlined text-base md:text-xl">
                       help
                     </span>
                   </span>
-                  <h3 className="font-bold text-lg text-gray-900 dark:text-white text-right">
+                  <h3 className="font-bold text-sm md:text-base lg:text-lg text-gray-900 dark:text-white text-right leading-relaxed mt-1 md:mt-0">
                     {item.question}
                   </h3>
                 </div>

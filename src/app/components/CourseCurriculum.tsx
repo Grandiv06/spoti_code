@@ -195,7 +195,7 @@ export default function CourseCurriculum({
           return (
             <div
               key={chapter.id}
-              className={`rounded-4xl overflow-hidden transition-all duration-300 group ${
+              className={`rounded-3xl md:rounded-4xl overflow-hidden transition-all duration-300 group ${
                 isOpen
                   ? "bg-gray-50 dark:bg-white/5 border border-gray-200/80 dark:border-white/[0.06] shadow-learning-card-light dark:shadow-learning-card-dark"
                   : "bg-white dark:bg-white/[0.02] border border-gray-200/60 dark:border-transparent hover:bg-gray-50 dark:hover:bg-white/5 hover:border-gray-200/80 dark:hover:border-white/[0.06] hover:shadow-learning-card-light dark:hover:shadow-learning-card-dark"
@@ -204,42 +204,42 @@ export default function CourseCurriculum({
               <button
                 type="button"
                 onClick={() => toggleChapter(chapter.id)}
-                className="w-full flex items-center justify-between p-6 md:p-8 text-right cursor-pointer"
+                className="w-full flex items-center justify-between p-4 md:p-6 lg:p-8 text-right cursor-pointer gap-2 md:gap-4 lg:gap-6"
               >
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-3 md:gap-4 lg:gap-6 w-[calc(100%-48px)]">
                   <span
-                    className={`flex items-center justify-center size-14 rounded-3xl text-2xl font-black transition-all ${
+                    className={`shrink-0 flex items-center justify-center size-10 md:size-12 lg:size-14 rounded-xl md:rounded-2xl lg:rounded-3xl text-lg md:text-xl lg:text-2xl font-black transition-all ${
                       isOpen
                         ? "bg-primary text-white shadow-[0_0_20px_rgba(34,197,94,0.5)]"
-                        : "bg-gray-100 dark:bg-gray-800 shadow-md text-primary group-hover:text-primary-dark group-hover:scale-110"
+                        : "bg-gray-100 dark:bg-gray-800 shadow-md text-primary group-hover:text-primary-dark group-hover:scale-105 md:group-hover:scale-110"
                     }`}
                   >
                     {chapter.number}
                   </span>
-                  <div>
+                  <div className="min-w-0 pr-1">
                     <h3
-                      className={`font-bold text-xl mb-1 transition-colors ${
+                      className={`font-bold text-sm sm:text-base md:text-lg lg:text-xl mb-0.5 md:mb-1 transition-colors truncate ${
                         isOpen
-                          ? "text-gray-900 dark:text-white"
+                          ? "text-gray-900 dark:text-white white-space-normal"
                           : "text-gray-900 dark:text-white group-hover:text-primary-dark"
                       }`}
                     >
                       {chapter.title}
                     </h3>
-                    <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">
+                    <span className="text-[10px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-400 font-medium truncate block">
                       {chapter.subtitle}
                     </span>
                   </div>
                 </div>
                 <div
-                  className={`size-10 rounded-full flex items-center justify-center transition-all ${
+                  className={`shrink-0 size-8 md:size-10 rounded-full flex items-center justify-center transition-all ${
                     isOpen
                       ? "bg-primary text-white shadow-[0_0_20px_rgba(34,197,94,0.5)]"
                       : "bg-gray-100 dark:bg-white/10 group-hover:bg-primary group-hover:text-white"
                   }`}
                 >
                   <span
-                    className={`material-symbols-outlined transition-transform duration-300 ${
+                    className={`material-symbols-outlined text-lg md:text-xl lg:text-2xl transition-transform duration-300 ${
                       isOpen ? "rotate-180" : ""
                     }`}
                   >
@@ -249,7 +249,7 @@ export default function CourseCurriculum({
               </button>
 
               {isOpen && (
-                <div className="p-6 md:p-8 bg-gray-50/80 dark:bg-white/5 backdrop-blur-sm border-t border-gray-200/80 dark:border-white/[0.06]">
+                <div className="p-4 md:p-6 lg:p-8 bg-gray-50/80 dark:bg-white/5 backdrop-blur-sm border-t border-gray-200/80 dark:border-white/[0.06]">
                   <ul className="space-y-4 border-r-2 border-primary/30 pr-6 mr-3">
                     {chapter.lessons.map((lesson) => (
                       <li
