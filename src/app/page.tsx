@@ -296,7 +296,7 @@ export default function Home() {
                         className="flex-1 bg-gray-50 dark:bg-white/5 hover:bg-primary hover:text-background-dark text-gray-900 dark:text-white rounded-2xl py-2.5 font-bold transition-all flex items-center justify-center gap-2 group/btn"
                       >
                         مشاهده
-                        <span className="material-symbols-outlined text-[18px] rtl:rotate-180 group-hover/btn:translate-x-1 transition-transform">
+                        <span className="material-symbols-outlined text-[18px] rtl:rotate-180 group-hover/btn:-translate-x-2 transition-transform">
                           arrow_right_alt
                         </span>
                       </Link>
