@@ -1,6 +1,5 @@
 import React from "react";
 import ProfileHeader from "../_components/ProfileHeader";
-import GrowthRoadmap from "../_components/GrowthRoadmap";
 import ProjectsTabs from "../_components/ProjectsTabs";
 import ActivityTabs from "../_components/ActivityTabs";
 import ProfileSidebar from "../_components/ProfileSidebar";
@@ -43,6 +42,7 @@ export default function ProfilePage() {
       "Tailwind CSS",
       "Git",
       "Figma",
+      "CS",
     ],
   };
 
@@ -58,7 +58,6 @@ export default function ProfilePage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-6 md:mt-10">
           {/* Left Column (Main Content) - Wide */}
           <div className="lg:col-span-8 space-y-8">
-            <GrowthRoadmap />
             <ProjectsTabs />
             <ActivityTabs />
           </div>
