@@ -17,7 +17,7 @@ export default function PanelLayout({
           <PanelSidebar />
           <div className="flex flex-1 flex-col min-w-0 transition-all duration-500 ease-in-out lg:mr-[294px]">
             <PanelHeader />
-            <main className="flex-1 overflow-auto p-4 md:p-6 scrollbar-hide">
+            <main className="flex-1 overflow-auto p-4 md:p-6">
               {children}
             </main>
           </div>

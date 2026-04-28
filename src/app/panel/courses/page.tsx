@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 const courses = [
   {
     id: 1,
@@ -64,9 +66,9 @@ export default function PanelCourses() {
               </div>
             </div>
             
-            <button className="w-full mt-6 py-3 rounded-xl bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white font-bold hover:bg-primary hover:text-white transition-all cursor-pointer">
+            <Link href={`/panel/courses/${course.id}/learn`} className="block w-full mt-6 py-3 rounded-xl bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white font-bold hover:bg-primary hover:text-white transition-all cursor-pointer text-center">
                 ادامه یادگیری
-            </button>
+            </Link>
           </div>
         ))}
       </div>

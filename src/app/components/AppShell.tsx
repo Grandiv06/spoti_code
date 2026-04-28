@@ -18,13 +18,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div
       className={`flex flex-col ${
-        isAuthPage ? "h-[100dvh] overflow-hidden" : isDashboardPage ? "h-[100dvh] overflow-hidden" : "min-h-screen"
+        isAuthPage ? "h-[100dvh] overflow-hidden" : "min-h-screen"
       }`}
     >
       {!isDashboardPage && !isAuthPage && <Header />}
       <div
-        className={`flex-1 min-h-0 overflow-hidden ${
-          isDashboardPage ? "" : isAuthPage ? "" : "pt-20 md:pt-24 lg:pt-24"
+        className={`flex-1 min-h-0 ${
+          isDashboardPage ? "" : isAuthPage ? "overflow-hidden" : "overflow-hidden pt-20 md:pt-24 lg:pt-24"
         }`}
       >
         {children}
