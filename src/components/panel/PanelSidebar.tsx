@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { usePanelSidebar } from "@/context/PanelSidebarContext";
 import { useSocial } from "@/context/SocialContext";
 import { cn } from "@/lib/utils";
-import { User, LogOut, X } from "lucide-react";
+import { User, LogOut, X, ChevronRight, ChevronLeft } from "lucide-react";
 
 const SIDEBAR_COLLAPSED_KEY = "spoticode-sidebar-collapsed";
 
@@ -19,6 +19,7 @@ const menuItems = [
   { label: "اعلان‌ها", href: "/panel/notifications", icon: "notifications" },
   { label: "تراکنش‌ها", href: "/panel/transactions", icon: "receipt_long" },
   { label: "پروفایل", href: "/panel/profile", icon: "person" },
+  { label: "تنظیمات", href: "/panel/settings", icon: "settings" },
 ];
 
 export default function PanelSidebar() {
@@ -26,8 +27,7 @@ export default function PanelSidebar() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { notifications } = useSocial();
-  const { isMobileOpen, setMobileOpen } = usePanelSidebar();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { isMobileOpen, setMobileOpen, isCollapsed, setIsCollapsed, toggleCollapsed } = usePanelSidebar();
   const unreadNotifications = notifications?.filter((n) => !n.isRead).length ?? 0;
 
   useEffect(() => {
@@ -35,16 +35,14 @@ export default function PanelSidebar() {
       const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
       if (stored !== null) setIsCollapsed(stored === "true");
     } catch {}
-  }, []);
+  }, [setIsCollapsed]);
 
-  const toggleCollapsed = () => {
-    setIsCollapsed((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
-      } catch {}
-      return next;
-    });
+  const handleToggleCollapse = () => {
+    const next = !isCollapsed;
+    try {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+    } catch {}
+    toggleCollapsed();
   };
 
   const handleLogout = () => {
@@ -67,18 +65,31 @@ export default function PanelSidebar() {
 
       <div
         className={cn(
-          "fixed top-0 h-full z-[50] w-[294px] max-w-[85vw] transition-all duration-500 ease-in-out",
+          "fixed top-0 h-full z-[50] transition-all duration-500 ease-in-out",
           "right-0",
+          isCollapsed ? "w-[294px] lg:w-[100px]" : "w-[294px]",
           isMobileOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"
         )}
       >
         <div
           className={cn(
-            "h-full flex flex-col shadow-lg border p-2 transition-colors duration-300",
+            "h-full flex flex-col shadow-lg border p-2 transition-all duration-300 relative",
             "rounded-l-[40px]",
             "bg-gray-100/80 dark:bg-[#0B0D11]/30 border-gray-200/50 dark:border-white/5 backdrop-blur-md"
           )}
         >
+          {/* Collapse Toggle Button (Desktop Only) */}
+          <button
+            onClick={handleToggleCollapse}
+            className="hidden lg:flex absolute -left-4 top-12 z-[60] w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-[#1a1d24] border border-gray-200 dark:border-white/10 shadow-md text-gray-600 dark:text-gray-300 hover:text-primary transition-all cursor-pointer group"
+          >
+            {isCollapsed ? (
+              <ChevronLeft className="w-5 h-5 transition-transform group-hover:-translate-x-0.5" />
+            ) : (
+              <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-0.5" />
+            )}
+          </button>
+
           {/* Mobile Close */}
           <button
             onClick={closeMobile}
@@ -89,55 +100,62 @@ export default function PanelSidebar() {
           </button>
 
           {/* Logo */}
-          <div className="flex justify-center pt-6 pb-4">
+          <div className={cn("flex justify-center pt-6 pb-4 transition-all duration-300", isCollapsed ? "px-0" : "px-4")}>
             <Link href="/" className="flex items-center gap-2 group cursor-pointer" onClick={closeMobile}>
               <Image
                 src="/favicon.svg"
                 alt="اسپاتی‌کد"
                 width={48}
                 height={48}
-                className="w-12 h-12 group-hover:-rotate-45 transition-transform"
+                className={cn("transition-all duration-500 group-hover:-rotate-45", isCollapsed ? "w-12 h-12" : "w-12 h-12")}
               />
-              <span className="text-xl font-black tracking-tighter text-gray-900 dark:text-white">
-                <span className="text-primary">اسپاتی</span> کد
-              </span>
+              <div className={cn(
+                "overflow-hidden transition-all duration-300",
+                isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
+              )}>
+                <span className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white whitespace-nowrap">
+                  <span className="text-primary">اسپاتی</span> کد
+                </span>
+              </div>
             </Link>
           </div>
 
           {/* User Profile Card */}
-          <div className="px-4 mb-4">
-            <div className="rounded-xl p-4 bg-white dark:bg-white/10 border border-gray-200 dark:border-white/5">
-              <div className="flex flex-row-reverse items-center gap-3 mb-3">
-                <div className="w-14 h-14 rounded-full border-2 border-primary/50 overflow-hidden flex items-center justify-center bg-primary/10 dark:bg-primary/20 shrink-0">
+          <div className={cn("mb-4 transition-all duration-300 flex justify-center", isCollapsed ? "px-0" : "px-4")}>
+            <div className={cn(
+              "rounded-2xl bg-white dark:bg-white/10 border border-gray-200 dark:border-white/5 transition-all duration-300 flex items-center justify-center overflow-hidden",
+              isCollapsed ? "w-14 h-14 p-0" : "w-full p-4"
+            )}>
+              <div className={cn(
+                "flex items-center w-full",
+                isCollapsed ? "justify-center" : "flex-row-reverse gap-3"
+              )}>
+                <div className={cn(
+                  "rounded-full border-2 border-primary/50 overflow-hidden flex items-center justify-center bg-primary/10 dark:bg-primary/20 shrink-0 transition-all duration-300",
+                  isCollapsed ? "w-12 h-12" : "w-14 h-14"
+                )}>
                   {user?.avatarUrl ? (
                     <Image src={user.avatarUrl} alt="" width={56} height={56} className="object-cover w-full h-full" />
                   ) : (
-                    <User className="w-7 h-7 text-primary" strokeWidth={2} />
+                    <User className={cn("text-primary transition-all", isCollapsed ? "w-6 h-6" : "w-7 h-7")} strokeWidth={2} />
                   )}
                 </div>
-                <div className="flex flex-col items-end min-w-0 flex-1">
-                  <p className="text-base font-bold text-gray-900 dark:text-white truncate w-full text-right">
-                    {user?.displayName || "کاربر مهمان"}
-                  </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 truncate w-full text-right">
-                    {user?.phone || "۰۹۱۲۳۴۵۶۷۸۹"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-row-reverse items-center justify-between gap-2">
-                <Link
-                  href="/panel/profile"
-                  onClick={closeMobile}
-                  className="flex items-center justify-center gap-2 rounded-[14px] py-2 px-4 bg-primary hover:bg-primary-hover text-white text-xs font-medium transition-colors cursor-pointer"
-                >
-                  تنظیمات حساب
-                </Link>
+                {!isCollapsed && (
+                  <div className="flex flex-col items-end min-w-0 flex-1 overflow-hidden transition-all duration-300 opacity-100">
+                    <p className="text-base font-bold text-gray-900 dark:text-white truncate w-full text-right">
+                      {user?.displayName || "کاربر مهمان"}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 truncate w-full text-right">
+                      {user?.phone || "۰۹۱۲۳۴۵۶۷۸۹"}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
           {/* Nav */}
-          <nav className="flex-1 px-4 overflow-y-auto py-4 space-y-3" dir="rtl">
+          <nav className={cn("flex-1 overflow-y-auto py-4 space-y-3 scrollbar-hide flex flex-col items-center", isCollapsed ? "px-2" : "px-4")} dir="rtl">
             {menuItems.map((item) => {
               const isActive =
                 item.href === "/social" ? pathname?.startsWith("/social") : pathname === item.href;
@@ -148,12 +166,14 @@ export default function PanelSidebar() {
                   href={item.href}
                   onClick={closeMobile}
                   className={cn(
-                    "group relative flex items-center gap-3 py-3.5 px-4 rounded-[14px] transition-all duration-200 w-full min-h-[48px] cursor-pointer",
-                    "justify-start text-right",
+                    "group relative flex items-center transition-all duration-300 cursor-pointer",
+                    isCollapsed 
+                      ? "w-12 h-12 justify-center rounded-2xl" 
+                      : "w-full min-h-[48px] py-3.5 px-4 rounded-[14px] justify-start text-right gap-3",
                     isActive
                       ? "bg-white dark:bg-white text-primary dark:text-primary"
                       : "text-gray-700 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white",
-                    isActive && "before:absolute before:bottom-0 before:left-1/2 before:-translate-x-1/2 before:w-[60%] before:h-[5px] before:rounded-t-full before:bg-primary"
+                    isActive && !isCollapsed && "before:absolute before:bottom-0 before:left-1/2 before:-translate-x-1/2 before:w-[60%] before:h-[5px] before:rounded-t-full before:bg-primary"
                   )}
                 >
                   <span
@@ -164,26 +184,46 @@ export default function PanelSidebar() {
                   >
                     {item.icon}
                     {showBadge && (
-                      <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white dark:border-[#0B0D11]">
+                      <span className={cn(
+                        "absolute flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white dark:border-[#0B0D11]",
+                        isCollapsed ? "-top-2 -right-2" : "-top-1 -right-1"
+                      )}>
                         {unreadNotifications > 99 ? "99+" : unreadNotifications}
                       </span>
                     )}
                   </span>
-                  <span className={cn("truncate font-medium", isActive && "font-semibold")}>{item.label}</span>
+                  <div className={cn(
+                    "overflow-hidden transition-all duration-300",
+                    isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
+                  )}>
+                    <span className={cn("truncate font-medium whitespace-nowrap px-2", isActive && "font-semibold")}>
+                      {item.label}
+                    </span>
+                  </div>
                 </Link>
               );
             })}
           </nav>
 
           {/* Logout */}
-          <div className="px-3 pb-4">
+          <div className={cn("pb-4 transition-all duration-300 flex flex-col items-center", isCollapsed ? "px-0" : "px-4")}>
             <button
               onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 rounded-2xl py-3 px-4 bg-primary hover:bg-primary-hover text-white text-sm font-medium transition-colors cursor-pointer"
+              className={cn(
+                "flex items-center bg-primary hover:bg-primary-hover text-white transition-all cursor-pointer shadow-lg shadow-primary/20",
+                isCollapsed 
+                  ? "w-12 h-12 justify-center rounded-2xl" 
+                  : "w-full min-h-[52px] py-3.5 px-4 rounded-[14px] justify-center gap-2"
+              )}
               aria-label="خروج"
             >
-              <LogOut size={18} strokeWidth={1.5} />
-              <span>خروج از پنل کاربری</span>
+              <LogOut size={isCollapsed ? 24 : 20} strokeWidth={2} />
+              <div className={cn(
+                "overflow-hidden transition-all duration-300",
+                isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
+              )}>
+                <span className="whitespace-nowrap text-sm font-bold px-2">خروج از پنل کاربری</span>
+              </div>
             </button>
           </div>
         </div>
