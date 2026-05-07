@@ -2,6 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
   Github,
   Linkedin,
@@ -11,6 +12,7 @@ import {
   MapPin,
   Briefcase,
   Sparkles,
+  Edit3,
 } from "lucide-react";
 
 interface ProfileHeaderProps {
@@ -30,9 +32,11 @@ interface ProfileHeaderProps {
       website?: string;
     };
   };
+  isOwnProfile?: boolean;
 }
 
-const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user }) => {
+const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isOwnProfile }) => {
+  const router = useRouter();
   return (
     <div className="relative w-full mb-12 md:mb-16 overflow-visible">
       {/* Banner - Default pattern */}
@@ -105,10 +109,20 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user }) => {
               {/* Actions & Socials */}
               <div className="flex flex-col items-end gap-4">
                 <div className="flex items-center gap-3">
-                  <button className="flex items-center gap-2 px-6 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl shadow-lg shadow-green-500/30 transition-all font-medium active:scale-95 cursor-pointer">
-                    <UserPlus className="w-4 h-4" />
-                    <span>دنبال کردن</span>
-                  </button>
+                  {isOwnProfile ? (
+                    <button 
+                      onClick={() => router.push("/panel/profile/edit")}
+                      className="flex items-center gap-2 px-6 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl shadow-lg shadow-green-500/30 transition-all font-medium active:scale-95 cursor-pointer"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                      <span>ویرایش پروفایل</span>
+                    </button>
+                  ) : (
+                    <button className="flex items-center gap-2 px-6 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl shadow-lg shadow-green-500/30 transition-all font-medium active:scale-95 cursor-pointer">
+                      <UserPlus className="w-4 h-4" />
+                      <span>دنبال کردن</span>
+                    </button>
+                  )}
                   <button className="p-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl hover:bg-gray-50 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer">
                     <Share2 className="w-5 h-5" />
                   </button>
