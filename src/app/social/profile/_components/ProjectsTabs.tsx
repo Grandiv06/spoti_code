@@ -15,8 +15,8 @@ import { cn } from "@/lib/utils";
 const spoticodeProjects = [
   {
     id: 1,
-    title: "فروشگاه فرانت‌هوک",
-    mission: "مأموریت پایان فصل ۱",
+    title: "دوره جامع React و Next.js",
+    mission: "ترم اول: اصول فرانت‌اند",
     status: "approved",
     score: 95,
     thumbnail: "/images/placeholders/project-1.jpg",
@@ -26,8 +26,8 @@ const spoticodeProjects = [
   },
   {
     id: 2,
-    title: "سیستم مدیریت تسک",
-    mission: "تمرین جاوااسکریپت",
+    title: "متخصص جاوااسکریپت (ES6+)",
+    mission: "فصل ۳: برنامه‌نویسی آسنکرون",
     status: "featured",
     score: 100,
     thumbnail: "/images/placeholders/project-2.jpg",
@@ -37,8 +37,8 @@ const spoticodeProjects = [
   },
   {
     id: 3,
-    title: "لندینگ پیج شخصی",
-    mission: "پروژه HTML/CSS",
+    title: "آموزش جامع Tailwind CSS",
+    mission: "پروژه نهایی: طراحی ریسپانسیو",
     status: "submitted",
     score: null,
     thumbnail: "/images/placeholders/project-3.jpg",
@@ -68,22 +68,22 @@ const freeProjects = [
 ];
 
 const ProjectsTabs = () => {
-  const [activeTab, setActiveTab] = useState<"spoticode" | "free">("spoticode");
+  const [activeTab, setActiveTab] = useState<"courses" | "free">("courses");
 
   return (
     <div className="bg-white/60 dark:bg-[#1c1e26]/60 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-3xl p-6 shadow-sm min-h-[500px]">
       {/* Tabs Header */}
       <div className="flex items-center gap-4 mb-6 border-b border-gray-100 dark:border-gray-800 pb-4">
         <button
-          onClick={() => setActiveTab("spoticode")}
+          onClick={() => setActiveTab("courses")}
           className={cn(
             "pb-4 -mb-[17px] px-2 font-bold text-lg transition-colors border-b-2",
-            activeTab === "spoticode"
+            activeTab === "courses"
               ? "text-green-500 border-green-500 cursor-pointer"
               : "text-gray-400 border-transparent hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer",
           )}
         >
-          پروژه‌های اسپاتی کد
+          دوره‌های شرکت شده
         </button>
         <button
           onClick={() => setActiveTab("free")}
@@ -100,7 +100,7 @@ const ProjectsTabs = () => {
 
       {/* Filters (Visual Only) */}
       <div className="flex gap-2 mb-6 overflow-x-auto py-1 hide-scrollbar">
-        {["جدیدترین", "تایید شده ✅", "ویژه ⭐"].map((filter) => (
+        {["همه دوره‌ها", "دوره‌های خریداری شده"].map((filter) => (
           <button
             key={filter}
             className="px-4 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-sm hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-600 dark:hover:text-green-400 transition-colors whitespace-nowrap cursor-pointer"
@@ -112,7 +112,7 @@ const ProjectsTabs = () => {
 
       {/* Content */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {activeTab === "spoticode"
+        {activeTab === "courses"
           ? spoticodeProjects.map((project) => (
               <div
                 key={project.id}
@@ -169,15 +169,13 @@ const ProjectsTabs = () => {
                       href={project.githubUrl}
                       className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
                     >
-                      <Github className="w-3.5 h-3.5" />
-                      سورس کد
+                      جزئیات دوره
                     </a>
                     <a
                       href={project.demoUrl}
-                      className="flex items-center gap-1.5 text-xs text-blue-500 hover:text-blue-600 transition-colors mr-auto"
+                      className="flex items-center gap-1.5 text-xs text-green-500 hover:text-green-600 transition-colors mr-auto"
                     >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      مشاهده دمو
+                      ادامه یادگیری
                     </a>
                     <span className="text-[10px] text-gray-400 flex items-center gap-1">
                       <Clock className="w-3 h-3" />

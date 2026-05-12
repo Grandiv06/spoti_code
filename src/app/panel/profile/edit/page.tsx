@@ -1,13 +1,13 @@
 "use client";
 
-import React, { Suspense, useEffect, useRef } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useSocial } from "@/context/SocialContext";
 import { useProfileSettings } from "@/context/ProfileSettingsContext";
 import { cn } from "@/lib/utils";
 import { SocialButton } from "@/components/social/SocialButton";
-import { ArrowRight, ImagePlus, User, Camera } from "lucide-react";
+import { ArrowRight, ImagePlus, User, Camera, X, Plus } from "lucide-react";
 import Image from "next/image";
 
 const PRESET_COLORS = [
@@ -21,6 +21,13 @@ const PRESET_COLORS = [
   "#84cc16",
 ];
 
+const MBTI_TYPES = [
+  "INTJ", "INTP", "ENTJ", "ENTP",
+  "INFJ", "INFP", "ENFJ", "ENFP",
+  "ISTJ", "ISFJ", "ESTJ", "ESFJ",
+  "ISTP", "ISFP", "ESTP", "ESFP"
+];
+
 function ProfileEditContent() {
   const router = useRouter();
   const bannerInputRef = useRef<HTMLInputElement>(null);
@@ -28,6 +35,7 @@ function ProfileEditContent() {
   const { isAuthenticated, user: authUser } = useAuth();
   const { currentUser } = useSocial();
   const { settings, updateSettings } = useProfileSettings();
+  const [skillInput, setSkillInput] = useState("");
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -51,6 +59,18 @@ function ProfileEditContent() {
       else updateSettings({ avatarImage: result });
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleAddSkill = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (skillInput.trim() && !settings.skills.includes(skillInput.trim())) {
+      updateSettings({ skills: [...settings.skills, skillInput.trim()] });
+      setSkillInput("");
+    }
+  };
+
+  const handleRemoveSkill = (skillToRemove: string) => {
+    updateSettings({ skills: settings.skills.filter((s) => s !== skillToRemove) });
   };
 
   if (!isAuthenticated) return null;
@@ -105,19 +125,82 @@ function ProfileEditContent() {
                 />
               </div>
 
-              {/* Location */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Location */}
+                <div>
+                  <label htmlFor="location" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                    محل سکونت
+                  </label>
+                  <input
+                    id="location"
+                    type="text"
+                    value={settings.location}
+                    onChange={(e) => updateSettings({ location: e.target.value })}
+                    placeholder="تهران، ایران"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#14161c] text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                  />
+                </div>
+
+                {/* MBTI */}
+                <div>
+                  <label htmlFor="mbti" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                    تایپ MBTI
+                  </label>
+                  <select
+                    id="mbti"
+                    value={settings.mbti}
+                    onChange={(e) => updateSettings({ mbti: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#14161c] text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all cursor-pointer"
+                  >
+                    {MBTI_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Skills */}
               <div>
-                <label htmlFor="location" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                  محل سکونت
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                  مهارت‌ها
                 </label>
-                <input
-                  id="location"
-                  type="text"
-                  value={settings.location}
-                  onChange={(e) => updateSettings({ location: e.target.value })}
-                  placeholder="تهران، ایران"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#14161c] text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                />
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="text"
+                    value={skillInput}
+                    onChange={(e) => setSkillInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleAddSkill()}
+                    placeholder="نام مهارت (مثلاً React)"
+                    className="flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#14161c] text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                  />
+                  <button
+                    onClick={() => handleAddSkill()}
+                    className="p-3 bg-primary text-white rounded-xl hover:bg-primary-dark transition-all active:scale-95 cursor-pointer shadow-lg shadow-primary/20"
+                  >
+                    <Plus className="w-6 h-6" />
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {settings.skills.map((skill) => (
+                    <div
+                      key={skill}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 animate-in zoom-in-95 duration-200"
+                    >
+                      {skill}
+                      <button
+                        onClick={() => handleRemoveSkill(skill)}
+                        className="p-0.5 hover:bg-red-500/10 hover:text-red-500 rounded-md transition-colors cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                  {settings.skills.length === 0 && (
+                    <p className="text-sm text-gray-400 italic">هنوز مهارتی اضافه نشده است.</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>

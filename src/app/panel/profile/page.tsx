@@ -34,7 +34,7 @@ export default function PanelProfilePage() {
     bannerUrl: settings.bannerImage || "",
     avatarUrl: settings.avatarImage || currentUser.avatarUrl,
     role: "Frontend Learner",
-    mbti: "INTJ", // Default if not in settings
+    mbti: settings.mbti || "INTJ",
     location: settings.location || "تهران، ایران",
     joinDate: "۱۴۰۲",
     socials: {
@@ -48,7 +48,7 @@ export default function PanelProfilePage() {
       followers: currentUser.followersCount || 0,
       following: currentUser.followingCount || 0,
     },
-    skills: [
+    skills: settings.skills || [
       "JavaScript",
       "React",
       "Next.js",

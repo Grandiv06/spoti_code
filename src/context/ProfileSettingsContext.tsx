@@ -14,6 +14,8 @@ export type ProfileSettings = {
   linkedinUrl: string;
   telegramUrl: string;
   websiteUrl: string;
+  mbti: string;
+  skills: string[];
   avatarImage?: string;
   bannerImage?: string;
 };
@@ -28,6 +30,8 @@ const DEFAULT: ProfileSettings = {
   linkedinUrl: "",
   telegramUrl: "",
   websiteUrl: "",
+  mbti: "INTJ",
+  skills: ["JavaScript", "React", "Next.js", "TypeScript", "Tailwind CSS", "Git", "Figma"],
   avatarImage: "",
   bannerImage: "",
 };
