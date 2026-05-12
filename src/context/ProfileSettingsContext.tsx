@@ -13,6 +13,7 @@ export type ProfileSettings = {
   githubUrl: string;
   linkedinUrl: string;
   telegramUrl: string;
+  websiteUrl: string;
   avatarImage?: string;
   bannerImage?: string;
 };
@@ -26,6 +27,7 @@ const DEFAULT: ProfileSettings = {
   githubUrl: "",
   linkedinUrl: "",
   telegramUrl: "",
+  websiteUrl: "",
   avatarImage: "",
   bannerImage: "",
 };

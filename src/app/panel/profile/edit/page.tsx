@@ -166,6 +166,19 @@ function ProfileEditContent() {
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#14161c] text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                   />
                 </div>
+                <div>
+                  <label htmlFor="websiteUrl" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                    وب‌سایت شخصی
+                  </label>
+                  <input
+                    id="websiteUrl"
+                    type="url"
+                    value={settings.websiteUrl}
+                    onChange={(e) => updateSettings({ websiteUrl: e.target.value })}
+                    placeholder="https://example.com"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#14161c] text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                  />
+                </div>
               </div>
             </div>
           </div>
