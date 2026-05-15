@@ -16,6 +16,7 @@ const menuItems = [
   { label: "داشبورد", href: "/panel", icon: "dashboard" },
   { label: "دوره‌های من", href: "/panel/courses", icon: "school" },
   { label: "تراکنش‌ها", href: "/panel/transactions", icon: "receipt_long" },
+  { label: "پشتیبانی", href: "/panel/support", icon: "support_agent" },
   { label: "پروفایل", href: "/panel/profile", icon: "person" },
   { label: "تنظیمات", href: "/panel/settings", icon: "settings" },
 ];
