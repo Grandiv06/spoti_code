@@ -102,15 +102,15 @@ export default function PanelSidebar() {
               <Image
                 src="/favicon.svg"
                 alt="اسپاتی‌کد"
-                width={48}
-                height={48}
-                className={cn("transition-all duration-500 group-hover:-rotate-45", isCollapsed ? "w-12 h-12" : "w-12 h-12")}
+                width={36}
+                height={36}
+                className={cn("transition-all duration-500 group-hover:-rotate-45", isCollapsed ? "w-9 h-9" : "w-9 h-9")}
               />
               <div className={cn(
                 "overflow-hidden transition-all duration-300",
                 isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
               )}>
-                <span className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white whitespace-nowrap">
+                <span className="text-xl font-black tracking-tighter text-gray-900 dark:text-white whitespace-nowrap">
                   <span className="text-primary">اسپاتی</span> کد
                 </span>
               </div>
@@ -174,7 +174,7 @@ export default function PanelSidebar() {
                 >
                   <span
                     className={cn(
-                      "material-symbols-outlined text-xl shrink-0 transition-transform relative",
+                      "material-symbols-outlined text-[12px] shrink-0 transition-transform relative",
                       isActive ? "scale-110 text-primary" : "group-hover:scale-105"
                     )}
                   >

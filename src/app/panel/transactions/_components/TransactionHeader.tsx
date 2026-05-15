@@ -13,8 +13,8 @@ export default function TransactionHeader() {
       <div className="relative z-10 px-8 py-12 md:px-16 flex flex-col md:flex-row items-center gap-10">
         <div className="relative group">
           <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full group-hover:bg-primary/30 transition-colors" />
-          <div className="relative w-20 h-20 rounded-3xl bg-gradient-to-br from-primary to-primary-hover flex items-center justify-center text-white shadow-2xl shadow-primary/40 group-hover:scale-110 transition-transform duration-500">
-            <Wallet className="w-10 h-10" />
+          <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary-hover flex items-center justify-center text-white shadow-2xl shadow-primary/40 group-hover:scale-110 transition-transform duration-500">
+            <Wallet className="w-8 h-8" />
           </div>
         </div>
         
