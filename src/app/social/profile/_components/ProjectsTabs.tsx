@@ -6,7 +6,6 @@ import {
   Github,
   ExternalLink,
   Star,
-  CheckCircle,
   Clock,
   Tag,
 } from "lucide-react";
@@ -124,22 +123,6 @@ const ProjectsTabs = () => {
                   <div className="absolute inset-0 flex items-center justify-center text-gray-400 dark:text-gray-600 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
                     <span className="text-4xl opacity-20">🖼️</span>
                   </div>
-
-                  {/* Badges */}
-                  <div className="absolute top-3 right-3 flex gap-2">
-                    {project.status === "featured" && (
-                      <span className="bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm">
-                        <Star className="w-3 h-3 fill-current" />
-                        ویژه
-                      </span>
-                    )}
-                    {project.status === "approved" && (
-                      <span className="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm">
-                        <CheckCircle className="w-3 h-3" />
-                        تایید شده
-                      </span>
-                    )}
-                  </div>
                 </div>
 
                 <div className="p-5">
@@ -152,16 +135,6 @@ const ProjectsTabs = () => {
                         {project.title}
                       </h3>
                     </div>
-                    {project.score && (
-                      <div className="flex flex-col items-center bg-gray-50 dark:bg-gray-800 p-1.5 rounded-lg min-w-[3rem]">
-                        <span className="text-sm font-bold text-gray-900 dark:text-white">
-                          {project.score}
-                        </span>
-                        <span className="text-[10px] text-gray-400">
-                          امتیاز
-                        </span>
-                      </div>
-                    )}
                   </div>
 
                   <div className="flex items-center gap-4 mt-6 pt-4 border-t border-gray-50 dark:border-gray-800">

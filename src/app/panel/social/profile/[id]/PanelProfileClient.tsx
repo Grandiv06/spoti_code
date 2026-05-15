@@ -46,13 +46,9 @@ export default function PanelProfileClient({ params }: { params: Promise<{ id: s
               <Avatar src={user.avatarUrl} alt={user.displayName} size="xl" />
             </div>
             <div className="flex gap-2 mb-2">
-              {isCurrentUser ? (
+              {isCurrentUser && (
                 <SocialButton variant="outline" onClick={() => router.push(`${BASE}/dashboard`)}>
                   ویرایش پروفایل
-                </SocialButton>
-              ) : (
-                <SocialButton variant="primary" onClick={() => (currentUser ? followUser(user.id) : alert("برای دنبال کردن باید وارد شوید"))}>
-                  دنبال کردن
                 </SocialButton>
               )}
             </div>
@@ -87,14 +83,6 @@ export default function PanelProfileClient({ params }: { params: Promise<{ id: s
               </div>
             </div>
             <div className="flex gap-6 pt-4 border-t border-gray-100 dark:border-gray-800">
-              <div className="flex items-center gap-1">
-                <span className="font-bold text-gray-900 dark:text-white">{user.followersCount}</span>
-                <span className="text-gray-500 text-sm">دنبال‌کننده</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="font-bold text-gray-900 dark:text-white">{user.followingCount}</span>
-                <span className="text-gray-500 text-sm">دنبال‌شونده</span>
-              </div>
               <div className="flex items-center gap-1">
                 <span className="font-bold text-gray-900 dark:text-white">{userPosts.length}</span>
                 <span className="text-gray-500 text-sm">پروژه</span>

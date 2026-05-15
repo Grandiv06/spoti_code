@@ -64,6 +64,44 @@ export default function CourseDetailPage({
             {/* سوالات متداول - باکس جدا با دکمه بستن */}
             <CourseFAQ />
 
+            {/* Students Section */}
+            <section className="glass-panel rounded-[2rem] md:rounded-4xl p-6 md:p-8 lg:p-12 glass-card-hover mt-2 md:mt-4">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-4">
+                  <div className="size-10 md:size-12 rounded-xl md:rounded-2xl bg-gradient-to-br from-blue-100 dark:from-blue-900/30 to-white dark:to-gray-800 flex items-center justify-center text-blue-500 shadow-sm border border-white/50 dark:border-gray-700 shrink-0">
+                    <span className="material-symbols-outlined filled text-xl md:text-2xl">
+                      groups
+                    </span>
+                  </div>
+                  <h2 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white">
+                    دانشجویانی که در این دوره شرکت کردند
+                  </h2>
+                </div>
+                
+                <div className="flex flex-col items-center md:items-end gap-3">
+                  <div className="flex -space-x-3 rtl:space-x-reverse">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div key={i} className="size-10 md:size-12 rounded-full border-2 border-white dark:border-gray-800 overflow-hidden shadow-sm bg-gray-200 dark:bg-gray-700">
+                        <Image
+                          src={`/images/inst${(i % 2) + 1}.jpg`}
+                          alt={`Student ${i}`}
+                          width={48}
+                          height={48}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ))}
+                    <div className="size-10 md:size-12 rounded-full border-2 border-white dark:border-gray-800 bg-primary flex items-center justify-center text-white text-xs md:text-sm font-black shadow-sm">
+                      +1.2k
+                    </div>
+                  </div>
+                  <p className="text-xs md:text-sm font-bold text-gray-500 dark:text-gray-400">
+                    بیش از <span className="text-primary">۱,۲۰۰ نفر</span> این دوره را شروع کرده‌اند
+                  </p>
+                </div>
+              </div>
+            </section>
+
             {/* Instructor Section */}
             <section className="glass-panel rounded-[2rem] md:rounded-4xl p-6 md:p-8 lg:p-12 glass-card-hover mt-2 md:mt-4">
               <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-8 lg:gap-12 text-center md:text-right">

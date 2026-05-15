@@ -30,24 +30,13 @@ export const AuthorCard: React.FC<AuthorCardProps> = ({ author, onFollow, isFoll
         )}
 
         <div className="flex items-center justify-center gap-4 w-full mb-6 text-sm">
-            <div className="flex flex-col items-center">
-                <span className="font-bold text-gray-900 dark:text-white">{author.followersCount}</span>
-                <span className="text-gray-500 text-xs">دنبال‌کننده</span>
-            </div>
-            <div className="w-px h-8 bg-gray-100 dark:bg-white/[0.1]" />
              <div className="flex flex-col items-center">
                 <span className="font-bold text-gray-900 dark:text-white">{author.postsCount}</span>
                 <span className="text-gray-500 text-xs">پروژه</span>
             </div>
         </div>
 
-        <SocialButton 
-            variant={isFollowing ? "outline" : "primary"} 
-            className="w-full"
-            onClick={onFollow}
-        >
-            {isFollowing ? "دنبال می‌کنید" : "دنبال کردن"}
-        </SocialButton>
+
       </div>
     </div>
   );

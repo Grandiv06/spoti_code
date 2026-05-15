@@ -15,8 +15,6 @@ const SIDEBAR_COLLAPSED_KEY = "spoticode-sidebar-collapsed";
 const menuItems = [
   { label: "داشبورد", href: "/panel", icon: "dashboard" },
   { label: "دوره‌های من", href: "/panel/courses", icon: "school" },
-  { label: "اسپاتی هاب", href: "/social", icon: "hub" },
-  { label: "اعلان‌ها", href: "/panel/notifications", icon: "notifications" },
   { label: "تراکنش‌ها", href: "/panel/transactions", icon: "receipt_long" },
   { label: "پروفایل", href: "/panel/profile", icon: "person" },
   { label: "تنظیمات", href: "/panel/settings", icon: "settings" },
@@ -26,9 +24,7 @@ export default function PanelSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
-  const { notifications } = useSocial();
   const { isMobileOpen, setMobileOpen, isCollapsed, setIsCollapsed, toggleCollapsed } = usePanelSidebar();
-  const unreadNotifications = notifications?.filter((n) => !n.isRead).length ?? 0;
 
   useEffect(() => {
     try {
@@ -159,7 +155,6 @@ export default function PanelSidebar() {
             {menuItems.map((item) => {
               const isActive =
                 item.href === "/social" ? pathname?.startsWith("/social") : pathname === item.href;
-              const showBadge = item.href === "/panel/notifications" && unreadNotifications > 0;
               return (
                 <Link
                   key={item.href}
@@ -183,14 +178,6 @@ export default function PanelSidebar() {
                     )}
                   >
                     {item.icon}
-                    {showBadge && (
-                      <span className={cn(
-                        "absolute flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white dark:border-[#0B0D11]",
-                        isCollapsed ? "-top-2 -right-2" : "-top-1 -right-1"
-                      )}>
-                        {unreadNotifications > 99 ? "99+" : unreadNotifications}
-                      </span>
-                    )}
                   </span>
                   <div className={cn(
                     "overflow-hidden transition-all duration-300",
