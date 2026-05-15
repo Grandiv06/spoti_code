@@ -51,7 +51,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isOwnProfile }) => 
 
       {/* Profile Info Container */}
       <div className="px-6 md:px-10 relative">
-        <div className="flex flex-col md:flex-row items-start -mt-16 md:-mt-20 gap-6">
+        <div className="flex flex-col md:flex-row items-center md:items-start -mt-16 md:-mt-20 gap-6">
           {/* Avatar */}
           <div className="relative shrink-0">
             <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white dark:border-[#14161c] overflow-hidden shadow-2xl bg-white dark:bg-[#1c1e26]">
@@ -65,7 +65,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isOwnProfile }) => 
             </div>
             {/* Vertical connector line - profile to growth path */}
             <div
-              className="absolute top-full left-1/2 -translate-x-1/2 w-0.5 min-h-[80px] h-28 md:h-36 pointer-events-none"
+              className="hidden md:block absolute top-full left-1/2 -translate-x-1/2 w-0.5 min-h-[80px] h-28 md:h-36 pointer-events-none"
               aria-hidden
             >
               <div className="w-full h-full bg-gradient-to-b from-green-500/70 via-green-500/45 to-transparent rounded-full" />
@@ -74,28 +74,28 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isOwnProfile }) => 
 
           {/* User Details */}
           <div className="pt-8 md:pt-28 flex-1 w-full">
-            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+              <div className="flex flex-col items-center md:items-start text-center md:text-right">
+                <h1 className="text-2xl md:text-4xl font-black text-gray-900 dark:text-gray-100 flex flex-col md:flex-row items-center gap-2 md:gap-4 transition-all">
                   {user.displayName}
-                  <span className="px-3 py-1 text-xs font-medium bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400 rounded-full border border-green-200 dark:border-green-500/30">
+                  <span className="px-3 py-1 text-xs font-bold bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400 rounded-xl border border-green-200/50 dark:border-green-500/20 backdrop-blur-sm">
                     {user.mbti}
                   </span>
                 </h1>
-                <p className="text-gray-500 dark:text-gray-400 font-medium text-sm md:text-base mt-1">
+                <p className="text-gray-500 dark:text-gray-400 font-medium text-base md:text-lg mt-1 opacity-80">
                   @{user.username}
                 </p>
 
-                <div className="flex items-center gap-4 mt-3 text-sm text-gray-600 dark:text-gray-400 flex-wrap">
-                  <span className="flex items-center gap-1.5">
+                <div className="flex items-center justify-center md:justify-start gap-4 mt-6 text-sm text-gray-600 dark:text-gray-400 flex-wrap">
+                  <span className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-white/5 rounded-full border border-gray-100 dark:border-white/5">
                     <Briefcase className="w-4 h-4 text-green-500" />
                     {user.role}
                   </span>
-                  <span className="flex items-center gap-1.5">
+                  <span className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-white/5 rounded-full border border-gray-100 dark:border-white/5">
                     <MapPin className="w-4 h-4 text-gray-400" />
                     {user.location}
                   </span>
-                  <span className="flex items-center gap-1.5">
+                  <span className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-white/5 rounded-full border border-gray-100 dark:border-white/5">
                     <Sparkles className="w-4 h-4 text-yellow-500" />
                     عضو از {user.joinDate}
                   </span>
@@ -107,31 +107,31 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isOwnProfile }) => 
               </div>
 
               {/* Actions & Socials */}
-              <div className="flex flex-col items-end gap-4">
-                <div className="flex items-center gap-3">
+              <div className="flex flex-col items-center md:items-end gap-6 mt-6 md:mt-0 w-full md:w-auto">
+                <div className="flex items-center justify-center md:justify-end gap-3 w-full md:w-auto">
                   {isOwnProfile && (
                     <button 
                       onClick={() => router.push("/panel/profile/edit")}
-                      className="flex items-center gap-2 px-6 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl shadow-lg shadow-green-500/30 transition-all font-medium active:scale-95 cursor-pointer"
+                      className="flex-1 md:flex-none flex items-center justify-center gap-2 px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-2xl shadow-xl shadow-green-500/25 transition-all font-bold active:scale-95 cursor-pointer"
                     >
-                      <Edit3 className="w-4 h-4" />
+                      <Edit3 className="w-5 h-5" />
                       <span>ویرایش پروفایل</span>
                     </button>
                   )}
-                  <button className="p-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl hover:bg-gray-50 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer">
+                  <button className="p-3 bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 rounded-2xl hover:bg-gray-50 dark:hover:bg-white/20 text-gray-600 dark:text-gray-300 transition-all shadow-sm active:scale-90 cursor-pointer">
                     <Share2 className="w-5 h-5" />
                   </button>
                 </div>
 
-                <div className="flex items-center gap-3 mt-2">
+                <div className="flex items-center justify-center md:justify-end gap-5 mt-2">
                   {user.socials.github && (
                     <a
                       href={user.socials.github}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+                      className="p-2 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all hover:scale-110"
                     >
-                      <Github className="w-5 h-5" />
+                      <Github className="w-6 h-6" />
                     </a>
                   )}
                   {user.socials.linkedin && (
@@ -139,9 +139,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isOwnProfile }) => 
                       href={user.socials.linkedin}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-2 text-gray-500 hover:text-[#0077b5] dark:text-gray-400 dark:hover:text-[#0077b5] transition-colors"
+                      className="p-2 text-gray-400 hover:text-[#0077b5] transition-all hover:scale-110"
                     >
-                      <Linkedin className="w-5 h-5" />
+                      <Linkedin className="w-6 h-6" />
                     </a>
                   )}
                   {user.socials.website && (
@@ -149,9 +149,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isOwnProfile }) => 
                       href={user.socials.website}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-2 text-gray-500 hover:text-green-500 dark:text-gray-400 dark:hover:text-green-400 transition-colors"
+                      className="p-2 text-gray-400 hover:text-green-500 transition-all hover:scale-110"
                     >
-                      <Globe className="w-5 h-5" />
+                      <Globe className="w-6 h-6" />
                     </a>
                   )}
                 </div>
