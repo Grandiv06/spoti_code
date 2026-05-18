@@ -37,6 +37,17 @@ export default function CreateCourseWizardPage() {
   const [step, setStep] = useState(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [warnings, setWarnings] = useState<Record<string, string>>({});
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: (() => void) | null;
+  }>({
+    open: false,
+    title: "",
+    description: "",
+    onConfirm: null,
+  });
 
   // Unified Wizard State
   const [formData, setFormData] = useState({
@@ -427,6 +438,24 @@ export default function CreateCourseWizardPage() {
       }));
       setNewUnderlineWord("");
     }
+  };
+
+  const openDeleteConfirm = (title: string, description: string, onConfirm: () => void) => {
+    setDeleteConfirm({
+      open: true,
+      title,
+      description,
+      onConfirm,
+    });
+  };
+
+  const closeDeleteConfirm = () => {
+    setDeleteConfirm({
+      open: false,
+      title: "",
+      description: "",
+      onConfirm: null,
+    });
   };
 
   // Form validations
@@ -1062,7 +1091,7 @@ export default function CreateCourseWizardPage() {
 
             {/* STEP 3: COURSE DETAILS, CURRICULUM, FAQ & FEATURES */}
             {step === 3 && (
-              <div className="space-y-8">
+              <div className="space-y-6">
                 <div>
                   <h2 className="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
                     <span className="w-2 h-6 bg-primary rounded-full" />
@@ -1074,24 +1103,24 @@ export default function CreateCourseWizardPage() {
                 </div>
 
                 {/* --- 3A. ABOUT SECTION --- */}
-                <div className="p-4 bg-gray-50/30 dark:bg-white/5 rounded-3xl border border-gray-100 dark:border-white/5 space-y-4">
-                  <span className="text-xs font-black text-gray-900 dark:text-white block border-b dark:border-white/5 pb-2">۱. بخش درباره این دوره</span>
+                <div className="p-5 md:p-6 bg-gradient-to-b from-gray-50/50 to-gray-50/20 dark:from-white/[0.07] dark:to-white/[0.03] rounded-3xl border border-gray-200/70 dark:border-white/10 space-y-5 shadow-[0_10px_30px_-20px_rgba(0,0,0,0.5)]">
+                  <span className="text-sm font-black text-gray-900 dark:text-white block border-b border-gray-200/70 dark:border-white/10 pb-3">۱. بخش درباره این دوره</span>
                   
-                  <div className="flex flex-col gap-2">
-                    <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400">توضیحات درباره دوره (پاراگراف‌ها) <span className="text-red-500">*</span></label>
+                  <div className="flex flex-col gap-2.5">
+                    <label className="text-xs font-bold text-gray-600 dark:text-gray-300">توضیحات درباره دوره (پاراگراف‌ها) <span className="text-red-500">*</span></label>
                     <textarea
                       rows={5}
                       placeholder="متن کامل درباره دوره، اهداف و شبیه‌سازی بازار کار..."
                       value={formData.aboutDescription}
                       onChange={(e) => setFormData(p => ({ ...p, aboutDescription: e.target.value }))}
-                      className={`px-4 py-3 bg-white dark:bg-[#1a1c23] border ${errors.aboutDescription ? "border-red-500" : "border-gray-200/60 dark:border-white/5"} rounded-2xl text-xs font-medium focus:border-primary focus:outline-none transition-all text-right leading-relaxed`}
+                      className={`px-4 py-3.5 bg-white dark:bg-[#1a1c23] border ${errors.aboutDescription ? "border-red-500" : "border-gray-200/70 dark:border-white/10"} rounded-2xl text-xs font-medium focus:border-primary focus:outline-none transition-all text-right leading-7`}
                     />
                     {errors.aboutDescription && <span className="text-[10px] text-red-500 font-bold">{errors.aboutDescription}</span>}
                   </div>
 
                   {/* Highlights (badges inside text) */}
-                  <div className="flex flex-col gap-3 p-3 rounded-2xl bg-white/60 dark:bg-[#171a22] border border-gray-200/60 dark:border-white/5">
-                    <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400">عبارت‌های هایلایت شده داخل متن (Badge)</label>
+                  <div className="flex flex-col gap-3 p-4 rounded-2xl bg-white/80 dark:bg-[#171a22] border border-gray-200/70 dark:border-white/10">
+                    <label className="text-xs font-bold text-gray-600 dark:text-gray-300">عبارت‌های هایلایت شده داخل متن (Badge)</label>
                     <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-center">
                       <input
                         type="text"
@@ -1113,7 +1142,7 @@ export default function CreateCourseWizardPage() {
                       {formData.aboutHighlights.map((item, idx) => (
                         <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-500 text-[10px] font-black rounded-xl border border-emerald-500/20">
                           {item}
-                          <button type="button" onClick={() => removeHighlightItem(item)} className="cursor-pointer">
+                          <button type="button" onClick={() => openDeleteConfirm("حذف عبارت هایلایت", "آیا مطمئن هستید که می‌خواهید این عبارت حذف شود؟", () => removeHighlightItem(item))} className="cursor-pointer">
                             <X className="w-3.5 h-3.5 text-red-500" />
                           </button>
                         </span>
@@ -1123,30 +1152,30 @@ export default function CreateCourseWizardPage() {
                 </div>
 
                 {/* --- 3B. DISTINCTIVE FEATURES SECTION --- */}
-                <div className="p-4 bg-gray-50/30 dark:bg-white/5 rounded-3xl border border-gray-100 dark:border-white/5 space-y-4">
-                  <span className="text-xs font-black text-gray-900 dark:text-white block border-b dark:border-white/5 pb-2">۲. ویژگی‌های متمایز دوره</span>
+                <div className="p-5 md:p-6 bg-gradient-to-b from-gray-50/50 to-gray-50/20 dark:from-white/[0.07] dark:to-white/[0.03] rounded-3xl border border-gray-200/70 dark:border-white/10 space-y-5 shadow-[0_10px_30px_-20px_rgba(0,0,0,0.5)]">
+                  <span className="text-sm font-black text-gray-900 dark:text-white block border-b border-gray-200/70 dark:border-white/10 pb-3">۲. ویژگی‌های متمایز دوره</span>
                   
                   {errors.features && <span className="text-[10px] text-red-500 font-bold block">{errors.features}</span>}
                   
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <div className="flex flex-col gap-2">
                       <input
                         type="text"
                         placeholder="عنوان ویژگی (مثال: پشتیبانی اختصاصی تلگرام)"
                         value={featTitle}
                         onChange={(e) => setFeatTitle(e.target.value)}
-                        className="px-3 py-2 bg-white dark:bg-[#1a1c23] border border-gray-200/60 dark:border-white/5 rounded-xl text-[10px] font-bold focus:border-primary focus:outline-none transition-all text-right"
+                        className="px-4 py-2.5 bg-white dark:bg-[#1a1c23] border border-gray-200/70 dark:border-white/10 rounded-xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-right"
                       />
                     </div>
                     
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {/* Icon options */}
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[9px] font-bold text-gray-400">انتخاب آیکون</label>
+                        <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400">انتخاب آیکون</label>
                         <select
                           value={featIcon}
                           onChange={(e) => setFeatIcon(e.target.value)}
-                          className="px-3 py-2 bg-white dark:bg-[#1a1c23] border border-gray-200/60 dark:border-white/5 rounded-xl text-[10px] font-bold text-right cursor-pointer"
+                          className="px-3 py-2.5 bg-white dark:bg-[#1a1c23] border border-gray-200/70 dark:border-white/10 rounded-xl text-[10px] font-bold text-right cursor-pointer"
                         >
                           <option value="all_inclusive">بینهایت (مادام‌العمر)</option>
                           <option value="workspace_premium">مدرک تحصیلی</option>
@@ -1158,11 +1187,11 @@ export default function CreateCourseWizardPage() {
 
                       {/* Color options */}
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[9px] font-bold text-gray-400">رنگ آیکون</label>
+                        <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400">رنگ آیکون</label>
                         <select
                           value={featColor}
                           onChange={(e) => setFeatColor(e.target.value)}
-                          className="px-3 py-2 bg-white dark:bg-[#1a1c23] border border-gray-200/60 dark:border-white/5 rounded-xl text-[10px] font-bold text-right cursor-pointer"
+                          className="px-3 py-2.5 bg-white dark:bg-[#1a1c23] border border-gray-200/70 dark:border-white/10 rounded-xl text-[10px] font-bold text-right cursor-pointer"
                         >
                           <option value="primary">سبز برند</option>
                           <option value="blue-500">آبی اقیانوسی</option>
@@ -1183,7 +1212,7 @@ export default function CreateCourseWizardPage() {
                     </button>
                   </div>
 
-                  <div className="space-y-2 max-h-[200px] overflow-y-auto mt-3">
+                  <div className="space-y-2.5 max-h-[240px] overflow-y-auto mt-2 pr-1">
                     {formData.features.map((feat) => (
                       <div key={feat.id} className="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#1a1c23] border border-gray-100 dark:border-white/5 text-[10px] font-bold">
                         <div className="flex items-center gap-2">
@@ -1196,7 +1225,7 @@ export default function CreateCourseWizardPage() {
                           <button type="button" onClick={() => editFeature(feat)} className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 rounded text-blue-500">
                             <span className="material-symbols-outlined text-[16px]">edit</span>
                           </button>
-                          <button type="button" onClick={() => deleteFeature(feat.id)} className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 rounded text-red-500">
+                          <button type="button" onClick={() => openDeleteConfirm("حذف ویژگی", "آیا مطمئن هستید که می‌خواهید این ویژگی حذف شود؟", () => deleteFeature(feat.id))} className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 rounded text-red-500">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -1206,55 +1235,56 @@ export default function CreateCourseWizardPage() {
                 </div>
 
                 {/* --- 3C. LESSONS & CHAPTER CURRICULUM EDITOR --- */}
-                <div className="p-4 bg-gray-50/30 dark:bg-white/5 rounded-3xl border border-gray-100 dark:border-white/5 space-y-4">
-                  <span className="text-xs font-black text-gray-900 dark:text-white block border-b dark:border-white/5 pb-2">۳. سرفصل‌ها و جلسات درسی</span>
+                <div className="p-5 md:p-6 bg-gradient-to-b from-gray-50/50 to-gray-50/20 dark:from-white/[0.07] dark:to-white/[0.03] rounded-3xl border border-gray-200/70 dark:border-white/10 space-y-5 shadow-[0_10px_30px_-20px_rgba(0,0,0,0.5)]">
+                  <span className="text-sm font-black text-gray-900 dark:text-white block border-b border-gray-200/70 dark:border-white/10 pb-3">۳. سرفصل‌ها و جلسات درسی</span>
                   
                   {errors.chapters && <span className="text-[10px] text-red-500 font-bold block">{errors.chapters}</span>}
                   
-                  {/* Part 1: Chapter Adder */}
-                  <div className="p-3 bg-white dark:bg-[#1a1c23] rounded-2xl border border-gray-100 dark:border-white/5 space-y-3">
-                    <span className="text-[10px] font-black text-gray-900 dark:text-white block">افزودن/ویرایش فصل</span>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <input
-                        type="text"
-                        placeholder="عنوان فصل (مثال: عمیق شدن در Hooks)"
-                        value={chapTitle}
-                        onChange={(e) => setChapTitle(e.target.value)}
-                        className="px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-xl text-[9px] font-black focus:border-primary focus:outline-none transition-all text-right"
-                      />
-                      <input
-                        type="text"
-                        placeholder="توضیح کوتاه فصل (مثال: مدیریت حرفه‌ای وضعیت)"
-                        value={chapSubtitle}
-                        onChange={(e) => setChapSubtitle(e.target.value)}
-                        className="px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-xl text-[9px] font-black focus:border-primary focus:outline-none transition-all text-right"
-                      />
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                    {/* Part 1: Chapter Adder */}
+                    <div className="p-4 md:p-5 bg-white dark:bg-[#1a1c23] rounded-2xl border border-gray-200/70 dark:border-white/10 space-y-4">
+                      <span className="text-xs font-black text-gray-900 dark:text-white block">افزودن/ویرایش فصل</span>
+                      
+                      <div className="grid grid-cols-1 gap-3">
+                        <input
+                          type="text"
+                          placeholder="عنوان فصل (مثال: عمیق شدن در Hooks)"
+                          value={chapTitle}
+                          onChange={(e) => setChapTitle(e.target.value)}
+                          className="h-11 px-4 bg-gray-50 dark:bg-white/5 border border-gray-200/70 dark:border-white/10 rounded-xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-right"
+                        />
+                        <input
+                          type="text"
+                          placeholder="توضیح کوتاه فصل (مثال: مدیریت حرفه‌ای وضعیت)"
+                          value={chapSubtitle}
+                          onChange={(e) => setChapSubtitle(e.target.value)}
+                          className="h-11 px-4 bg-gray-50 dark:bg-white/5 border border-gray-200/70 dark:border-white/10 rounded-xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-right"
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={addOrUpdateChapter}
+                        className="w-full h-11 bg-primary hover:bg-primary-hover text-background-dark rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>{editingChapId ? "به‌روزرسانی فصل" : "افزودن فصل"}</span>
+                      </button>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={addOrUpdateChapter}
-                      className="w-full py-1.5 bg-primary hover:bg-primary-hover text-background-dark rounded-xl text-[9px] font-black transition-all flex items-center justify-center gap-1 cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>{editingChapId ? "به‌روزرسانی فصل" : "افزودن فصل"}</span>
-                    </button>
-                  </div>
-
-                  {/* Part 2: Lesson Adder */}
-                  {formData.chapters.length > 0 && (
-                    <div className="p-3 bg-white dark:bg-[#1a1c23] rounded-2xl border border-gray-100 dark:border-white/5 space-y-3">
-                      <span className="text-[10px] font-black text-gray-900 dark:text-white block">افزودن/ویرایش جلسه درسی</span>
+                    {/* Part 2: Lesson Adder */}
+                    {formData.chapters.length > 0 && (
+                      <div className="p-4 md:p-5 bg-white dark:bg-[#1a1c23] rounded-2xl border border-gray-200/70 dark:border-white/10 space-y-4">
+                      <span className="text-xs font-black text-gray-900 dark:text-white block">افزودن/ویرایش جلسه درسی</span>
                       
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {/* Select target Chapter */}
-                        <div className="flex flex-col gap-1">
-                          <label className="text-[8px] text-gray-400">انتخاب فصل هدف</label>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400">انتخاب فصل هدف</label>
                           <select
                             value={selectedChapIdForLesson}
                             onChange={(e) => setSelectedChapIdForLesson(e.target.value)}
-                            className="px-3 py-1.5 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-xl text-[9px] font-bold cursor-pointer"
+                            className="h-11 px-4 bg-gray-50 dark:bg-white/5 border border-gray-200/70 dark:border-white/10 rounded-xl text-xs font-bold cursor-pointer"
                           >
                             <option value="">-- انتخاب فصل --</option>
                             {formData.chapters.map(c => (
@@ -1264,37 +1294,37 @@ export default function CreateCourseWizardPage() {
                         </div>
 
                         {/* Lesson Title */}
-                        <div className="flex flex-col gap-1">
-                          <label className="text-[8px] text-gray-400">عنوان درس</label>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400">عنوان درس</label>
                           <input
                             type="text"
                             placeholder="مثال: هوک useEffect و چرخه حیات"
                             value={lesTitle}
                             onChange={(e) => setLesTitle(e.target.value)}
-                            className="px-3 py-1.5 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-xl text-[9px] font-bold text-right"
+                            className="h-11 px-4 bg-gray-50 dark:bg-white/5 border border-gray-200/70 dark:border-white/10 rounded-xl text-xs font-bold text-right"
                           />
                         </div>
 
                         {/* Duration */}
-                        <div className="flex flex-col gap-1">
-                          <label className="text-[8px] text-gray-400">مدت زمان درس</label>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400">مدت زمان درس</label>
                           <input
                             type="text"
                             placeholder="مثال: ۲۲:۳۰"
                             value={lesDuration}
                             onChange={(e) => setLesDuration(e.target.value)}
-                            className="px-3 py-1.5 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-xl text-[9px] font-bold text-left"
+                            className="h-11 px-4 bg-gray-50 dark:bg-white/5 border border-gray-200/70 dark:border-white/10 rounded-xl text-xs font-bold text-left"
                             dir="ltr"
                           />
                         </div>
 
                         {/* Access */}
-                        <div className="flex flex-col gap-1">
-                          <label className="text-[8px] text-gray-400">دسترسی جلسه</label>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400">دسترسی جلسه</label>
                           <select
                             value={lesAccess}
                             onChange={(e) => setLesAccess(e.target.value)}
-                            className="px-3 py-1.5 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-xl text-[9px] font-bold cursor-pointer"
+                            className="h-11 px-4 bg-gray-50 dark:bg-white/5 border border-gray-200/70 dark:border-white/10 rounded-xl text-xs font-bold cursor-pointer"
                           >
                             <option value="free">رایگان (نمایش به عمومی)</option>
                             <option value="locked">قفل شده (مخصوص دانشجویان)</option>
@@ -1302,45 +1332,51 @@ export default function CreateCourseWizardPage() {
                         </div>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={addOrUpdateLesson}
-                        className="w-full py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-[9px] font-black transition-all flex items-center justify-center gap-1 cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>{editingLesId ? "به‌روزرسانی جلسه" : "افزودن جلسه درسی"}</span>
-                      </button>
-                    </div>
-                  )}
+                        <button
+                          type="button"
+                          onClick={addOrUpdateLesson}
+                        className="w-full h-11 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>{editingLesId ? "به‌روزرسانی جلسه" : "افزودن جلسه درسی"}</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Chapter List View inside Form */}
-                  <div className="space-y-4 max-h-[300px] overflow-y-auto mt-3">
+                  <div className="rounded-2xl bg-white/80 dark:bg-[#171a22] border border-gray-200/70 dark:border-white/10 p-3 md:p-4">
+                    <div className="flex items-center justify-between border-b border-gray-200/70 dark:border-white/10 pb-2.5 mb-3">
+                      <span className="text-xs font-black text-gray-900 dark:text-white">لیست فصل‌ها و جلسات</span>
+                      <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">{formData.chapters.length} فصل</span>
+                    </div>
+                  <div className="space-y-4 max-h-[360px] overflow-y-auto pr-1">
                     {formData.chapters.map((chap, chapIdx) => (
-                      <div key={chap.id} className="p-3 bg-white dark:bg-[#1a1c23] rounded-2xl border border-gray-100 dark:border-white/5 space-y-3">
+                      <div key={chap.id} className="p-3.5 bg-white dark:bg-[#1a1c23] rounded-2xl border border-gray-200/70 dark:border-white/10 space-y-3">
                         <div className="flex items-center justify-between border-b dark:border-white/5 pb-2">
                           <div>
                             <span className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded font-black mr-1">{chap.number}</span>
                             <span className="text-[10px] font-black text-gray-900 dark:text-white">{chap.title}</span>
                           </div>
                           
-                          <div className="flex items-center gap-1">
-                            <button type="button" onClick={() => moveChapter(chapIdx, "up")} disabled={chapIdx === 0} className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 rounded disabled:opacity-30">
+                          <div className="flex items-center gap-1.5">
+                            <button type="button" onClick={() => moveChapter(chapIdx, "up")} disabled={chapIdx === 0} className="size-7 inline-flex items-center justify-center rounded-lg border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-500 hover:text-gray-700 hover:bg-white dark:hover:bg-white/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed">
                               <ArrowUp className="w-3.5 h-3.5" />
                             </button>
-                            <button type="button" onClick={() => moveChapter(chapIdx, "down")} disabled={chapIdx === formData.chapters.length - 1} className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 rounded disabled:opacity-30">
+                            <button type="button" onClick={() => moveChapter(chapIdx, "down")} disabled={chapIdx === formData.chapters.length - 1} className="size-7 inline-flex items-center justify-center rounded-lg border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-500 hover:text-gray-700 hover:bg-white dark:hover:bg-white/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed">
                               <ArrowDown className="w-3.5 h-3.5" />
                             </button>
-                            <button type="button" onClick={() => editChapter(chap)} className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 rounded text-blue-500">
+                            <button type="button" onClick={() => editChapter(chap)} className="size-7 inline-flex items-center justify-center rounded-lg border border-blue-200/80 dark:border-blue-400/20 bg-blue-50 dark:bg-blue-500/10 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all cursor-pointer">
                               <span className="material-symbols-outlined text-[16px]">edit</span>
                             </button>
-                            <button type="button" onClick={() => deleteChapter(chap.id)} className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 rounded text-red-500">
+                            <button type="button" onClick={() => openDeleteConfirm("حذف فصل", "با حذف فصل، تمام جلسات داخل آن هم حذف می‌شوند. ادامه می‌دهید؟", () => deleteChapter(chap.id))} className="size-7 inline-flex items-center justify-center rounded-lg border border-red-200/80 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all cursor-pointer">
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </div>
 
                         {/* Lessons inside chapter */}
-                        <div className="space-y-1.5 pr-4 border-r border-gray-200 dark:border-white/5">
+                        <div className="space-y-1.5 pr-4 border-r border-gray-200/80 dark:border-white/10">
                           {chap.lessons.length === 0 ? (
                             <span className="text-[8px] text-gray-400 block font-bold">هیچ درسی به این فصل اضافه نشده است.</span>
                           ) : (
@@ -1354,10 +1390,10 @@ export default function CreateCourseWizardPage() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <span className="text-[8px] opacity-75 font-mono">{les.duration}</span>
-                                  <button type="button" onClick={() => editLesson(chap.id, les)} className="text-blue-500">
+                                  <button type="button" onClick={() => editLesson(chap.id, les)} className="size-6 inline-flex items-center justify-center rounded-md border border-blue-200/80 dark:border-blue-400/20 bg-blue-50 dark:bg-blue-500/10 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all cursor-pointer">
                                     <span className="material-symbols-outlined text-[12px]">edit</span>
                                   </button>
-                                  <button type="button" onClick={() => deleteLesson(chap.id, les.id)} className="text-red-500">
+                                  <button type="button" onClick={() => openDeleteConfirm("حذف جلسه", "آیا مطمئن هستید که می‌خواهید این جلسه حذف شود؟", () => deleteLesson(chap.id, les.id))} className="size-6 inline-flex items-center justify-center rounded-md border border-red-200/80 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all cursor-pointer">
                                     <X className="w-3 h-3" />
                                   </button>
                                 </div>
@@ -1368,11 +1404,12 @@ export default function CreateCourseWizardPage() {
                       </div>
                     ))}
                   </div>
+                  </div>
                 </div>
 
                 {/* --- 3D. FAQ SECTION --- */}
-                <div className="p-4 bg-gray-50/30 dark:bg-white/5 rounded-3xl border border-gray-100 dark:border-white/5 space-y-4">
-                  <span className="text-xs font-black text-gray-900 dark:text-white block border-b dark:border-white/5 pb-2">۴. سوالات متداول</span>
+                <div className="p-5 md:p-6 bg-gradient-to-b from-gray-50/50 to-gray-50/20 dark:from-white/[0.07] dark:to-white/[0.03] rounded-3xl border border-gray-200/70 dark:border-white/10 space-y-5 shadow-[0_10px_30px_-20px_rgba(0,0,0,0.5)]">
+                  <span className="text-sm font-black text-gray-900 dark:text-white block border-b border-gray-200/70 dark:border-white/10 pb-3">۴. سوالات متداول</span>
                   
                   {warnings.faqs && (
                     <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-300 rounded-xl text-[9px] font-bold flex items-center gap-1.5 leading-relaxed">
@@ -1415,7 +1452,7 @@ export default function CreateCourseWizardPage() {
                             <button type="button" onClick={() => editFAQ(faq)} className="p-1 hover:bg-gray-100 rounded text-blue-500">
                               <span className="material-symbols-outlined text-[14px]">edit</span>
                             </button>
-                            <button type="button" onClick={() => deleteFAQ(faq.id)} className="p-1 hover:bg-gray-100 rounded text-red-500">
+                            <button type="button" onClick={() => openDeleteConfirm("حذف سوال متداول", "آیا مطمئن هستید که می‌خواهید این سوال حذف شود؟", () => deleteFAQ(faq.id))} className="p-1 hover:bg-gray-100 rounded text-red-500">
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
@@ -1817,6 +1854,37 @@ export default function CreateCourseWizardPage() {
         </div>
 
       </div>
+
+      {deleteConfirm.open && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/55 backdrop-blur-[2px]" onClick={closeDeleteConfirm} />
+          <div className="relative w-full max-w-md rounded-3xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#1c1e26] shadow-2xl p-6">
+            <h3 className="text-base font-black text-gray-900 dark:text-white">{deleteConfirm.title}</h3>
+            <p className="mt-2 text-sm font-medium text-gray-600 dark:text-gray-300 leading-relaxed">
+              {deleteConfirm.description}
+            </p>
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={closeDeleteConfirm}
+                className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 font-bold text-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-all"
+              >
+                انصراف
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  deleteConfirm.onConfirm?.();
+                  closeDeleteConfirm();
+                }}
+                className="px-4 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-black text-sm transition-all"
+              >
+                بله، حذف شود
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
