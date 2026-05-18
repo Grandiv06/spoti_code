@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { MouseEvent } from "react";
 
 export interface CourseCardProps {
   id?: string;
@@ -13,6 +14,9 @@ export interface CourseCardProps {
   students: string | number;
   price: string | number;
   alt?: string;
+  viewHref?: string;
+  disableViewNavigation?: boolean;
+  onViewClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
 }
 
 export default function CourseCard({
@@ -26,6 +30,9 @@ export default function CourseCard({
   students,
   price,
   alt = "Course Card Preview",
+  viewHref,
+  disableViewNavigation = false,
+  onViewClick,
 }: CourseCardProps) {
   // Safe parsing of numbers
   const formattedPrice = typeof price === "number" 
@@ -104,8 +111,11 @@ export default function CourseCard({
             )}
           </span>
           <Link
-            href={`/courses/${id}`}
-            onClick={(e) => e.preventDefault()}
+            href={viewHref || `/courses/${id}`}
+            onClick={(e) => {
+              onViewClick?.(e);
+              if (disableViewNavigation) e.preventDefault();
+            }}
             className="flex-1 bg-gray-50 dark:bg-white/5 hover:bg-primary hover:text-background-dark text-gray-900 dark:text-white rounded-2xl py-2.5 font-bold transition-all flex items-center justify-center gap-2 group/btn"
           >
             مشاهده

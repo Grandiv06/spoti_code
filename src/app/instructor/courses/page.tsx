@@ -7,28 +7,17 @@ import {
   GraduationCap,
   PlusCircle,
   Search,
-  SlidersHorizontal,
   FolderOpen,
   ChevronDown,
   Trash2,
-  Edit,
-  Play,
-  Star,
-  Users,
-  CircleDollarSign,
-  Layers,
-  Video,
-  Clock,
-  ExternalLink,
-  Settings,
-  HelpCircle,
   MessageSquare
 } from "lucide-react";
 import { useInstructorData } from "@/context/InstructorDataContext";
+import CourseCard from "@/app/components/CourseCard";
 
 export default function InstructorCoursesPage() {
   const router = useRouter();
-  const { courses, deleteCourse } = useInstructorData();
+  const { courses, deleteCourse, profile } = useInstructorData();
 
   // Search & Filter State
   const [search, setSearch] = useState("");
@@ -85,14 +74,33 @@ export default function InstructorCoursesPage() {
     return result;
   }, [courses, search, statusFilter, categoryFilter, sortBy]);
 
-  // Calculations
-  const totalLessonsCount = (course: any) => {
-    return course.chapters?.reduce((sum: number, ch: any) => sum + (ch.lessons?.length || 0), 0) || 0;
+  const totalLessonsCount = (course: { chapters?: Array<{ lessons?: unknown[] }> }) => {
+    return course.chapters?.reduce((sum, ch) => sum + (ch.lessons?.length || 0), 0) || 0;
   };
 
-  const totalChaptersCount = (course: any) => {
-    return course.chapters?.length || 0;
+  const getDraftStep = (course: {
+    title?: string;
+    level?: string;
+    shortDescription?: string;
+    description?: string;
+    price?: number;
+    chapters?: Array<{ lessons?: unknown[] }>;
+    faqs?: unknown[];
+  }) => {
+    let step = 1;
+    const hasStep1 = Boolean(course.title?.trim()) && Boolean(course.level) && ((course.price || 0) >= 0);
+    if (hasStep1) step = 2;
+    const hasStep2 = Boolean(course.shortDescription?.trim());
+    if (hasStep2) step = 3;
+    const hasStep3 = Boolean(course.description?.trim()) || ((course.faqs?.length || 0) > 0);
+    if (hasStep3) step = 4;
+    const hasStep4 = (course.chapters?.reduce((sum, ch) => sum + (ch.lessons?.length || 0), 0) || 0) > 0;
+    if (hasStep4) step = 5;
+    return Math.min(step, 5);
   };
+
+  const getPendingStatusMessage = () =>
+    "وضعیت این دوره در حال بررسی می‌باشد. پس از تایید، مدیریت کامل و نمایش عمومی فعال می‌شود.";
 
   return (
     <div className="max-w-[1400px] mx-auto pb-20 animate-in fade-in duration-500" dir="rtl">
@@ -241,115 +249,71 @@ export default function InstructorCoursesPage() {
         // Courses Grid
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCourses.map((c) => (
-            <div
-              key={c.id}
-              className="group relative rounded-3xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden"
-            >
-              {/* Cover Image & Category Label */}
-              <div className="relative w-full h-48 bg-gray-200 dark:bg-white/5 overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={c.cover}
-                  alt={c.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-                
-                {/* Category Pill */}
-                <span className="absolute top-4 right-4 px-3 py-1 text-[9px] font-black tracking-wider bg-black/40 backdrop-blur-md text-white rounded-full">
-                  {c.category}
-                </span>
+            <div key={c.id} className="flex flex-col gap-3">
+              <CourseCard
+                id={c.id}
+                title={c.title}
+                instructor={profile?.name || "مدرس دوره"}
+                instructorImg={profile?.avatar || "/images/inst1.jpg"}
+                image={c.cover}
+                difficulty={c.level === "elementary" ? "مقدماتی" : c.level === "intermediate" ? "متوسط" : "پیشرفته"}
+                hours={String(totalLessonsCount(c))}
+                students={c.studentsCount}
+                price={c.price > 0 ? c.price : "رایگان"}
+                viewHref={`/courses/${c.id}`}
+                disableViewNavigation={c.status !== "published"}
+                onViewClick={(e) => {
+                  if (c.status === "published") return;
+                  e.preventDefault();
+                  if (c.status === "pending") {
+                    alert(getPendingStatusMessage());
+                    return;
+                  }
+                  if (c.status === "draft") {
+                    const draftStep = getDraftStep(c);
+                    alert(`این دوره پیش‌نویس است. ادامه و تکمیل از مرحله ${draftStep}.`);
+                    router.push(`/instructor/courses/create?draftCourseId=${c.id}&step=${draftStep}`);
+                    return;
+                  }
+                  alert("این دوره هنوز قابل مشاهده عمومی نیست.");
+                }}
+              />
 
-                {/* Rating Badge */}
-                {c.rating > 0 && (
-                  <div className="absolute bottom-4 right-4 flex items-center gap-1 px-2.5 py-1 bg-amber-500 text-white text-[9px] font-black rounded-lg shadow-md">
-                    <Star className="w-3 h-3 fill-white" />
-                    <span>{c.rating.toLocaleString("fa-IR")}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Course Title and Descriptions */}
-              <div className="p-6 flex-1 flex flex-col text-right">
-                <div className="flex items-center justify-between gap-2 mb-3">
-                  <span className="text-[10px] text-gray-400 font-bold">شناسه: {c.id}</span>
-                  
-                  {/* Status Badges */}
-                  <span className={`text-[9px] font-black px-2.5 py-1 rounded-lg ${
-                    c.status === "published"
-                      ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/15"
-                      : c.status === "draft"
-                      ? "bg-gray-500/10 text-gray-500 border border-gray-500/15"
-                      : c.status === "pending"
-                      ? "bg-amber-500/10 text-amber-500 border border-amber-500/15"
-                      : "bg-red-500/10 text-red-500 border border-red-500/15"
-                  }`}>
-                    {c.status === "published" && "منتشر شده"}
-                    {c.status === "draft" && "پیش‌نویس"}
-                    {c.status === "pending" && "در انتظار بررسی"}
-                    {c.status === "inactive" && "غیرفعال"}
-                  </span>
-                </div>
-
-                <h3 className="text-sm font-black text-gray-900 dark:text-white mb-2 leading-relaxed truncate">
-                  {c.title}
-                </h3>
-                
-                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold mb-4 leading-relaxed line-clamp-2">
-                  {c.shortDescription}
-                </p>
-
-                {/* Stats Icons Details */}
-                <div className="grid grid-cols-3 gap-2 border-y border-gray-100 dark:border-white/5 py-3 mb-4">
-                  <div className="flex flex-col items-center justify-center text-center">
-                    <Layers className="w-4 h-4 text-gray-400 mb-1" />
-                    <span className="text-[9px] font-black text-gray-900 dark:text-white">
-                      {totalChaptersCount(c).toLocaleString("fa-IR")} فصل
-                    </span>
-                  </div>
-                  <div className="flex flex-col items-center justify-center text-center border-x border-gray-100 dark:border-white/5">
-                    <Video className="w-4 h-4 text-gray-400 mb-1" />
-                    <span className="text-[9px] font-black text-gray-900 dark:text-white">
-                      {totalLessonsCount(c).toLocaleString("fa-IR")} درس
-                    </span>
-                  </div>
-                  <div className="flex flex-col items-center justify-center text-center">
-                    <Users className="w-4 h-4 text-gray-400 mb-1" />
-                    <span className="text-[9px] font-black text-gray-900 dark:text-white">
-                      {c.studentsCount.toLocaleString("fa-IR")} دانشجو
-                    </span>
-                  </div>
-                </div>
-
-                {/* Bottom Details (Price and earnings) */}
-                <div className="flex items-center justify-between mt-auto pt-2">
-                  <div className="flex flex-col">
-                    <span className="text-[9px] text-gray-400 font-bold">کل فروش:</span>
-                    <span className="text-xs font-black text-gray-900 dark:text-white">
-                      {c.revenue > 0 ? c.revenue.toLocaleString("fa-IR") + " تومان" : "۰ تومان"}
-                    </span>
-                  </div>
-                  
-                  <div className="flex flex-col items-end">
-                    <span className="text-[9px] text-gray-400 font-bold">قیمت دوره:</span>
-                    <span className="text-xs font-black text-primary">
-                      {c.price > 0 ? c.price.toLocaleString("fa-IR") + " تومان" : "رایگان"}
-                    </span>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Hover Operations Toolbar */}
-              <div className="px-6 py-4 bg-gray-50 dark:bg-white/5 border-t border-gray-100 dark:border-white/5 grid grid-cols-2 gap-2">
+              <div className="px-4 py-4 bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 rounded-3xl shadow-sm grid grid-cols-2 gap-2">
                 <button
-                  onClick={() => router.push(`/instructor/courses/${c.id}`)}
+                  onClick={() => {
+                    if (c.status === "published") {
+                      router.push(`/instructor/courses/${c.id}`);
+                      return;
+                    }
+                    if (c.status === "pending") {
+                      alert(getPendingStatusMessage());
+                      return;
+                    }
+                    if (c.status === "draft") {
+                      const draftStep = getDraftStep(c);
+                      router.push(`/instructor/courses/create?draftCourseId=${c.id}&step=${draftStep}`);
+                      return;
+                    }
+                    alert("این دوره در وضعیت فعلی قابل مدیریت نیست.");
+                  }}
                   className="px-3 py-2 bg-primary hover:bg-primary-hover text-white text-[10px] font-black rounded-xl transition-all cursor-pointer text-center"
                 >
-                  مدیریت دوره
+                  {c.status === "draft" ? "ادامه پیش‌نویس" : "مدیریت دوره"}
                 </button>
                 <button
-                  onClick={() => router.push(`/instructor/courses/${c.id}?tab=content`)}
+                  onClick={() => {
+                    if (c.status === "pending") {
+                      alert(getPendingStatusMessage());
+                      return;
+                    }
+                    if (c.status === "draft") {
+                      const draftStep = getDraftStep(c);
+                      router.push(`/instructor/courses/create?draftCourseId=${c.id}&step=${draftStep}`);
+                      return;
+                    }
+                    router.push(`/instructor/courses/${c.id}?tab=content`);
+                  }}
                   className="px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/20 text-gray-700 dark:text-gray-200 text-[10px] font-black rounded-xl transition-all cursor-pointer text-center"
                 >
                   فصل‌ها و درس‌ها
@@ -373,7 +337,16 @@ export default function InstructorCoursesPage() {
                   <span>حذف دوره</span>
                 </button>
               </div>
-
+              {c.status === "pending" && (
+                <div className="px-4 py-2 rounded-xl border border-amber-200 bg-amber-50 text-amber-700 text-[10px] font-bold">
+                  وضعیت دوره: در حال بررسی توسط تیم محتوا
+                </div>
+              )}
+              {c.status === "draft" && (
+                <div className="px-4 py-2 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 text-[10px] font-bold">
+                  پیش‌نویس مرحله {getDraftStep(c)} از ۵ - از همینجا می‌توانید ادامه دهید.
+                </div>
+              )}
             </div>
           ))}
         </div>
