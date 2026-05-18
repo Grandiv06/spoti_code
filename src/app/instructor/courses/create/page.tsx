@@ -630,11 +630,11 @@ export default function CreateCourseWizardPage() {
         </div>
       </div>
 
-      {/* 3. Main Grid layout: Form (Right) / Preview (Left) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-10">
+      {/* 3. Main layout: Form on top / Preview below */}
+      <div className="flex flex-col gap-8 items-stretch mb-10">
         
         {/* --- RIGHT SIDE: FORM COMPONENT (7 cols on large screens) --- */}
-        <div className="lg:col-span-6 bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-xl rounded-[2.5rem] p-6 md:p-8 lg:p-10 min-h-[600px] flex flex-col justify-between">
+        <div className="w-full bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-xl rounded-[2.5rem] p-6 md:p-8 lg:p-10 min-h-[600px] flex flex-col justify-between">
           
           <div className="space-y-8 animate-in fade-in duration-300">
             
@@ -1135,7 +1135,7 @@ export default function CreateCourseWizardPage() {
                         <select
                           value={featIcon}
                           onChange={(e) => setFeatIcon(e.target.value)}
-                          className="px-3 py-2 bg-white dark:bg-[#1a1c23] border border-gray-200/60 dark:border-white/5 rounded-xl text-[10px] font-bold text-right"
+                          className="px-3 py-2 bg-white dark:bg-[#1a1c23] border border-gray-200/60 dark:border-white/5 rounded-xl text-[10px] font-bold text-right cursor-pointer"
                         >
                           <option value="all_inclusive">بینهایت (مادام‌العمر)</option>
                           <option value="workspace_premium">مدرک تحصیلی</option>
@@ -1151,7 +1151,7 @@ export default function CreateCourseWizardPage() {
                         <select
                           value={featColor}
                           onChange={(e) => setFeatColor(e.target.value)}
-                          className="px-3 py-2 bg-white dark:bg-[#1a1c23] border border-gray-200/60 dark:border-white/5 rounded-xl text-[10px] font-bold text-right"
+                          className="px-3 py-2 bg-white dark:bg-[#1a1c23] border border-gray-200/60 dark:border-white/5 rounded-xl text-[10px] font-bold text-right cursor-pointer"
                         >
                           <option value="primary">سبز برند</option>
                           <option value="blue-500">آبی اقیانوسی</option>
@@ -1243,7 +1243,7 @@ export default function CreateCourseWizardPage() {
                           <select
                             value={selectedChapIdForLesson}
                             onChange={(e) => setSelectedChapIdForLesson(e.target.value)}
-                            className="px-3 py-1.5 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-xl text-[9px] font-bold"
+                            className="px-3 py-1.5 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-xl text-[9px] font-bold cursor-pointer"
                           >
                             <option value="">-- انتخاب فصل --</option>
                             {formData.chapters.map(c => (
@@ -1283,7 +1283,7 @@ export default function CreateCourseWizardPage() {
                           <select
                             value={lesAccess}
                             onChange={(e) => setLesAccess(e.target.value)}
-                            className="px-3 py-1.5 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-xl text-[9px] font-bold"
+                            className="px-3 py-1.5 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-xl text-[9px] font-bold cursor-pointer"
                           >
                             <option value="free">رایگان (نمایش به عمومی)</option>
                             <option value="locked">قفل شده (مخصوص دانشجویان)</option>
@@ -1536,7 +1536,7 @@ export default function CreateCourseWizardPage() {
         </div>
 
         {/* --- LEFT SIDE: LIVE PREVIEW PANEL (6 cols on large screens, sticky scroll) --- */}
-        <div className="lg:col-span-6 lg:sticky lg:top-24 max-h-[85vh] overflow-y-auto rounded-[2.5rem] border border-gray-200 dark:border-white/5 p-4 bg-gray-50/50 dark:bg-white/[0.02] backdrop-blur-md shadow-inner scrollbar-thin space-y-6">
+        <div className="w-full rounded-[2.5rem] border border-gray-200 dark:border-white/5 p-4 bg-gray-50/50 dark:bg-white/[0.02] backdrop-blur-md shadow-inner scrollbar-thin space-y-6">
           <div className="flex items-center justify-between border-b dark:border-white/5 pb-3">
             <span className="text-xs font-black text-gray-500 flex items-center gap-1">
               <Sparkles className="w-4 h-4 text-emerald-500" />

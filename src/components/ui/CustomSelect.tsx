@@ -64,7 +64,7 @@ export default function CustomSelect({
           type="button"
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
-            "w-full flex items-center justify-between transition-all outline-none border",
+            "w-full flex items-center justify-between transition-all outline-none border cursor-pointer",
             size === "sm" ? "px-4 py-2.5 rounded-xl text-xs" : "px-6 py-3.5 rounded-2xl text-sm",
             variant === "default" 
               ? "bg-gray-50 dark:bg-white/5 border-gray-100 dark:border-white/10 text-gray-900 dark:text-white"
@@ -125,7 +125,7 @@ export default function CustomSelect({
                         setIsOpen(false);
                       }}
                       className={cn(
-                        "w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all text-right group",
+                        "w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all text-right group cursor-pointer",
                         isSelected 
                           ? "bg-primary text-white shadow-lg shadow-primary/20" 
                           : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5"
