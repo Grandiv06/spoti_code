@@ -35,6 +35,7 @@ export default function CourseCard({
   const formattedStudents = typeof students === "number"
     ? students.toLocaleString("fa-IR")
     : students;
+  const isFreePrice = typeof formattedPrice === "string" && formattedPrice.trim() === "رایگان";
 
   const hasCoverImage = Boolean(image?.trim());
 
@@ -92,10 +93,15 @@ export default function CourseCard({
         </div>
         <div className="mt-auto flex items-center justify-between gap-4 pt-6 border-t border-gray-100/50 dark:border-white/5">
           <span className="bg-primary/10 text-primary-dark dark:text-primary px-5 py-2.5 rounded-2xl font-black text-sm whitespace-nowrap">
-            {formattedPrice || "۰"}{" "}
-            <span className="text-[10px] opacity-80 font-bold mr-1">
-              تومان
-            </span>
+            {formattedPrice || "۰"}
+            {!isFreePrice && (
+              <>
+                {" "}
+                <span className="text-[10px] opacity-80 font-bold mr-1">
+                  تومان
+                </span>
+              </>
+            )}
           </span>
           <Link
             href={`/courses/${id}`}

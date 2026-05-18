@@ -162,6 +162,26 @@ export default function CreateCourseWizardPage() {
     setFormData((p) => ({ ...p, duration: withoutLeadingZeros }));
   };
 
+  const handleStudentsCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const englishDigits = normalizeDigitsToEnglish(e.target.value);
+    const digitsOnly = englishDigits.replace(/\D/g, "");
+    const withoutLeadingZeros = digitsOnly.replace(/^0+/, "");
+    setFormData((p) => ({
+      ...p,
+      studentsCount: withoutLeadingZeros ? Number(withoutLeadingZeros) : 0,
+    }));
+  };
+
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const englishDigits = normalizeDigitsToEnglish(e.target.value);
+    const digitsOnly = englishDigits.replace(/\D/g, "");
+    const withoutLeadingZeros = digitsOnly.replace(/^0+/, "");
+    setFormData((p) => ({
+      ...p,
+      price: withoutLeadingZeros ? Number(withoutLeadingZeros) : 0,
+    }));
+  };
+
   // Mock uploads
   const handleCoverUploadSimulate = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -715,10 +735,12 @@ export default function CreateCourseWizardPage() {
                   <div className="flex flex-col gap-2">
                     <label className="text-xs font-bold text-gray-700 dark:text-gray-300">تعداد دانشجو اولیه (Mock)</label>
                     <input
-                      type="number"
-                      placeholder="۰"
-                      value={formData.studentsCount || 0}
-                      onChange={(e) => setFormData((p) => ({ ...p, studentsCount: Number(e.target.value) }))}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      placeholder="0"
+                      value={formData.studentsCount === 0 ? "" : String(formData.studentsCount)}
+                      onChange={handleStudentsCountChange}
                       className="px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-2xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-left"
                       dir="ltr"
                     />
@@ -761,10 +783,12 @@ export default function CreateCourseWizardPage() {
                     <label className="text-xs font-bold text-gray-700 dark:text-gray-300">قیمت دوره (به تومان) <span className="text-red-500">*</span></label>
                     <div className="relative flex items-center">
                       <input
-                        type="number"
-                        placeholder="۱۴۵۰۰۰۰"
-                        value={formData.price || ""}
-                        onChange={(e) => setFormData((p) => ({ ...p, price: Number(e.target.value) }))}
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        placeholder="1450000"
+                        value={formData.price === 0 ? "" : String(formData.price)}
+                        onChange={handlePriceChange}
                         className={`w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border ${errors.price ? "border-red-500" : "border-gray-200/60 dark:border-white/5"} rounded-2xl text-xs font-black focus:border-primary focus:outline-none transition-all text-left`}
                         dir="ltr"
                       />
