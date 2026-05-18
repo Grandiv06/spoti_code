@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import VideoControls from "./VideoControls";
 
 // ویدیوی تستی برای جلسه اول دوره
@@ -12,13 +12,53 @@ const TEST_VIDEO_URL =
 const FALLBACK_VIDEO_URL =
   "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
 
-export default function CourseHero() {
+export interface CourseHeroProps {
+  title?: string;
+  category?: string;
+  level?: string;
+  duration?: string;
+  rating?: number;
+  shortDescription?: string;
+  specialWords?: {
+    highlighted?: string[];
+    underlined?: string[];
+    color?: string;
+  };
+  coverImage?: string;
+  introVideo?: string;
+}
+
+export default function CourseHero({
+  title = "متخصص React و Next.js",
+  category = "فرانت‌اند",
+  level = "پیشرفته",
+  duration = "۶۵ ساعت",
+  rating = 4.9,
+  shortDescription = "مسیر صفر تا صد ورود به بازار کار جهانی. یادگیری عمیق هوک‌ها، SSR، و معماری مدرن وب با جدیدترین نسخه Next.js 14.",
+  specialWords = {
+    highlighted: ["React"],
+    underlined: ["Next.js"],
+    color: "green",
+  },
+  coverImage = "/images/course3.jpg",
+  introVideo = "",
+}: CourseHeroProps) {
   const [isVideoExpanded, setIsVideoExpanded] = useState(false);
   const [fixedHeight, setFixedHeight] = useState<number | null>(null);
-  const [videoUrl, setVideoUrl] = useState(TEST_VIDEO_URL);
+  
+  // Use introVideo if provided, otherwise fallback to test video
+  const activeVideoUrl = introVideo || TEST_VIDEO_URL;
+  const [videoUrl, setVideoUrl] = useState(activeVideoUrl);
   const [videoError, setVideoError] = useState(false);
+  
   const gridRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Sync videoUrl when introVideo prop changes
+  useEffect(() => {
+    setVideoUrl(introVideo || TEST_VIDEO_URL);
+    setVideoError(false);
+  }, [introVideo]);
 
   const handleVideoError = () => {
     if (videoUrl === TEST_VIDEO_URL) {
@@ -42,10 +82,85 @@ export default function CourseHero() {
     setIsVideoExpanded((prev) => !prev);
   };
 
+  // Helper to render title words with brand custom highlight & underline
+  const renderTitle = () => {
+    const fullTitle = title || "متخصص React و Next.js";
+    const words = fullTitle.split(/(\s+)/); // split by spaces but keep delimiters
+    
+    const highlightedWords = specialWords?.highlighted || ["React"];
+    const underlinedWords = specialWords?.underlined || ["Next.js"];
+    const highlightColor = specialWords?.color || "green";
+
+    // Map color names to brand colors
+    let colorClass = "text-primary dark:text-primary"; // green/brand
+    let underlineSvgClass = "text-primary opacity-60"; // green/brand svg
+
+    if (highlightColor === "white") {
+      colorClass = "text-white dark:text-white";
+      underlineSvgClass = "text-white opacity-60";
+    } else if (highlightColor === "yellow") {
+      colorClass = "text-amber-500 dark:text-amber-400";
+      underlineSvgClass = "text-amber-500 opacity-60";
+    } else if (highlightColor === "blue") {
+      colorClass = "text-blue-500 dark:text-blue-400";
+      underlineSvgClass = "text-blue-500 opacity-60";
+    }
+
+    return words.map((word, index) => {
+      // Clean word from punctuation for exact match
+      const cleanWord = word.trim().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
+      
+      const isHighlighted = highlightedWords.some(
+        (h) => cleanWord && h.toLowerCase() === cleanWord.toLowerCase()
+      );
+      const isUnderlined = underlinedWords.some(
+        (u) => cleanWord && u.toLowerCase() === cleanWord.toLowerCase()
+      );
+
+      if (isHighlighted) {
+        return (
+          <span key={index} className={`font-black drop-shadow-sm transition-all duration-300 ${colorClass}`}>
+            {word}
+          </span>
+        );
+      }
+
+      if (isUnderlined) {
+        return (
+          <span key={index} className="relative inline-block mt-2 sm:mt-0 font-black transition-all duration-300">
+            {word}
+            <svg
+              className={`absolute w-full h-2 md:h-3 -bottom-1 right-0 transition-all duration-300 ${underlineSvgClass}`}
+              preserveAspectRatio="none"
+              viewBox="0 0 100 10"
+            >
+              <path
+                d="M0 5 Q 50 10 100 5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="8"
+              />
+            </svg>
+          </span>
+        );
+      }
+
+      return <React.Fragment key={index}>{word}</React.Fragment>;
+    });
+  };
+
+  const displayLevel = level === "elementary" 
+    ? "مقدماتی" 
+    : level === "intermediate" 
+    ? "متوسط" 
+    : level === "advanced" 
+    ? "پیشرفته" 
+    : level;
+
   return (
     <div className={`glass-panel rounded-5xl mb-16 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1),0_10px_20px_-5px_rgba(0,0,0,0.04)] relative overflow-hidden group transition-all duration-700 ${
       isVideoExpanded ? "p-0" : "p-2"
-    }`}>
+    }`} dir="rtl">
       <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent pointer-events-none" />
       <div
         ref={gridRef}
@@ -63,62 +178,46 @@ export default function CourseHero() {
             isVideoExpanded ? "opacity-0 pointer-events-none" : "opacity-100"
           }`}
         >
-          <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-6 md:mb-8">
+          <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-6 md:mb-8 justify-start">
             <span className="bg-emerald-100/80 dark:bg-emerald-900/30 backdrop-blur-md text-emerald-700 dark:text-emerald-300 px-3 md:px-4 py-1.5 md:py-2 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-black uppercase tracking-wider border border-emerald-200 dark:border-emerald-700">
-              فرانت‌اند
+              {category}
             </span>
             <span className="bg-amber-100/80 dark:bg-amber-900/30 backdrop-blur-md text-amber-700 dark:text-amber-300 px-3 md:px-4 py-1.5 md:py-2 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-black uppercase tracking-wider border border-amber-200 dark:border-amber-700 flex items-center gap-1">
               <span className="material-symbols-outlined text-[14px] md:text-[16px] filled">star</span>
-              ۴.۹
+              {rating}
             </span>
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-black text-gray-900 dark:text-white leading-[1.3] md:leading-[1.2] mb-4 md:mb-8">
-            متخصص{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-l from-primary-dark to-emerald-500 drop-shadow-sm">
-              React
-            </span>{" "}
-            و{" "}
-            <span className="relative inline-block mt-2 sm:mt-0">
-              Next.js
-              <svg
-                className="absolute w-full h-2 md:h-3 -bottom-1 right-0 text-primary opacity-60"
-                preserveAspectRatio="none"
-                viewBox="0 0 100 10"
-              >
-                <path
-                  d="M0 5 Q 50 10 100 5"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="8"
-                />
-              </svg>
-            </span>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-black text-gray-900 dark:text-white leading-[1.3] md:leading-[1.2] mb-4 md:mb-8 text-right">
+            {renderTitle()}
           </h1>
           <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base md:text-xl font-medium leading-loose max-w-xl mb-8 md:mb-10 text-justify md:text-right">
-            مسیر صفر تا صد ورود به بازار کار جهانی. یادگیری عمیق هوک‌ها، SSR، و
-            معماری مدرن وب با جدیدترین نسخه Next.js 14.
+            {shortDescription}
           </p>
           <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-6 md:gap-12 pt-6 md:pt-8 border-t border-gray-200 dark:border-gray-700 w-full">
             <div className="flex items-center gap-4 w-full sm:w-auto">
               <div className="size-10 md:size-12 rounded-2xl bg-white/60 dark:bg-white/10 flex items-center justify-center text-primary shadow-sm border border-white dark:border-gray-700 shrink-0">
                 <span className="material-symbols-outlined text-xl md:text-2xl">school</span>
               </div>
-              <div className="flex flex-col">
+              <div className="flex flex-col text-right">
                 <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 font-bold mb-0.5 md:mb-1">
                   سطح دوره
                 </span>
-                <span className="text-sm md:text-base font-extrabold text-gray-900 dark:text-white">پیشرفته</span>
+                <span className="text-sm md:text-base font-extrabold text-gray-900 dark:text-white">
+                  {displayLevel}
+                </span>
               </div>
             </div>
             <div className="flex items-center gap-4 w-full sm:w-auto">
               <div className="size-10 md:size-12 rounded-2xl bg-white/60 dark:bg-white/10 flex items-center justify-center text-primary shadow-sm border border-white dark:border-gray-700 shrink-0">
                 <span className="material-symbols-outlined text-xl md:text-2xl">schedule</span>
               </div>
-              <div className="flex flex-col">
+              <div className="flex flex-col text-right">
                 <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 font-bold mb-0.5 md:mb-1">
                   مدت زمان
                 </span>
-                <span className="text-sm md:text-base font-extrabold text-gray-900 dark:text-white">۶۵ ساعت</span>
+                <span className="text-sm md:text-base font-extrabold text-gray-900 dark:text-white">
+                  {duration}
+                </span>
               </div>
             </div>
           </div>
@@ -138,11 +237,11 @@ export default function CourseHero() {
               isVideoExpanded && !videoError ? "opacity-0 pointer-events-none" : "opacity-100"
             }`}
           >
-            <Image
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               className="w-full h-full object-cover transition-transform duration-1000 group-hover/video:scale-105"
               alt="Course Preview"
-              src="/images/course3.jpg"
-              fill
+              src={coverImage || "/images/course3.jpg"}
               style={{ objectFit: "cover" }}
             />
             <div className="absolute inset-0 bg-emerald-900/20 dark:bg-emerald-900/40 mix-blend-multiply transition-colors group-hover/video:bg-emerald-900/10" />
@@ -173,8 +272,8 @@ export default function CourseHero() {
               <VideoControls
                 videoRef={videoRef}
                 videoUrl={videoUrl}
-                title="جلسه اول رایگان"
-                subtitle="آشنایی با اکوسیستم React"
+                title="پیش‌نمایش ویدیو معرفی"
+                subtitle={title}
               />
             </div>
           )}
@@ -217,9 +316,9 @@ export default function CourseHero() {
           {!isVideoExpanded && (
             <div className="absolute bottom-8 right-8 left-8 z-20">
               <div className="bg-black/40 backdrop-blur-md rounded-3xl p-5 border border-white/10 flex items-center justify-between text-white shadow-lg">
-                <div className="flex flex-col">
+                <div className="flex flex-col text-right">
                   <span className="text-xs text-white/70 mb-1">جلسه اول رایگان</span>
-                  <span className="font-bold text-base">آشنایی با اکوسیستم React</span>
+                  <span className="font-bold text-base">ویدیو معرفی دوره</span>
                 </div>
                 <span className="text-xs bg-white/20 px-3 py-1.5 rounded-xl font-mono dir-ltr">
                   05:34
