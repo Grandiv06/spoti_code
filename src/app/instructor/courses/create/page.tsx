@@ -159,6 +159,10 @@ export default function CreateCourseWizardPage() {
     open: false,
     lessonId: "",
   });
+  const MAX_LESSON_FILES = 3;
+  const [draggedChapterId, setDraggedChapterId] = useState<string | null>(null);
+  const [dragOverChapterId, setDragOverChapterId] = useState<string | null>(null);
+  const [collapsedChapters, setCollapsedChapters] = useState<Record<string, boolean>>({});
 
   // Custom Highlight words lists (Step 2)
   const [newHighlightWord, setNewHighlightWord] = useState("");
@@ -391,6 +395,26 @@ export default function CreateCourseWizardPage() {
     setFormData(prev => ({ ...prev, chapters: finalChaps }));
   };
 
+  const reorderChapters = (sourceId: string, targetId: string) => {
+    if (sourceId === targetId) return;
+    setFormData((prev) => {
+      const sourceIndex = prev.chapters.findIndex((c) => c.id === sourceId);
+      const targetIndex = prev.chapters.findIndex((c) => c.id === targetId);
+      if (sourceIndex < 0 || targetIndex < 0) return prev;
+
+      const updated = [...prev.chapters];
+      const [moved] = updated.splice(sourceIndex, 1);
+      updated.splice(targetIndex, 0, moved);
+
+      const finalChaps = updated.map((ch, idx) => ({
+        ...ch,
+        number: String(idx + 1).padStart(2, "0"),
+      }));
+
+      return { ...prev, chapters: finalChaps };
+    });
+  };
+
   // Lesson actions
   const addOrUpdateLesson = () => {
     if (!lesTitle.trim() || !selectedChapIdForLesson) return;
@@ -517,11 +541,22 @@ export default function CreateCourseWizardPage() {
     });
   };
 
-  const handleLessonFileUpload = (lessonId: string, file?: File) => {
-    if (!file) return;
-    const fileUrl = URL.createObjectURL(file);
-    const newFile = { id: `file-${Math.random().toString(36).slice(2, 9)}`, name: file.name, url: fileUrl };
-    setLessonFileMap((prev) => ({ ...prev, [lessonId]: [...(prev[lessonId] || []), newFile] }));
+  const handleLessonFileUpload = (lessonId: string, files?: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setLessonFileMap((prev) => {
+      const current = prev[lessonId] || [];
+      const remaining = Math.max(0, MAX_LESSON_FILES - current.length);
+      if (remaining === 0) return prev;
+
+      const selected = Array.from(files).slice(0, remaining);
+      const newFiles = selected.map((file) => ({
+        id: `file-${Math.random().toString(36).slice(2, 9)}`,
+        name: file.name,
+        url: URL.createObjectURL(file),
+      }));
+
+      return { ...prev, [lessonId]: [...current, ...newFiles] };
+    });
   };
 
   const removeLessonFile = (lessonId: string, fileId: string) => {
@@ -1554,19 +1589,78 @@ export default function CreateCourseWizardPage() {
                     </div>
                     <div className="space-y-4 max-h-[360px] overflow-y-auto pr-1">
                       {formData.chapters.map((chap, chapIdx) => (
-                        <div key={chap.id} className="p-3.5 bg-white dark:bg-[#1a1c23] rounded-2xl border border-gray-200/70 dark:border-white/10 space-y-3">
-                          <div className="flex items-center justify-between border-b dark:border-white/5 pb-2">
+                        <div
+                          key={chap.id}
+                          className={`p-3.5 bg-white dark:bg-[#1a1c23] rounded-2xl border space-y-3 transition-all ${
+                            dragOverChapterId === chap.id
+                              ? "border-primary/60 ring-2 ring-primary/20"
+                              : "border-gray-200/70 dark:border-white/10"
+                          }`}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            if (dragOverChapterId !== chap.id) setDragOverChapterId(chap.id);
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            if (draggedChapterId) reorderChapters(draggedChapterId, chap.id);
+                            setDraggedChapterId(null);
+                            setDragOverChapterId(null);
+                          }}
+                          onDragLeave={(e) => {
+                            const next = e.relatedTarget as Node | null;
+                            if (!next || !e.currentTarget.contains(next)) setDragOverChapterId(null);
+                          }}
+                        >
+                          <div
+                            className="flex items-center justify-between border-b dark:border-white/5 pb-2 cursor-grab active:cursor-grabbing"
+                            draggable
+                            onDragStart={() => {
+                              setDraggedChapterId(chap.id);
+                              setDragOverChapterId(chap.id);
+                            }}
+                            onDragEnd={() => {
+                              setDraggedChapterId(null);
+                              setDragOverChapterId(null);
+                            }}
+                          >
                             <div className="flex items-center gap-1.5">
                               <span className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded font-black mr-1">{chap.number}</span>
-                              <button
-                                type="button"
-                                onClick={() => setEditingChapterTitleId(chap.id)}
-                                className="text-[10px] font-black text-gray-900 dark:text-white hover:text-primary transition-colors cursor-text"
-                              >
-                                {chap.title}
-                              </button>
+                              {editingChapterTitleId === chap.id ? (
+                                <input
+                                  autoFocus
+                                  value={chap.title}
+                                  onChange={(e) => updateChapterTitleInline(chap.id, e.target.value)}
+                                  onBlur={() => setEditingChapterTitleId(null)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") setEditingChapterTitleId(null);
+                                  }}
+                                  className="h-8 px-2 rounded-lg border border-blue-500/40 bg-white dark:bg-white/5 text-[10px] font-black text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                />
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingChapterTitleId(chap.id)}
+                                  className="text-[10px] font-black text-gray-900 dark:text-white hover:text-primary transition-colors cursor-text"
+                                >
+                                  {chap.title}
+                                </button>
+                              )}
                             </div>
                             <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setCollapsedChapters((prev) => ({
+                                    ...prev,
+                                    [chap.id]: !prev[chap.id],
+                                  }))
+                                }
+                                className="size-7 inline-flex items-center justify-center rounded-lg border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/10 transition-all"
+                                title={collapsedChapters[chap.id] ? "باز کردن فصل" : "بستن فصل"}
+                              >
+                                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${collapsedChapters[chap.id] ? "-rotate-90" : ""}`} />
+                              </button>
+                              <span className="material-symbols-outlined text-[14px] text-gray-400 dark:text-gray-500">drag_indicator</span>
                               <button type="button" onClick={() => moveChapter(chapIdx, "up")} disabled={chapIdx === 0} className="size-7 inline-flex items-center justify-center rounded-lg border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-500 disabled:opacity-30">
                                 <ArrowUp className="w-3.5 h-3.5" />
                               </button>
@@ -1583,6 +1677,7 @@ export default function CreateCourseWizardPage() {
                             </div>
                           </div>
 
+                          {!collapsedChapters[chap.id] && (
                           <div className="space-y-1.5 pr-4 border-r border-gray-200/80 dark:border-white/10">
                             {chap.lessons.length === 0 ? (
                               <span className="text-[8px] text-gray-400 block font-bold">هیچ درسی به این فصل اضافه نشده است.</span>
@@ -1593,7 +1688,26 @@ export default function CreateCourseWizardPage() {
                                     <span className="material-symbols-outlined text-xs text-primary">
                                       {formData.isPaid === "free" || les.access === "free" ? "play_circle" : "lock"}
                                     </span>
-                                    <span>{les.title}</span>
+                                    {editingLessonTitleId === les.id ? (
+                                      <input
+                                        autoFocus
+                                        value={les.title}
+                                        onChange={(e) => updateLessonTitleInline(chap.id, les.id, e.target.value)}
+                                        onBlur={() => setEditingLessonTitleId(null)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter") setEditingLessonTitleId(null);
+                                        }}
+                                        className="h-7 px-2 rounded-md border border-blue-500/40 bg-white dark:bg-white/5 text-[9px] font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                      />
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditingLessonTitleId(les.id)}
+                                        className="text-[9px] font-bold hover:text-primary transition-colors cursor-text"
+                                      >
+                                        {les.title}
+                                      </button>
+                                    )}
                                   </div>
                                   <div className="flex items-center gap-2">
                                     {formData.isPaid === "paid" && (
@@ -1601,31 +1715,94 @@ export default function CreateCourseWizardPage() {
                                         {les.access === "free" ? "باز" : "قفل"}
                                       </button>
                                     )}
-                                    <span className="text-[8px] opacity-75 font-mono">{les.duration}</span>
-                                    <label className="size-6 inline-flex items-center justify-center rounded-md border border-blue-200/80 bg-blue-50 text-blue-500 cursor-pointer overflow-hidden">
+                                    {editingLessonDurationId === les.id ? (
                                       <input
-                                        type="file"
-                                        accept="video/*"
-                                        className="hidden"
-                                        onChange={(e) => {
-                                          handleLessonVideoUpload(les.id, e.target.files?.[0]);
-                                          e.currentTarget.value = "";
+                                        autoFocus
+                                        dir="ltr"
+                                        value={les.duration}
+                                        onChange={(e) => updateLessonDurationInline(chap.id, les.id, e.target.value)}
+                                        onBlur={() => setEditingLessonDurationId(null)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter") setEditingLessonDurationId(null);
                                         }}
+                                        className="h-6 w-16 px-1.5 rounded-md border border-blue-500/40 bg-white dark:bg-white/5 text-[8px] font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                                       />
-                                      {typeof lessonUploadProgress[les.id] === "number" ? (
-                                        <span className="text-[8px] font-black leading-none">{lessonUploadProgress[les.id]}%</span>
-                                      ) : (
-                                        <Video className="w-3.5 h-3.5" />
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditingLessonDurationId(les.id)}
+                                        className="text-[8px] opacity-75 font-mono hover:text-primary transition-colors cursor-text"
+                                      >
+                                        {les.duration}
+                                      </button>
+                                    )}
+                                    <div className="inline-flex items-center gap-1 p-1 rounded-lg border border-emerald-200/70 dark:border-emerald-400/20 bg-emerald-50/50 dark:bg-emerald-500/10">
+                                      {!lessonVideoMap[les.id] && (
+                                        <label className="size-6 inline-flex items-center justify-center rounded-md border border-blue-200/80 dark:border-blue-400/20 bg-blue-50 dark:bg-blue-500/10 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all cursor-pointer overflow-hidden">
+                                          <input
+                                            type="file"
+                                            accept="video/*"
+                                            className="hidden"
+                                            onChange={(e) => {
+                                              handleLessonVideoUpload(les.id, e.target.files?.[0]);
+                                              e.currentTarget.value = "";
+                                            }}
+                                          />
+                                          {typeof lessonUploadProgress[les.id] === "number" ? (
+                                            <span className="text-[8px] font-black leading-none">{lessonUploadProgress[les.id]}%</span>
+                                          ) : (
+                                            <Video className="w-3.5 h-3.5" />
+                                          )}
+                                        </label>
                                       )}
-                                    </label>
-                                    <button type="button" onClick={() => openDeleteConfirm("حذف جلسه", "آیا مطمئن هستید که می‌خواهید این جلسه حذف شود؟", () => deleteLesson(chap.id, les.id))} className="size-6 inline-flex items-center justify-center rounded-md border border-red-200/80 bg-red-50 text-red-500">
-                                      <X className="w-3 h-3" />
-                                    </button>
+                                      {lessonVideoMap[les.id] && typeof lessonUploadProgress[les.id] !== "number" && (
+                                        <>
+                                          <button type="button" onClick={() => window.open(lessonVideoMap[les.id].url, "_blank", "noopener,noreferrer")} className="h-6 px-2 inline-flex items-center justify-center rounded-md border border-emerald-200/80 dark:border-emerald-400/20 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all text-[8px] font-black cursor-pointer">
+                                            ویدیو
+                                          </button>
+                                          <button type="button" onClick={() => openDeleteConfirm("حذف ویدیوی آپلود شده", "آیا از حذف این فایل ویدیو مطمئن هستید؟", () => removeLessonVideo(les.id))} className="size-6 inline-flex items-center justify-center rounded-md border border-red-200/80 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all cursor-pointer">
+                                            <Trash2 className="w-3 h-3" />
+                                          </button>
+                                        </>
+                                      )}
+                                    </div>
+                                    <div className="inline-flex items-center gap-1 p-1 rounded-lg border border-amber-200/70 dark:border-amber-400/20 bg-amber-50/40 dark:bg-amber-500/10">
+                                      <button
+                                        type="button"
+                                        onClick={() => setLessonFilesModal({ open: true, lessonId: les.id })}
+                                        className="h-6 px-2 inline-flex items-center justify-center rounded-md border border-amber-200/80 dark:border-amber-400/20 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-all text-[8px] font-black cursor-pointer"
+                                      >
+                                        فایل ({lessonFileMap[les.id]?.length || 0})
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setLessonDescriptionEditor({
+                                            open: true,
+                                            lessonId: les.id,
+                                            value: lessonDescriptionMap[les.id] || "",
+                                          })
+                                        }
+                                        className={`h-6 px-2 inline-flex items-center justify-center rounded-md border transition-all text-[8px] font-black cursor-pointer ${
+                                          lessonDescriptionMap[les.id]
+                                            ? "border-indigo-200/80 dark:border-indigo-400/20 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/20"
+                                            : "border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10"
+                                        }`}
+                                      >
+                                        توضیح
+                                      </button>
+                                    </div>
+                                    <div className="inline-flex items-center gap-1 p-1 rounded-lg border border-red-200/70 dark:border-red-400/20 bg-red-50/40 dark:bg-red-500/10">
+                                      <button type="button" onClick={() => openDeleteConfirm("حذف جلسه", "آیا مطمئن هستید که می‌خواهید این جلسه حذف شود؟", () => deleteLesson(chap.id, les.id))} className="size-6 inline-flex items-center justify-center rounded-md border border-red-200/80 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all cursor-pointer">
+                                        <X className="w-3 h-3" />
+                                      </button>
+                                    </div>
                                   </div>
                                 </div>
                               ))
                             )}
                           </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -2105,23 +2282,41 @@ export default function CreateCourseWizardPage() {
           <div className="relative w-full max-w-xl rounded-3xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#1c1e26] shadow-2xl p-6">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-black text-gray-900 dark:text-white">مدیریت فایل‌های جلسه</h3>
-              <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
-                تعداد فایل‌ها: {lessonFileMap[lessonFilesModal.lessonId]?.length || 0}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
+                  تعداد فایل‌ها: {lessonFileMap[lessonFilesModal.lessonId]?.length || 0}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setLessonFilesModal({ open: false, lessonId: "" })}
+                  className="size-8 inline-flex items-center justify-center rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-700 dark:hover:text-gray-200 transition-all cursor-pointer"
+                  aria-label="بستن پنجره مدیریت فایل‌ها"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             <div className="mt-4 flex items-center gap-2">
-              <label className="h-10 px-3 inline-flex items-center justify-center rounded-xl border border-amber-300/80 dark:border-amber-400/30 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 text-sm font-black cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-all">
+              <label className={`h-10 px-3 inline-flex items-center justify-center rounded-xl border text-sm font-black transition-all ${
+                (lessonFileMap[lessonFilesModal.lessonId]?.length || 0) >= MAX_LESSON_FILES
+                  ? "border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-500 cursor-not-allowed pointer-events-none"
+                  : "border-amber-300/80 dark:border-amber-400/30 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-500/20"
+              }`}>
                 <input
                   type="file"
+                  multiple
                   className="hidden"
                   onChange={(e) => {
-                    handleLessonFileUpload(lessonFilesModal.lessonId, e.target.files?.[0]);
+                    handleLessonFileUpload(lessonFilesModal.lessonId, e.target.files);
                     e.currentTarget.value = "";
                   }}
                 />
                 افزودن فایل
               </label>
+              <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
+                حداکثر {MAX_LESSON_FILES} فایل
+              </span>
             </div>
 
             <div className="mt-4 space-y-2 max-h-[300px] overflow-y-auto pr-1">
