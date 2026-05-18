@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 
 export interface CourseCardProps {
@@ -37,18 +36,22 @@ export default function CourseCard({
     ? students.toLocaleString("fa-IR")
     : students;
 
-  const displayImage = image || "https://images.unsplash.com/photo-1516116211223-5c359a36298a?q=80&w=600&auto=format&fit=crop";
+  const hasCoverImage = Boolean(image?.trim());
 
   return (
     <div className="group flex flex-col h-full bg-white dark:bg-transparent dark:glass-premium rounded-4xl border border-gray-200 dark:border-white/5 overflow-hidden shadow-sm dark:shadow-none transition-all duration-500 md:hover:-translate-y-3 md:hover:shadow-[0_30px_60px_-15px_rgba(34,197,94,0.15)] w-full max-w-[400px] mx-auto text-right" dir="rtl">
-      <div className="relative h-64 overflow-hidden rounded-t-4xl isolate">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={displayImage}
-          alt={title || alt}
-          className="object-cover w-full h-full transform-gpu md:group-hover:scale-105 transition-transform duration-700 ease-out"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-60"></div>
+      <div className="relative h-64 overflow-hidden rounded-t-4xl isolate bg-gradient-to-b from-gray-100 to-gray-200 dark:from-[#0b0f18] dark:to-[#0a0d14]">
+        {hasCoverImage && (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={image}
+              alt={title || alt}
+              className="object-cover w-full h-full transform-gpu md:group-hover:scale-105 transition-transform duration-700 ease-out"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-60"></div>
+          </>
+        )}
         <div className="absolute top-5 left-5 right-5 flex justify-between items-start z-20">
           <span className="bg-emerald-500 text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-md">
             {difficulty}
