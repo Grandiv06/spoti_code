@@ -29,6 +29,7 @@ import CourseCard from "@/app/components/CourseCard";
 import CourseHero from "@/app/components/CourseHero";
 import CourseCurriculum from "@/app/components/CourseCurriculum";
 import CourseFAQ from "@/app/components/CourseFAQ";
+import CustomSelect from "@/components/ui/CustomSelect";
 
 export default function CreateCourseWizardPage() {
   const router = useRouter();
@@ -44,7 +45,7 @@ export default function CreateCourseWizardPage() {
     category: "Frontend",
     level: "intermediate",
     language: "فارسی",
-    duration: "۱۸ ساعت",
+    duration: "18",
     studentsCount: 0,
     price: 1450000,
     isPaid: "paid", // free or paid
@@ -146,6 +147,19 @@ export default function CreateCourseWizardPage() {
         .replace(/[^a-zA-Z0-9آ-ی\s]/g, "")
         .replace(/\s+/g, "-"),
     }));
+  };
+
+  const normalizeDigitsToEnglish = (value: string) => {
+    return value
+      .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 1776))
+      .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 1632));
+  };
+
+  const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const englishDigits = normalizeDigitsToEnglish(e.target.value);
+    const digitsOnly = englishDigits.replace(/\D/g, "");
+    const withoutLeadingZeros = digitsOnly.replace(/^0+/, "");
+    setFormData((p) => ({ ...p, duration: withoutLeadingZeros }));
   };
 
   // Mock uploads
@@ -648,43 +662,53 @@ export default function CreateCourseWizardPage() {
                   {/* Category */}
                   <div className="flex flex-col gap-2">
                     <label className="text-xs font-bold text-gray-700 dark:text-gray-300">دسته‌بندی اصلی</label>
-                    <select
+                    <CustomSelect
                       value={formData.category}
-                      onChange={(e) => setFormData((p) => ({ ...p, category: e.target.value }))}
-                      className="px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-2xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-right cursor-pointer"
-                    >
-                      <option value="Frontend">Frontend (فرانت‌اند)</option>
-                      <option value="Backend">Backend (بک‌اند)</option>
-                      <option value="DevOps">DevOps (دواپس)</option>
-                      <option value="Mobile">Mobile (موبایل)</option>
-                      <option value="UI/UX">UI/UX (رابط کاربری)</option>
-                    </select>
+                      onChange={(value) => setFormData((p) => ({ ...p, category: value }))}
+                      options={[
+                        { value: "Frontend", label: "Frontend (فرانت‌اند)" },
+                        { value: "Backend", label: "Backend (بک‌اند)" },
+                        { value: "DevOps", label: "DevOps (دواپس)" },
+                        { value: "Mobile", label: "Mobile (موبایل)" },
+                        { value: "UI/UX", label: "UI/UX (رابط کاربری)" },
+                      ]}
+                      size="sm"
+                    />
                   </div>
 
                   {/* Level */}
                   <div className="flex flex-col gap-2">
                     <label className="text-xs font-bold text-gray-700 dark:text-gray-300">سطح آموزشی دوره</label>
-                    <select
+                    <CustomSelect
                       value={formData.level}
-                      onChange={(e) => setFormData((p) => ({ ...p, level: e.target.value }))}
-                      className="px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-2xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-right cursor-pointer"
-                    >
-                      <option value="elementary">مقدماتی</option>
-                      <option value="intermediate">متوسط</option>
-                      <option value="advanced">پیشرفته</option>
-                    </select>
+                      onChange={(value) => setFormData((p) => ({ ...p, level: value }))}
+                      options={[
+                        { value: "elementary", label: "مقدماتی" },
+                        { value: "intermediate", label: "متوسط" },
+                        { value: "advanced", label: "پیشرفته" },
+                      ]}
+                      size="sm"
+                    />
                   </div>
 
                   {/* Duration */}
                   <div className="flex flex-col gap-2">
                     <label className="text-xs font-bold text-gray-700 dark:text-gray-300">مدت زمان دوره <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      placeholder="مثال: ۱۸ ساعت"
-                      value={formData.duration}
-                      onChange={(e) => setFormData((p) => ({ ...p, duration: e.target.value }))}
-                      className="px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-2xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-right"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        placeholder="18"
+                        value={formData.duration}
+                        onChange={handleDurationChange}
+                        className="w-full px-4 py-3 pl-14 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-2xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-left"
+                        dir="ltr"
+                      />
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 pointer-events-none">
+                        ساعت
+                      </span>
+                    </div>
                   </div>
 
                   {/* Students count */}
