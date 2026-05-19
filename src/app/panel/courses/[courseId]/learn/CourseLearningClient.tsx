@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import CustomVideoPlayer from "@/components/panel/CustomVideoPlayer";
-import { Copy, Download, Loader2, MonitorPlay, Paperclip, SearchCheck, ShieldCheck, UploadCloud, X, Send, FileText, Image as ImageIcon, ArrowRight, MessageSquare, ChevronLeft } from "lucide-react";
+import { Clock3, Copy, Download, Loader2, MonitorPlay, Paperclip, SearchCheck, ShieldCheck, UploadCloud, X, Send, FileText, Image as ImageIcon, ArrowRight, MessageSquare, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type LearningAttachment = { name: string; size: string };
@@ -136,6 +136,18 @@ type QuestionAttachment = {
   type: string;
   previewUrl?: string;
 };
+type ComposerBlock =
+  | {
+      id: string;
+      type: "text";
+      content: string;
+    }
+  | {
+      id: string;
+      type: "code";
+      language?: string;
+      content: string;
+    };
 
 type LearningQuestion = {
   id: string;
@@ -150,12 +162,14 @@ type LearningQuestion = {
   courseTitle: string;
   lessonTitle?: string;
   createdAt: string;
+  createdAtIso?: string;
   status: "new" | "answered" | "closed";
   replies: {
     senderName: string;
     role: "instructor" | "student";
     text: string;
     createdAt: string;
+    createdAtIso?: string;
   }[];
 };
 
@@ -182,6 +196,73 @@ const formatBytes = (size: number) => {
   if (size < 1024) return `${size} B`;
   if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
   return `${(size / 1024 / 1024).toFixed(1)} MB`;
+};
+
+const formatTimeLabel = (dateIso?: string, fallback?: string) => {
+  if (dateIso) {
+    const d = new Date(dateIso);
+    if (!Number.isNaN(d.getTime())) {
+      return d.toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" });
+    }
+  }
+  if (fallback && /^\d{1,2}:\d{2}$/.test(fallback)) return fallback;
+  const seed = (fallback || "spoticode")
+    .split("")
+    .reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+  const hour = seed % 24;
+  const minute = (seed * 7) % 60;
+  const pseudoDate = new Date(2000, 0, 1, hour, minute);
+  return pseudoDate.toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" });
+};
+
+const formatDateTooltip = (dateIso?: string, fallback?: string) => {
+  if (dateIso) {
+    const d = new Date(dateIso);
+    if (!Number.isNaN(d.getTime())) {
+      return d.toLocaleDateString("fa-IR");
+    }
+  }
+  return fallback || "";
+};
+
+const makeBlockId = () => {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return `blk-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+};
+
+const detectCodeFromText = (input: string): { isCode: boolean; code: string; language?: string } => {
+  const text = input.trim();
+  if (!text) return { isCode: false, code: "" };
+
+  const fenced = text.match(/```([a-zA-Z0-9+#-]*)\n?([\s\S]*?)```/);
+  if (fenced) {
+    return {
+      isCode: true,
+      language: fenced[1] || "code",
+      code: fenced[2]?.trim() || "",
+    };
+  }
+
+  const codePatterns = [
+    /import\s+.*\s+from\s+['"].*['"]/i,
+    /const\s+\w+\s*=\s*/,
+    /let\s+\w+\s*=\s*/,
+    /var\s+\w+\s*=\s*/,
+    /function\s+\w*\s*\(/,
+    /class\s+\w+\s*\{/,
+    /def\s+\w+\s*\(.*\):/,
+    /#include\s+<\w+>/,
+    /using\s+namespace\s+\w+/,
+    /<\?php/,
+    /\w+\s*\(.*\)\s*\{/,
+  ];
+
+  const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
+  if (lines.length < 2) return { isCode: false, code: "" };
+  const codeLikeLines = lines.filter((line) => codePatterns.some((p) => p.test(line)) || /[;{}()[\]=<>]/.test(line)).length;
+  const persianWords = (text.match(/[آ-ی]{3,}/g) || []).length;
+  const ratio = codeLikeLines / lines.length;
+  return { isCode: ratio >= 0.7 && persianWords <= 2, code: text, language: "code" };
 };
 
 export default function CourseLearningClient() {
@@ -213,10 +294,13 @@ export default function CourseLearningClient() {
   };
 
   const [selectedThreadId, setSelectedThreadId] = useState("");
-  const [composerText, setComposerText] = useState("");
+  const [composerBlocks, setComposerBlocks] = useState<ComposerBlock[]>([
+    { id: makeBlockId(), type: "text", content: "" },
+  ]);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [imageLightboxUrl, setImageLightboxUrl] = useState("");
+  const blockRefs = React.useRef<Record<string, HTMLTextAreaElement | null>>({});
 
   React.useEffect(() => {
     if (qaQuestions.length > 0 && !selectedThreadId) {
@@ -235,6 +319,16 @@ export default function CourseLearningClient() {
       setTimeout(scrollToBottom, 100);
     }
   }, [selectedThreadId, qaQuestions]);
+
+  React.useEffect(() => {
+    composerBlocks.forEach((block) => {
+      const el = blockRefs.current[block.id];
+      if (!el) return;
+      el.style.height = "auto";
+      const maxHeight = block.type === "code" ? 280 : 220;
+      el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
+    });
+  }, [composerBlocks]);
 
   const handlePendingFileAdd = (files: FileList | null) => {
     if (!files) return;
@@ -284,8 +378,96 @@ export default function CourseLearningClient() {
     );
   };
 
+  const focusBlock = (blockId: string) => {
+    requestAnimationFrame(() => {
+      blockRefs.current[blockId]?.focus();
+    });
+  };
+
+  const updateBlock = (blockId: string, content: string) => {
+    setComposerBlocks((prev) =>
+      prev.map((block) => {
+        if (block.id !== blockId) return block;
+        if (block.type === "text") {
+          const detected = detectCodeFromText(content);
+          if (detected.isCode) {
+            return {
+              id: block.id,
+              type: "code" as const,
+              language: detected.language || "code",
+              content: detected.code,
+            };
+          }
+        }
+        return { ...block, content };
+      })
+    );
+  };
+
+  const addTextBlockAfter = (blockId: string) => {
+    const newBlock: ComposerBlock = { id: makeBlockId(), type: "text", content: "" };
+    setComposerBlocks((prev) => {
+      const idx = prev.findIndex((block) => block.id === blockId);
+      if (idx === -1) return [...prev, newBlock];
+      return [...prev.slice(0, idx + 1), newBlock, ...prev.slice(idx + 1)];
+    });
+    focusBlock(newBlock.id);
+  };
+
+  const addCodeBlockAfter = (blockId: string) => {
+    const newBlock: ComposerBlock = { id: makeBlockId(), type: "code", content: "", language: "ts" };
+    setComposerBlocks((prev) => {
+      const idx = prev.findIndex((block) => block.id === blockId);
+      if (idx === -1) return [...prev, newBlock];
+      return [...prev.slice(0, idx + 1), newBlock, ...prev.slice(idx + 1)];
+    });
+    focusBlock(newBlock.id);
+  };
+
+  const focusTextAfterCode = (blockId: string) => {
+    const codeIndex = composerBlocks.findIndex((block) => block.id === blockId);
+    const nextBlock = composerBlocks[codeIndex + 1];
+
+    if (nextBlock?.type === "text") {
+      focusBlock(nextBlock.id);
+      return;
+    }
+
+    const newBlock: ComposerBlock = { id: makeBlockId(), type: "text", content: "" };
+    setComposerBlocks((prev) => [
+      ...prev.slice(0, codeIndex + 1),
+      newBlock,
+      ...prev.slice(codeIndex + 1),
+    ]);
+    focusBlock(newBlock.id);
+  };
+
+  const handleComposerOuterClick = () => {
+    const lastBlock = composerBlocks[composerBlocks.length - 1];
+    if (!lastBlock) return;
+    if (lastBlock.type === "text") {
+      focusBlock(lastBlock.id);
+      return;
+    }
+    const newBlock: ComposerBlock = { id: makeBlockId(), type: "text", content: "" };
+    setComposerBlocks((prev) => [...prev, newBlock]);
+    focusBlock(newBlock.id);
+  };
+
+  const composerPayload = composerBlocks
+    .map((block) => {
+      if (!block.content.trim()) return "";
+      if (block.type === "code") {
+        const lang = block.language?.trim() || "code";
+        return `\`\`\`${lang}\n${block.content.trimEnd()}\n\`\`\``;
+      }
+      return block.content.trimEnd();
+    })
+    .filter(Boolean)
+    .join("\n\n");
+
   const handleSendMessage = async () => {
-    if (!composerText.trim() && pendingAttachments.length === 0) return;
+    if (!composerPayload.trim() && pendingAttachments.length === 0) return;
     setIsSendingMessage(true);
     try {
       const attachments = await Promise.all(
@@ -306,8 +488,9 @@ export default function CourseLearningClient() {
       const newReply = {
         senderName: "کاربر تست",
         role: "student" as const,
-        text: composerText.trim(),
+        text: composerPayload.trim(),
         createdAt: new Date().toLocaleDateString("fa-IR"),
+        createdAtIso: new Date().toISOString(),
         attachments: attachments.length ? attachments : undefined,
       };
 
@@ -338,7 +521,7 @@ export default function CourseLearningClient() {
         })
       );
 
-      setComposerText("");
+      setComposerBlocks([{ id: makeBlockId(), type: "text", content: "" }]);
       setPendingAttachments([]);
     } catch (err) {
       console.error(err);
@@ -371,10 +554,42 @@ export default function CourseLearningClient() {
 
   const renderMessageText = (text: string) => {
     if (!text) return null;
-    const parts = text.split("```");
-    if (parts.length < 3) {
-      return <p className="whitespace-pre-wrap text-sm leading-7">{text}</p>;
+    
+    // Auto-detect code block even if user forgot to wrap in backticks
+    const hasBackticks = text.includes("```");
+    let processedText = text;
+    
+    if (!hasBackticks) {
+      const codePatterns = [
+        /import\s+.*\s+from\s+['"].*['"]/i,
+        /const\s+\w+\s*=\s*/,
+        /let\s+\w+\s*=\s*/,
+        /var\s+\w+\s*=\s*/,
+        /function\s+\w*\s*\(/,
+        /class\s+\w+\s*\{/,
+        /public\s+class\s+\w+/,
+        /def\s+\w+\s*\(.*\):/,
+        /print\(.*\)/,
+        /#include\s+<\w+>/,
+        /using\s+namespace\s+\w+/,
+        /<\?php/,
+        /\{\s*[\s\S]*\}/, 
+        /\w+\s*\(.*\)\s*\{/
+      ];
+      const lines = text.split("\n");
+      const hasCodePattern = codePatterns.some(p => p.test(text));
+      const punctuationCount = (text.match(/[;{}()=<>]/g) || []).length;
+      
+      if (hasCodePattern || (lines.length >= 2 && punctuationCount > lines.length * 0.8)) {
+        processedText = "```code\n" + text + "\n```";
+      }
     }
+
+    const parts = processedText.split("```");
+    if (parts.length < 3) {
+      return <p className="whitespace-pre-wrap text-sm leading-7 font-medium">{processedText}</p>;
+    }
+    
     return (
       <div className="space-y-2 text-sm leading-7">
         {parts.map((part, index) => {
@@ -387,19 +602,18 @@ export default function CourseLearningClient() {
               code = lines.slice(1).join("\n");
             }
             return (
-              <div key={index} className="my-2 rounded-xl overflow-hidden border border-black/10 dark:border-white/10" dir="ltr">
-                {lang && (
-                  <div className="bg-black/10 dark:bg-black/40 px-3 py-1 text-[10px] font-mono text-gray-500 dark:text-gray-400 border-b border-black/5 dark:border-white/5 flex justify-between items-center">
-                    <span>{lang}</span>
-                  </div>
-                )}
-                <pre className="font-mono text-xs p-3 bg-black/5 dark:bg-black/30 overflow-x-auto text-left leading-relaxed text-inherit">
-                  {code}
+              <div key={index} className="my-2 rounded-2xl overflow-hidden border border-gray-200/50 dark:border-white/10 shadow-sm" dir="ltr">
+                <div className="bg-black/5 dark:bg-black/30 px-4 py-2 text-[10px] font-mono text-gray-500 dark:text-gray-400 border-b border-black/5 dark:border-white/5 flex justify-between items-center select-none">
+                  <span>{lang || "code"}</span>
+                  <span className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">CODE</span>
+                </div>
+                <pre className="font-mono text-xs p-4 bg-gray-50/50 dark:bg-black/20 overflow-x-auto text-left leading-relaxed text-gray-800 dark:text-gray-200 select-all">
+                  {code.trim()}
                 </pre>
               </div>
             );
           }
-          return part ? <span key={index} className="whitespace-pre-wrap">{part}</span> : null;
+          return part ? <span key={index} className="whitespace-pre-wrap font-medium">{part}</span> : null;
         })}
       </div>
     );
@@ -440,8 +654,30 @@ export default function CourseLearningClient() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       const allQuestions: LearningQuestion[] = raw ? JSON.parse(raw) : [];
+      let changed = false;
+      const nowMs = Date.now();
+      const normalizedQuestions = allQuestions.map((q, qIndex) => {
+        const questionIso = q.createdAtIso || new Date(nowMs - qIndex * 120000).toISOString();
+        if (!q.createdAtIso) changed = true;
+        const replies = (q.replies || []).map((rep, repIndex) => {
+          if (rep.createdAtIso) return rep;
+          changed = true;
+          return {
+            ...rep,
+            createdAtIso: new Date(nowMs - (qIndex * 120000 + repIndex * 45000 + 15000)).toISOString(),
+          };
+        });
+        return {
+          ...q,
+          createdAtIso: questionIso,
+          replies,
+        };
+      });
+      if (changed) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizedQuestions));
+      }
       const resolvedCourseId = courseMap[courseId] || "CRS-410";
-      const own = allQuestions.filter((q) => q.courseId === resolvedCourseId);
+      const own = normalizedQuestions.filter((q) => q.courseId === resolvedCourseId);
       setQaQuestions(own.sort((a, b) => b.id.localeCompare(a.id)));
     } catch {
       setQaQuestions([]);
@@ -524,6 +760,7 @@ export default function CourseLearningClient() {
         courseTitle: courseData.title,
         lessonTitle: activeLesson.title,
         createdAt: new Date().toLocaleDateString("fa-IR"),
+        createdAtIso: new Date().toISOString(),
         status: "new",
         replies: [],
       };
@@ -743,6 +980,12 @@ export default function CourseLearningClient() {
                 <div className="space-y-5 animate-in fade-in duration-300">
                   {(() => {
                     const activeThread = qaQuestions.find((q) => q.id === selectedThreadId) || qaQuestions[0];
+                    const hasInstructorReply = activeThread?.replies?.some((rep) => rep.role === "instructor");
+                    const messageState: "sent" | "seen" | "replied" = hasInstructorReply
+                      ? "replied"
+                      : (activeThread?.replies?.length || 0) > 0 || activeThread?.status === "closed"
+                      ? "seen"
+                      : "sent";
                     if (!activeThread) {
                       return (
                         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 py-12 text-gray-400 dark:border-gray-700">
@@ -757,29 +1000,32 @@ export default function CourseLearningClient() {
                         {/* Thread Header */}
                         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800 p-4 bg-white/85 dark:bg-[#1a1c24]/85 backdrop-blur-sm shrink-0 text-right">
                           <div className="flex items-center gap-3">
-                            <div className="text-right">
-                              <h4 className="text-sm font-black text-gray-900 dark:text-white line-clamp-1">
-                                {activeThread.title}
+                            <div className="h-11 w-11 overflow-hidden rounded-full border border-primary/20 bg-primary/10">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src="/images/inst1.jpg" alt={courseData.instructor} className="h-full w-full object-cover" />
+                            </div>
+                            <div className="text-right leading-6">
+                              <h4 className="text-sm font-black text-gray-900 dark:text-white">
+                                {courseData.instructor}
                               </h4>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className={cn(
-                                  "rounded px-1.5 py-0.5 text-[9px] font-black leading-none",
-                                  activeThread.status === "new" && "bg-rose-500/10 text-rose-400",
-                                  activeThread.status === "answered" && "bg-emerald-500/10 text-emerald-400",
-                                  activeThread.status === "closed" && "bg-gray-500/10 text-gray-400"
-                                )}>
-                                  {activeThread.status === "new" && "جدید"}
-                                  {activeThread.status === "answered" && "پاسخ داده شده"}
-                                  {activeThread.status === "closed" && "بسته شده"}
-                                </span>
-                                {activeThread.lessonTitle && (
-                                  <span className="text-[10px] font-bold text-gray-400">
-                                    جلسه: {activeThread.lessonTitle}
-                                  </span>
-                                )}
-                              </div>
+                              <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
+                                استاد دوره
+                              </p>
                             </div>
                           </div>
+
+                          <span
+                            className={cn(
+                              "rounded-lg px-3 py-1 text-[11px] font-black",
+                              messageState === "sent" && "bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-gray-300",
+                              messageState === "seen" && "bg-sky-500/10 text-sky-600 dark:text-sky-300",
+                              messageState === "replied" && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
+                            )}
+                          >
+                            {messageState === "sent" && "ارسال شده"}
+                            {messageState === "seen" && "استاد پیامت رو دید"}
+                            {messageState === "replied" && "استاد پاسخ داد"}
+                          </span>
                         </div>
 
                         {/* Messages List Area */}
@@ -845,8 +1091,14 @@ export default function CourseLearningClient() {
                                 </div>
                               )}
 
-                              <div className="mt-2 text-left text-[9px] text-emerald-600/75 dark:text-emerald-400/65 font-bold">
-                                {activeThread.createdAt}
+                              <div className="mt-2 text-left text-[10px] text-emerald-600/75 dark:text-emerald-400/65 font-bold">
+                                <span className="group relative inline-flex items-center gap-1 cursor-default">
+                                  <Clock3 className="h-3 w-3" />
+                                  <span>{formatTimeLabel(activeThread.createdAtIso, activeThread.createdAt)}</span>
+                                  <span className="pointer-events-none absolute -top-7 left-0 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[10px] font-semibold text-white opacity-0 shadow-md transition-opacity group-hover:opacity-100 dark:bg-black">
+                                    {formatDateTooltip(activeThread.createdAtIso, activeThread.createdAt)}
+                                  </span>
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -926,8 +1178,14 @@ export default function CourseLearningClient() {
                                     </div>
                                   )}
 
-                                  <div className={cn("mt-2 text-left text-[9px]", isInstructor ? "text-gray-400" : "text-emerald-600/75 dark:text-emerald-400/65 font-semibold")}>
-                                    {rep.createdAt}
+                                  <div className={cn("mt-2 text-left text-[10px]", isInstructor ? "text-gray-400" : "text-emerald-600/75 dark:text-emerald-400/65 font-semibold")}>
+                                    <span className="group relative inline-flex items-center gap-1 cursor-default">
+                                      <Clock3 className="h-3 w-3" />
+                                      <span>{formatTimeLabel(rep.createdAtIso, rep.createdAt)}</span>
+                                      <span className="pointer-events-none absolute -top-7 left-0 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[10px] font-semibold text-white opacity-0 shadow-md transition-opacity group-hover:opacity-100 dark:bg-black">
+                                        {formatDateTooltip(rep.createdAtIso, rep.createdAt)}
+                                      </span>
+                                    </span>
                                   </div>
                                 </div>
                               </div>
@@ -990,19 +1248,19 @@ export default function CourseLearningClient() {
                               )}
 
                               {/* Inputs Row */}
-                              <div className="flex items-end gap-3 rounded-2xl border border-gray-150 bg-gray-50 dark:border-white/10 dark:bg-white/5 p-3 focus-within:border-primary focus-within:bg-white dark:focus-within:bg-[#14161c] transition duration-200">
+                              <div className="relative flex items-center gap-3 rounded-2xl border border-gray-200/80 dark:border-white/10 bg-slate-50/50 dark:bg-[#14161c]/40 px-3 py-2 pr-4 focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/10 focus-within:bg-white dark:focus-within:bg-[#14161c] transition-all duration-300 shadow-inner">
                                 <button
                                   type="button"
                                   onClick={() => {
                                     const el = document.getElementById("student-attachment-picker");
                                     el?.click();
                                   }}
-                                  className="w-10 h-10 rounded-full hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors cursor-pointer shrink-0"
+                                  className="w-10 h-10 rounded-full bg-gray-200/60 dark:bg-white/5 hover:bg-primary/10 dark:hover:bg-primary/20 text-gray-500 hover:text-primary dark:text-gray-300 dark:hover:text-primary transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-sm flex items-center justify-center shrink-0 cursor-pointer"
                                   title="افزودن فایل ضمیمه"
                                 >
                                   <Paperclip className="w-5 h-5" />
                                 </button>
-                                
+
                                 <input
                                   id="student-attachment-picker"
                                   type="file"
@@ -1012,25 +1270,92 @@ export default function CourseLearningClient() {
                                   onChange={(e) => handlePendingFileAdd(e.target.files)}
                                 />
 
-                                <textarea
-                                  value={composerText}
-                                  onChange={(e) => setComposerText(e.target.value)}
-                                  placeholder="سؤال یا پاسخ خود را بنویسید..."
-                                  rows={1}
-                                  className="flex-1 max-h-32 min-h-10 outline-none resize-none bg-transparent py-2.5 text-sm leading-6 text-gray-800 dark:text-white text-right"
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" && !e.shiftKey) {
-                                      e.preventDefault();
-                                      handleSendMessage();
-                                    }
-                                  }}
-                                />
+                                <div
+                                  className="max-h-[340px] min-h-[34px] flex-1 overflow-y-auto rounded-xl px-1 py-0.5"
+                                  onClick={handleComposerOuterClick}
+                                >
+                                  <div className="space-y-2">
+                                    {composerBlocks.map((block, index) => {
+                                      if (block.type === "text") {
+                                        return (
+                                          <div key={block.id} onClick={(e) => e.stopPropagation()}>
+                                            <textarea
+                                              ref={(el) => {
+                                                blockRefs.current[block.id] = el;
+                                              }}
+                                              value={block.content}
+                                              onChange={(e) => updateBlock(block.id, e.target.value)}
+                                              placeholder={index === 0 ? "سؤال یا پاسخ خود را بنویسید..." : "ادامه متن..."}
+                                              rows={1}
+                                              className="w-full min-h-[36px] max-h-[220px] resize-none overflow-y-auto bg-transparent px-2 pt-2.5 pb-0.5 text-right text-sm font-medium leading-5 text-gray-800 outline-none placeholder-gray-400 dark:text-white dark:placeholder-gray-500"
+                                              dir="rtl"
+                                              onKeyDown={(e) => {
+                                                if (e.key === "Enter" && !e.shiftKey) {
+                                                  e.preventDefault();
+                                                  handleSendMessage();
+                                                }
+                                              }}
+                                            />
+                                          </div>
+                                        );
+                                      }
+
+                                      return (
+                                        <div key={block.id} className="rounded-2xl border border-black/10 bg-black/[0.04] p-3 dark:border-white/10 dark:bg-black/35" onClick={(e) => e.stopPropagation()}>
+                                          <div className="mb-2 flex items-center justify-between gap-2">
+                                            <span className="rounded-full bg-indigo-600 px-2.5 py-0.5 text-[9px] font-black tracking-wider text-white">
+                                              کد شناسایی شد / CODE MODE
+                                            </span>
+                                          </div>
+                                          <textarea
+                                            ref={(el) => {
+                                              blockRefs.current[block.id] = el;
+                                            }}
+                                            value={block.content}
+                                            onChange={(e) => updateBlock(block.id, e.target.value)}
+                                            placeholder="کد خود را اینجا بنویسید..."
+                                            rows={3}
+                                            className="w-full min-h-[120px] max-h-[280px] resize-none overflow-y-auto rounded-xl border border-black/5 bg-transparent p-3 font-mono text-xs leading-6 text-gray-800 outline-none dark:border-white/10 dark:text-gray-200"
+                                            dir="ltr"
+                                            onKeyDown={(e) => {
+                                              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                                                e.preventDefault();
+                                                focusTextAfterCode(block.id);
+                                              }
+                                            }}
+                                          />
+                                          <div className="mt-2 flex justify-start">
+                                            <button
+                                              type="button"
+                                              onClick={() => focusTextAfterCode(block.id)}
+                                              className="rounded-lg bg-green-50 px-2.5 py-1.5 text-[10px] font-black text-green-600 hover:bg-green-100 dark:bg-green-500/10 dark:text-green-400 dark:hover:bg-green-500/20"
+                                            >
+                                              خروج از کد و ادامه متن
+                                            </button>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
 
                                 <button
                                   type="button"
-                                  disabled={(!composerText.trim() && pendingAttachments.length === 0) || isSendingMessage}
+                                  onClick={() => {
+                                    const lastId = composerBlocks[composerBlocks.length - 1]?.id || "";
+                                    if (lastId) addCodeBlockAfter(lastId);
+                                  }}
+                                  className="h-10 rounded-xl border border-indigo-200 bg-indigo-50 px-2.5 text-[10px] font-black text-indigo-600 hover:bg-indigo-100 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300 cursor-pointer"
+                                  title="افزودن بلاک کد"
+                                >
+                                  + Code
+                                </button>
+
+                                <button
+                                  type="button"
+                                  disabled={(!composerPayload.trim() && pendingAttachments.length === 0) || isSendingMessage}
                                   onClick={handleSendMessage}
-                                  className="w-10 h-10 rounded-full bg-primary hover:bg-primary/95 text-white flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 shadow-md shadow-primary/10 shrink-0 cursor-pointer"
+                                  className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary via-indigo-600 to-indigo-500 text-white hover:opacity-95 shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/30 transform hover:-translate-y-0.5 active:translate-y-0 active:scale-95 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none transition-all duration-300 shrink-0 cursor-pointer"
                                 >
                                   {isSendingMessage ? (
                                     <Loader2 className="w-5 h-5 animate-spin" />

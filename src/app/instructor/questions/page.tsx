@@ -24,6 +24,30 @@ export default function InstructorQuestionsPage() {
 
   const [selectedQuestionId, setSelectedQuestionId] = useState("");
   const [composerText, setComposerText] = useState("");
+  const isInputCode = (() => {
+    if (!composerText) return false;
+    if (composerText.includes("```")) return true;
+    const codePatterns = [
+      /import\s+.*\s+from\s+['"].*['"]/i,
+      /const\s+\w+\s*=\s*/,
+      /let\s+\w+\s*=\s*/,
+      /var\s+\w+\s*=\s*/,
+      /function\s+\w*\s*\(/,
+      /class\s+\w+\s*\{/,
+      /public\s+class\s+\w+/,
+      /def\s+\w+\s*\(.*\):/,
+      /print\(.*\)/,
+      /#include\s+<\w+>/,
+      /using\s+namespace\s+\w+/,
+      /<\?php/,
+      /\{\s*[\s\S]*\}/, 
+      /\w+\s*\(.*\)\s*\{/
+    ];
+    const lines = composerText.split("\n");
+    const hasCodePattern = codePatterns.some(p => p.test(composerText));
+    const punctuationCount = (composerText.match(/[;{}()=<>]/g) || []).length;
+    return hasCodePattern || (lines.length >= 2 && punctuationCount > lines.length * 0.8);
+  })();
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [imageLightboxUrl, setImageLightboxUrl] = useState("");
@@ -134,10 +158,42 @@ export default function InstructorQuestionsPage() {
 
   const renderMessageText = (text: string) => {
     if (!text) return null;
-    const parts = text.split("```");
-    if (parts.length < 3) {
-      return <p className="whitespace-pre-wrap text-sm leading-7">{text}</p>;
+    
+    // Auto-detect code block even if user forgot to wrap in backticks
+    const hasBackticks = text.includes("```");
+    let processedText = text;
+    
+    if (!hasBackticks) {
+      const codePatterns = [
+        /import\s+.*\s+from\s+['"].*['"]/i,
+        /const\s+\w+\s*=\s*/,
+        /let\s+\w+\s*=\s*/,
+        /var\s+\w+\s*=\s*/,
+        /function\s+\w*\s*\(/,
+        /class\s+\w+\s*\{/,
+        /public\s+class\s+\w+/,
+        /def\s+\w+\s*\(.*\):/,
+        /print\(.*\)/,
+        /#include\s+<\w+>/,
+        /using\s+namespace\s+\w+/,
+        /<\?php/,
+        /\{\s*[\s\S]*\}/, 
+        /\w+\s*\(.*\)\s*\{/
+      ];
+      const lines = text.split("\n");
+      const hasCodePattern = codePatterns.some(p => p.test(text));
+      const punctuationCount = (text.match(/[;{}()=<>]/g) || []).length;
+      
+      if (hasCodePattern || (lines.length >= 2 && punctuationCount > lines.length * 0.8)) {
+        processedText = "```code\n" + text + "\n```";
+      }
     }
+
+    const parts = processedText.split("```");
+    if (parts.length < 3) {
+      return <p className="whitespace-pre-wrap text-sm leading-7 font-medium">{processedText}</p>;
+    }
+    
     return (
       <div className="space-y-2 text-sm leading-7">
         {parts.map((part, index) => {
@@ -150,19 +206,18 @@ export default function InstructorQuestionsPage() {
               code = lines.slice(1).join("\n");
             }
             return (
-              <div key={index} className="my-2 rounded-xl overflow-hidden border border-black/10 dark:border-white/10" dir="ltr">
-                {lang && (
-                  <div className="bg-black/10 dark:bg-black/40 px-3 py-1 text-[10px] font-mono text-gray-500 dark:text-gray-400 border-b border-black/5 dark:border-white/5 flex justify-between items-center">
-                    <span>{lang}</span>
-                  </div>
-                )}
-                <pre className="font-mono text-xs p-3 bg-black/5 dark:bg-black/30 overflow-x-auto text-left leading-relaxed text-inherit">
-                  {code}
+              <div key={index} className="my-2 rounded-2xl overflow-hidden border border-gray-200/50 dark:border-white/10 shadow-sm" dir="ltr">
+                <div className="bg-black/5 dark:bg-black/30 px-4 py-2 text-[10px] font-mono text-gray-500 dark:text-gray-400 border-b border-black/5 dark:border-white/5 flex justify-between items-center select-none">
+                  <span>{lang || "code"}</span>
+                  <span className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">CODE</span>
+                </div>
+                <pre className="font-mono text-xs p-4 bg-gray-50/50 dark:bg-black/20 overflow-x-auto text-left leading-relaxed text-gray-800 dark:text-gray-200 select-all">
+                  {code.trim()}
                 </pre>
               </div>
             );
           }
-          return part ? <span key={index} className="whitespace-pre-wrap">{part}</span> : null;
+          return part ? <span key={index} className="whitespace-pre-wrap font-medium">{part}</span> : null;
         })}
       </div>
     );
@@ -543,14 +598,20 @@ export default function InstructorQuestionsPage() {
                         )}
 
                         {/* Inputs Row */}
-                        <div className="flex items-end gap-3 rounded-2xl border border-gray-150 bg-gray-50 dark:border-white/10 dark:bg-white/5 p-3 focus-within:border-primary focus-within:bg-white dark:focus-within:bg-[#14161c] transition duration-200">
+                        <div className="relative flex items-end gap-3 rounded-2xl border border-gray-200/80 dark:border-white/10 bg-slate-50/50 dark:bg-[#14161c]/40 p-2.5 pr-4 focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/10 focus-within:bg-white dark:focus-within:bg-[#14161c] transition-all duration-300 shadow-inner">
+                          {isInputCode && (
+                            <span className="absolute -top-3 right-5 px-2.5 py-0.5 rounded-full bg-indigo-600 text-white text-[9px] font-black tracking-wider shadow-sm select-none animate-in fade-in zoom-in duration-200">
+                              کد شناسایی شد / CODE MODE
+                            </span>
+                          )}
+                          
                           <button
                             type="button"
                             onClick={() => {
                               const el = document.getElementById("instructor-attachment-picker");
                               el?.click();
                             }}
-                            className="w-10 h-10 rounded-full hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors cursor-pointer shrink-0"
+                            className="w-10 h-10 rounded-full bg-gray-200/60 dark:bg-white/5 hover:bg-primary/10 dark:hover:bg-primary/20 text-gray-500 hover:text-primary dark:text-gray-300 dark:hover:text-primary transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-sm flex items-center justify-center shrink-0 cursor-pointer"
                             title="افزودن فایل ضمیمه"
                           >
                             <Paperclip className="w-5 h-5" />
@@ -570,11 +631,17 @@ export default function InstructorQuestionsPage() {
                             onChange={(e) => setComposerText(e.target.value)}
                             placeholder="پاسخ فنی خود را بنویسید..."
                             rows={1}
-                            className="flex-1 max-h-32 min-h-10 outline-none resize-none bg-transparent py-2.5 text-sm leading-6 text-gray-800 dark:text-white text-right"
+                            className={cn(
+                              "flex-1 max-h-32 min-h-10 outline-none resize-none bg-transparent py-2 text-sm leading-6 transition-all duration-300 font-medium placeholder-gray-400 dark:placeholder-gray-500",
+                              isInputCode
+                                ? "text-left font-mono text-xs text-gray-800 dark:text-gray-200 bg-black/[0.04] dark:bg-black/35 p-3.5 rounded-2xl border border-black/5 dark:border-white/5 shadow-inner"
+                                : "text-right text-gray-800 dark:text-white"
+                            )}
+                            dir={isInputCode ? "ltr" : "rtl"}
                             onKeyDown={(e) => {
                               if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSendMessage();
+                                  e.preventDefault();
+                                  handleSendMessage();
                               }
                             }}
                           />
@@ -583,7 +650,7 @@ export default function InstructorQuestionsPage() {
                             type="button"
                             disabled={(!composerText.trim() && pendingAttachments.length === 0) || isSendingMessage}
                             onClick={handleSendMessage}
-                            className="w-10 h-10 rounded-full bg-primary hover:bg-primary/95 text-white flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 shadow-md shadow-primary/10 shrink-0 cursor-pointer"
+                            className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary via-indigo-600 to-indigo-500 text-white hover:opacity-95 shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/30 transform hover:-translate-y-0.5 active:translate-y-0 active:scale-95 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none transition-all duration-300 shrink-0 cursor-pointer"
                           >
                             {isSendingMessage ? (
                               <Loader2 className="w-5 h-5 animate-spin" />
