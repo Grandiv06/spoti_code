@@ -102,6 +102,8 @@ export default function InstructorCoursesPage() {
   const getPendingStatusMessage = () =>
     "وضعیت این دوره در حال بررسی می‌باشد. پس از تایید، مدیریت کامل و نمایش عمومی فعال می‌شود.";
 
+  const isPublishedLike = (status: string) => status === "published" || status === "approved";
+
   return (
     <div className="max-w-[1400px] mx-auto pb-20 animate-in fade-in duration-500" dir="rtl">
       
@@ -261,9 +263,9 @@ export default function InstructorCoursesPage() {
                 students={c.studentsCount}
                 price={c.price > 0 ? c.price : "رایگان"}
                 viewHref={`/courses/${c.id}`}
-                disableViewNavigation={c.status !== "published"}
+                disableViewNavigation={!isPublishedLike(c.status)}
                 onViewClick={(e) => {
-                  if (c.status === "published") return;
+                  if (isPublishedLike(c.status)) return;
                   e.preventDefault();
                   if (c.status === "pending") {
                     alert(getPendingStatusMessage());
@@ -282,7 +284,7 @@ export default function InstructorCoursesPage() {
               <div className="px-4 py-4 bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 rounded-3xl shadow-sm grid grid-cols-2 gap-2">
                 <button
                   onClick={() => {
-                    if (c.status === "published") {
+                    if (isPublishedLike(c.status)) {
                       router.push(`/instructor/courses/${c.id}`);
                       return;
                     }

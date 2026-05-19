@@ -163,6 +163,21 @@ interface InstructorDataContextType {
   updateProfile: (profile: InstructorProfile) => void;
 }
 
+type CourseStatus = Course["status"];
+
+const normalizeCourseStatus = (status: unknown): CourseStatus => {
+  if (status === "approved") return "published";
+  if (status === "published" || status === "draft" || status === "pending" || status === "inactive") {
+    return status;
+  }
+  return "draft";
+};
+
+const normalizeCourseRecord = (course: Course): Course => ({
+  ...course,
+  status: normalizeCourseStatus(course.status),
+});
+
 // --- INITIAL MOCK DATA ---
 const initialProfile: InstructorProfile = {
   name: "اصغر رضایی",
@@ -488,7 +503,12 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
       const storedPayouts = localStorage.getItem("spoticode_inst_payouts");
       const storedProfile = localStorage.getItem("spoticode_inst_profile");
 
-      if (storedCourses) setCourses(JSON.parse(storedCourses));
+      if (storedCourses) {
+        const parsed = JSON.parse(storedCourses) as Course[];
+        const normalized = parsed.map(normalizeCourseRecord);
+        setCourses(normalized);
+        localStorage.setItem("spoticode_inst_courses", JSON.stringify(normalized));
+      }
       else {
         setCourses(initialCourses);
         localStorage.setItem("spoticode_inst_courses", JSON.stringify(initialCourses));
@@ -566,7 +586,7 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
       slug: newCourse.slug || "new-course",
       cover: newCourse.cover || "https://images.unsplash.com/photo-1633356122544-f134324a6cee?q=80&w=600&auto=format&fit=crop",
       introVideo: newCourse.introVideo,
-      status: (newCourse.status as any) || "draft",
+      status: normalizeCourseStatus(newCourse.status),
       category: newCourse.category || "Frontend",
       level: newCourse.level || "intermediate",
       language: newCourse.language || "فارسی",
@@ -598,7 +618,12 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
   const updateCourse = (courseId: string, updates: Partial<Course>) => {
     const updated = courses.map((c) => {
       if (c.id === courseId) {
-        return { ...c, ...updates, updatedAt: "1404/02/20" };
+        return {
+          ...c,
+          ...updates,
+          status: normalizeCourseStatus(updates.status ?? c.status),
+          updatedAt: "1404/02/20",
+        };
       }
       return c;
     });

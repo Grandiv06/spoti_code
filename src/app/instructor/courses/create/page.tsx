@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   GraduationCap,
@@ -163,7 +163,7 @@ export default function CreateCourseWizardPage() {
   const [collapsedChapters, setCollapsedChapters] = useState<Record<string, boolean>>({});
   const [draggedFaqId, setDraggedFaqId] = useState<string | null>(null);
   const [dragOverFaqId, setDragOverFaqId] = useState<string | null>(null);
-  const lessonFilesInputRef = useRef<HTMLInputElement | null>(null);
+  const [lessonFilesError, setLessonFilesError] = useState("");
 
   // Custom Highlight words lists (Step 2)
   const [newHighlightWord, setNewHighlightWord] = useState("");
@@ -557,11 +557,18 @@ export default function CreateCourseWizardPage() {
   };
 
   const handleLessonFileUpload = (lessonId: string, files?: File[]) => {
-    if (!lessonId || !files || files.length === 0) return;
+    if (!lessonId) {
+      setLessonFilesError("جلسه‌ای برای آپلود انتخاب نشده است.");
+      return;
+    }
+    if (!files || files.length === 0) return;
     setLessonFileMap((prev) => {
       const current = prev[lessonId] || [];
       const remaining = Math.max(0, MAX_LESSON_FILES - current.length);
-      if (remaining === 0) return prev;
+      if (remaining === 0) {
+        setLessonFilesError(`حداکثر ${MAX_LESSON_FILES} فایل برای هر جلسه مجاز است.`);
+        return prev;
+      }
 
       const selected = files.slice(0, remaining);
       const newFiles = selected.map((file) => ({
@@ -570,6 +577,7 @@ export default function CreateCourseWizardPage() {
         url: URL.createObjectURL(file),
       }));
 
+      setLessonFilesError("");
       return { ...prev, [lessonId]: [...current, ...newFiles] };
     });
   };
@@ -2348,20 +2356,18 @@ export default function CreateCourseWizardPage() {
 
             <div className="mt-4 flex items-center gap-2">
               <input
-                ref={lessonFilesInputRef}
+                id="lesson-files-input"
                 type="file"
                 multiple
-                className="hidden"
+                className="sr-only"
                 onChange={(e) => {
                   const selectedFiles = e.target.files ? Array.from(e.target.files) : [];
                   handleLessonFileUpload(lessonFilesModal.lessonId, selectedFiles);
                   e.currentTarget.value = "";
                 }}
               />
-              <button
-                type="button"
-                disabled={(lessonFileMap[lessonFilesModal.lessonId]?.length || 0) >= MAX_LESSON_FILES}
-                onClick={() => lessonFilesInputRef.current?.click()}
+              <label
+                htmlFor={(lessonFileMap[lessonFilesModal.lessonId]?.length || 0) >= MAX_LESSON_FILES ? undefined : "lesson-files-input"}
                 className={`h-10 px-3 inline-flex items-center justify-center rounded-xl border text-sm font-black transition-all ${
                   (lessonFileMap[lessonFilesModal.lessonId]?.length || 0) >= MAX_LESSON_FILES
                     ? "border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-500 cursor-not-allowed"
@@ -2369,11 +2375,14 @@ export default function CreateCourseWizardPage() {
                 }`}
               >
                 افزودن فایل
-              </button>
+              </label>
               <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
                 حداکثر {MAX_LESSON_FILES} فایل
               </span>
             </div>
+            {lessonFilesError && (
+              <p className="mt-2 text-xs font-bold text-red-500">{lessonFilesError}</p>
+            )}
 
             <div className="mt-4 space-y-2 max-h-[300px] overflow-y-auto pr-1">
               {(lessonFileMap[lessonFilesModal.lessonId] || []).length === 0 ? (
