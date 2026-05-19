@@ -1,33 +1,173 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import {
-  HelpCircle,
-  MessageSquare,
-  Search,
-  CheckCircle2,
-  X,
-  User,
-  ArrowLeft,
-  ChevronLeft,
-  Trash2,
-  AlertCircle
-} from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { FileText, HelpCircle, Image as ImageIcon, Paperclip, Search, User, Send, Loader2, Download, ArrowRight, X, ChevronLeft, MessageSquare } from "lucide-react";
 import { useInstructorData } from "@/context/InstructorDataContext";
 import { cn } from "@/lib/utils";
 
 export default function InstructorQuestionsPage() {
   const { questions, replyToQuestion, closeQuestion } = useInstructorData();
 
-  // Search & Filters state
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  
-  // State for active replying question ID
   const [replyingId, setReplyingId] = useState("");
   const [replyText, setReplyText] = useState("");
 
-  // Statistics
+  // --- Telegram Q&A Chat States & Helpers ---
+  type PendingAttachment = {
+    id: string;
+    file: File;
+    type: "image" | "file";
+    previewUrl?: string;
+    caption?: string;
+  };
+
+  const [selectedQuestionId, setSelectedQuestionId] = useState("");
+  const [composerText, setComposerText] = useState("");
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [imageLightboxUrl, setImageLightboxUrl] = useState("");
+
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  React.useEffect(() => {
+    if (selectedQuestionId) {
+      setTimeout(scrollToBottom, 100);
+    }
+  }, [selectedQuestionId, questions]);
+
+  const toDataUrl = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const formatBytes = (size: number) => {
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+    return `${(size / 1024 / 1024).toFixed(1)} MB`;
+  };
+
+  const handlePendingFileAdd = (files: FileList | null) => {
+    if (!files) return;
+    const incoming = Array.from(files);
+    
+    if (pendingAttachments.length + incoming.length > 5) {
+      alert("حداکثر ۵ فایل در هر پیام مجاز است.");
+      return;
+    }
+    
+    incoming.forEach(async (file) => {
+      // Validate file size (10MB limit)
+      if (file.size > 10 * 1024 * 1024) {
+        alert(`فایل «${file.name}» بیشتر از ۱۰ مگابایت است.`);
+        return;
+      }
+      
+      const ext = file.name.split(".").pop()?.toLowerCase() || "";
+      const allowed = ["jpg", "jpeg", "png", "webp", "pdf", "txt", "log", "zip"];
+      if (!allowed.includes(ext)) {
+        alert(`فرمت فایل «${file.name}» مجاز نیست.`);
+        return;
+      }
+      
+      const isImage = file.type.startsWith("image/");
+      const previewUrl = isImage ? await toDataUrl(file) : undefined;
+      
+      setPendingAttachments((prev) => [
+        ...prev,
+        {
+          id: `patt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          file,
+          type: isImage ? "image" : "file",
+          previewUrl,
+        },
+      ]);
+    });
+  };
+
+  const handleRemovePendingAttachment = (id: string) => {
+    setPendingAttachments((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const handleUpdatePendingCaption = (id: string, caption: string) => {
+    setPendingAttachments((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, caption } : item))
+    );
+  };
+
+  const handleSendMessage = async () => {
+    if (!composerText.trim() && pendingAttachments.length === 0) return;
+    setIsSendingMessage(true);
+    try {
+      const attachments = await Promise.all(
+        pendingAttachments.map(async (item) => {
+          const isImage = item.file.type.startsWith("image/");
+          const previewUrl = item.previewUrl || (isImage ? await toDataUrl(item.file) : undefined);
+          return {
+            id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            name: item.file.name,
+            size: item.file.size,
+            type: item.file.type || "application/octet-stream",
+            previewUrl,
+            caption: item.caption || undefined,
+          };
+        })
+      );
+
+      replyToQuestion(selectedQuestionId, composerText.trim(), attachments.length ? attachments : undefined);
+      setComposerText("");
+      setPendingAttachments([]);
+    } catch (err) {
+      console.error(err);
+      alert("خطا در ارسال پیام. لطفاً دوباره تلاش کنید.");
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+
+  const renderMessageText = (text: string) => {
+    if (!text) return null;
+    const parts = text.split("```");
+    if (parts.length < 3) {
+      return <p className="whitespace-pre-wrap text-sm leading-7">{text}</p>;
+    }
+    return (
+      <div className="space-y-2 text-sm leading-7">
+        {parts.map((part, index) => {
+          if (index % 2 === 1) {
+            const lines = part.split("\n");
+            let code = part;
+            let lang = "";
+            if (lines.length > 0 && lines[0].trim().length < 10 && !lines[0].includes(" ") && lines[0].match(/^[a-zA-Z0-9+#-]+$/)) {
+              lang = lines[0].trim();
+              code = lines.slice(1).join("\n");
+            }
+            return (
+              <div key={index} className="my-2 rounded-xl overflow-hidden border border-black/10 dark:border-white/10" dir="ltr">
+                {lang && (
+                  <div className="bg-black/10 dark:bg-black/40 px-3 py-1 text-[10px] font-mono text-gray-500 dark:text-gray-400 border-b border-black/5 dark:border-white/5 flex justify-between items-center">
+                    <span>{lang}</span>
+                  </div>
+                )}
+                <pre className="font-mono text-xs p-3 bg-black/5 dark:bg-black/30 overflow-x-auto text-left leading-relaxed text-inherit">
+                  {code}
+                </pre>
+              </div>
+            );
+          }
+          return part ? <span key={index} className="whitespace-pre-wrap">{part}</span> : null;
+        })}
+      </div>
+    );
+  };
+
   const stats = useMemo(() => {
     const total = questions.length;
     const pending = questions.filter((q) => q.status === "new").length;
@@ -36,16 +176,13 @@ export default function InstructorQuestionsPage() {
     return { total, pending, answered, closed };
   }, [questions]);
 
-  // Filters & Search logic
   const filteredQuestions = useMemo(() => {
     let result = [...questions];
 
-    // Status filter
     if (statusFilter !== "all") {
       result = result.filter((q) => q.status === statusFilter);
     }
 
-    // Search query
     if (search.trim()) {
       const q = search.toLowerCase().trim();
       result = result.filter(
@@ -57,9 +194,8 @@ export default function InstructorQuestionsPage() {
       );
     }
 
-    // Sort: newest first
     return result.sort((a, b) => b.id.localeCompare(a.id));
-  }, [questions, statusFilter, search]);
+  }, [questions, search, statusFilter]);
 
   const handleReplySubmit = (qstId: string) => {
     if (replyText.trim()) {
@@ -70,216 +206,519 @@ export default function InstructorQuestionsPage() {
   };
 
   return (
-    <div className="max-w-[1400px] mx-auto pb-20 animate-in fade-in duration-500 text-right" dir="rtl">
-      
-      {/* 1. Header Banner */}
-      <div className="relative w-full rounded-[2.5rem] overflow-hidden bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-xl mb-8">
-        <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-primary/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/4 pointer-events-none" />
+    <div className="mx-auto max-w-[1320px] pb-20 text-right animate-in fade-in duration-500" dir="rtl">
+      <section className="mb-6 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm dark:border-white/5 dark:bg-[#1c1e26] md:p-8">
+        <div className="grid items-center gap-5 md:grid-cols-[1fr_auto]">
+          <div>
+            <h1 className="text-2xl font-black leading-tight text-gray-900 dark:text-white md:text-3xl">سوالات دانشجویان</h1>
+            <p className="mt-2 max-w-3xl text-sm font-medium leading-7 text-gray-500 dark:text-gray-400">
+              پاسخگویی به سوالات فنی و رفع اشکال کدهای ارسالی دانشجویان در جلسات مختلف دوره‌ها
+            </p>
+          </div>
 
-        <div className="relative z-10 px-8 py-10 md:px-12 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex flex-col md:flex-row items-center gap-6">
-            <div className="relative group">
-              <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full" />
-              <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary-hover flex items-center justify-center text-white shadow-2xl shadow-primary/40">
-                <HelpCircle className="w-8 h-8" />
-              </div>
-            </div>
-            
-            <div className="text-center md:text-right">
-              <h1 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white mb-2">سوالات دانشجویان</h1>
-              <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 font-medium">
-                پاسخگویی به سوالات فنی و رفع اشکال کدهای ارسالی دانشجویان در جلسات مختلف دوره‌ها
-              </p>
-            </div>
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/20">
+            <HelpCircle className="h-8 w-8" />
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* 2. Search & Stats Tabs Filters */}
-      <div className="bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md rounded-3xl p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6">
-        
-        {/* Search */}
-        <div className="relative w-full md:w-96">
-          <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-          <input
-            type="text"
-            placeholder="جستجو در سوالات، دانشجویان یا عنوان دوره‌ها..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-4 pr-12 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-2xl text-xs font-bold text-gray-800 dark:text-white focus:border-primary focus:outline-none transition-all text-right"
-          />
-        </div>
-
-        {/* Tab Status Filters */}
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
-          {[
-            { id: "all", label: "همه سوالات", count: stats.total },
-            { id: "new", label: "جدید (بدون پاسخ)", count: stats.pending, color: "text-rose-500" },
-            { id: "answered", label: "پاسخ داده شده", count: stats.answered, color: "text-emerald-500" },
-            { id: "closed", label: "بسته شده", count: stats.closed, color: "text-gray-400" },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setStatusFilter(tab.id)}
-              className={cn(
-                "px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2",
-                statusFilter === tab.id
-                  ? "bg-primary/10 text-primary border border-primary/20"
-                  : "bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 border border-transparent hover:bg-gray-100 dark:hover:bg-white/10"
-              )}
-            >
-              <span>{tab.label}</span>
-              <span className={cn("text-[9px] font-black px-1.5 py-0.5 rounded bg-gray-200/50 dark:bg-white/10", tab.color)}>
-                {tab.count.toLocaleString("fa-IR")}
-              </span>
-            </button>
-          ))}
-        </div>
-
-      </div>
-
-      {/* 3. Questions Thread List */}
-      {filteredQuestions.length === 0 ? (
-        <div className="rounded-[2.5rem] bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md p-12 text-center flex flex-col items-center justify-center">
-          <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-6">
-            <HelpCircle className="w-8 h-8" />
+      <section className="mb-7 rounded-[1.75rem] border border-gray-100 bg-white p-5 shadow-sm dark:border-white/5 dark:bg-[#1c1e26] md:p-6">
+        <div className="grid gap-4 xl:grid-cols-[1fr_auto] xl:items-center">
+          <div className="relative w-full xl:max-w-md">
+            <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="جستجو در سوالات، دانشجویان یا عنوان دوره‌ها..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-12 w-full rounded-2xl border border-gray-200/70 bg-gray-50 pr-12 pl-4 text-sm font-semibold text-gray-800 outline-none transition focus:border-primary dark:border-white/10 dark:bg-white/5 dark:text-white"
+            />
           </div>
-          <h3 className="text-lg font-black text-gray-900 dark:text-white mb-2">هیچ سوالی یافت نشد!</h3>
-          <p className="text-xs text-gray-400 font-bold max-w-sm leading-relaxed">
-            هیچ سوالی با شرایط جستجوی شما مطابقت ندارد یا سرفصل سوالات شما در سیستم ثبت نشده است.
-          </p>
+
+          <div className="flex flex-wrap justify-end gap-2">
+            {[
+              { id: "all", label: "همه سوالات", count: stats.total },
+              { id: "new", label: "جدید", count: stats.pending, color: "text-rose-500" },
+              { id: "answered", label: "پاسخ داده شده", count: stats.answered, color: "text-emerald-500" },
+              { id: "closed", label: "بسته شده", count: stats.closed, color: "text-gray-400" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setStatusFilter(tab.id)}
+                className={cn(
+                  "inline-flex h-11 items-center gap-2 rounded-xl border px-4 text-xs font-black transition",
+                  statusFilter === tab.id
+                    ? "border-primary/20 bg-primary/10 text-primary"
+                    : "border-transparent bg-gray-50 text-gray-600 hover:bg-gray-100 dark:bg-white/5 dark:text-gray-400 dark:hover:bg-white/10"
+                )}
+              >
+                <span>{tab.label}</span>
+                <span className={cn("rounded-md bg-gray-200/60 px-1.5 py-0.5 text-[10px] font-black dark:bg-white/10", tab.color)}>
+                  {tab.count.toLocaleString("fa-IR")}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
-      ) : (
-        <div className="space-y-6">
-          {filteredQuestions.map((q) => (
-            <div
-              key={q.id}
-              className="rounded-[2rem] bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md p-6 space-y-4"
-            >
-              {/* Question metadata header */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full overflow-hidden bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                    {q.avatar ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={q.avatar} alt={q.studentName} className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="text-primary w-5 h-5" />
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <h4 className="text-xs font-black text-gray-900 dark:text-white">{q.studentName}</h4>
-                    <span className="text-[8px] text-gray-400 font-semibold">{q.createdAt}</span>
-                  </div>
-                </div>
+      </section>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[8px] font-black bg-primary/10 text-primary px-2.5 py-1 rounded-lg">
-                    دوره: {q.courseTitle}
-                  </span>
-                  {q.lessonTitle && (
-                    <span className="text-[8px] font-black bg-gray-100 dark:bg-white/5 text-gray-500 px-2.5 py-1 rounded-lg">
-                      درس: {q.lessonTitle}
-                    </span>
-                  )}
-                  <span className={`text-[8px] font-black px-2 py-1 rounded-lg ${
-                    q.status === "new" ? "bg-rose-500/10 text-rose-400 animate-pulse" :
-                    q.status === "answered" ? "bg-emerald-500/10 text-emerald-400" : "bg-gray-500/10 text-gray-400"
-                  }`}>
-                    {q.status === "new" && "جدید"}
-                    {q.status === "answered" && "پاسخ داده شده"}
-                    {q.status === "closed" && "بسته شده"}
-                  </span>
-                </div>
-              </div>
+      <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr] xl:grid-cols-[1.6fr_1fr] items-start">
+        {/* Left pane: Active Chat Detail */}
+        <div className={cn("lg:block", selectedQuestionId ? "block" : "hidden lg:block")}>
+          {selectedQuestionId ? (
+            (() => {
+              const activeQ = questions.find((q) => q.id === selectedQuestionId);
+              if (!activeQ) return null;
 
-              {/* Title & Core question body */}
-              <div className="p-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 text-right space-y-2">
-                <h4 className="text-xs font-black text-gray-900 dark:text-white">{q.title}</h4>
-                <p className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 leading-relaxed">
-                  {q.text}
-                </p>
-              </div>
-
-              {/* Thread history */}
-              <div className="space-y-4 pr-6 border-r-2 border-primary/20">
-                {q.replies.map((rep, idx) => (
-                  <div
-                    key={idx}
-                    className={cn(
-                      "p-4 rounded-2xl space-y-1.5",
-                      rep.role === "instructor"
-                        ? "bg-primary/5 border border-primary/10 rounded-r-none"
-                        : "bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-l-none"
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      {rep.role === "instructor" && (
-                        <span className="text-[8px] font-black px-2 py-0.5 rounded bg-primary text-white">مدرس</span>
-                      )}
-                      <span className="text-[9px] font-black text-gray-900 dark:text-white">{rep.senderName}</span>
-                      <span className="text-[8px] text-gray-400 font-bold">{rep.createdAt}</span>
+              return (
+                <div className="flex flex-col rounded-[2rem] border border-gray-100 bg-white shadow-sm dark:border-white/5 dark:bg-[#1c1e26] overflow-hidden min-h-[550px] animate-in fade-in duration-300">
+                  {/* Chat Header */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800 p-4 bg-gray-50/50 dark:bg-white/5 backdrop-blur-sm shrink-0">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setSelectedQuestionId("")}
+                        className="lg:hidden w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-primary transition-colors cursor-pointer flex items-center justify-center"
+                      >
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-primary/20 bg-primary/10">
+                        {activeQ.avatar ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={activeQ.avatar} alt={activeQ.studentName} className="h-full w-full object-cover" />
+                        ) : (
+                          <User className="h-5 w-5 text-primary" />
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <h4 className="text-sm font-black text-gray-900 dark:text-white">
+                          {activeQ.studentName}
+                        </h4>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className={cn(
+                            "rounded px-1.5 py-0.5 text-[9px] font-black leading-none",
+                            activeQ.status === "new" && "bg-rose-500/10 text-rose-400",
+                            activeQ.status === "answered" && "bg-emerald-500/10 text-emerald-400",
+                            activeQ.status === "closed" && "bg-gray-500/10 text-gray-400"
+                          )}>
+                            {activeQ.status === "new" && "جدید"}
+                            {activeQ.status === "answered" && "پاسخ داده شده"}
+                            {activeQ.status === "closed" && "بسته شده"}
+                          </span>
+                          <span className="text-[10px] font-semibold text-gray-400">
+                            {activeQ.createdAt}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 leading-relaxed text-right">
-                      {rep.text}
-                    </p>
-                  </div>
-                ))}
-              </div>
 
-              {/* Action reply triggers */}
-              {q.status !== "closed" && (
-                <div className="pt-2">
-                  {replyingId !== q.id ? (
-                    <div className="flex justify-end gap-2">
+                    {activeQ.status !== "closed" && (
                       <button
                         onClick={() => {
-                          setReplyingId(q.id);
-                          setReplyText("");
+                          closeQuestion(activeQ.id);
+                          setSelectedQuestionId("");
                         }}
-                        className="px-4 py-2 bg-primary text-white text-[10px] font-black rounded-xl cursor-pointer"
-                      >
-                        پاسخ دادن به سوال
-                      </button>
-                      <button
-                        onClick={() => closeQuestion(q.id)}
-                        className="px-3 py-2 border border-gray-200 dark:border-white/10 text-gray-500 text-[10px] font-black rounded-xl cursor-pointer"
+                        className="rounded-xl border border-rose-200/50 hover:bg-rose-50 dark:border-rose-500/20 dark:hover:bg-rose-500/10 text-rose-500 px-3.5 py-1.5 text-xs font-black transition cursor-pointer"
                       >
                         بستن گفتگو
                       </button>
-                    </div>
-                  ) : (
-                    <div className="w-full flex flex-col gap-3 animate-in slide-in-from-top-2 duration-300">
-                      <textarea
-                        rows={3}
-                        placeholder="پاسخ و تحلیل فنی خود را بنویسید..."
-                        value={replyText}
-                        onChange={(e) => setReplyText(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-2xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-right leading-relaxed"
-                      />
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => handleReplySubmit(q.id)}
-                          className="px-4 py-2 bg-primary text-white text-[10px] font-black rounded-xl cursor-pointer"
-                        >
-                          ارسال پاسخ فنی
-                        </button>
-                        <button
-                          onClick={() => setReplyingId("")}
-                          className="px-3 py-2 bg-gray-100 dark:bg-white/10 text-gray-500 text-[10px] rounded-xl cursor-pointer"
-                        >
-                          لغو
-                        </button>
+                    )}
+                  </div>
+
+                  {/* Course & Lesson context banner */}
+                  <div className="bg-primary/5 dark:bg-primary/5 border-b border-gray-100 dark:border-gray-800/50 px-4 py-2 flex flex-wrap gap-2 text-right">
+                    <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">دوره: {activeQ.courseTitle}</span>
+                    {activeQ.lessonTitle && (
+                      <>
+                        <span className="text-[10px] text-gray-300 dark:text-gray-700">•</span>
+                        <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">جلسه: {activeQ.lessonTitle}</span>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Messages Area */}
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-[480px] min-h-[380px] bg-slate-50/30 dark:bg-black/10">
+                    
+                    {/* Message 1: Initial Student Post */}
+                    <div className="flex justify-end text-right">
+                      <div className="max-w-[78%] rounded-2xl rounded-tl-sm p-4 bg-[#e6f7ed] dark:bg-[#143c24]/30 border border-[#d1e7dd]/60 dark:border-[#1e5c37]/30 text-[#0f5132] dark:text-[#a3cfbb] shadow-sm animate-in fade-in duration-300">
+                        <h4 className="text-xs font-black text-emerald-700 dark:text-emerald-400 mb-1.5">{activeQ.title}</h4>
+                        
+                        <p className="text-sm font-semibold leading-7 whitespace-pre-wrap text-emerald-950 dark:text-[#a3cfbb]/90">
+                          {activeQ.description || activeQ.text}
+                        </p>
+
+                        {activeQ.errorText && (
+                          <div className="mt-3 rounded-xl overflow-hidden border border-gray-200/60 dark:border-white/10 bg-[#f7f8fb] dark:bg-[#14161c]" dir="ltr">
+                            <div className="bg-black/5 dark:bg-black/30 px-3 py-1 text-[10px] font-mono text-gray-500 dark:text-gray-400 border-b border-black/5 dark:border-white/5 flex justify-between items-center">
+                              <span>Error / Log</span>
+                            </div>
+                            <pre className="font-mono text-xs p-3 overflow-x-auto text-left leading-relaxed text-gray-700 dark:text-gray-300">
+                              {activeQ.errorText}
+                            </pre>
+                          </div>
+                        )}
+
+                        {!!activeQ.attachments?.length && (
+                          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                            {activeQ.attachments.map((file) => (
+                              <div key={file.id} className="rounded-xl border border-[#d1e7dd]/50 bg-white/70 dark:border-white/10 dark:bg-white/5 p-2 text-emerald-900 dark:text-emerald-100">
+                                {file.type.startsWith("image/") && file.previewUrl ? (
+                                  <div className="space-y-2">
+                                    <button 
+                                      type="button" 
+                                      onClick={() => setImageLightboxUrl(file.previewUrl || "")}
+                                      className="w-full relative group overflow-hidden rounded-lg cursor-pointer"
+                                    >
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img src={file.previewUrl} alt={file.name} className="h-32 w-full object-cover transition duration-300 group-hover:scale-105" />
+                                    </button>
+                                    {file.caption && (
+                                      <p className="text-xs leading-6 p-1 bg-black/5 dark:bg-white/5 rounded font-medium text-emerald-800 dark:text-emerald-250">
+                                        {file.caption}
+                                      </p>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <a
+                                    href={file.previewUrl || "#"}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex items-center gap-2 p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                                  >
+                                    <FileText className="h-5 w-5 shrink-0 text-emerald-600/70" />
+                                    <div className="min-w-0 flex-1 text-right">
+                                      <p className="truncate text-xs font-black">{file.name}</p>
+                                      <p className="text-[10px] opacity-70">{formatBytes(file.size)}</p>
+                                    </div>
+                                    <Download className="w-4 h-4 shrink-0 text-emerald-600/70" />
+                                  </a>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="mt-2 text-left text-[9px] text-emerald-600/75 dark:text-emerald-400/65 font-bold">
+                          {activeQ.createdAt}
+                        </div>
                       </div>
                     </div>
-                  )}
+
+                    {/* Replies */}
+                    {activeQ.replies.map((rep, idx) => {
+                      const isInstructor = rep.role === "instructor";
+                      return (
+                        <div
+                          key={idx}
+                          className={cn("flex animate-in fade-in duration-300", isInstructor ? "justify-start text-right" : "justify-end text-right")}
+                        >
+                          <div className={cn(
+                            "max-w-[78%] rounded-2xl p-4 shadow-sm",
+                            isInstructor 
+                              ? "bg-[#f8f9fa] dark:bg-[#252833] text-gray-800 dark:text-gray-100 rounded-tr-sm border border-gray-200 dark:border-white/5"
+                              : "bg-[#e6f7ed] dark:bg-[#143c24]/40 text-[#0f5132] dark:text-[#a3cfbb] border border-[#d1e7dd]/60 dark:border-[#1e5c37]/40 rounded-tl-sm"
+                          )}>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              {isInstructor && (
+                                <span className="rounded bg-indigo-600 dark:bg-indigo-500 px-1.5 py-0.5 text-[9px] font-black text-white leading-none">
+                                  مدرس
+                                </span>
+                              )}
+                              <p className={cn("text-[10px] font-black", isInstructor ? "text-indigo-600 dark:text-indigo-400" : "text-emerald-700 dark:text-emerald-300")}>
+                                {rep.senderName}
+                              </p>
+                            </div>
+
+                            {renderMessageText(rep.text)}
+
+                            {!!rep.attachments?.length && (
+                              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                                {rep.attachments.map((file) => (
+                                  <div
+                                    key={file.id}
+                                    className={cn(
+                                      "rounded-xl border p-2",
+                                      isInstructor 
+                                        ? "border-white/10 bg-black/10 text-white"
+                                        : "border-gray-100 bg-gray-50 dark:border-white/5 dark:bg-white/5 text-gray-800 dark:text-white"
+                                    )}
+                                  >
+                                    {file.type.startsWith("image/") && file.previewUrl ? (
+                                      <div className="space-y-2">
+                                        <button
+                                          type="button"
+                                          onClick={() => setImageLightboxUrl(file.previewUrl || "")}
+                                          className="w-full relative group overflow-hidden rounded-lg cursor-pointer"
+                                        >
+                                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                                          <img src={file.previewUrl} alt={file.name} className="h-32 w-full object-cover transition duration-300 group-hover:scale-105" />
+                                        </button>
+                                        {file.caption && (
+                                          <p className={cn("text-xs leading-6 p-1 rounded font-medium", isInstructor ? "text-white opacity-90 bg-black/5" : "text-gray-600 dark:text-gray-300 bg-black/5 dark:bg-white/5")}>
+                                            {file.caption}
+                                          </p>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <a
+                                        href={file.previewUrl || "#"}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="flex items-center gap-2 p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                                      >
+                                        <FileText className="h-5 w-5 shrink-0" />
+                                        <div className="min-w-0 flex-1 text-right">
+                                          <p className="truncate text-xs font-black">{file.name}</p>
+                                          <p className="text-[10px] opacity-70">{formatBytes(file.size)}</p>
+                                        </div>
+                                        <Download className="w-4 h-4 shrink-0" />
+                                      </a>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            <div className={cn("mt-2 text-left text-[9px]", isInstructor ? "opacity-75" : "text-gray-400")}>
+                              {rep.createdAt}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    <div ref={messagesEndRef} />
+                  </div>
+
+                  {/* Composer */}
+                  <div className="border-t border-gray-100 dark:border-gray-800 p-4 bg-white dark:bg-[#1c1e26] shrink-0">
+                    {activeQ.status === "closed" ? (
+                      <div className="text-center p-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-150 dark:border-white/5 text-gray-500 dark:text-gray-400 text-xs font-bold">
+                        این گفتگو بسته شده است و امکان ارسال پیام جدید وجود ندارد.
+                      </div>
+                    ) : (
+                      <div className="space-y-3 text-right">
+                        {/* Media Previews */}
+                        {pendingAttachments.length > 0 && (
+                          <div className="rounded-2xl border border-gray-100 bg-gray-50/50 dark:border-white/5 dark:bg-[#14161c]/50 p-3 max-h-[220px] overflow-y-auto scrollbar-thin">
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                              {pendingAttachments.map((item) => (
+                                <div key={item.id} className="relative rounded-xl border border-gray-100 bg-white p-3 dark:border-white/5 dark:bg-gray-800 animate-in zoom-in-95 duration-200">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemovePendingAttachment(item.id)}
+                                    className="absolute left-2 top-2 rounded-full bg-black/60 hover:bg-black/80 p-1 text-white transition-colors cursor-pointer z-10"
+                                  >
+                                    <X className="h-3.5 w-3.5" />
+                                  </button>
+
+                                  {item.type === "image" ? (
+                                    <div className="space-y-3">
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img
+                                        src={item.previewUrl}
+                                        alt={item.file.name}
+                                        className="h-28 w-full rounded-lg object-cover"
+                                      />
+                                      <input
+                                        value={item.caption || ""}
+                                        onChange={(e) => handleUpdatePendingCaption(item.id, e.target.value)}
+                                        placeholder="کپشن عکس را بنویسید..."
+                                        className="w-full rounded-xl border border-gray-200/70 bg-gray-50 px-3 py-2 text-xs outline-none transition focus:border-primary focus:bg-white dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-primary"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-3 p-2 rounded-lg bg-gray-50 dark:bg-white/5">
+                                      <FileText className="h-6 w-6 text-gray-400" />
+                                      <div className="min-w-0 flex-1 text-right">
+                                        <p className="truncate text-xs font-bold text-gray-700 dark:text-gray-200">{item.file.name}</p>
+                                        <p className="text-[10px] text-gray-500 dark:text-gray-400">{formatBytes(item.file.size)}</p>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Inputs Row */}
+                        <div className="flex items-end gap-3 rounded-2xl border border-gray-150 bg-gray-50 dark:border-white/10 dark:bg-white/5 p-3 focus-within:border-primary focus-within:bg-white dark:focus-within:bg-[#14161c] transition duration-200">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const el = document.getElementById("instructor-attachment-picker");
+                              el?.click();
+                            }}
+                            className="w-10 h-10 rounded-full hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors cursor-pointer shrink-0"
+                            title="افزودن فایل ضمیمه"
+                          >
+                            <Paperclip className="w-5 h-5" />
+                          </button>
+                          
+                          <input
+                            id="instructor-attachment-picker"
+                            type="file"
+                            multiple
+                            className="hidden"
+                            accept=".jpg,.jpeg,.png,.webp,.pdf,.txt,.log,.zip"
+                            onChange={(e) => handlePendingFileAdd(e.target.files)}
+                          />
+
+                          <textarea
+                            value={composerText}
+                            onChange={(e) => setComposerText(e.target.value)}
+                            placeholder="پاسخ فنی خود را بنویسید..."
+                            rows={1}
+                            className="flex-1 max-h-32 min-h-10 outline-none resize-none bg-transparent py-2.5 text-sm leading-6 text-gray-800 dark:text-white text-right"
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSendMessage();
+                              }
+                            }}
+                          />
+
+                          <button
+                            type="button"
+                            disabled={(!composerText.trim() && pendingAttachments.length === 0) || isSendingMessage}
+                            onClick={handleSendMessage}
+                            className="w-10 h-10 rounded-full bg-primary hover:bg-primary/95 text-white flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 shadow-md shadow-primary/10 shrink-0 cursor-pointer"
+                          >
+                            {isSendingMessage ? (
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                              <Send className="w-5 h-5 rotate-180" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
+              );
+            })()
+          ) : (
+            /* Glassmorphism empty state placeholder */
+            <div className="flex flex-col items-center justify-center rounded-[2rem] border border-gray-150 bg-white/40 dark:border-white/5 dark:bg-white/5 p-12 text-center shadow-sm min-h-[550px] backdrop-blur-sm">
+              <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-primary animate-pulse">
+                <MessageSquare className="h-10 w-10 text-primary" />
+              </div>
+              <h3 className="mb-2 text-lg font-black text-gray-900 dark:text-white">انتخاب گفتگو</h3>
+              <p className="max-w-sm text-sm font-semibold leading-7 text-gray-400">
+                یک گفتگو را از لیست برای شروع پاسخگویی و رفع اشکال انتخاب کنید.
+              </p>
             </div>
-          ))}
+          )}
+        </div>
+
+        {/* Right pane: Thread List */}
+        <div className={cn("lg:block", selectedQuestionId ? "hidden lg:block" : "block")}>
+          {filteredQuestions.length === 0 ? (
+            <section className="flex flex-col items-center justify-center rounded-[2rem] border border-gray-100 bg-white p-12 text-center shadow-sm dark:border-white/5 dark:bg-[#1c1e26]">
+              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <HelpCircle className="h-8 w-8" />
+              </div>
+              <h3 className="mb-2 text-lg font-black text-gray-900 dark:text-white">هیچ سوالی یافت نشد</h3>
+              <p className="max-w-sm text-sm font-semibold leading-7 text-gray-400">
+                سوالی مطابق فیلترها یا عبارت جستجوی فعلی پیدا نشد.
+              </p>
+            </section>
+          ) : (
+            <div className="space-y-3">
+              {filteredQuestions.map((q) => {
+                const isActive = q.id === selectedQuestionId;
+                const lastRep = q.replies[q.replies.length - 1];
+                const snippet = lastRep ? lastRep.text : (q.description || q.text);
+
+                return (
+                  <div
+                    key={q.id}
+                    onClick={() => {
+                      setSelectedQuestionId(q.id);
+                      setComposerText("");
+                      setPendingAttachments([]);
+                    }}
+                    className={cn(
+                      "group relative rounded-[1.75rem] border p-5 shadow-sm transition duration-300 cursor-pointer flex flex-col gap-3",
+                      isActive
+                        ? "border-primary/20 bg-primary/5 dark:bg-primary/5"
+                        : "border-gray-100 bg-white hover:border-primary/20 hover:bg-primary/5 dark:border-white/5 dark:bg-[#1c1e26]"
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-primary/20 bg-primary/10">
+                          {q.avatar ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={q.avatar} alt={q.studentName} className="h-full w-full object-cover" />
+                          ) : (
+                            <User className="h-5 w-5 text-primary" />
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <h4 className="text-sm font-black text-gray-900 dark:text-white group-hover:text-primary transition-colors">
+                            {q.studentName}
+                          </h4>
+                          <p className="text-[10px] font-semibold text-gray-400 mt-0.5">
+                            {q.createdAt}
+                          </p>
+                        </div>
+                      </div>
+
+                      <span
+                        className={cn(
+                          "rounded-lg px-2.5 py-1 text-[10px] font-black",
+                          q.status === "new" && "bg-rose-500/10 text-rose-400",
+                          q.status === "answered" && "bg-emerald-500/10 text-emerald-400",
+                          q.status === "closed" && "bg-gray-500/10 text-gray-400"
+                        )}
+                      >
+                        {q.status === "new" && "جدید"}
+                        {q.status === "answered" && "پاسخ داده شده"}
+                        {q.status === "closed" && "بسته شده"}
+                      </span>
+                    </div>
+
+                    <div className="text-right">
+                      <h3 className="text-sm font-black text-gray-900 dark:text-white group-hover:text-primary transition-colors truncate">
+                        {q.title}
+                      </h3>
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                        {snippet}
+                      </p>
+                    </div>
+
+                    <div className="mt-1 pt-3 border-t border-gray-50 dark:border-gray-800 flex items-center justify-between gap-2 flex-wrap">
+                      <span className="text-[9px] font-bold text-gray-400">
+                        {q.courseTitle}
+                      </span>
+                      <div className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-800/80 flex items-center justify-center text-gray-400 group-hover:text-primary group-hover:bg-primary/10 transition-colors shadow-sm">
+                        <ChevronLeft className="w-4 h-4 text-right" />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {imageLightboxUrl && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-4 animate-in fade-in duration-200">
+          <div className="relative max-w-5xl max-h-[90vh]">
+            <button
+              onClick={() => setImageLightboxUrl("")}
+              className="absolute -top-12 left-0 rounded-full bg-white/10 hover:bg-white/20 p-2 text-white transition-colors cursor-pointer"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={imageLightboxUrl} alt="Preview" className="max-w-full max-h-[80vh] rounded-2xl object-contain shadow-2xl" />
+          </div>
         </div>
       )}
-
     </div>
   );
 }

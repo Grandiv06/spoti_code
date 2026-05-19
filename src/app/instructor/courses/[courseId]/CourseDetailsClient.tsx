@@ -25,7 +25,9 @@ import {
   ChevronDown,
   ChevronUp,
   FileText,
+  Image as ImageIcon,
   HelpCircle as QuizIcon,
+  Paperclip,
   CircleDollarSign,
   AlertCircle,
   User,
@@ -869,8 +871,53 @@ export default function CourseDetailsPage() {
                     <div className="p-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 text-right space-y-2">
                       <h4 className="text-xs font-black text-gray-900 dark:text-white">{q.title}</h4>
                       <p className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 leading-relaxed">
-                        {q.text}
+                        {q.description || q.text}
                       </p>
+
+                      {q.errorText && (
+                        <div className="rounded-xl border border-gray-200/70 bg-[#f7f8fb] p-3 dark:border-white/10 dark:bg-[#14161c]">
+                          <div className="mb-2 flex items-center gap-2 text-[10px] font-black text-gray-500 dark:text-gray-400">
+                            <FileText className="h-3.5 w-3.5" />
+                            <span>متن ارور / لاگ</span>
+                          </div>
+                          <pre className="overflow-x-auto whitespace-pre-wrap text-[10px] font-medium leading-6 text-gray-700 dark:text-gray-300">
+                            {q.errorText}
+                          </pre>
+                        </div>
+                      )}
+
+                      {!!q.attachments?.length && (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-1.5 text-[10px] font-black text-gray-500 dark:text-gray-400">
+                            <Paperclip className="h-3.5 w-3.5" />
+                            <span>ضمیمه‌ها</span>
+                          </div>
+                          <div className="grid gap-2 md:grid-cols-2">
+                            {q.attachments.map((file) => {
+                              const isImage = file.type.startsWith("image/");
+                              return (
+                                <div key={file.id} className="rounded-xl border border-gray-100 bg-gray-50 p-2.5 dark:border-white/10 dark:bg-white/5">
+                                  {isImage && file.previewUrl ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img src={file.previewUrl} alt={file.name} className="mb-2 h-24 w-full rounded-lg object-cover" />
+                                  ) : (
+                                    <div className="mb-2 flex h-16 items-center justify-center rounded-lg bg-white text-gray-400 dark:bg-[#14161c]">
+                                      <FileText className="h-4 w-4" />
+                                    </div>
+                                  )}
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <p className="truncate text-[10px] font-black text-gray-700 dark:text-gray-200">{file.name}</p>
+                                      <p className="text-[9px] font-semibold text-gray-400">{(file.size / 1024).toFixed(1)} KB</p>
+                                    </div>
+                                    {isImage ? <ImageIcon className="h-3.5 w-3.5 text-gray-400" /> : <FileText className="h-3.5 w-3.5 text-gray-400" />}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Answers history thread */}

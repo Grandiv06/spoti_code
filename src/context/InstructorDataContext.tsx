@@ -51,6 +51,16 @@ export interface StudentQuestion {
   avatar?: string;
   title: string;
   text: string;
+  description?: string;
+  errorText?: string;
+  attachments?: {
+    id: string;
+    name: string;
+    size: number;
+    type: string;
+    previewUrl?: string;
+    caption?: string;
+  }[];
   courseId: string;
   courseTitle: string;
   lessonTitle?: string;
@@ -62,6 +72,14 @@ export interface StudentQuestion {
     avatar?: string;
     text: string;
     createdAt: string;
+    attachments?: {
+      id: string;
+      name: string;
+      size: number;
+      type: string;
+      previewUrl?: string;
+      caption?: string;
+    }[];
   }[];
 }
 
@@ -157,7 +175,7 @@ interface InstructorDataContextType {
   updateLesson: (courseId: string, chapterId: string, lessonId: string, updates: Partial<Lesson>) => void;
   deleteLesson: (courseId: string, chapterId: string, lessonId: string) => void;
   replyToReview: (courseId: string, reviewId: string, text: string) => void;
-  replyToQuestion: (questionId: string, text: string) => void;
+  replyToQuestion: (questionId: string, text: string, attachments?: any[]) => void;
   closeQuestion: (questionId: string) => void;
   requestPayout: (amount: number, shaba: string) => boolean;
   updateProfile: (profile: InstructorProfile) => void;
@@ -376,6 +394,8 @@ const initialQuestions: StudentQuestion[] = [
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=150&auto=format&fit=crop",
     title: "خطای Hydration در استفاده از useState و localStorage",
     text: "سلام استاد وقت بخیر. من در پروژه‌ام مقدار اولیه useState را از localStorage می‌خوانم ولی با خطای Hydration Mismatch مواجه می‌شوم. چطور می‌توانم این مشکل را حل کنم؟",
+    description: "سلام استاد وقت بخیر. من در پروژه‌ام مقدار اولیه useState را از localStorage می‌خوانم ولی با خطای Hydration Mismatch مواجه می‌شوم. چطور می‌توانم این مشکل را حل کنم؟",
+    errorText: "Hydration failed because the initial UI does not match what was rendered on the server.",
     courseId: "CRS-410",
     courseTitle: "متخصص React و Next.js",
     lessonTitle: "فولدر استراکچر جدید و سیستم Routing",
@@ -397,6 +417,7 @@ const initialQuestions: StudentQuestion[] = [
     avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=150&auto=format&fit=crop",
     title: "عدم شناسایی متغیرهای محیطی در Server Actions",
     text: "سلام خسته نباشید. متغیرهای محیطی که در فایل env.local قرار دادم در داخل Server Actionها لود نمی‌شوند و undefined برمی‌گردانند. علت چیست؟",
+    description: "سلام خسته نباشید. متغیرهای محیطی که در فایل env.local قرار دادم در داخل Server Actionها لود نمی‌شوند و undefined برمی‌گردانند. علت چیست؟",
     courseId: "CRS-410",
     courseTitle: "متخصص React و Next.js",
     lessonTitle: "مفهوم Server Actions در ری‌اکت ۱۹",
@@ -795,7 +816,7 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
   };
 
   // Questions replies
-  const replyToQuestion = (questionId: string, text: string) => {
+  const replyToQuestion = (questionId: string, text: string, attachments?: any[]) => {
     const updated = questions.map((q) => {
       if (q.id === questionId) {
         return {
@@ -807,7 +828,8 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
               senderName: profile.name,
               role: "instructor" as const,
               text,
-              createdAt: "1404/02/20",
+              createdAt: new Date().toLocaleDateString("fa-IR"),
+              attachments,
             },
           ],
         };

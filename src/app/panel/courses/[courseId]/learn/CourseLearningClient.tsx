@@ -4,12 +4,44 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import CustomVideoPlayer from "@/components/panel/CustomVideoPlayer";
-import { Copy, ExternalLink, ShieldCheck, Download, MonitorPlay } from "lucide-react";
+import { Copy, Download, Loader2, MonitorPlay, Paperclip, SearchCheck, ShieldCheck, UploadCloud, X, Send, FileText, Image as ImageIcon, ArrowRight, MessageSquare, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+type LearningAttachment = { name: string; size: string };
+type LearningLesson = {
+  id: string;
+  title: string;
+  duration: string;
+  isWatched: boolean;
+  isCompleted: boolean;
+  isLocked: boolean;
+  videoUrl?: string;
+  description: string;
+  attachments: LearningAttachment[];
+};
+type LearningChapter = {
+  id: string;
+  title: string;
+  lessons: LearningLesson[];
+};
+type LearningCourseData = {
+  id: string;
+  title: string;
+  instructor: string;
+  progress: number;
+  playerType: "internal" | "spotplayer";
+  chapters: LearningChapter[];
+  licenseKey?: string;
+  downloadLinks?: {
+    windows: string;
+    android: string;
+    mac: string;
+  };
+};
 
 // Mock Data with different course types
 const getCourseData = (id: string) => {
-  const courses: Record<string, any> = {
+  const courses: Record<string, LearningCourseData> = {
     "1": {
       id: "1",
       title: "مسترکلاس ری‌اکت و نکست جی‌اس",
@@ -97,6 +129,61 @@ const getCourseData = (id: string) => {
   return courses[id] || courses["1"];
 };
 
+type QuestionAttachment = {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  previewUrl?: string;
+};
+
+type LearningQuestion = {
+  id: string;
+  studentName: string;
+  avatar?: string;
+  title: string;
+  text: string;
+  description: string;
+  errorText?: string;
+  attachments?: QuestionAttachment[];
+  courseId: string;
+  courseTitle: string;
+  lessonTitle?: string;
+  createdAt: string;
+  status: "new" | "answered" | "closed";
+  replies: {
+    senderName: string;
+    role: "instructor" | "student";
+    text: string;
+    createdAt: string;
+  }[];
+};
+
+const STORAGE_KEY = "spoticode_inst_questions";
+const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "pdf", "txt", "log"];
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_FILES_COUNT = 4;
+
+const courseMap: Record<string, string> = {
+  "1": "CRS-410",
+  "2": "CRS-398",
+  "3": "CRS-407",
+};
+
+const toDataUrl = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+const formatBytes = (size: number) => {
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / 1024 / 1024).toFixed(1)} MB`;
+};
+
 export default function CourseLearningClient() {
   const params = useParams();
   const courseId = params.courseId as string;
@@ -106,11 +193,222 @@ export default function CourseLearningClient() {
   const [activeTab, setActiveTab] = useState("description");
   const [expandedChapters, setExpandedChapters] = useState<string[]>([courseData.chapters[0].id]);
   const [isCopied, setIsCopied] = useState(false);
+  const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
+  const [isSubmittingQuestion, setIsSubmittingQuestion] = useState(false);
+  const [questionTitle, setQuestionTitle] = useState("");
+  const [questionDescription, setQuestionDescription] = useState("");
+  const [questionErrorText, setQuestionErrorText] = useState("");
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [fileError, setFileError] = useState("");
+  const [formError, setFormError] = useState("");
+  const [qaQuestions, setQaQuestions] = useState<LearningQuestion[]>([]);
+
+  // --- Telegram Q&A Chat States & Helpers ---
+  type PendingAttachment = {
+    id: string;
+    file: File;
+    type: "image" | "file";
+    previewUrl?: string;
+    caption?: string;
+  };
+
+  const [selectedThreadId, setSelectedThreadId] = useState("");
+  const [composerText, setComposerText] = useState("");
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [imageLightboxUrl, setImageLightboxUrl] = useState("");
+
+  React.useEffect(() => {
+    if (qaQuestions.length > 0 && !selectedThreadId) {
+      setSelectedThreadId(qaQuestions[0].id);
+    }
+  }, [qaQuestions, selectedThreadId]);
+
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  React.useEffect(() => {
+    if (selectedThreadId) {
+      setTimeout(scrollToBottom, 100);
+    }
+  }, [selectedThreadId, qaQuestions]);
+
+  const handlePendingFileAdd = (files: FileList | null) => {
+    if (!files) return;
+    const incoming = Array.from(files);
+    
+    if (pendingAttachments.length + incoming.length > 5) {
+      alert("حداکثر ۵ فایل در هر پیام مجاز است.");
+      return;
+    }
+    
+    incoming.forEach(async (file) => {
+      // Validate file size (10MB limit)
+      if (file.size > 10 * 1024 * 1024) {
+        alert(`فایل «${file.name}» بیشتر از ۱۰ مگابایت است.`);
+        return;
+      }
+      
+      const ext = file.name.split(".").pop()?.toLowerCase() || "";
+      const allowed = ["jpg", "jpeg", "png", "webp", "pdf", "txt", "log", "zip"];
+      if (!allowed.includes(ext)) {
+        alert(`فرمت فایل «${file.name}» مجاز نیست.`);
+        return;
+      }
+      
+      const isImage = file.type.startsWith("image/");
+      const previewUrl = isImage ? await toDataUrl(file) : undefined;
+      
+      setPendingAttachments((prev) => [
+        ...prev,
+        {
+          id: `patt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          file,
+          type: isImage ? "image" : "file",
+          previewUrl,
+        },
+      ]);
+    });
+  };
+
+  const handleRemovePendingAttachment = (id: string) => {
+    setPendingAttachments((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const handleUpdatePendingCaption = (id: string, caption: string) => {
+    setPendingAttachments((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, caption } : item))
+    );
+  };
+
+  const handleSendMessage = async () => {
+    if (!composerText.trim() && pendingAttachments.length === 0) return;
+    setIsSendingMessage(true);
+    try {
+      const attachments = await Promise.all(
+        pendingAttachments.map(async (item) => {
+          const isImage = item.file.type.startsWith("image/");
+          const previewUrl = item.previewUrl || (isImage ? await toDataUrl(item.file) : undefined);
+          return {
+            id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            name: item.file.name,
+            size: item.file.size,
+            type: item.file.type || "application/octet-stream",
+            previewUrl,
+            caption: item.caption || undefined,
+          };
+        })
+      );
+
+      const newReply = {
+        senderName: "کاربر تست",
+        role: "student" as const,
+        text: composerText.trim(),
+        createdAt: new Date().toLocaleDateString("fa-IR"),
+        attachments: attachments.length ? attachments : undefined,
+      };
+
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const allQuestions: LearningQuestion[] = raw ? JSON.parse(raw) : [];
+      const updated = allQuestions.map((q) => {
+        if (q.id === selectedThreadId) {
+          return {
+            ...q,
+            status: "new" as const,
+            replies: [...q.replies, newReply],
+          };
+        }
+        return q;
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+
+      setQaQuestions((prev) =>
+        prev.map((q) => {
+          if (q.id === selectedThreadId) {
+            return {
+              ...q,
+              status: "new" as const,
+              replies: [...q.replies, newReply],
+            };
+          }
+          return q;
+        })
+      );
+
+      setComposerText("");
+      setPendingAttachments([]);
+    } catch (err) {
+      console.error(err);
+      alert("خطا در ارسال پیام. لطفاً دوباره تلاش کنید.");
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+
+  const handleCloseThread = (threadId: string) => {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const allQuestions: LearningQuestion[] = raw ? JSON.parse(raw) : [];
+    const updated = allQuestions.map((q) => {
+      if (q.id === threadId) {
+        return { ...q, status: "closed" as const };
+      }
+      return q;
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+
+    setQaQuestions((prev) =>
+      prev.map((q) => {
+        if (q.id === threadId) {
+          return { ...q, status: "closed" as const };
+        }
+        return q;
+      })
+    );
+  };
+
+  const renderMessageText = (text: string) => {
+    if (!text) return null;
+    const parts = text.split("```");
+    if (parts.length < 3) {
+      return <p className="whitespace-pre-wrap text-sm leading-7">{text}</p>;
+    }
+    return (
+      <div className="space-y-2 text-sm leading-7">
+        {parts.map((part, index) => {
+          if (index % 2 === 1) {
+            const lines = part.split("\n");
+            let code = part;
+            let lang = "";
+            if (lines.length > 0 && lines[0].trim().length < 10 && !lines[0].includes(" ") && lines[0].match(/^[a-zA-Z0-9+#-]+$/)) {
+              lang = lines[0].trim();
+              code = lines.slice(1).join("\n");
+            }
+            return (
+              <div key={index} className="my-2 rounded-xl overflow-hidden border border-black/10 dark:border-white/10" dir="ltr">
+                {lang && (
+                  <div className="bg-black/10 dark:bg-black/40 px-3 py-1 text-[10px] font-mono text-gray-500 dark:text-gray-400 border-b border-black/5 dark:border-white/5 flex justify-between items-center">
+                    <span>{lang}</span>
+                  </div>
+                )}
+                <pre className="font-mono text-xs p-3 bg-black/5 dark:bg-black/30 overflow-x-auto text-left leading-relaxed text-inherit">
+                  {code}
+                </pre>
+              </div>
+            );
+          }
+          return part ? <span key={index} className="whitespace-pre-wrap">{part}</span> : null;
+        })}
+      </div>
+    );
+  };
 
   // Find active lesson details
   let activeLesson = courseData.chapters[0].lessons[0];
-  courseData.chapters.forEach((ch: any) => {
-    const lesson = ch.lessons.find((l: any) => l.id === activeLessonId);
+  courseData.chapters.forEach((ch: LearningChapter) => {
+    const lesson = ch.lessons.find((l: LearningLesson) => l.id === activeLessonId);
     if (lesson) activeLesson = lesson;
   });
 
@@ -136,6 +434,111 @@ export default function CourseLearningClient() {
     { id: "comments", label: "نظرات" },
     { id: "qa", label: "پرسش و پاسخ" },
   ];
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const allQuestions: LearningQuestion[] = raw ? JSON.parse(raw) : [];
+      const resolvedCourseId = courseMap[courseId] || "CRS-410";
+      const own = allQuestions.filter((q) => q.courseId === resolvedCourseId);
+      setQaQuestions(own.sort((a, b) => b.id.localeCompare(a.id)));
+    } catch {
+      setQaQuestions([]);
+    }
+  }, [courseId]);
+
+  const validateFile = (file: File) => {
+    const ext = file.name.split(".").pop()?.toLowerCase() || "";
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+      return `فرمت فایل «${file.name}» مجاز نیست.`;
+    }
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      return `حجم فایل «${file.name}» بیشتر از ۵ مگابایت است.`;
+    }
+    return "";
+  };
+
+  const handleFilesAdd = (files: FileList | null) => {
+    if (!files) return;
+    setFileError("");
+    const incoming = Array.from(files);
+    if (selectedFiles.length + incoming.length > MAX_FILES_COUNT) {
+      setFileError(`حداکثر ${MAX_FILES_COUNT.toLocaleString("fa-IR")} فایل قابل آپلود است.`);
+      return;
+    }
+    for (const file of incoming) {
+      const error = validateFile(file);
+      if (error) {
+        setFileError(error);
+        return;
+      }
+    }
+    setSelectedFiles((prev) => [...prev, ...incoming]);
+  };
+
+  const resetQuestionForm = () => {
+    setQuestionTitle("");
+    setQuestionDescription("");
+    setQuestionErrorText("");
+    setSelectedFiles([]);
+    setFileError("");
+    setFormError("");
+  };
+
+  const handleSubmitQuestion = async () => {
+    if (!questionTitle.trim()) {
+      setFormError("عنوان سؤال الزامی است.");
+      return;
+    }
+    if (!questionDescription.trim()) {
+      setFormError("توضیح مشکل الزامی است.");
+      return;
+    }
+    setFormError("");
+    setIsSubmittingQuestion(true);
+    try {
+      const attachments: QuestionAttachment[] = await Promise.all(
+        selectedFiles.map(async (file) => {
+          const isImage = file.type.startsWith("image/");
+          const previewUrl = isImage ? await toDataUrl(file) : undefined;
+          return {
+            id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            name: file.name,
+            size: file.size,
+            type: file.type || "application/octet-stream",
+            previewUrl,
+          };
+        })
+      );
+
+      const newQuestion: LearningQuestion = {
+        id: `QST-${Date.now()}`,
+        studentName: "کاربر تست",
+        title: questionTitle.trim(),
+        text: questionDescription.trim(),
+        description: questionDescription.trim(),
+        errorText: questionErrorText.trim() || undefined,
+        attachments: attachments.length ? attachments : undefined,
+        courseId: courseMap[courseId] || "CRS-410",
+        courseTitle: courseData.title,
+        lessonTitle: activeLesson.title,
+        createdAt: new Date().toLocaleDateString("fa-IR"),
+        status: "new",
+        replies: [],
+      };
+
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const existing: LearningQuestion[] = raw ? JSON.parse(raw) : [];
+      const updated = [newQuestion, ...existing];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      setQaQuestions((prev) => [newQuestion, ...prev]);
+      setIsQuestionModalOpen(false);
+      resetQuestionForm();
+    } finally {
+      setIsSubmittingQuestion(false);
+    }
+  };
 
   return (
     <div className="space-y-6 pb-12">
@@ -303,7 +706,7 @@ export default function CourseLearningClient() {
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">فایل‌های ضمیمه</h3>
                   {activeLesson.attachments.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {activeLesson.attachments.map((file: any, idx: number) => (
+                      {activeLesson.attachments.map((file: LearningAttachment, idx: number) => (
                         <div key={idx} className="flex items-center justify-between p-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-[#14161c] hover:border-primary/30 transition-colors group cursor-pointer">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl bg-white dark:bg-[#1c1e26] flex items-center justify-center text-primary shadow-sm">
@@ -337,9 +740,312 @@ export default function CourseLearningClient() {
               )}
 
               {activeTab === "qa" && (
-                <div className="flex flex-col items-center justify-center py-10 text-gray-400">
-                  <span className="material-symbols-outlined text-4xl mb-2 opacity-50">help_center</span>
-                  <p className="text-sm font-medium">بخش پرسش و پاسخ به زودی اضافه می‌شود.</p>
+                <div className="space-y-5 animate-in fade-in duration-300">
+                  {(() => {
+                    const activeThread = qaQuestions.find((q) => q.id === selectedThreadId) || qaQuestions[0];
+                    if (!activeThread) {
+                      return (
+                        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 py-12 text-gray-400 dark:border-gray-700">
+                          <Loader2 className="mb-2 h-10 w-10 animate-spin text-primary" />
+                          <p className="text-sm font-medium">در حال بارگذاری گفتگو...</p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="flex flex-col rounded-3xl border border-gray-100 bg-white/60 dark:border-white/5 dark:bg-white/5 shadow-sm overflow-hidden min-h-[500px]">
+                        {/* Thread Header */}
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800 p-4 bg-white/85 dark:bg-[#1a1c24]/85 backdrop-blur-sm shrink-0 text-right">
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <h4 className="text-sm font-black text-gray-900 dark:text-white line-clamp-1">
+                                {activeThread.title}
+                              </h4>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className={cn(
+                                  "rounded px-1.5 py-0.5 text-[9px] font-black leading-none",
+                                  activeThread.status === "new" && "bg-rose-500/10 text-rose-400",
+                                  activeThread.status === "answered" && "bg-emerald-500/10 text-emerald-400",
+                                  activeThread.status === "closed" && "bg-gray-500/10 text-gray-400"
+                                )}>
+                                  {activeThread.status === "new" && "جدید"}
+                                  {activeThread.status === "answered" && "پاسخ داده شده"}
+                                  {activeThread.status === "closed" && "بسته شده"}
+                                </span>
+                                {activeThread.lessonTitle && (
+                                  <span className="text-[10px] font-bold text-gray-400">
+                                    جلسه: {activeThread.lessonTitle}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Messages List Area */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-[380px] min-h-[280px] bg-slate-50/30 dark:bg-black/10" dir="rtl">
+                          
+                          {/* Student Initial Post */}
+                          <div className="flex justify-start text-right">
+                            <div className="max-w-[78%] rounded-2xl rounded-tr-sm p-4 bg-[#e6f7ed] dark:bg-[#143c24]/30 border border-[#d1e7dd]/60 dark:border-[#1e5c37]/30 text-[#0f5132] dark:text-[#a3cfbb] shadow-sm animate-in fade-in duration-300">
+                              <h4 className="text-xs font-black text-emerald-700 dark:text-emerald-400 mb-1.5">{activeThread.title}</h4>
+                              
+                              <p className="text-sm font-semibold leading-7 whitespace-pre-wrap text-emerald-950 dark:text-[#a3cfbb]/90">
+                                {activeThread.description || activeThread.text}
+                              </p>
+
+                              {activeThread.errorText && (
+                                <div className="mt-3 rounded-xl overflow-hidden border border-gray-200/60 dark:border-white/10 bg-[#f7f8fb] dark:bg-[#14161c]" dir="ltr">
+                                  <div className="bg-black/5 dark:bg-black/30 px-3 py-1 text-[10px] font-mono text-gray-500 dark:text-gray-400 border-b border-black/5 dark:border-white/5 flex justify-between items-center">
+                                    <span>Error / Log</span>
+                                  </div>
+                                  <pre className="font-mono text-xs p-3 overflow-x-auto text-left leading-relaxed text-gray-700 dark:text-gray-300">
+                                    {activeThread.errorText}
+                                  </pre>
+                                </div>
+                              )}
+
+                              {!!activeThread.attachments?.length && (
+                                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                                  {activeThread.attachments.map((file) => (
+                                    <div key={file.id} className="rounded-xl border border-[#d1e7dd]/50 bg-white/70 dark:border-white/10 dark:bg-white/5 p-2 text-emerald-900 dark:text-emerald-100">
+                                      {file.type.startsWith("image/") && file.previewUrl ? (
+                                        <div className="space-y-2">
+                                          <button 
+                                            type="button" 
+                                            onClick={() => setImageLightboxUrl(file.previewUrl || "")}
+                                            className="w-full relative group overflow-hidden rounded-lg cursor-pointer"
+                                          >
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img src={file.previewUrl} alt={file.name} className="h-32 w-full object-cover transition duration-300 group-hover:scale-105" />
+                                          </button>
+                                          {file.caption && (
+                                            <p className="text-xs leading-6 p-1 bg-black/5 dark:bg-white/5 rounded font-medium text-emerald-800 dark:text-emerald-200">
+                                              {file.caption}
+                                            </p>
+                                          )}
+                                        </div>
+                                      ) : (
+                                        <a
+                                          href={file.previewUrl || "#"}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="flex items-center gap-2 p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                                        >
+                                          <FileText className="h-5 w-5 shrink-0 text-emerald-600/70" />
+                                          <div className="min-w-0 flex-1 text-right">
+                                            <p className="truncate text-xs font-black">{file.name}</p>
+                                            <p className="text-[10px] opacity-70">{formatBytes(file.size)}</p>
+                                          </div>
+                                          <Download className="w-4 h-4 shrink-0 text-emerald-600/70" />
+                                        </a>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              <div className="mt-2 text-left text-[9px] text-emerald-600/75 dark:text-emerald-400/65 font-bold">
+                                {activeThread.createdAt}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Replies */}
+                          {activeThread.replies.map((rep, idx) => {
+                            const isInstructor = rep.role === "instructor";
+                            return (
+                              <div
+                                key={idx}
+                                className={cn("flex animate-in fade-in duration-300", isInstructor ? "justify-end text-right" : "justify-start text-right")}
+                              >
+                                <div className={cn(
+                                  "max-w-[78%] rounded-2xl p-4 shadow-sm",
+                                  isInstructor 
+                                    ? "bg-[#f8f9fa] dark:bg-[#252833] text-gray-800 dark:text-gray-100 rounded-tl-sm border border-gray-200 dark:border-white/5"
+                                    : "bg-[#e6f7ed] dark:bg-[#143c24]/40 text-[#0f5132] dark:text-[#a3cfbb] border border-[#d1e7dd]/60 dark:border-[#1e5c37]/40 rounded-tr-sm"
+                                )}>
+                                  <div className="flex items-center gap-1.5 mb-1.5">
+                                    {isInstructor && (
+                                      <span className="rounded bg-indigo-600 dark:bg-indigo-500 px-1.5 py-0.5 text-[9px] font-black text-white leading-none">
+                                        مدرس
+                                      </span>
+                                    )}
+                                    <p className={cn("text-[10px] font-black", isInstructor ? "text-indigo-600 dark:text-indigo-400" : "text-emerald-700 dark:text-emerald-300")}>
+                                      {rep.senderName}
+                                    </p>
+                                  </div>
+
+                                  {renderMessageText(rep.text)}
+
+                                  {!!rep.attachments?.length && (
+                                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                                      {rep.attachments.map((file) => (
+                                        <div
+                                          key={file.id}
+                                          className={cn(
+                                            "rounded-xl border p-2",
+                                            isInstructor 
+                                              ? "border-gray-100 bg-gray-50 dark:border-white/5 dark:bg-white/5 text-gray-800 dark:text-white"
+                                              : "border-[#d1e7dd]/50 bg-white/70 dark:border-white/10 dark:bg-white/5 text-emerald-900 dark:text-emerald-100"
+                                          )}
+                                        >
+                                          {file.type.startsWith("image/") && file.previewUrl ? (
+                                            <div className="space-y-2">
+                                              <button
+                                                type="button"
+                                                onClick={() => setImageLightboxUrl(file.previewUrl || "")}
+                                                className="w-full relative group overflow-hidden rounded-lg cursor-pointer"
+                                              >
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img src={file.previewUrl} alt={file.name} className="h-32 w-full object-cover transition duration-300 group-hover:scale-105" />
+                                              </button>
+                                              {file.caption && (
+                                                <p className={cn("text-xs leading-6 p-1 rounded font-medium", isInstructor ? "text-gray-600 dark:text-gray-300 bg-black/5 dark:bg-white/5" : "text-emerald-800 dark:text-[#a3cfbb] bg-black/5")}>
+                                                  {file.caption}
+                                                </p>
+                                              )}
+                                            </div>
+                                          ) : (
+                                            <a
+                                              href={file.previewUrl || "#"}
+                                              target="_blank"
+                                              rel="noreferrer"
+                                              className="flex items-center gap-2 p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                                            >
+                                              <FileText className="h-5 w-5 shrink-0" />
+                                              <div className="min-w-0 flex-1 text-right">
+                                                <p className="truncate text-xs font-black">{file.name}</p>
+                                                <p className="text-[10px] opacity-70">{formatBytes(file.size)}</p>
+                                              </div>
+                                              <Download className="w-4 h-4 shrink-0" />
+                                            </a>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  <div className={cn("mt-2 text-left text-[9px]", isInstructor ? "text-gray-400" : "text-emerald-600/75 dark:text-emerald-400/65 font-semibold")}>
+                                    {rep.createdAt}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          
+                          <div ref={messagesEndRef} />
+                        </div>
+
+                        {/* Composer */}
+                        <div className="border-t border-gray-100 dark:border-gray-800 p-4 bg-white dark:bg-[#1c1e26] shrink-0">
+                          {activeThread.status === "closed" ? (
+                            <div className="text-center p-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-150 dark:border-white/5 text-gray-500 dark:text-gray-400 text-xs font-bold">
+                              این گفتگو بسته شده است و امکان ارسال پیام جدید وجود ندارد.
+                            </div>
+                          ) : (
+                            <div className="space-y-3 text-right">
+                              {/* Media Previews */}
+                              {pendingAttachments.length > 0 && (
+                                <div className="rounded-2xl border border-gray-100 bg-gray-50/50 dark:border-white/5 dark:bg-[#14161c]/50 p-3 max-h-[220px] overflow-y-auto scrollbar-thin">
+                                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    {pendingAttachments.map((item) => (
+                                      <div key={item.id} className="relative rounded-xl border border-gray-100 bg-white p-3 dark:border-white/5 dark:bg-gray-800 animate-in zoom-in-95 duration-200">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleRemovePendingAttachment(item.id)}
+                                          className="absolute left-2 top-2 rounded-full bg-black/60 hover:bg-black/80 p-1 text-white transition-colors cursor-pointer z-10"
+                                        >
+                                          <X className="h-3.5 w-3.5" />
+                                        </button>
+
+                                        {item.type === "image" ? (
+                                          <div className="space-y-3">
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img
+                                              src={item.previewUrl}
+                                              alt={item.file.name}
+                                              className="h-28 w-full rounded-lg object-cover"
+                                            />
+                                            <input
+                                              value={item.caption || ""}
+                                              onChange={(e) => handleUpdatePendingCaption(item.id, e.target.value)}
+                                              placeholder="کپشن عکس را بنویسید..."
+                                              className="w-full rounded-xl border border-gray-200/70 bg-gray-50 px-3 py-2 text-xs outline-none transition focus:border-primary focus:bg-white dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-primary"
+                                            />
+                                          </div>
+                                        ) : (
+                                          <div className="flex items-center gap-3 p-2 rounded-lg bg-gray-50 dark:bg-white/5">
+                                            <FileText className="h-6 w-6 text-gray-400" />
+                                            <div className="min-w-0 flex-1 text-right">
+                                              <p className="truncate text-xs font-bold text-gray-700 dark:text-gray-200">{item.file.name}</p>
+                                              <p className="text-[10px] text-gray-500 dark:text-gray-400">{formatBytes(item.file.size)}</p>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Inputs Row */}
+                              <div className="flex items-end gap-3 rounded-2xl border border-gray-150 bg-gray-50 dark:border-white/10 dark:bg-white/5 p-3 focus-within:border-primary focus-within:bg-white dark:focus-within:bg-[#14161c] transition duration-200">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const el = document.getElementById("student-attachment-picker");
+                                    el?.click();
+                                  }}
+                                  className="w-10 h-10 rounded-full hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors cursor-pointer shrink-0"
+                                  title="افزودن فایل ضمیمه"
+                                >
+                                  <Paperclip className="w-5 h-5" />
+                                </button>
+                                
+                                <input
+                                  id="student-attachment-picker"
+                                  type="file"
+                                  multiple
+                                  className="hidden"
+                                  accept=".jpg,.jpeg,.png,.webp,.pdf,.txt,.log,.zip"
+                                  onChange={(e) => handlePendingFileAdd(e.target.files)}
+                                />
+
+                                <textarea
+                                  value={composerText}
+                                  onChange={(e) => setComposerText(e.target.value)}
+                                  placeholder="سؤال یا پاسخ خود را بنویسید..."
+                                  rows={1}
+                                  className="flex-1 max-h-32 min-h-10 outline-none resize-none bg-transparent py-2.5 text-sm leading-6 text-gray-800 dark:text-white text-right"
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" && !e.shiftKey) {
+                                      e.preventDefault();
+                                      handleSendMessage();
+                                    }
+                                  }}
+                                />
+
+                                <button
+                                  type="button"
+                                  disabled={(!composerText.trim() && pendingAttachments.length === 0) || isSendingMessage}
+                                  onClick={handleSendMessage}
+                                  className="w-10 h-10 rounded-full bg-primary hover:bg-primary/95 text-white flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 shadow-md shadow-primary/10 shrink-0 cursor-pointer"
+                                >
+                                  {isSendingMessage ? (
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                  ) : (
+                                    <Send className="w-5 h-5 rotate-180" />
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                          </div>
+                        </div>
+                      );
+                    })()
+                  }
                 </div>
               )}
             </div>
@@ -355,7 +1061,7 @@ export default function CourseLearningClient() {
             </div>
 
             <div className="space-y-3 pr-1">
-              {courseData.chapters.map((chapter: any) => {
+              {courseData.chapters.map((chapter: LearningChapter) => {
                 const isExpanded = expandedChapters.includes(chapter.id);
                 
                 return (
@@ -378,7 +1084,7 @@ export default function CourseLearningClient() {
                       isExpanded ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
                     )}>
                       <div className="p-2 pt-0 space-y-1">
-                        {chapter.lessons.map((lesson: any) => {
+                        {chapter.lessons.map((lesson: LearningLesson) => {
                           const isActive = activeLessonId === lesson.id;
                           
                           return (
@@ -435,6 +1141,155 @@ export default function CourseLearningClient() {
         </div>
 
       </div>
+
+      {isQuestionModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl border border-gray-100 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-[#1c1e26]">
+            <div className="mb-5 flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-xl font-black text-gray-900 dark:text-white">ثبت سؤال فنی</h3>
+                <p className="mt-1 text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  عنوان، شرح دقیق، ارور و فایل‌های مرتبط را اضافه کنید.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsQuestionModalOpen(false);
+                  resetQuestionForm();
+                }}
+                className="rounded-lg bg-gray-100 p-2 text-gray-500 dark:bg-white/10"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-black text-gray-700 dark:text-gray-200">عنوان سؤال</label>
+                <input
+                  value={questionTitle}
+                  onChange={(e) => setQuestionTitle(e.target.value)}
+                  placeholder="مثلاً: خطای Hydration در useState و localStorage"
+                  className="h-12 w-full rounded-2xl border border-gray-200/70 bg-gray-50 px-4 text-sm font-semibold text-gray-800 outline-none transition focus:border-primary dark:border-white/10 dark:bg-white/5 dark:text-white"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black text-gray-700 dark:text-gray-200">توضیح مشکل</label>
+                <textarea
+                  rows={5}
+                  value={questionDescription}
+                  onChange={(e) => setQuestionDescription(e.target.value)}
+                  placeholder="مشکل را کامل توضیح دهید؛ چه کاری انجام دادید، انتظار داشتید چه شود، و دقیقاً چه اتفاقی افتاد؟"
+                  className="w-full rounded-2xl border border-gray-200/70 bg-gray-50 px-4 py-3 text-sm font-semibold leading-7 text-gray-800 outline-none transition focus:border-primary dark:border-white/10 dark:bg-white/5 dark:text-white"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black text-gray-700 dark:text-gray-200">متن ارور یا لاگ (اختیاری)</label>
+                <textarea
+                  rows={4}
+                  value={questionErrorText}
+                  onChange={(e) => setQuestionErrorText(e.target.value)}
+                  placeholder="متن ارور، لاگ کنسول، stack trace یا پیام خطا را اینجا قرار دهید..."
+                  className="w-full rounded-2xl border border-gray-200/70 bg-[#f7f8fb] px-4 py-3 font-mono text-xs leading-6 text-gray-800 outline-none transition focus:border-primary dark:border-white/10 dark:bg-[#14161c] dark:text-gray-200"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black text-gray-700 dark:text-gray-200">ضمیمه خطا (اختیاری)</label>
+                <div
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    handleFilesAdd(e.dataTransfer.files);
+                  }}
+                  className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-5 text-center dark:border-white/20 dark:bg-white/5"
+                >
+                  <UploadCloud className="mx-auto mb-2 h-8 w-8 text-gray-400" />
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">فایل را بکشید و رها کنید یا انتخاب کنید</p>
+                  <p className="mt-1 text-[11px] text-gray-400">فرمت مجاز: jpg, jpeg, png, webp, pdf, txt, log • حداکثر ۵MB برای هر فایل</p>
+                  <label className="mt-3 inline-flex cursor-pointer rounded-xl bg-white px-3 py-2 text-xs font-black text-gray-700 shadow-sm dark:bg-[#14161c] dark:text-gray-200">
+                    انتخاب فایل
+                    <input
+                      type="file"
+                      multiple
+                      className="hidden"
+                      accept=".jpg,.jpeg,.png,.webp,.pdf,.txt,.log"
+                      onChange={(e) => handleFilesAdd(e.target.files)}
+                    />
+                  </label>
+                </div>
+                {fileError && <p className="text-xs font-black text-rose-500">{fileError}</p>}
+                {!!selectedFiles.length && (
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {selectedFiles.map((file, index) => {
+                      const isImage = file.type.startsWith("image/");
+                      return (
+                        <div key={`${file.name}-${index}`} className="rounded-xl border border-gray-200/70 bg-white p-2.5 dark:border-white/10 dark:bg-[#14161c]">
+                          {isImage && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={URL.createObjectURL(file)} alt={file.name} className="mb-2 h-24 w-full rounded-lg object-cover" />
+                          )}
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="truncate text-xs font-black text-gray-700 dark:text-gray-200">{file.name}</p>
+                              <p className="text-[11px] font-semibold text-gray-400">{formatBytes(file.size)}</p>
+                            </div>
+                            <button
+                              onClick={() => setSelectedFiles((prev) => prev.filter((_, i) => i !== index))}
+                              className="rounded-lg bg-gray-100 p-1 text-gray-500 dark:bg-white/10"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {formError && <p className="text-xs font-black text-rose-500">{formError}</p>}
+
+              <div className="mt-2 flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setIsQuestionModalOpen(false);
+                    resetQuestionForm();
+                  }}
+                  className="h-11 rounded-xl border border-gray-200 px-4 text-xs font-black text-gray-500 dark:border-white/10"
+                >
+                  انصراف
+                </button>
+                <button
+                  onClick={handleSubmitQuestion}
+                  disabled={isSubmittingQuestion}
+                  className="inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-4 text-xs font-black text-white disabled:opacity-70"
+                >
+                  {isSubmittingQuestion && <Loader2 className="h-4 w-4 animate-spin" />}
+                  ارسال سؤال
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {imageLightboxUrl && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-4 animate-in fade-in duration-200">
+          <div className="relative max-w-5xl max-h-[90vh]">
+            <button
+              onClick={() => setImageLightboxUrl("")}
+              className="absolute -top-12 left-0 rounded-full bg-white/10 hover:bg-white/20 p-2 text-white transition-colors cursor-pointer"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={imageLightboxUrl} alt="Preview" className="max-w-full max-h-[80vh] rounded-2xl object-contain shadow-2xl" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
