@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   GraduationCap,
   HelpCircle,
+  MessageSquare,
   CircleDollarSign,
   UserRound,
   Home,
@@ -26,6 +27,7 @@ const navItems = [
   { href: "/instructor/dashboard", label: "داشبورد استاد", icon: LayoutDashboard },
   { href: "/instructor/courses", label: "مدیریت دوره‌ها", icon: GraduationCap },
   { href: "/instructor/questions", label: "سوالات دانشجویان", icon: HelpCircle },
+  { href: "/instructor/reviews", label: "نظرات دانشجویان", icon: MessageSquare },
   { href: "/instructor/earnings", label: "درآمد", icon: CircleDollarSign },
   { href: "/instructor/profile", label: "پروفایل مدرس", icon: UserRound },
 ];

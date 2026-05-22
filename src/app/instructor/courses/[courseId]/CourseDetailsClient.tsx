@@ -139,6 +139,8 @@ export default function CourseDetailsPage() {
   // State for Question Reply Box
   const [activeQuestionId, setActiveQuestionId] = useState("");
   const [questionReplyText, setQuestionReplyText] = useState("");
+  const [studentProgressFilter, setStudentProgressFilter] = useState("all");
+  const [studentDateSort, setStudentDateSort] = useState("newest");
 
   // Local settings form state
   const [settingsForm, setSettingsForm] = useState({
@@ -448,8 +450,6 @@ export default function CourseDetailsPage() {
           { id: "overview", label: "نمای کلی", icon: GraduationCap },
           { id: "content", label: "فصل‌ها و محتوا", icon: Layers },
           { id: "students", label: "دانشجویان دوره", icon: Users },
-          { id: "reviews", label: "نظرات و دیدگاه‌ها", icon: MessageSquare },
-          { id: "questions", label: "سوالات فنی", icon: HelpCircle },
           { id: "settings", label: "تنظیمات دوره", icon: Settings },
         ].map((tab) => {
           const Icon = tab.icon;
@@ -757,6 +757,32 @@ export default function CourseDetailsPage() {
         {/* --- TAB: STUDENTS --- */}
         {activeTab === "students" && (
           <div className="space-y-6 animate-in fade-in duration-300">
+            {(() => {
+              const students = [
+                { name: "نیما احمدی", date: "1404/12/18", progress: 95, status: "فعال", avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150&auto=format&fit=crop" },
+                { name: "رضا ملکی", date: "1404/12/15", progress: 68, status: "فعال", avatar: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?q=80&w=150&auto=format&fit=crop" },
+                { name: "زهرا کیانی", date: "1404/12/10", progress: 82, status: "فعال", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=150&auto=format&fit=crop" },
+                { name: "آرمان ابراهیمی", date: "1404/12/05", progress: 10, status: "فعال", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=150&auto=format&fit=crop" },
+                { name: "مهسا زمانی", date: "1404/11/25", progress: 42, status: "غیرفعال", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=150&auto=format&fit=crop" },
+              ];
+
+              const filteredStudents = students
+                .filter((st) => {
+                  if (studentProgressFilter === "high") return st.progress >= 70;
+                  if (studentProgressFilter === "mid") return st.progress >= 40 && st.progress < 70;
+                  if (studentProgressFilter === "low") return st.progress < 40;
+                  return true;
+                })
+                .sort((a, b) => {
+                  const parseFaDate = (d: string) => {
+                    const [y, m, day] = d.split("/").map((v) => Number(v));
+                    return y * 10000 + m * 100 + day;
+                  };
+                  return studentDateSort === "newest" ? parseFaDate(b.date) - parseFaDate(a.date) : parseFaDate(a.date) - parseFaDate(b.date);
+                });
+
+              return (
+                <>
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
               <div>
                 <h3 className="text-sm font-black text-gray-900 dark:text-white">دانشجویان ثبت‌نامی</h3>
@@ -764,20 +790,34 @@ export default function CourseDetailsPage() {
                   لیست شرکت‌کنندگان در دوره و پیشرفت تماشای ویدیوها توسط آن‌ها
                 </p>
               </div>
+              <div className="w-full md:w-auto grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <select
+                  value={studentProgressFilter}
+                  onChange={(e) => setStudentProgressFilter(e.target.value)}
+                  className="px-3 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-[10px] font-bold text-gray-700 dark:text-gray-300 focus:border-primary focus:outline-none"
+                >
+                  <option value="all">همه پیشرفت‌ها</option>
+                  <option value="high">پیشرفت بالا (۷۰٪ به بالا)</option>
+                  <option value="mid">پیشرفت متوسط (۴۰٪ تا ۶۹٪)</option>
+                  <option value="low">پیشرفت پایین (زیر ۴۰٪)</option>
+                </select>
+                <select
+                  value={studentDateSort}
+                  onChange={(e) => setStudentDateSort(e.target.value)}
+                  className="px-3 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-[10px] font-bold text-gray-700 dark:text-gray-300 focus:border-primary focus:outline-none"
+                >
+                  <option value="newest">جدیدترین ثبت‌نام</option>
+                  <option value="oldest">قدیمی‌ترین ثبت‌نام</option>
+                </select>
+              </div>
             </div>
 
             {/* Students Grid cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[
-                { name: "نیما احمدی", date: "1404/12/18", progress: 95, status: "فعال", avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150&auto=format&fit=crop" },
-                { name: "رضا ملکی", date: "1404/12/15", progress: 68, status: "فعال", avatar: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?q=80&w=150&auto=format&fit=crop" },
-                { name: "زهرا کیانی", date: "1404/12/10", progress: 82, status: "فعال", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=150&auto=format&fit=crop" },
-                { name: "آرمان ابراهیمی", date: "1404/12/05", progress: 10, status: "فعال", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=150&auto=format&fit=crop" },
-                { name: "مهسا زمانی", date: "1404/11/25", progress: 42, status: "غیرفعال", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=150&auto=format&fit=crop" },
-              ].map((st, idx) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+              {filteredStudents.map((st, idx) => (
                 <div
                   key={idx}
-                  className="rounded-3xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 p-5 flex items-center gap-4 hover:border-primary/20 transition-all duration-300"
+                  className="rounded-3xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 p-5 flex items-center gap-4 hover:border-primary/20 hover:shadow-lg transition-all duration-300"
                 >
                   <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 bg-primary/10 border-2 border-primary/20 flex items-center justify-center">
                     {st.avatar ? (
@@ -814,6 +854,9 @@ export default function CourseDetailsPage() {
                 </div>
               ))}
             </div>
+                </>
+              );
+            })()}
           </div>
         )}
 
