@@ -38,14 +38,14 @@ export default function ReplyBox({ ticketStatus, onNewTicket }: { ticketStatus: 
   }
 
   return (
-    <div className="bg-white dark:bg-[#1c1e26] rounded-[2.5rem] p-8 border border-gray-100 dark:border-white/5 shadow-xl shadow-gray-200/40 dark:shadow-none">
-      <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="bg-white dark:bg-[#1c1e26] rounded-[2.5rem] p-6 md:p-7 border border-gray-100 dark:border-white/5 shadow-xl shadow-gray-200/40 dark:shadow-none">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div className="relative group">
           <textarea
             required
-            rows={5}
+            rows={3}
             placeholder="پاسخ خود را اینجا بنویسید..."
-            className="w-full px-6 py-6 rounded-3xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 text-gray-900 dark:text-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-right resize-none font-medium leading-relaxed"
+            className="w-full min-h-[120px] max-h-[170px] px-5 py-4 rounded-3xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 text-gray-900 dark:text-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-right resize-y font-medium leading-relaxed"
           ></textarea>
         </div>
 

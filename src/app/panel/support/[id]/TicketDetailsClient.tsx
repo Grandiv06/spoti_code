@@ -106,7 +106,7 @@ export default function TicketDetailsClient({ ticket }: TicketDetailsClientProps
         </div>
       </div>
 
-      <div className="space-y-8">
+      <div className="px-3 md:px-8 lg:px-14 max-w-[1100px] mx-auto min-h-[72vh] flex flex-col justify-center pt-10 md:pt-16">
         {/* Main Conversation Column */}
         <div className="space-y-8">
           <ConversationThread messages={ticket.messages} />
