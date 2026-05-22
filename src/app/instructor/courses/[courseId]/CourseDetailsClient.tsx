@@ -11,6 +11,7 @@ import {
   MessageSquare,
   HelpCircle,
   Settings,
+  Plus,
   PlusCircle,
   Trash2,
   Edit,
@@ -24,6 +25,8 @@ import {
   ArrowRight,
   ChevronDown,
   ChevronUp,
+  ArrowUp,
+  ArrowDown,
   FileText,
   Image as ImageIcon,
   HelpCircle as QuizIcon,
@@ -37,6 +40,7 @@ import {
 } from "lucide-react";
 import { useInstructorData, Lesson } from "@/context/InstructorDataContext";
 import { cn } from "@/lib/utils";
+import InstructorQuestionsBoard from "@/components/instructor/InstructorQuestionsBoard";
 
 export default function CourseDetailsPage() {
   const params = useParams();
@@ -49,6 +53,7 @@ export default function CourseDetailsPage() {
     questions,
     updateCourse,
     addChapter,
+    updateChapter,
     deleteChapter,
     addLesson,
     updateLesson,
@@ -82,6 +87,12 @@ export default function CourseDetailsPage() {
   const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>({
     "CHP-001": true, // open first by default
   });
+  const [editingChapterTitleId, setEditingChapterTitleId] = useState<string | null>(null);
+  const [editingLessonTitleId, setEditingLessonTitleId] = useState<string | null>(null);
+  const [editingLessonDurationId, setEditingLessonDurationId] = useState<string | null>(null);
+  const [chapterTitleDraft, setChapterTitleDraft] = useState("");
+  const [lessonTitleDraft, setLessonTitleDraft] = useState("");
+  const [lessonDurationDraft, setLessonDurationDraft] = useState("");
 
   const toggleChapter = (chId: string) => {
     setExpandedChapters((prev) => ({
@@ -165,6 +176,46 @@ export default function CourseDetailsPage() {
       setNewChapterTitle("");
       setIsAddingChapter(false);
     }
+  };
+
+  const addLessonInline = (chapterId: string) => {
+    addLesson(course.id, chapterId, {
+      title: "درس جدید",
+      type: "video",
+      duration: "10:00",
+      isFree: false,
+      status: "published",
+    });
+  };
+
+  const moveChapter = (index: number, direction: "up" | "down") => {
+    const target = direction === "up" ? index - 1 : index + 1;
+    if (target < 0 || target >= course.chapters.length) return;
+    const chapters = [...course.chapters];
+    const [moved] = chapters.splice(index, 1);
+    chapters.splice(target, 0, moved);
+    updateCourse(course.id, { chapters });
+  };
+
+  const commitChapterTitle = (chapterId: string, currentTitle: string) => {
+    const nextTitle = chapterTitleDraft.trim();
+    setEditingChapterTitleId(null);
+    if (!nextTitle || nextTitle === currentTitle) return;
+    updateChapter(course.id, chapterId, { title: nextTitle });
+  };
+
+  const commitLessonTitle = (chapterId: string, lessonId: string, currentTitle: string) => {
+    const nextTitle = lessonTitleDraft.trim();
+    setEditingLessonTitleId(null);
+    if (!nextTitle || nextTitle === currentTitle) return;
+    updateLesson(course.id, chapterId, lessonId, { title: nextTitle });
+  };
+
+  const commitLessonDuration = (chapterId: string, lessonId: string, currentDuration: string) => {
+    const nextDuration = lessonDurationDraft.trim();
+    setEditingLessonDurationId(null);
+    if (!nextDuration || nextDuration === currentDuration) return;
+    updateLesson(course.id, chapterId, lessonId, { duration: nextDuration });
   };
 
   // Handle Add Lesson File Simulation
@@ -438,198 +489,199 @@ export default function CourseDetailsPage() {
         {/* --- TAB: CONTENT MANAGER (Chapters & Lessons) --- */}
         {activeTab === "content" && (
           <div className="space-y-6 animate-in fade-in duration-300">
-            
-            {/* Top Toolbar actions */}
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
-              <div>
-                <h3 className="text-sm font-black text-gray-900 dark:text-white">ساختار سرفصل‌ها و درس‌ها</h3>
-                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold mt-1">
-                  سرفصل‌های آموزشی را بسازید، درس‌های جدید اضافه کرده و فایل‌های ویدیو/سند را آپلود کنید.
-                </p>
-              </div>
-
-              {!isAddingChapter ? (
-                <button
-                  onClick={() => setIsAddingChapter(true)}
-                  className="flex items-center gap-1 px-4 py-2.5 bg-primary text-white text-[10px] font-black rounded-xl cursor-pointer"
-                >
-                  <PlusCircle className="w-4 h-4" />
-                  <span>افزودن فصل جدید</span>
-                </button>
-              ) : (
-                <form onSubmit={handleAddChapterSubmit} className="flex gap-2 w-full sm:w-auto">
-                  <input
-                    type="text"
-                    required
-                    placeholder="عنوان فصل جدید..."
-                    value={newChapterTitle}
-                    onChange={(e) => setNewChapterTitle(e.target.value)}
-                    className="px-4 py-2 bg-white dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-xl text-[10px] font-bold text-gray-800 dark:text-white focus:border-primary focus:outline-none transition-all text-right w-full sm:w-60"
-                  />
-                  <button type="submit" className="px-4 py-2 bg-primary text-white text-[10px] font-black rounded-xl">
-                    ذخیره
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsAddingChapter(false)}
-                    className="px-3 py-2 bg-gray-100 dark:bg-white/10 text-gray-500 rounded-xl"
-                  >
-                    لغو
-                  </button>
-                </form>
-              )}
+            <div>
+              <h3 className="text-sm font-black text-gray-900 dark:text-white">ساختار سرفصل‌ها و درس‌ها</h3>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold mt-1">
+                سرفصل‌های آموزشی را بسازید، درس‌های جدید اضافه کرده و فایل‌های ویدیو/سند را آپلود کنید.
+              </p>
             </div>
 
-            {/* Chapters Accordion List */}
-            {course.chapters.length === 0 ? (
-              <div className="rounded-3xl border border-gray-100 dark:border-white/5 bg-white dark:bg-[#1c1e26] p-10 text-center">
-                <Layers className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-                <p className="text-xs font-bold text-gray-400">هیچ فصلی برای این دوره طراحی نشده است.</p>
+            <div className="p-5 md:p-6 bg-gradient-to-b from-gray-50/50 to-gray-50/20 dark:from-white/[0.07] dark:to-white/[0.03] rounded-3xl border border-gray-200/70 dark:border-white/10 space-y-5 shadow-[0_10px_30px_-20px_rgba(0,0,0,0.5)]">
+              <span className="text-sm font-black text-gray-900 dark:text-white block border-b border-gray-200/70 dark:border-white/10 pb-3">سرفصل‌ها و جلسات درسی</span>
+
+              <div className="flex justify-end">
+                {!isAddingChapter ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingChapter(true)}
+                    className="h-11 px-4 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded-xl text-xs font-black transition-all inline-flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    افزودن سرفصل جدید
+                  </button>
+                ) : (
+                  <form onSubmit={handleAddChapterSubmit} className="flex gap-2 w-full sm:w-auto">
+                    <input
+                      type="text"
+                      required
+                      placeholder="عنوان سرفصل..."
+                      value={newChapterTitle}
+                      onChange={(e) => setNewChapterTitle(e.target.value)}
+                      className="px-4 py-2 bg-white dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-xl text-[10px] font-bold text-gray-800 dark:text-white focus:border-primary focus:outline-none transition-all text-right w-full sm:w-60"
+                    />
+                    <button type="submit" className="px-4 py-2 bg-primary text-white text-[10px] font-black rounded-xl">ذخیره</button>
+                    <button type="button" onClick={() => setIsAddingChapter(false)} className="px-3 py-2 bg-gray-100 dark:bg-white/10 text-gray-500 rounded-xl">لغو</button>
+                  </form>
+                )}
               </div>
-            ) : (
-              <div className="space-y-4">
-                {course.chapters.map((ch) => {
-                  const isExpanded = !!expandedChapters[ch.id];
-                  return (
-                    <div
-                      key={ch.id}
-                      className="rounded-3xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md overflow-hidden transition-all duration-300"
-                    >
-                      {/* Chapter Accordion Trigger */}
-                      <div
-                        onClick={() => toggleChapter(ch.id)}
-                        className="p-5 flex items-center justify-between gap-4 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-white/5"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                            <Layers className="w-4 h-4" />
-                          </div>
-                          <div className="text-right">
-                            <h4 className="text-xs font-black text-gray-900 dark:text-white">{ch.title}</h4>
-                            <div className="flex items-center gap-3 text-[8px] text-gray-400 mt-1 font-bold">
-                              <span>{ch.lessons.length} درس</span>
-                              <span>•</span>
-                              <span>مدت زمان: {ch.duration}</span>
-                            </div>
-                          </div>
-                        </div>
 
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedChapterId(ch.id);
-                              setIsLessonModalOpen(true);
-                            }}
-                            className="p-2 border border-gray-100 dark:border-white/5 hover:border-primary text-primary hover:bg-primary/5 rounded-lg text-[9px] font-black flex items-center gap-1 transition-all"
-                          >
-                            <PlusCircle className="w-3.5 h-3.5" />
-                            <span>افزودن درس</span>
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (confirm("آیا از حذف این فصل و تمام درس‌های آن اطمینان دارید؟")) {
-                                deleteChapter(course.id, ch.id);
-                              }
-                            }}
-                            className="p-2 text-gray-400 hover:text-red-500 rounded-lg transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                          
-                          {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
-                        </div>
-                      </div>
-
-                      {/* Lessons List in accordion */}
-                      {isExpanded && (
-                        <div className="border-t border-gray-100 dark:border-white/5 bg-gray-50/30 dark:bg-black/5 p-4 space-y-2 animate-in slide-in-from-top-2 duration-200">
-                          {ch.lessons.length === 0 ? (
-                            <p className="text-[10px] text-gray-400 py-3 text-center">هنوز درسی در این فصل اضافه نشده است.</p>
-                          ) : (
-                            ch.lessons.map((les) => (
-                              <div
-                                key={les.id}
-                                className="group rounded-2xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 p-3 flex flex-col sm:flex-row items-center justify-between gap-3 hover:border-primary/20 transition-all duration-300"
+              <div className="rounded-2xl bg-white/80 dark:bg-[#171a22] border border-gray-200/70 dark:border-white/10 p-3 md:p-4">
+                <div className="flex items-center justify-between border-b border-gray-200/70 dark:border-white/10 pb-2.5 mb-3">
+                  <span className="text-xs font-black text-gray-900 dark:text-white">لیست فصل‌ها و جلسات</span>
+                  <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">{course.chapters.length} فصل</span>
+                </div>
+                <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
+                  {course.chapters.map((ch, chIdx) => {
+                    const isExpanded = !!expandedChapters[ch.id];
+                    return (
+                      <div key={ch.id} className="p-3.5 bg-white dark:bg-[#1a1c23] rounded-2xl border border-gray-200/70 dark:border-white/10 space-y-3 transition-all">
+                        <div className="flex items-center justify-between border-b dark:border-white/5 pb-2">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded font-black mr-1">{chIdx + 1}</span>
+                            {editingChapterTitleId === ch.id ? (
+                              <input
+                                autoFocus
+                                value={chapterTitleDraft}
+                                onChange={(e) => setChapterTitleDraft(e.target.value)}
+                                onBlur={() => commitChapterTitle(ch.id, ch.title)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") commitChapterTitle(ch.id, ch.title);
+                                }}
+                                className="h-8 px-2 rounded-lg border border-blue-500/40 bg-white dark:bg-white/5 text-[10px] font-black text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                              />
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingChapterTitleId(ch.id);
+                                  setChapterTitleDraft(ch.title);
+                                }}
+                                className="text-[10px] font-black text-gray-900 dark:text-white hover:text-primary transition-colors cursor-text"
                               >
-                                <div className="flex items-center gap-3 w-full sm:w-auto text-right">
-                                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                                    les.type === "video" ? "bg-red-500/10 text-red-500" :
-                                    les.type === "pdf" ? "bg-blue-500/10 text-blue-500" :
-                                    les.type === "quiz" ? "bg-amber-500/10 text-amber-500" : "bg-emerald-500/10 text-emerald-500"
-                                  }`}>
-                                    {les.type === "video" && <Play className="w-4 h-4 shrink-0 fill-red-500/10" />}
-                                    {les.type === "pdf" && <FileText className="w-4 h-4 shrink-0" />}
-                                    {les.type === "quiz" && <QuizIcon className="w-4 h-4 shrink-0" />}
-                                    {les.type === "exercise" && <HelpCircle className="w-4 h-4 shrink-0" />}
-                                    {les.type === "text" && <FileText className="w-4 h-4 shrink-0" />}
+                                {ch.title}
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <button type="button" onClick={() => toggleChapter(ch.id)} className="size-7 inline-flex items-center justify-center rounded-lg border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/10 transition-all" title={isExpanded ? "بستن فصل" : "باز کردن فصل"}>
+                              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${!isExpanded ? "-rotate-90" : ""}`} />
+                            </button>
+                            <span className="material-symbols-outlined text-[14px] text-gray-400 dark:text-gray-500">drag_indicator</span>
+                            <button type="button" onClick={() => moveChapter(chIdx, "up")} disabled={chIdx === 0} className="size-7 inline-flex items-center justify-center rounded-lg border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-500 disabled:opacity-30">
+                              <ArrowUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button type="button" onClick={() => moveChapter(chIdx, "down")} disabled={chIdx === course.chapters.length - 1} className="size-7 inline-flex items-center justify-center rounded-lg border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-500 disabled:opacity-30">
+                              <ArrowDown className="w-3.5 h-3.5" />
+                            </button>
+                            <button type="button" onClick={() => deleteChapter(course.id, ch.id)} className="size-7 inline-flex items-center justify-center rounded-lg border border-red-200/80 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button type="button" onClick={() => addLessonInline(ch.id)} className="h-7 px-2.5 inline-flex items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary text-[10px] font-black">
+                              <Plus className="w-3 h-3 ml-0.5" />
+                              ویدیو
+                            </button>
+                          </div>
+                        </div>
+
+                        {isExpanded && (
+                          <div className="space-y-1.5 pr-4 border-r border-gray-200/80 dark:border-white/10">
+                            {ch.lessons.length === 0 ? (
+                              <span className="text-[8px] text-gray-400 block font-bold">هیچ درسی به این فصل اضافه نشده است.</span>
+                            ) : (
+                              ch.lessons.map((les) => (
+                                <div key={les.id} className="flex items-center justify-between p-1.5 rounded-lg bg-gray-50 dark:bg-white/5 text-[9px] font-bold">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="material-symbols-outlined text-xs text-primary">{les.isFree ? "play_circle" : "lock"}</span>
+                                    {editingLessonTitleId === les.id ? (
+                                      <input
+                                        autoFocus
+                                        value={lessonTitleDraft}
+                                        onChange={(e) => setLessonTitleDraft(e.target.value)}
+                                        onBlur={() => commitLessonTitle(ch.id, les.id, les.title)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter") commitLessonTitle(ch.id, les.id, les.title);
+                                        }}
+                                        className="h-7 px-2 rounded-md border border-blue-500/40 bg-white dark:bg-white/5 text-[9px] font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                      />
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setEditingLessonTitleId(les.id);
+                                          setLessonTitleDraft(les.title);
+                                        }}
+                                        className="text-[9px] font-bold hover:text-primary transition-colors cursor-text"
+                                      >
+                                        {les.title}
+                                      </button>
+                                    )}
                                   </div>
-                                  <div className="min-w-0">
-                                    <p className="text-[10px] font-black text-gray-900 dark:text-white truncate">{les.title}</p>
-                                    <div className="flex items-center gap-2 text-[8px] text-gray-400 mt-0.5 font-bold">
-                                      <span>نوع: {
-                                        les.type === "video" ? "ویدیو" :
-                                        les.type === "pdf" ? "سند PDF" :
-                                        les.type === "quiz" ? "کوییز" :
-                                        les.type === "exercise" ? "تمرین" : "متن آموزشی"
-                                      }</span>
-                                      <span>•</span>
-                                      <span>مدت: {les.duration} دقیقه</span>
-                                      {les.fileName && (
-                                        <>
-                                          <span>•</span>
-                                          <span className="truncate max-w-[150px]">فایل: {les.fileName} ({les.fileSize})</span>
-                                        </>
-                                      )}
+                                  <div className="flex items-center gap-2">
+                                    <button type="button" onClick={() => updateLesson(course.id, ch.id, les.id, { isFree: !les.isFree })} className={`h-6 px-2 inline-flex items-center justify-center rounded-md border text-[8px] font-black ${les.isFree ? "border-emerald-200/80 bg-emerald-50 text-emerald-600" : "border-gray-200/80 bg-gray-50 text-gray-600"}`}>
+                                      {les.isFree ? "باز" : "قفل"}
+                                    </button>
+                                    {editingLessonDurationId === les.id ? (
+                                      <input
+                                        autoFocus
+                                        dir="ltr"
+                                        value={lessonDurationDraft}
+                                        onChange={(e) => setLessonDurationDraft(e.target.value)}
+                                        onBlur={() => commitLessonDuration(ch.id, les.id, les.duration)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter") commitLessonDuration(ch.id, les.id, les.duration);
+                                        }}
+                                        className="h-6 w-16 px-1.5 rounded-md border border-blue-500/40 bg-white dark:bg-white/5 text-[8px] font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                      />
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setEditingLessonDurationId(les.id);
+                                          setLessonDurationDraft(les.duration);
+                                        }}
+                                        className="text-[8px] opacity-75 font-mono hover:text-primary transition-colors cursor-text"
+                                      >
+                                        {les.duration}
+                                      </button>
+                                    )}
+                                    <div className="inline-flex items-center gap-1 p-1 rounded-lg border border-emerald-200/70 dark:border-emerald-400/20 bg-emerald-50/50 dark:bg-emerald-500/10">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setSelectedChapterId(ch.id);
+                                          setNewLessonData((p) => ({ ...p, title: les.title, type: les.type, duration: les.duration, isFree: les.isFree }));
+                                          setIsLessonModalOpen(true);
+                                        }}
+                                        className="h-6 px-2 inline-flex items-center justify-center rounded-md border border-emerald-200/80 dark:border-emerald-400/20 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all text-[8px] font-black cursor-pointer"
+                                      >
+                                        ویدیو
+                                      </button>
+                                    </div>
+                                    <div className="inline-flex items-center gap-1 p-1 rounded-lg border border-amber-200/70 dark:border-amber-400/20 bg-amber-50/40 dark:bg-amber-500/10">
+                                      <button type="button" className="h-6 px-2 inline-flex items-center justify-center rounded-md border border-amber-200/80 dark:border-amber-400/20 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-all text-[8px] font-black cursor-pointer">
+                                        فایل {les.fileName ? "(۱)" : "(۰)"}
+                                      </button>
+                                      <button type="button" className="h-6 px-2 inline-flex items-center justify-center rounded-md border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-all text-[8px] font-black cursor-pointer">
+                                        توضیح
+                                      </button>
+                                    </div>
+                                    <div className="inline-flex items-center gap-1 p-1 rounded-lg border border-red-200/70 dark:border-red-400/20 bg-red-50/40 dark:bg-red-500/10">
+                                      <button type="button" onClick={() => deleteLesson(course.id, ch.id, les.id)} className="size-6 inline-flex items-center justify-center rounded-md border border-red-200/80 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all cursor-pointer">
+                                        <X className="w-3 h-3" />
+                                      </button>
                                     </div>
                                   </div>
                                 </div>
-
-                                <div className="flex items-center justify-end gap-2 w-full sm:w-auto">
-                                  {/* Free/Locked Status Tag */}
-                                  <button
-                                    onClick={() => updateLesson(course.id, ch.id, les.id, { isFree: !les.isFree })}
-                                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[8px] font-black border transition-all cursor-pointer ${
-                                      les.isFree
-                                        ? "bg-emerald-500/10 border-emerald-500/15 text-emerald-500"
-                                        : "bg-gray-100 dark:bg-white/5 border-transparent text-gray-400"
-                                    }`}
-                                  >
-                                    {les.isFree ? (
-                                      <>
-                                        <Unlock className="w-3 h-3" />
-                                        <span>رایگان (پیش‌نمایش)</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Lock className="w-3 h-3" />
-                                        <span>قفل خریداران</span>
-                                      </>
-                                    )}
-                                  </button>
-
-                                  <button
-                                    onClick={() => {
-                                      if (confirm("آیا از حذف این درس اطمینان دارید؟")) {
-                                        deleteLesson(course.id, ch.id, les.id);
-                                      }
-                                    }}
-                                    className="p-1.5 text-gray-400 hover:text-red-500 rounded hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                              ))
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            )}
+            </div>
           </div>
         )}
 
@@ -813,195 +865,13 @@ export default function CourseDetailsPage() {
           </div>
         )}
 
-        {/* --- TAB: TECHNICAL QUESTIONS --- */}
+                {/* --- TAB: TECHNICAL QUESTIONS --- */}
         {activeTab === "questions" && (
-          <div className="space-y-6 animate-in fade-in duration-300">
-            <div>
-              <h3 className="text-sm font-black text-gray-900 dark:text-white">انجمن پرسش و پاسخ‌های فنی</h3>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold mt-1">
-                سوالات تخصصی دانشجویان مربوط به جلسات مختلف این دوره را پاسخ دهید.
-              </p>
-            </div>
-
-            {courseQuestions.length === 0 ? (
-              <div className="rounded-3xl border border-gray-100 dark:border-white/5 bg-white dark:bg-[#1c1e26] p-10 text-center">
-                <HelpCircle className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-                <p className="text-xs font-bold text-gray-400">هیچ سوال فنی از سمت دانشجویان در این دوره ثبت نشده است.</p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {courseQuestions.map((q) => (
-                  <div
-                    key={q.id}
-                    className="rounded-3xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md p-6 space-y-4"
-                  >
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full overflow-hidden bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                          {q.avatar ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={q.avatar} alt={q.studentName} className="w-full h-full object-cover" />
-                          ) : (
-                            <User className="text-primary w-5 h-5" />
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <h4 className="text-xs font-black text-gray-900 dark:text-white">{q.studentName}</h4>
-                          <span className="text-[8px] text-gray-400 font-semibold">{q.createdAt}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {q.lessonTitle && (
-                          <span className="text-[8px] font-black bg-gray-100 dark:bg-white/5 text-gray-500 px-2.5 py-1 rounded-lg">
-                            جلسه: {q.lessonTitle}
-                          </span>
-                        )}
-                        <span className={`text-[8px] font-black px-2 py-1 rounded-lg ${
-                          q.status === "new" ? "bg-rose-500/10 text-rose-400" :
-                          q.status === "answered" ? "bg-emerald-500/10 text-emerald-400" : "bg-gray-500/10 text-gray-400"
-                        }`}>
-                          {q.status === "new" && "جدید"}
-                          {q.status === "answered" && "پاسخ داده شده"}
-                          {q.status === "closed" && "بسته شده"}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="p-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 text-right space-y-2">
-                      <h4 className="text-xs font-black text-gray-900 dark:text-white">{q.title}</h4>
-                      <p className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 leading-relaxed">
-                        {q.description || q.text}
-                      </p>
-
-                      {q.errorText && (
-                        <div className="rounded-xl border border-gray-200/70 bg-[#f7f8fb] p-3 dark:border-white/10 dark:bg-[#14161c]">
-                          <div className="mb-2 flex items-center gap-2 text-[10px] font-black text-gray-500 dark:text-gray-400">
-                            <FileText className="h-3.5 w-3.5" />
-                            <span>متن ارور / لاگ</span>
-                          </div>
-                          <pre className="overflow-x-auto whitespace-pre-wrap text-[10px] font-medium leading-6 text-gray-700 dark:text-gray-300">
-                            {q.errorText}
-                          </pre>
-                        </div>
-                      )}
-
-                      {!!q.attachments?.length && (
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-1.5 text-[10px] font-black text-gray-500 dark:text-gray-400">
-                            <Paperclip className="h-3.5 w-3.5" />
-                            <span>ضمیمه‌ها</span>
-                          </div>
-                          <div className="grid gap-2 md:grid-cols-2">
-                            {q.attachments.map((file) => {
-                              const isImage = file.type.startsWith("image/");
-                              return (
-                                <div key={file.id} className="rounded-xl border border-gray-100 bg-gray-50 p-2.5 dark:border-white/10 dark:bg-white/5">
-                                  {isImage && file.previewUrl ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img src={file.previewUrl} alt={file.name} className="mb-2 h-24 w-full rounded-lg object-cover" />
-                                  ) : (
-                                    <div className="mb-2 flex h-16 items-center justify-center rounded-lg bg-white text-gray-400 dark:bg-[#14161c]">
-                                      <FileText className="h-4 w-4" />
-                                    </div>
-                                  )}
-                                  <div className="flex items-center justify-between gap-2">
-                                    <div className="min-w-0">
-                                      <p className="truncate text-[10px] font-black text-gray-700 dark:text-gray-200">{file.name}</p>
-                                      <p className="text-[9px] font-semibold text-gray-400">{(file.size / 1024).toFixed(1)} KB</p>
-                                    </div>
-                                    {isImage ? <ImageIcon className="h-3.5 w-3.5 text-gray-400" /> : <FileText className="h-3.5 w-3.5 text-gray-400" />}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Answers history thread */}
-                    <div className="space-y-4 pr-6 border-r-2 border-primary/20">
-                      {q.replies.map((rep, idx) => (
-                        <div
-                          key={idx}
-                          className={cn(
-                            "p-4 rounded-2xl space-y-1.5",
-                            rep.role === "instructor"
-                              ? "bg-primary/5 border border-primary/10 rounded-r-none"
-                              : "bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-l-none"
-                          )}
-                        >
-                          <div className="flex items-center gap-2">
-                            {rep.role === "instructor" && (
-                              <span className="text-[8px] font-black px-2 py-0.5 rounded bg-primary text-white">مدرس</span>
-                            )}
-                            <span className="text-[9px] font-black text-gray-900 dark:text-white">{rep.senderName}</span>
-                            <span className="text-[8px] text-gray-400 font-bold">{rep.createdAt}</span>
-                          </div>
-                          <p className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 leading-relaxed text-right">
-                            {rep.text}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Answer thread reply box */}
-                    {q.status !== "closed" && (
-                      <div className="pt-2">
-                        {activeQuestionId !== q.id ? (
-                          <div className="flex justify-end gap-2">
-                            <button
-                              onClick={() => {
-                                setActiveQuestionId(q.id);
-                                setQuestionReplyText("");
-                              }}
-                              className="px-4 py-2 bg-primary text-white text-[10px] font-black rounded-xl cursor-pointer"
-                            >
-                              پاسخ به سوال
-                            </button>
-                            <button
-                              onClick={() => closeQuestion(q.id)}
-                              className="px-3 py-2 border border-gray-200 dark:border-white/10 text-gray-500 text-[10px] font-black rounded-xl"
-                            >
-                              بستن تیکت
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="w-full flex flex-col gap-3 animate-in slide-in-from-top-2 duration-300">
-                            <textarea
-                              rows={3}
-                              placeholder="پاسخ فنی خود را با دقت و شمرده بنویسید..."
-                              value={questionReplyText}
-                              onChange={(e) => setQuestionReplyText(e.target.value)}
-                              className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-2xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-right leading-relaxed"
-                            />
-                            <div className="flex justify-end gap-2">
-                              <button
-                                onClick={() => {
-                                  handleQuestionReplySubmit(q.id);
-                                  setActiveQuestionId("");
-                                }}
-                                className="px-4 py-2 bg-primary text-white text-[10px] font-black rounded-xl cursor-pointer"
-                              >
-                                ثبت پاسخ فنی
-                              </button>
-                              <button
-                                onClick={() => setActiveQuestionId("")}
-                                className="px-3 py-2 bg-gray-100 dark:bg-white/10 text-gray-500 text-[10px] rounded-xl"
-                              >
-                                لغو
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <InstructorQuestionsBoard
+            showHero={false}
+            filterCourseId={course.id}
+            className="max-w-none pb-2"
+          />
         )}
 
         {/* --- TAB: SETTINGS & QUICK DETAILS EDIT --- */}
