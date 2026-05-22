@@ -476,107 +476,47 @@ export default function CourseDetailsPage() {
         
         {/* --- TAB: OVERVIEW --- */}
         {activeTab === "overview" && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in duration-300">
-            
-            {/* Left Statistics Cards */}
-            <div className="md:col-span-2 space-y-6">
-              <div className="rounded-3xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md p-6 grid grid-cols-2 gap-4 md:gap-6">
-                
-                {/* Revenue Card */}
-                <div className="rounded-2xl p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5">
-                  <div className="flex items-center justify-between mb-2">
+          <div className="animate-in fade-in duration-300">
+            <div className="rounded-3xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-xl p-6 md:p-7">
+              <div className="mb-5 flex items-center justify-between">
+                <h3 className="text-sm md:text-base font-black text-gray-900 dark:text-white">شاخص‌های عملکرد دوره</h3>
+                <span className="text-[10px] font-bold text-gray-400">به‌روزرسانی زنده از وضعیت دوره</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5">
+                <div className="group rounded-2xl p-5 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-400/20 hover:border-emerald-400/40 transition-all">
+                  <div className="flex items-center justify-between mb-3">
                     <span className="text-[10px] text-gray-500 font-bold">کل درآمد دوره</span>
-                    <CircleDollarSign className="w-4 h-4 text-primary" />
+                    <CircleDollarSign className="w-4 h-4 text-emerald-500" />
                   </div>
-                  <p className="text-base md:text-lg font-black text-gray-900 dark:text-white">
-                    {course.revenue.toLocaleString("fa-IR")} تومان
-                  </p>
+                  <p className="text-lg md:text-xl font-black text-gray-900 dark:text-white">{course.revenue.toLocaleString("fa-IR")} تومان</p>
                 </div>
 
-                {/* Students Card */}
-                <div className="rounded-2xl p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5">
-                  <div className="flex items-center justify-between mb-2">
+                <div className="group rounded-2xl p-5 bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-400/20 hover:border-blue-400/40 transition-all">
+                  <div className="flex items-center justify-between mb-3">
                     <span className="text-[10px] text-gray-500 font-bold">دانشجویان ثبت‌نامی</span>
                     <Users className="w-4 h-4 text-blue-500" />
                   </div>
-                  <p className="text-base md:text-lg font-black text-gray-900 dark:text-white">
-                    {course.studentsCount.toLocaleString("fa-IR")} نفر
-                  </p>
+                  <p className="text-lg md:text-xl font-black text-gray-900 dark:text-white">{course.studentsCount.toLocaleString("fa-IR")} نفر</p>
                 </div>
 
-                {/* Rating Card */}
-                <div className="rounded-2xl p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5">
-                  <div className="flex items-center justify-between mb-2">
+                <div className="group rounded-2xl p-5 bg-gradient-to-br from-amber-500/10 to-amber-500/5 border border-amber-400/20 hover:border-amber-400/40 transition-all">
+                  <div className="flex items-center justify-between mb-3">
                     <span className="text-[10px] text-gray-500 font-bold">میانگین امتیازات</span>
                     <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                   </div>
-                  <p className="text-base md:text-lg font-black text-gray-900 dark:text-white">
-                    {course.rating.toLocaleString("fa-IR")} <span className="text-[10px] text-gray-400 font-normal">/ ۵</span>
-                  </p>
+                  <p className="text-lg md:text-xl font-black text-gray-900 dark:text-white">{course.rating.toLocaleString("fa-IR")} <span className="text-[10px] text-gray-400 font-normal">/ ۵</span></p>
                 </div>
 
-                {/* Completion Rate */}
-                <div className="rounded-2xl p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5">
-                  <div className="flex items-center justify-between mb-2">
+                <div className="group rounded-2xl p-5 bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/20 hover:border-primary/40 transition-all">
+                  <div className="flex items-center justify-between mb-3">
                     <span className="text-[10px] text-gray-500 font-bold">میانگین تکمیل دوره</span>
-                    <Clock className="w-4 h-4 text-emerald-500" />
+                    <Clock className="w-4 h-4 text-primary" />
                   </div>
-                  <p className="text-base md:text-lg font-black text-gray-900 dark:text-white">
-                    {course.completionRate.toLocaleString("fa-IR")}٪
-                  </p>
+                  <p className="text-lg md:text-xl font-black text-gray-900 dark:text-white">{course.completionRate.toLocaleString("fa-IR")}٪</p>
                 </div>
-
-              </div>
-
-              {/* Full Description display */}
-              <div className="rounded-3xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md p-6 space-y-4">
-                <h3 className="text-xs font-black text-gray-900 dark:text-white mb-2">توضیحات تکمیلی دوره</h3>
-                <p className="text-[10px] text-gray-600 dark:text-gray-300 leading-relaxed font-semibold">
-                  {course.description}
-                </p>
               </div>
             </div>
-
-            {/* Right Meta details sidebar */}
-            <div className="space-y-6">
-              <div className="rounded-3xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md p-6 space-y-4">
-                <h3 className="text-xs font-black text-gray-900 dark:text-white mb-4">اطلاعات فروش</h3>
-                
-                <div className="space-y-3 text-[10px] font-bold">
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-white/5">
-                    <span className="text-gray-400">قیمت اصلی:</span>
-                    <span className="text-gray-800 dark:text-white">{course.price.toLocaleString("fa-IR")} تومان</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-white/5">
-                    <span className="text-gray-400">قیمت با تخفیف:</span>
-                    <span className="text-primary">
-                      {course.discountPrice ? `${course.discountPrice.toLocaleString("fa-IR")} تومان` : "ندارد"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-white/5">
-                    <span className="text-gray-400">سطح علمی:</span>
-                    <span className="text-gray-800 dark:text-white">
-                      {course.level === "advanced" && "پیشرفته"}
-                      {course.level === "intermediate" && "متوسط"}
-                      {course.level === "elementary" && "مقدماتی"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-2">
-                    <span className="text-gray-400">زبان دوره:</span>
-                    <span className="text-gray-800 dark:text-white">{course.language}</span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => setActiveTab("settings")}
-                  className="w-full flex items-center justify-center gap-1.5 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/20 text-gray-700 dark:text-gray-200 text-[10px] font-black rounded-2xl transition-all cursor-pointer"
-                >
-                  <Edit className="w-3.5 h-3.5" />
-                  <span>ویرایش جزئیات دوره</span>
-                </button>
-              </div>
-            </div>
-
           </div>
         )}
 

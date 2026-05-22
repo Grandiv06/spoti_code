@@ -9,10 +9,7 @@ import {
   Search,
   FolderOpen,
   ChevronDown,
-  MessageSquare,
-  Layers,
-  PencilRuler,
-  Info
+  PencilRuler
 } from "lucide-react";
 import { useInstructorData } from "@/context/InstructorDataContext";
 import CourseCard from "@/app/components/CourseCard";
@@ -251,45 +248,41 @@ export default function InstructorCoursesPage() {
         </div>
       ) : (
         // Courses Grid
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
           {filteredCourses.map((c) => (
-            <div key={c.id} className="flex flex-col gap-3">
-              <CourseCard
-                id={c.id}
-                title={c.title}
-                instructor={profile?.name || "مدرس دوره"}
-                instructorImg={profile?.avatar || "/images/inst1.jpg"}
-                image={c.title.includes("TypeScript") ? "/images/course3.jpg" : c.cover}
-                difficulty={c.level === "elementary" ? "مقدماتی" : c.level === "intermediate" ? "متوسط" : "پیشرفته"}
-                hours={String(totalLessonsCount(c))}
-                students={c.studentsCount}
-                price={c.price > 0 ? c.price : "رایگان"}
-                viewHref={`/courses/${c.id}`}
-                disableViewNavigation={!isPublishedLike(c.status)}
-                onViewClick={(e) => {
-                  if (isPublishedLike(c.status)) return;
-                  e.preventDefault();
-                  if (c.status === "pending") {
-                    alert(getPendingStatusMessage());
-                    return;
-                  }
-                  if (c.status === "draft") {
-                    const draftStep = getDraftStep(c);
-                    alert(`این دوره پیش‌نویس است. ادامه و تکمیل از مرحله ${draftStep}.`);
-                    router.push(`/instructor/courses/create?draftCourseId=${c.id}&step=${draftStep}`);
-                    return;
-                  }
-                  alert("این دوره هنوز قابل مشاهده عمومی نیست.");
-                }}
-              />
-
-              <div className="px-4 py-4 bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 rounded-3xl shadow-sm space-y-3">
-                <div className="flex items-center justify-between border-b border-gray-100 dark:border-white/5 pb-2">
-                  <span className="text-[10px] font-black text-gray-500 dark:text-gray-300">ابزارهای مدیریت دوره</span>
-                  <span className="text-[9px] font-bold text-gray-400">دسترسی سریع</span>
+            <div key={c.id} className="flex flex-col gap-3 h-full">
+              <div className="h-full flex flex-col min-h-[720px]">
+                <div className="flex-1">
+                  <CourseCard
+                    id={c.id}
+                    title={c.title}
+                    instructor={profile?.name || "مدرس دوره"}
+                    instructorImg={profile?.avatar || "/images/inst1.jpg"}
+                    image={c.title.includes("TypeScript") ? "/images/course3.jpg" : c.cover}
+                    difficulty={c.level === "elementary" ? "مقدماتی" : c.level === "intermediate" ? "متوسط" : "پیشرفته"}
+                    hours={String(totalLessonsCount(c))}
+                    students={c.studentsCount}
+                    price={c.price > 0 ? c.price : "رایگان"}
+                    viewHref={`/courses/${c.id}`}
+                    disableViewNavigation={!isPublishedLike(c.status)}
+                    onViewClick={(e) => {
+                      if (isPublishedLike(c.status)) return;
+                      e.preventDefault();
+                      if (c.status === "pending") {
+                        alert(getPendingStatusMessage());
+                        return;
+                      }
+                      if (c.status === "draft") {
+                        const draftStep = getDraftStep(c);
+                        alert(`این دوره پیش‌نویس است. ادامه و تکمیل از مرحله ${draftStep}.`);
+                        router.push(`/instructor/courses/create?draftCourseId=${c.id}&step=${draftStep}`);
+                        return;
+                      }
+                      alert("این دوره هنوز قابل مشاهده عمومی نیست.");
+                    }}
+                  />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <button
                   onClick={() => {
                     if (isPublishedLike(c.status)) {
@@ -307,54 +300,11 @@ export default function InstructorCoursesPage() {
                     }
                     alert("این دوره در وضعیت فعلی قابل مدیریت نیست.");
                   }}
-                  className="px-3 py-2.5 bg-primary hover:bg-primary-hover text-white text-[10px] font-black rounded-xl transition-all cursor-pointer text-center flex items-center justify-center gap-1.5"
+                  className="mt-3 w-full px-4 py-3.5 rounded-2xl bg-gradient-to-r from-primary to-primary-hover text-white text-xs font-black shadow-lg shadow-primary/20 hover:shadow-primary/35 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
                 >
-                  <PencilRuler className="w-3.5 h-3.5" />
-                  {c.status === "draft" ? "ادامه پیش‌نویس" : "مدیریت دوره"}
+                  <PencilRuler className="w-4 h-4" />
+                  {c.status === "draft" ? `ادامه پیش‌نویس (مرحله ${getDraftStep(c)} از ۵)` : "مدیریت دوره"}
                 </button>
-                <button
-                  onClick={() => {
-                    if (c.status === "pending") {
-                      alert(getPendingStatusMessage());
-                      return;
-                    }
-                    if (c.status === "draft") {
-                      const draftStep = getDraftStep(c);
-                      router.push(`/instructor/courses/create?draftCourseId=${c.id}&step=${draftStep}`);
-                      return;
-                    }
-                    router.push(`/instructor/courses/${c.id}?tab=content`);
-                  }}
-                  className="px-3 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/20 text-gray-700 dark:text-gray-200 text-[10px] font-black rounded-xl transition-all cursor-pointer text-center flex items-center justify-center gap-1.5"
-                >
-                  <Layers className="w-3.5 h-3.5" />
-                  فصل‌ها و درس‌ها
-                </button>
-                <button
-                  onClick={() => router.push(`/instructor/courses/${c.id}?tab=reviews`)}
-                  className="sm:col-span-2 px-3 py-2.5 border border-gray-200 dark:border-white/10 hover:border-amber-500 text-gray-700 dark:text-gray-300 text-[10px] font-black rounded-xl transition-all cursor-pointer text-center flex items-center justify-center gap-1.5"
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  <span>نظرات دوره</span>
-                </button>
-                </div>
-
-                {(c.status === "pending" || c.status === "draft") && (
-                  <div
-                    className={`px-3 py-2 rounded-xl border text-[10px] font-bold flex items-center gap-1.5 ${
-                      c.status === "pending"
-                        ? "border-amber-200 bg-amber-50 text-amber-700"
-                        : "border-blue-200 bg-blue-50 text-blue-700"
-                    }`}
-                  >
-                    <Info className="w-3.5 h-3.5 shrink-0" />
-                    <span>
-                      {c.status === "pending"
-                        ? "وضعیت دوره: در حال بررسی توسط تیم محتوا"
-                        : `پیش‌نویس مرحله ${getDraftStep(c)} از ۵ - از همینجا می‌توانید ادامه دهید.`}
-                    </span>
-                  </div>
-                )}
               </div>
             </div>
           ))}
