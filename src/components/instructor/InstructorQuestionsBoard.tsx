@@ -12,7 +12,7 @@ type Props = {
 };
 
 export default function InstructorQuestionsBoard({ showHero = true, filterCourseId, className }: Props) {
-  const { questions, replyToQuestion, closeQuestion } = useInstructorData();
+  const { questions, replyToQuestion } = useInstructorData();
   const sourceQuestions = useMemo(
     () => (filterCourseId ? questions.filter((q) => q.courseId === filterCourseId) : questions),
     [questions, filterCourseId]
@@ -235,8 +235,7 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
     const total = sourceQuestions.length;
     const pending = sourceQuestions.filter((q) => q.status === "new").length;
     const answered = sourceQuestions.filter((q) => q.status === "answered").length;
-    const closed = sourceQuestions.filter((q) => q.status === "closed").length;
-    return { total, pending, answered, closed };
+    return { total, pending, answered };
   }, [sourceQuestions]);
 
   const filteredQuestions = useMemo(() => {
@@ -295,7 +294,6 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
               { id: "all", label: "همه سوالات", count: stats.total },
               { id: "new", label: "جدید", count: stats.pending, color: "text-rose-500" },
               { id: "answered", label: "پاسخ داده شده", count: stats.answered, color: "text-emerald-500" },
-              { id: "closed", label: "بسته شده", count: stats.closed, color: "text-gray-400" },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -352,12 +350,10 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
                           <span className={cn(
                             "rounded px-1.5 py-0.5 text-[9px] font-black leading-none",
                             activeQ.status === "new" && "bg-rose-500/10 text-rose-400",
-                            activeQ.status === "answered" && "bg-emerald-500/10 text-emerald-400",
-                            activeQ.status === "closed" && "bg-gray-500/10 text-gray-400"
+                            activeQ.status === "answered" && "bg-emerald-500/10 text-emerald-400"
                           )}>
                             {activeQ.status === "new" && "جدید"}
                             {activeQ.status === "answered" && "پاسخ داده شده"}
-                            {activeQ.status === "closed" && "بسته شده"}
                           </span>
                           <span className="text-[10px] font-semibold text-gray-400">
                             {activeQ.createdAt}
@@ -366,17 +362,7 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
                       </div>
                     </div>
 
-                    {activeQ.status !== "closed" && (
-                      <button
-                        onClick={() => {
-                          closeQuestion(activeQ.id);
-                          setSelectedQuestionId("");
-                        }}
-                        className="rounded-xl border border-rose-200/50 hover:bg-rose-50 dark:border-rose-500/20 dark:hover:bg-rose-500/10 text-rose-500 px-3.5 py-1.5 text-xs font-black transition cursor-pointer"
-                      >
-                        بستن گفتگو
-                      </button>
-                    )}
+
                   </div>
 
                   {/* Course & Lesson context banner */}
@@ -547,12 +533,7 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
 
                   {/* Composer */}
                   <div className="border-t border-gray-100 dark:border-gray-800 p-4 bg-white dark:bg-[#1c1e26] shrink-0">
-                    {activeQ.status === "closed" ? (
-                      <div className="text-center p-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-150 dark:border-white/5 text-gray-500 dark:text-gray-400 text-xs font-bold">
-                        این گفتگو بسته شده است و امکان ارسال پیام جدید وجود ندارد.
-                      </div>
-                    ) : (
-                      <div className="space-y-3 text-right">
+                    <div className="space-y-3 text-right">
                         {/* Media Previews */}
                         {pendingAttachments.length > 0 && (
                           <div className="rounded-2xl border border-gray-100 bg-gray-50/50 dark:border-white/5 dark:bg-[#14161c]/50 p-3 max-h-[220px] overflow-y-auto scrollbar-thin">
@@ -659,8 +640,7 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
                             )}
                           </button>
                         </div>
-                      </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               );
@@ -737,13 +717,11 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
                         className={cn(
                           "rounded-lg px-2.5 py-1 text-[10px] font-black",
                           q.status === "new" && "bg-rose-500/10 text-rose-400",
-                          q.status === "answered" && "bg-emerald-500/10 text-emerald-400",
-                          q.status === "closed" && "bg-gray-500/10 text-gray-400"
+                          q.status === "answered" && "bg-emerald-500/10 text-emerald-400"
                         )}
                       >
                         {q.status === "new" && "جدید"}
                         {q.status === "answered" && "پاسخ داده شده"}
-                        {q.status === "closed" && "بسته شده"}
                       </span>
                     </div>
 

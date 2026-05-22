@@ -164,7 +164,7 @@ type LearningQuestion = {
   lessonTitle?: string;
   createdAt: string;
   createdAtIso?: string;
-  status: "new" | "answered" | "closed";
+  status: "new" | "answered";
   replies: {
     senderName: string;
     role: "instructor" | "student";
@@ -533,26 +533,6 @@ export default function CourseLearningClient() {
     }
   };
 
-  const handleCloseThread = (threadId: string) => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const allQuestions: LearningQuestion[] = raw ? JSON.parse(raw) : [];
-    const updated = allQuestions.map((q) => {
-      if (q.id === threadId) {
-        return { ...q, status: "closed" as const };
-      }
-      return q;
-    });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-
-    setQaQuestions((prev) =>
-      prev.map((q) => {
-        if (q.id === threadId) {
-          return { ...q, status: "closed" as const };
-        }
-        return q;
-      })
-    );
-  };
 
   const renderMessageText = (text: string) => {
     if (!text) return null;
@@ -985,7 +965,7 @@ export default function CourseLearningClient() {
                     const hasInstructorReply = activeThread?.replies?.some((rep) => rep.role === "instructor");
                     const messageState: "sent" | "seen" | "replied" = hasInstructorReply
                       ? "replied"
-                      : (activeThread?.replies?.length || 0) > 0 || activeThread?.status === "closed"
+                      : (activeThread?.replies?.length || 0) > 0
                       ? "seen"
                       : "sent";
                     if (!activeThread) {
@@ -1199,12 +1179,7 @@ export default function CourseLearningClient() {
 
                         {/* Composer */}
                         <div className="border-t border-gray-100 dark:border-gray-800 p-4 bg-white dark:bg-[#1c1e26] shrink-0">
-                          {activeThread.status === "closed" ? (
-                            <div className="text-center p-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-150 dark:border-white/5 text-gray-500 dark:text-gray-400 text-xs font-bold">
-                              این گفتگو بسته شده است و امکان ارسال پیام جدید وجود ندارد.
-                            </div>
-                          ) : (
-                            <div className="space-y-3 text-right">
+                          <div className="space-y-3 text-right">
                               {/* Media Previews */}
                               {pendingAttachments.length > 0 && (
                                 <div className="rounded-2xl border border-gray-100 bg-gray-50/50 dark:border-white/5 dark:bg-[#14161c]/50 p-3 max-h-[220px] overflow-y-auto scrollbar-thin">
@@ -1367,7 +1342,6 @@ export default function CourseLearningClient() {
                                 </button>
                               </div>
                             </div>
-                          )}
                           </div>
                         </div>
                       );

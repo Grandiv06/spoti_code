@@ -65,7 +65,7 @@ export interface StudentQuestion {
   courseTitle: string;
   lessonTitle?: string;
   createdAt: string;
-  status: "new" | "answered" | "closed";
+  status: "new" | "answered";
   replies: {
     senderName: string;
     role: "instructor" | "student";
@@ -176,7 +176,6 @@ interface InstructorDataContextType {
   deleteLesson: (courseId: string, chapterId: string, lessonId: string) => void;
   replyToReview: (courseId: string, reviewId: string, text: string) => void;
   replyToQuestion: (questionId: string, text: string, attachments?: any[]) => void;
-  closeQuestion: (questionId: string) => void;
   requestPayout: (amount: number, shaba: string) => boolean;
   updateProfile: (profile: InstructorProfile) => void;
 }
@@ -840,17 +839,6 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
     showToast("پاسخ شما به سوال دانشجو با موفقیت ثبت شد.", "success");
   };
 
-  const closeQuestion = (questionId: string) => {
-    const updated = questions.map((q) => {
-      if (q.id === questionId) {
-        return { ...q, status: "closed" as const };
-      }
-      return q;
-    });
-    syncQuestions(updated);
-    showToast("سوال با موفقیت بسته شد.", "info");
-  };
-
   // Earnings
   const requestPayout = (amount: number, shaba: string): boolean => {
     const nextPayoutId = `PAY-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -895,7 +883,6 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
         deleteLesson,
         replyToReview,
         replyToQuestion,
-        closeQuestion,
         requestPayout,
         updateProfile,
       }}

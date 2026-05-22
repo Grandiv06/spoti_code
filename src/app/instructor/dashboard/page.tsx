@@ -300,20 +300,6 @@ export default function InstructorDashboardPage() {
                         <span>•</span>
                         <span>درآمد: {formatCurrency(c.revenue)}</span>
                       </div>
-
-                      {/* Completion rate bar */}
-                      <div className="mt-1 w-full max-w-xs">
-                        <div className="flex justify-between text-[8px] text-gray-400 mb-1 font-bold">
-                          <span>میانگین پیشرفت دوره:</span>
-                          <span>{formatPersian(c.completionRate)}٪</span>
-                        </div>
-                        <div className="w-full h-1 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-primary rounded-full transition-all"
-                            style={{ width: `${c.completionRate}%` }}
-                          />
-                        </div>
-                      </div>
                     </div>
 
                     {/* Manage Button */}

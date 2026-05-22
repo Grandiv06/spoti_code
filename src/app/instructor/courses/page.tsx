@@ -9,15 +9,17 @@ import {
   Search,
   FolderOpen,
   ChevronDown,
-  Trash2,
-  MessageSquare
+  MessageSquare,
+  Layers,
+  PencilRuler,
+  Info
 } from "lucide-react";
 import { useInstructorData } from "@/context/InstructorDataContext";
 import CourseCard from "@/app/components/CourseCard";
 
 export default function InstructorCoursesPage() {
   const router = useRouter();
-  const { courses, deleteCourse, profile } = useInstructorData();
+  const { courses, profile } = useInstructorData();
 
   // Search & Filter State
   const [search, setSearch] = useState("");
@@ -257,7 +259,7 @@ export default function InstructorCoursesPage() {
                 title={c.title}
                 instructor={profile?.name || "مدرس دوره"}
                 instructorImg={profile?.avatar || "/images/inst1.jpg"}
-                image={c.cover}
+                image={c.title.includes("TypeScript") ? "/images/course3.jpg" : c.cover}
                 difficulty={c.level === "elementary" ? "مقدماتی" : c.level === "intermediate" ? "متوسط" : "پیشرفته"}
                 hours={String(totalLessonsCount(c))}
                 students={c.studentsCount}
@@ -281,7 +283,13 @@ export default function InstructorCoursesPage() {
                 }}
               />
 
-              <div className="px-4 py-4 bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 rounded-3xl shadow-sm grid grid-cols-2 gap-2">
+              <div className="px-4 py-4 bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 rounded-3xl shadow-sm space-y-3">
+                <div className="flex items-center justify-between border-b border-gray-100 dark:border-white/5 pb-2">
+                  <span className="text-[10px] font-black text-gray-500 dark:text-gray-300">ابزارهای مدیریت دوره</span>
+                  <span className="text-[9px] font-bold text-gray-400">دسترسی سریع</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <button
                   onClick={() => {
                     if (isPublishedLike(c.status)) {
@@ -299,8 +307,9 @@ export default function InstructorCoursesPage() {
                     }
                     alert("این دوره در وضعیت فعلی قابل مدیریت نیست.");
                   }}
-                  className="px-3 py-2 bg-primary hover:bg-primary-hover text-white text-[10px] font-black rounded-xl transition-all cursor-pointer text-center"
+                  className="px-3 py-2.5 bg-primary hover:bg-primary-hover text-white text-[10px] font-black rounded-xl transition-all cursor-pointer text-center flex items-center justify-center gap-1.5"
                 >
+                  <PencilRuler className="w-3.5 h-3.5" />
                   {c.status === "draft" ? "ادامه پیش‌نویس" : "مدیریت دوره"}
                 </button>
                 <button
@@ -316,39 +325,37 @@ export default function InstructorCoursesPage() {
                     }
                     router.push(`/instructor/courses/${c.id}?tab=content`);
                   }}
-                  className="px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/20 text-gray-700 dark:text-gray-200 text-[10px] font-black rounded-xl transition-all cursor-pointer text-center"
+                  className="px-3 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/20 text-gray-700 dark:text-gray-200 text-[10px] font-black rounded-xl transition-all cursor-pointer text-center flex items-center justify-center gap-1.5"
                 >
+                  <Layers className="w-3.5 h-3.5" />
                   فصل‌ها و درس‌ها
                 </button>
                 <button
                   onClick={() => router.push(`/instructor/courses/${c.id}?tab=reviews`)}
-                  className="px-3 py-2 border border-gray-200 dark:border-white/10 hover:border-amber-500 text-gray-700 dark:text-gray-300 text-[9px] font-black rounded-xl transition-all cursor-pointer text-center flex items-center justify-center gap-1"
+                  className="sm:col-span-2 px-3 py-2.5 border border-gray-200 dark:border-white/10 hover:border-amber-500 text-gray-700 dark:text-gray-300 text-[10px] font-black rounded-xl transition-all cursor-pointer text-center flex items-center justify-center gap-1.5"
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
                   <span>نظرات دوره</span>
                 </button>
-                <button
-                  onClick={() => {
-                    if (confirm("آیا از حذف این دوره اطمینان دارید؟ این عملیات غیرقابل بازگشت است.")) {
-                      deleteCourse(c.id);
-                    }
-                  }}
-                  className="px-3 py-2 border border-gray-200/50 dark:border-white/5 hover:border-red-500 text-gray-400 hover:text-red-500 text-[9px] font-black rounded-xl transition-all cursor-pointer text-center flex items-center justify-center gap-1"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>حذف دوره</span>
-                </button>
+                </div>
+
+                {(c.status === "pending" || c.status === "draft") && (
+                  <div
+                    className={`px-3 py-2 rounded-xl border text-[10px] font-bold flex items-center gap-1.5 ${
+                      c.status === "pending"
+                        ? "border-amber-200 bg-amber-50 text-amber-700"
+                        : "border-blue-200 bg-blue-50 text-blue-700"
+                    }`}
+                  >
+                    <Info className="w-3.5 h-3.5 shrink-0" />
+                    <span>
+                      {c.status === "pending"
+                        ? "وضعیت دوره: در حال بررسی توسط تیم محتوا"
+                        : `پیش‌نویس مرحله ${getDraftStep(c)} از ۵ - از همینجا می‌توانید ادامه دهید.`}
+                    </span>
+                  </div>
+                )}
               </div>
-              {c.status === "pending" && (
-                <div className="px-4 py-2 rounded-xl border border-amber-200 bg-amber-50 text-amber-700 text-[10px] font-bold">
-                  وضعیت دوره: در حال بررسی توسط تیم محتوا
-                </div>
-              )}
-              {c.status === "draft" && (
-                <div className="px-4 py-2 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 text-[10px] font-bold">
-                  پیش‌نویس مرحله {getDraftStep(c)} از ۵ - از همینجا می‌توانید ادامه دهید.
-                </div>
-              )}
             </div>
           ))}
         </div>
