@@ -13,7 +13,6 @@ import {
 import { Ticket } from "../data";
 import { cn } from "@/lib/utils";
 import ConversationThread from "./_components/ConversationThread";
-import TicketSummarySidebar from "./_components/TicketSummarySidebar";
 import ReplyBox from "./_components/ReplyBox";
 
 interface TicketDetailsClientProps {
@@ -107,20 +106,15 @@ export default function TicketDetailsClient({ ticket }: TicketDetailsClientProps
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <div className="space-y-8">
         {/* Main Conversation Column */}
-        <div className="lg:col-span-8 space-y-8">
+        <div className="space-y-8">
           <ConversationThread messages={ticket.messages} />
           
           <ReplyBox 
             ticketStatus={ticket.status} 
             onNewTicket={() => router.push("/panel/support")} 
           />
-        </div>
-
-        {/* Sidebar Column */}
-        <div className="lg:col-span-4 space-y-8">
-          <TicketSummarySidebar ticket={ticket} />
         </div>
       </div>
     </div>
