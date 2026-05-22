@@ -8,7 +8,7 @@ export function generateStaticParams() {
 }
 
 interface PageProps {
-  params: Promise<{ courseId: string }> | { courseId: string };
+  params: Promise<{ courseId: string }>;
 }
 
 export default async function CourseDetailPage({ params }: PageProps) {

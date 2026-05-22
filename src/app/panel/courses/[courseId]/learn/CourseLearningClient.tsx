@@ -135,6 +135,7 @@ type QuestionAttachment = {
   size: number;
   type: string;
   previewUrl?: string;
+  caption?: string;
 };
 type ComposerBlock =
   | {
@@ -170,6 +171,7 @@ type LearningQuestion = {
     text: string;
     createdAt: string;
     createdAtIso?: string;
+    attachments?: QuestionAttachment[];
   }[];
 };
 
@@ -819,7 +821,7 @@ export default function CourseLearningClient() {
             <div className="bg-white dark:bg-[#1c1e26] rounded-3xl p-3 border border-gray-100 dark:border-gray-800 shadow-sm">
               <CustomVideoPlayer 
                 key={activeLesson.id}
-                src={activeLesson.videoUrl} 
+                src={activeLesson.videoUrl ?? "#"} 
                 title={activeLesson.title}
               />
 
@@ -894,15 +896,15 @@ export default function CourseLearningClient() {
 
                   {/* Download Section */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
-                    <a href={courseData.downloadLinks.windows} className="flex items-center justify-center gap-3 p-4 rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 hover:border-green-500/50 hover:bg-green-50/30 dark:hover:bg-green-500/5 transition-all group">
+                    <a href={courseData.downloadLinks?.windows ?? "#"} className="flex items-center justify-center gap-3 p-4 rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 hover:border-green-500/50 hover:bg-green-50/30 dark:hover:bg-green-500/5 transition-all group">
                       <MonitorPlay className="w-5 h-5 text-gray-400 group-hover:text-green-500 transition-colors" />
                       <span className="text-sm font-bold text-gray-700 dark:text-gray-300">ویندوز</span>
                     </a>
-                    <a href={courseData.downloadLinks.android} className="flex items-center justify-center gap-3 p-4 rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 hover:border-green-500/50 hover:bg-green-50/30 dark:hover:bg-green-500/5 transition-all group">
+                    <a href={courseData.downloadLinks?.android ?? "#"} className="flex items-center justify-center gap-3 p-4 rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 hover:border-green-500/50 hover:bg-green-50/30 dark:hover:bg-green-500/5 transition-all group">
                       <MonitorPlay className="w-5 h-5 text-gray-400 group-hover:text-green-500 transition-colors" />
                       <span className="text-sm font-bold text-gray-700 dark:text-gray-300">اندروید</span>
                     </a>
-                    <a href={courseData.downloadLinks.mac} className="flex items-center justify-center gap-3 p-4 rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 hover:border-green-500/50 hover:bg-green-50/30 dark:hover:bg-green-500/5 transition-all group">
+                    <a href={courseData.downloadLinks?.mac ?? "#"} className="flex items-center justify-center gap-3 p-4 rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 hover:border-green-500/50 hover:bg-green-50/30 dark:hover:bg-green-500/5 transition-all group">
                       <MonitorPlay className="w-5 h-5 text-gray-400 group-hover:text-green-500 transition-colors" />
                       <span className="text-sm font-bold text-gray-700 dark:text-gray-300">مک‌اواس</span>
                     </a>

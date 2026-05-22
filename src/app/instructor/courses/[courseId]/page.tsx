@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import CourseDetailsClient from "./CourseDetailsClient";
 
 export function generateStaticParams() {
@@ -9,5 +10,9 @@ export function generateStaticParams() {
 }
 
 export default function CourseDetailsPage() {
-  return <CourseDetailsClient />;
+  return (
+    <Suspense fallback={null}>
+      <CourseDetailsClient />
+    </Suspense>
+  );
 }

@@ -1,13 +1,13 @@
 "use client";
 
 import React from "react";
-import { MessageSquare, Clock, CheckCircle2, Inbox } from "lucide-react";
+import { MessageSquare, Clock, CheckCircle2, Inbox, LucideIcon } from "lucide-react";
 
 const stats = [
-  { label: "کل تیکت‌ها", value: "۱۲", icon: <Inbox />, color: "blue" },
-  { label: "تیکت‌های باز", value: "۳", icon: <MessageSquare />, color: "primary" },
-  { label: "در حال بررسی", value: "۲", icon: <Clock />, color: "amber" },
-  { label: "پاسخ داده شده", value: "۷", icon: <CheckCircle2 />, color: "green" },
+  { label: "کل تیکت‌ها", value: "۱۲", icon: Inbox, color: "blue" },
+  { label: "تیکت‌های باز", value: "۳", icon: MessageSquare, color: "primary" },
+  { label: "در حال بررسی", value: "۲", icon: Clock, color: "amber" },
+  { label: "پاسخ داده شده", value: "۷", icon: CheckCircle2, color: "green" },
 ];
 
 export default function TicketStats() {
@@ -24,7 +24,7 @@ export default function TicketStats() {
               stat.color === 'amber' ? 'bg-amber-500/10 text-amber-500' : 
               'bg-green-500/10 text-green-500'
             }`}>
-              {React.cloneElement(stat.icon as React.ReactElement, { className: "w-6 h-6" })}
+              {React.createElement(stat.icon as LucideIcon, { className: "w-6 h-6" })}
             </div>
             <div>
               <p className="text-xs md:text-sm font-bold text-gray-500 dark:text-gray-400 mb-1">{stat.label}</p>

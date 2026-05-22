@@ -7,6 +7,7 @@ import {
   XCircle, 
   Clock, 
   RotateCcw, 
+  LucideIcon,
   Download, 
   Hash, 
   Calendar,
@@ -25,9 +26,10 @@ interface TransactionDetailsModalProps {
 }
 
 const statusMap = {
-  success: { label: "پرداخت موفق", color: "green", icon: <CheckCircle2 /> },
-  failed: { label: "پرداخت ناموفق", color: "red", icon: <XCircle /> },
-  pending: { label: "در انتظار پرداخت", color: "amber", icon: <Clock /> },
+  success: { label: "پرداخت موفق", color: "green", icon: CheckCircle2 },
+  failed: { label: "پرداخت ناموفق", color: "red", icon: XCircle },
+  pending: { label: "در انتظار پرداخت", color: "amber", icon: Clock },
+  refunded: { label: "بازگشت وجه", color: "blue", icon: RotateCcw },
 };
 
 export default function TransactionDetailsModal({ transaction, onClose }: TransactionDetailsModalProps) {
@@ -76,7 +78,7 @@ export default function TransactionDetailsModal({ transaction, onClose }: Transa
                currentStatus.color === 'blue' ? 'bg-blue-500 text-white shadow-blue-500/20' : 
                'bg-amber-500 text-white shadow-amber-500/20'
              )}>
-               {React.cloneElement(currentStatus.icon as React.ReactElement, { className: "w-10 h-10" })}
+               {React.createElement(currentStatus.icon as LucideIcon, { className: "w-10 h-10" })}
              </div>
              <h3 className={cn(
                "text-2xl font-black mb-2",

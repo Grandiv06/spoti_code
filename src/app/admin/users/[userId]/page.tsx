@@ -8,7 +8,7 @@ export function generateStaticParams() {
 }
 
 interface PageProps {
-  params: Promise<{ userId: string }> | { userId: string };
+  params: Promise<{ userId: string }>;
 }
 
 export default async function UserDetailPage({ params }: PageProps) {

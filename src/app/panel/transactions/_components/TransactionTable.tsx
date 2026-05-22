@@ -7,6 +7,7 @@ import {
   Clock, 
   CheckCircle2, 
   XCircle, 
+  RotateCcw,
   Eye,
   FileText
 } from "lucide-react";
@@ -18,6 +19,7 @@ const statusMap = {
   success: { label: "موفق", class: "bg-green-500/10 text-green-500 border-green-500/20", icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
   failed: { label: "ناموفق", class: "bg-red-500/10 text-red-500 border-red-500/20", icon: <XCircle className="w-3.5 h-3.5" /> },
   pending: { label: "در انتظار", class: "bg-amber-500/10 text-amber-500 border-amber-500/20", icon: <Clock className="w-3.5 h-3.5" /> },
+  refunded: { label: "برگشت وجه", class: "bg-blue-500/10 text-blue-500 border-blue-500/20", icon: <RotateCcw className="w-3.5 h-3.5" /> },
 };
 
 export default function TransactionTable() {

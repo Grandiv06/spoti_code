@@ -11,11 +11,12 @@ export function generateStaticParams() {
   return COURSE_IDS.map((id) => ({ id }));
 }
 
-export default function CourseDetailPage({
+export default async function CourseDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   return (
     <div className="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark transition-colors duration-300 relative overflow-x-hidden min-h-screen">
       <div className="mesh-bg"></div>
@@ -185,7 +186,7 @@ export default function CourseDetailPage({
                   </div>
                   <AddToCartButton
                     course={{
-                      id: params.id,
+                      id,
                       title: "دوره جامع React و Next.js",
                       price: "4,500,000",
                       image: "/images/react-green.png",

@@ -4,15 +4,14 @@ import React from "react";
 import { 
   CreditCard, 
   CheckCircle2, 
-  XCircle, 
-  Clock, 
+  LucideIcon,
   ArrowUpRight 
 } from "lucide-react";
 
 const stats = [
-  { label: "مجموع پرداخت‌ها", value: "۱۱,۲۵۰,۰۰۰", icon: <CreditCard />, color: "primary", unit: "تومان" },
-  { label: "تراکنش‌های موفق", value: "۸", icon: <CheckCircle2 />, color: "green", unit: "مورد" },
-  { label: "آخرین تراکنش", value: "۲,۹۰۰,۰۰۰", icon: <ArrowUpRight />, color: "amber", unit: "تومان" },
+  { label: "مجموع پرداخت‌ها", value: "۱۱,۲۵۰,۰۰۰", icon: CreditCard, color: "primary", unit: "تومان" },
+  { label: "تراکنش‌های موفق", value: "۸", icon: CheckCircle2, color: "green", unit: "مورد" },
+  { label: "آخرین تراکنش", value: "۲,۹۰۰,۰۰۰", icon: ArrowUpRight, color: "amber", unit: "تومان" },
 ];
 
 export default function TransactionStats() {
@@ -29,7 +28,7 @@ export default function TransactionStats() {
               stat.color === 'blue' ? 'bg-blue-500/10 text-blue-500' : 
               'bg-amber-500/10 text-amber-500'
             }`}>
-              {React.cloneElement(stat.icon as React.ReactElement, { className: "w-6 h-6" })}
+              {React.createElement(stat.icon as LucideIcon, { className: "w-6 h-6" })}
             </div>
             <div>
               <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">{stat.label}</p>

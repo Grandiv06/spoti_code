@@ -93,6 +93,20 @@ export default function CourseDetailsPage() {
   const [chapterTitleDraft, setChapterTitleDraft] = useState("");
   const [lessonTitleDraft, setLessonTitleDraft] = useState("");
   const [lessonDurationDraft, setLessonDurationDraft] = useState("");
+  const [lessonUploadProgress, setLessonUploadProgress] = useState<Record<string, number>>({});
+  const [lessonVideoMap, setLessonVideoMap] = useState<Record<string, { name: string; url: string }>>({});
+  const [lessonFileMap, setLessonFileMap] = useState<Record<string, { id: string; name: string; url: string }[]>>({});
+  const [lessonDescriptionMap, setLessonDescriptionMap] = useState<Record<string, string>>({});
+  const [lessonDescriptionEditor, setLessonDescriptionEditor] = useState<{ open: boolean; lessonId: string; value: string }>({ open: false, lessonId: "", value: "" });
+  const [lessonFilesModal, setLessonFilesModal] = useState<{ open: boolean; lessonId: string }>({ open: false, lessonId: "" });
+  const [lessonFilesError, setLessonFilesError] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; title: string; message: string; action: (() => void) | null }>({
+    open: false,
+    title: "",
+    message: "",
+    action: null,
+  });
+  const MAX_LESSON_FILES = 3;
 
   const toggleChapter = (chId: string) => {
     setExpandedChapters((prev) => ({
@@ -219,7 +233,7 @@ export default function CourseDetailsPage() {
   };
 
   // Handle Add Lesson File Simulation
-  const handleLessonFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNewLessonFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setLessonFile(file);
@@ -239,6 +253,86 @@ export default function CourseDetailsPage() {
         });
       }, 100);
     }
+  };
+
+  const handleLessonVideoUpload = (lessonId: string, file?: File) => {
+    if (!file) return;
+    const videoUrl = URL.createObjectURL(file);
+    setLessonUploadProgress((prev) => ({ ...prev, [lessonId]: 0 }));
+    const timer = setInterval(() => {
+      setLessonUploadProgress((prev) => {
+        const current = prev[lessonId] ?? 0;
+        const next = Math.min(100, current + 20);
+        if (next >= 100) {
+          clearInterval(timer);
+          setLessonVideoMap((v) => ({ ...v, [lessonId]: { name: file.name, url: videoUrl } }));
+          setTimeout(() => {
+            setLessonUploadProgress((after) => {
+              const copy = { ...after };
+              delete copy[lessonId];
+              return copy;
+            });
+          }, 350);
+        }
+        return { ...prev, [lessonId]: next };
+      });
+    }, 120);
+  };
+
+  const removeLessonVideo = (lessonId: string) => {
+    setLessonVideoMap((prev) => {
+      const target = prev[lessonId];
+      if (target?.url?.startsWith("blob:")) URL.revokeObjectURL(target.url);
+      const copy = { ...prev };
+      delete copy[lessonId];
+      return copy;
+    });
+    setLessonUploadProgress((prev) => {
+      const copy = { ...prev };
+      delete copy[lessonId];
+      return copy;
+    });
+  };
+
+  const handleLessonFileUpload = (lessonId: string, files?: File[]) => {
+    if (!lessonId) {
+      setLessonFilesError("جلسه‌ای برای آپلود انتخاب نشده است.");
+      return;
+    }
+    if (!files || files.length === 0) return;
+    setLessonFileMap((prev) => {
+      const current = prev[lessonId] || [];
+      const remaining = Math.max(0, MAX_LESSON_FILES - current.length);
+      if (remaining <= 0) {
+        setLessonFilesError(`حداکثر ${MAX_LESSON_FILES} فایل برای هر جلسه مجاز است.`);
+        return prev;
+      }
+      const selected = files.slice(0, remaining);
+      const newFiles = selected.map((f, idx) => ({
+        id: `${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}`,
+        name: f.name,
+        url: URL.createObjectURL(f),
+      }));
+      setLessonFilesError("");
+      return { ...prev, [lessonId]: [...current, ...newFiles] };
+    });
+  };
+
+  const removeLessonFile = (lessonId: string, fileId: string) => {
+    setLessonFileMap((prev) => {
+      const list = prev[lessonId] || [];
+      const target = list.find((f) => f.id === fileId);
+      if (target?.url?.startsWith("blob:")) URL.revokeObjectURL(target.url);
+      const nextList = list.filter((f) => f.id !== fileId);
+      const copy = { ...prev };
+      if (nextList.length) copy[lessonId] = nextList;
+      else delete copy[lessonId];
+      return copy;
+    });
+  };
+
+  const openDeleteConfirm = (title: string, message: string, action: () => void) => {
+    setConfirmDelete({ open: true, title, message, action });
   };
 
   // Handle Save Lesson Submit
@@ -573,7 +667,7 @@ export default function CourseDetailsPage() {
                             <button type="button" onClick={() => moveChapter(chIdx, "down")} disabled={chIdx === course.chapters.length - 1} className="size-7 inline-flex items-center justify-center rounded-lg border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-500 disabled:opacity-30">
                               <ArrowDown className="w-3.5 h-3.5" />
                             </button>
-                            <button type="button" onClick={() => deleteChapter(course.id, ch.id)} className="size-7 inline-flex items-center justify-center rounded-lg border border-red-200/80 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500">
+                            <button type="button" onClick={() => openDeleteConfirm("حذف فصل", "با حذف فصل، تمام جلسات داخل آن حذف می‌شوند. ادامه می‌دهید؟", () => deleteChapter(course.id, ch.id))} className="size-7 inline-flex items-center justify-center rounded-lg border border-red-200/80 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500">
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                             <button type="button" onClick={() => addLessonInline(ch.id)} className="h-7 px-2.5 inline-flex items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary text-[10px] font-black">
@@ -645,28 +739,63 @@ export default function CourseDetailsPage() {
                                       </button>
                                     )}
                                     <div className="inline-flex items-center gap-1 p-1 rounded-lg border border-emerald-200/70 dark:border-emerald-400/20 bg-emerald-50/50 dark:bg-emerald-500/10">
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setSelectedChapterId(ch.id);
-                                          setNewLessonData((p) => ({ ...p, title: les.title, type: les.type, duration: les.duration, isFree: les.isFree }));
-                                          setIsLessonModalOpen(true);
-                                        }}
-                                        className="h-6 px-2 inline-flex items-center justify-center rounded-md border border-emerald-200/80 dark:border-emerald-400/20 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all text-[8px] font-black cursor-pointer"
-                                      >
-                                        ویدیو
-                                      </button>
+                                      {!lessonVideoMap[les.id] && (
+                                        <label className="size-6 inline-flex items-center justify-center rounded-md border border-blue-200/80 dark:border-blue-400/20 bg-blue-50 dark:bg-blue-500/10 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all cursor-pointer overflow-hidden">
+                                          <input
+                                            type="file"
+                                            accept="video/*"
+                                            className="hidden"
+                                            onChange={(e) => {
+                                              handleLessonVideoUpload(les.id, e.target.files?.[0]);
+                                              e.currentTarget.value = "";
+                                            }}
+                                          />
+                                          {typeof lessonUploadProgress[les.id] === "number" ? (
+                                            <span className="text-[8px] font-black leading-none">{lessonUploadProgress[les.id]}%</span>
+                                          ) : (
+                                            <Video className="w-3.5 h-3.5" />
+                                          )}
+                                        </label>
+                                      )}
+                                      {lessonVideoMap[les.id] && typeof lessonUploadProgress[les.id] !== "number" && (
+                                        <>
+                                          <button type="button" onClick={() => window.open(lessonVideoMap[les.id].url, "_blank", "noopener,noreferrer")} className="h-6 px-2 inline-flex items-center justify-center rounded-md border border-emerald-200/80 dark:border-emerald-400/20 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all text-[8px] font-black cursor-pointer">
+                                            ویدیو
+                                          </button>
+                                          <button type="button" onClick={() => openDeleteConfirm("حذف ویدیو", "آیا از حذف ویدیوی این جلسه مطمئن هستید؟", () => removeLessonVideo(les.id))} className="size-6 inline-flex items-center justify-center rounded-md border border-red-200/80 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all cursor-pointer">
+                                            <Trash2 className="w-3 h-3" />
+                                          </button>
+                                        </>
+                                      )}
                                     </div>
                                     <div className="inline-flex items-center gap-1 p-1 rounded-lg border border-amber-200/70 dark:border-amber-400/20 bg-amber-50/40 dark:bg-amber-500/10">
-                                      <button type="button" className="h-6 px-2 inline-flex items-center justify-center rounded-md border border-amber-200/80 dark:border-amber-400/20 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-all text-[8px] font-black cursor-pointer">
-                                        فایل {les.fileName ? "(۱)" : "(۰)"}
+                                      <button
+                                        type="button"
+                                        onClick={() => setLessonFilesModal({ open: true, lessonId: les.id })}
+                                        className="h-6 px-2 inline-flex items-center justify-center rounded-md border border-amber-200/80 dark:border-amber-400/20 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-all text-[8px] font-black cursor-pointer"
+                                      >
+                                        فایل ({lessonFileMap[les.id]?.length || 0})
                                       </button>
-                                      <button type="button" className="h-6 px-2 inline-flex items-center justify-center rounded-md border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-all text-[8px] font-black cursor-pointer">
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setLessonDescriptionEditor({
+                                            open: true,
+                                            lessonId: les.id,
+                                            value: lessonDescriptionMap[les.id] || "",
+                                          })
+                                        }
+                                        className={`h-6 px-2 inline-flex items-center justify-center rounded-md border transition-all text-[8px] font-black cursor-pointer ${
+                                          lessonDescriptionMap[les.id]
+                                            ? "border-indigo-200/80 dark:border-indigo-400/20 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/20"
+                                            : "border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10"
+                                        }`}
+                                      >
                                         توضیح
                                       </button>
                                     </div>
                                     <div className="inline-flex items-center gap-1 p-1 rounded-lg border border-red-200/70 dark:border-red-400/20 bg-red-50/40 dark:bg-red-500/10">
-                                      <button type="button" onClick={() => deleteLesson(course.id, ch.id, les.id)} className="size-6 inline-flex items-center justify-center rounded-md border border-red-200/80 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all cursor-pointer">
+                                      <button type="button" onClick={() => openDeleteConfirm("حذف جلسه", "آیا از حذف این جلسه مطمئن هستید؟", () => deleteLesson(course.id, ch.id, les.id))} className="size-6 inline-flex items-center justify-center rounded-md border border-red-200/80 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all cursor-pointer">
                                         <X className="w-3 h-3" />
                                       </button>
                                     </div>
@@ -1051,7 +1180,7 @@ export default function CourseDetailsPage() {
                     <input
                       type="file"
                       accept={newLessonData.type === "video" ? "video/*" : "application/pdf"}
-                      onChange={handleLessonFileUpload}
+                      onChange={handleNewLessonFileUpload}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                     />
                     
@@ -1109,6 +1238,118 @@ export default function CourseDetailsPage() {
               </div>
 
             </form>
+          </div>
+        </div>
+      )}
+
+      {lessonDescriptionEditor.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-[#1c1e26] border border-gray-200/70 dark:border-white/10 p-4 space-y-3">
+            <h4 className="text-xs font-black text-gray-900 dark:text-white">توضیحات جلسه</h4>
+            <textarea
+              rows={6}
+              value={lessonDescriptionEditor.value}
+              onChange={(e) => setLessonDescriptionEditor((p) => ({ ...p, value: e.target.value }))}
+              className="w-full rounded-xl border border-gray-200/70 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-xs font-bold text-gray-800 dark:text-gray-100 p-3 focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setLessonDescriptionMap((prev) => ({
+                    ...prev,
+                    [lessonDescriptionEditor.lessonId]: lessonDescriptionEditor.value.trim(),
+                  }));
+                  setLessonDescriptionEditor({ open: false, lessonId: "", value: "" });
+                }}
+                className="px-4 py-2 bg-primary text-white text-[10px] font-black rounded-lg"
+              >
+                ذخیره توضیح
+              </button>
+              <button type="button" onClick={() => setLessonDescriptionEditor({ open: false, lessonId: "", value: "" })} className="px-4 py-2 bg-gray-100 dark:bg-white/10 text-gray-500 text-[10px] rounded-lg">انصراف</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {lessonFilesModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-xl rounded-2xl bg-white dark:bg-[#1c1e26] border border-gray-200/70 dark:border-white/10 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-black text-gray-900 dark:text-white">فایل‌های ضمیمه جلسه</h4>
+              <span className="text-[10px] font-bold text-gray-500 dark:text-gray-300">تعداد فایل‌ها: {lessonFileMap[lessonFilesModal.lessonId]?.length || 0}</span>
+            </div>
+            <div className="rounded-xl border border-dashed border-amber-300/50 p-3 bg-amber-50/40 dark:bg-amber-500/10">
+              <input
+                id="lesson-files-input"
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  const selected = Array.from(e.target.files || []);
+                  handleLessonFileUpload(lessonFilesModal.lessonId, selected);
+                  e.currentTarget.value = "";
+                }}
+              />
+              <label
+                htmlFor={(lessonFileMap[lessonFilesModal.lessonId]?.length || 0) >= MAX_LESSON_FILES ? undefined : "lesson-files-input"}
+                className={`h-10 px-3 inline-flex items-center justify-center rounded-lg border text-[10px] font-black ${
+                  (lessonFileMap[lessonFilesModal.lessonId]?.length || 0) >= MAX_LESSON_FILES
+                    ? "border-gray-200/80 text-gray-400 cursor-not-allowed bg-gray-50 dark:bg-white/5"
+                    : "border-amber-200/80 text-amber-700 dark:text-amber-300 cursor-pointer bg-white dark:bg-white/5"
+                }`}
+              >
+                افزودن فایل جدید
+              </label>
+              <p className="text-[9px] text-gray-500 mt-2">حداکثر {MAX_LESSON_FILES} فایل</p>
+              {lessonFilesError && <p className="text-[9px] text-red-500 mt-1">{lessonFilesError}</p>}
+            </div>
+            <div className="space-y-2 max-h-52 overflow-y-auto">
+              {(lessonFileMap[lessonFilesModal.lessonId] || []).length === 0 ? (
+                <p className="text-[10px] text-gray-400 font-bold">هنوز فایلی اضافه نشده است.</p>
+              ) : (
+                (lessonFileMap[lessonFilesModal.lessonId] || []).map((f) => (
+                  <div key={f.id} className="flex items-center justify-between rounded-lg border border-gray-200/70 dark:border-white/10 p-2 bg-gray-50 dark:bg-white/5">
+                    <button type="button" onClick={() => window.open(f.url, "_blank", "noopener,noreferrer")} className="text-[10px] text-primary font-black truncate">{f.name}</button>
+                    <button type="button" onClick={() => openDeleteConfirm("حذف فایل ضمیمه", "آیا می‌خواهید این فایل حذف شود؟", () => removeLessonFile(lessonFilesModal.lessonId, f.id))} className="size-6 inline-flex items-center justify-center rounded-md border border-red-200/80 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="flex justify-end">
+              <button type="button" onClick={() => setLessonFilesModal({ open: false, lessonId: "" })} className="px-4 py-2 bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 text-[10px] rounded-lg">بستن</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmDelete.open && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-[#1c1e26] border border-gray-200/70 dark:border-white/10 p-5 space-y-4 text-right">
+            <h4 className="text-sm font-black text-gray-900 dark:text-white">{confirmDelete.title}</h4>
+            <p className="text-[11px] font-bold text-gray-600 dark:text-gray-300 leading-relaxed">{confirmDelete.message}</p>
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  const action = confirmDelete.action;
+                  setConfirmDelete({ open: false, title: "", message: "", action: null });
+                  action?.();
+                }}
+                className="px-4 py-2 bg-red-500 text-white text-[10px] font-black rounded-lg"
+              >
+                بله، حذف شود
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmDelete({ open: false, title: "", message: "", action: null })}
+                className="px-4 py-2 bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 text-[10px] font-black rounded-lg"
+              >
+                انصراف
+              </button>
+            </div>
           </div>
         </div>
       )}

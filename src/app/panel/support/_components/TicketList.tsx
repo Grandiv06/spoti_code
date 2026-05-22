@@ -122,7 +122,7 @@ export default function TicketList({ onNewTicket }: { onNewTicket: () => void })
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4" />
-                      <span>ثبت: {ticket.date}</span>
+                      <span>ثبت: {ticket.createdAt}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 text-blue-500" />
