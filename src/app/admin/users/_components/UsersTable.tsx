@@ -102,7 +102,7 @@ export default function UsersTable({
                 <td className="py-4 px-6">
                   <span
                     dir="ltr"
-                    className="font-bold text-gray-700 dark:text-gray-300 text-xs inline-block text-left [unicode-bidi:plaintext]"
+                    className="font-bold text-gray-700 dark:text-gray-300 text-xs inline-block text-left whitespace-nowrap [unicode-bidi:plaintext]"
                   >
                     {formatPhone(user.phone)}
                   </span>

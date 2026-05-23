@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { ShoppingCart, Download, Search, SlidersHorizontal, CheckCircle2, X, Hash, Calendar, User, BookOpen, Wallet } from "lucide-react";
+import { ShoppingCart, Download, Search, SlidersHorizontal, CheckCircle2, X, Hash, Calendar, User, BookOpen, Wallet, Clock3, BadgeCheck, Receipt } from "lucide-react";
 import { StatusPill } from "@/components/admin/AdminCharts";
 import { recentOrders } from "@/components/admin/admin-data";
 
@@ -116,22 +116,10 @@ export default function AdminOrdersPage() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-        <div className="rounded-3xl p-5 md:p-6 bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md">
-          <span className="text-[10px] text-gray-500 font-bold block mb-2">کل سفارش‌ها</span>
-          <p className="text-lg md:text-xl font-black text-gray-900 dark:text-white">{stats.total.toLocaleString("fa-IR")}</p>
-        </div>
-        <div className="rounded-3xl p-5 md:p-6 bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md">
-          <span className="text-[10px] text-gray-500 font-bold block mb-2">پرداخت شده</span>
-          <p className="text-lg md:text-xl font-black text-emerald-500">{stats.paid.toLocaleString("fa-IR")}</p>
-        </div>
-        <div className="rounded-3xl p-5 md:p-6 bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md">
-          <span className="text-[10px] text-gray-500 font-bold block mb-2">در انتظار</span>
-          <p className="text-lg md:text-xl font-black text-amber-500">{stats.pending.toLocaleString("fa-IR")}</p>
-        </div>
-        <div className="rounded-3xl p-5 md:p-6 bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md">
-          <span className="text-[10px] text-gray-500 font-bold block mb-2">درآمد قطعی</span>
-          <p className="text-lg md:text-xl font-black text-primary">{stats.totalAmount.toLocaleString("fa-IR")} تومان</p>
-        </div>
+        <MiniStat title="کل سفارش‌ها" value={stats.total.toLocaleString("fa-IR")} desc="کل سفارش‌های ثبت‌شده" icon={<Receipt className="w-5 h-5 text-blue-400" />} color="from-blue-500/10 to-indigo-500/5 border-blue-500/20" bgGlow="bg-blue-500/5" />
+        <MiniStat title="پرداخت شده" value={stats.paid.toLocaleString("fa-IR")} desc="سفارش‌های تسویه‌شده" icon={<BadgeCheck className="w-5 h-5 text-emerald-400" />} color="from-emerald-500/10 to-teal-500/5 border-emerald-500/20" bgGlow="bg-emerald-500/5" />
+        <MiniStat title="در انتظار" value={stats.pending.toLocaleString("fa-IR")} desc="نیازمند پرداخت" icon={<Clock3 className="w-5 h-5 text-amber-400" />} color="from-amber-500/10 to-orange-500/5 border-amber-500/20" bgGlow="bg-amber-500/5" />
+        <MiniStat title="درآمد قطعی" value={`${stats.totalAmount.toLocaleString("fa-IR")} تومان`} desc="جمع مبالغ پرداخت‌شده" icon={<Wallet className="w-5 h-5 text-primary" />} color="from-primary/15 to-emerald-500/5 border-primary/25" bgGlow="bg-primary/10" />
       </div>
 
       <div className="rounded-3xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md p-6 mb-8">
@@ -312,6 +300,42 @@ function OrderDetailItem({ icon, label, value }: { icon: React.ReactNode; label:
         <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
       </div>
       <p className="text-sm font-black text-gray-900 dark:text-gray-100 pr-6">{value}</p>
+    </div>
+  );
+}
+
+function MiniStat({
+  title,
+  value,
+  desc,
+  icon,
+  color,
+  bgGlow,
+}: {
+  title: string;
+  value: string;
+  desc: string;
+  icon: React.ReactNode;
+  color: string;
+  bgGlow: string;
+}) {
+  return (
+    <div className="bg-white dark:bg-[#1c1e26] p-4 rounded-3xl border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md hover:border-gray-200 dark:hover:border-white/10 transition-all duration-300 group overflow-hidden relative flex flex-col justify-between min-h-[124px]">
+      <div className={`absolute top-0 right-0 w-24 h-24 ${bgGlow} rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500`} />
+
+      <div className="relative z-10 flex flex-col h-full justify-between">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-[11px] font-bold text-gray-400 dark:text-gray-400">{title}</span>
+          <div className={`w-9 h-9 rounded-2xl flex items-center justify-center bg-gradient-to-br ${color} transition-transform group-hover:scale-110 duration-300`}>
+            {icon}
+          </div>
+        </div>
+
+        <div>
+          <p className="text-base md:text-xl font-black text-gray-900 dark:text-white leading-none mb-1">{value}</p>
+          <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">{desc}</p>
+        </div>
+      </div>
     </div>
   );
 }
