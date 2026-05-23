@@ -3,9 +3,52 @@
 import { AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
-import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from "recharts";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  LabelList,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 type Point = { label: string; value: number };
+
+function BarValueBadge(props: {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  value?: number;
+}) {
+  const { x = 0, y = 0, width = 0, height = 0, value = 0 } = props;
+  const badgeWidth = 44;
+  const badgeHeight = 24;
+  const bx = x + width + 8;
+  const by = y + height / 2 - badgeHeight / 2;
+
+  return (
+    <g>
+      <rect x={bx} y={by} rx={10} ry={10} width={badgeWidth} height={badgeHeight} fill="#0c1728" stroke="#183a63" />
+      <text
+        x={bx + badgeWidth / 2}
+        y={by + badgeHeight / 2 + 4}
+        textAnchor="middle"
+        fill="#f8fafc"
+        style={{ fontSize: 12, fontWeight: 800 }}
+      >
+        {value}
+      </text>
+    </g>
+  );
+}
 
 export function MiniAreaChart({ data }: { data: Point[] }) {
   const chartConfig = {
@@ -13,7 +56,7 @@ export function MiniAreaChart({ data }: { data: Point[] }) {
   };
 
   return (
-    <div className="rounded-3xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-[#1c1e26] p-4 md:p-6">
+    <div className="rounded-3xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-[#1c1e26] p-4 md:px-3 md:py-5">
       <div className="mb-3 flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
         <span>روند ۱۲ ماهه درآمد (میلیون)</span>
         <span className="font-semibold text-primary dark:text-primary">+28.6%</span>
@@ -56,27 +99,75 @@ export function MiniAreaChart({ data }: { data: Point[] }) {
 }
 
 export function HorizontalBars({ data }: { data: Point[] }) {
-  const max = Math.max(...data.map((d) => d.value), 1);
+  const chartConfig = {
+    value: { label: "فروش", color: "#22c55e" },
+  };
+  const totalSales = data.reduce((sum, item) => sum + item.value, 0);
+  const top = data[0];
+  const maxValue = Math.max(...data.map((d) => d.value), 1);
+  const chartData = data.map((item) => ({
+    ...item,
+    full: maxValue,
+    share: Math.round((item.value / totalSales) * 100),
+  }));
 
   return (
-    <div className="rounded-3xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-[#1c1e26] p-4 md:p-6">
-      <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4">فروش به تفکیک دسته</h3>
-      <div className="space-y-4">
-        {data.map((item) => (
-          <div key={item.label}>
-            <div className="mb-1 flex items-center justify-between text-xs text-gray-600 dark:text-gray-300">
-              <span>{item.label}</span>
-              <span className="font-semibold">{item.value}</span>
-            </div>
-            <div className="h-2.5 w-full rounded-full bg-gray-100 dark:bg-gray-800">
-              <div
-                className="h-2.5 rounded-full bg-gradient-to-r from-primary to-primary-hover"
-                style={{ width: `${(item.value / max) * 100}%` }}
-              />
-            </div>
-          </div>
-        ))}
+    <div className="relative overflow-hidden rounded-3xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-[#1c1e26] p-4 md:p-6">
+      <div className="pointer-events-none absolute -left-12 top-8 h-40 w-40 rounded-full bg-emerald-500/10 blur-3xl" />
+      <div className="mb-3 flex items-start justify-between px-1">
+        <h3 className="text-sm font-bold text-gray-900 dark:text-white">فروش به تفکیک دسته</h3>
+        <div className="text-left">
+          <p className="text-[11px] text-gray-500 dark:text-gray-400">مجموع فروش</p>
+          <p className="text-base font-black text-white">{totalSales}</p>
+        </div>
       </div>
+      <div className="mb-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+        پرفروش‌ترین دسته: <span className="font-bold text-emerald-200">{top?.label}</span>
+      </div>
+      <ChartContainer config={chartConfig} className="h-[340px] w-full !aspect-auto !items-stretch !justify-start" dir="ltr">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData} layout="vertical" margin={{ top: 4, right: 36, left: 4, bottom: 2 }} barCategoryGap={16}>
+            <defs>
+              <linearGradient id="admin-green-bar" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#22c55e" />
+                <stop offset="100%" stopColor="#4ade80" />
+              </linearGradient>
+            </defs>
+            <CartesianGrid horizontal={false} strokeDasharray="4 4" className="stroke-white/10 dark:stroke-white/10" />
+            <XAxis type="number" hide />
+            <YAxis
+              dataKey="label"
+              type="category"
+              tickLine={false}
+              axisLine={false}
+              tickMargin={10}
+              width={74}
+              tick={{ fill: "#e5e7eb", fontSize: 13, fontWeight: 700 }}
+            />
+            <Tooltip cursor={false} content={<ChartTooltipContent formatter={(value) => `${value}`} />} />
+            <Bar dataKey="full" fill="#1a2740" radius={10} barSize={30} isAnimationActive={false} />
+            <Bar
+              dataKey="value"
+              fill="url(#admin-green-bar)"
+              radius={10}
+              barSize={30}
+              isAnimationActive
+              animationDuration={1200}
+              animationEasing="ease-out"
+            >
+              <LabelList
+                dataKey="share"
+                position="insideRight"
+                offset={10}
+                className="fill-[#08331f]"
+                style={{ fontSize: 10, fontWeight: 800 }}
+                formatter={(v: number) => `%${v}`}
+              />
+              <LabelList dataKey="value" content={<BarValueBadge />} />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartContainer>
     </div>
   );
 }
@@ -102,7 +193,7 @@ export function DonutChannels({
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex min-h-[200px] items-center gap-4">
         <ChartContainer config={chartConfig} className="h-36 w-36 shrink-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
