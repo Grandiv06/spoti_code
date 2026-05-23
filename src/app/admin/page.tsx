@@ -1,8 +1,10 @@
-import { ArrowUpRight, BellRing, Download, LayoutDashboard, Users2 } from "lucide-react";
+import { ArrowUpRight, BellRing, Coins, Download, LayoutDashboard, TrendingDown, UserRound, Users2, Waves } from "lucide-react";
 import { DonutChannels, HorizontalBars, MiniAreaChart, StatusPill } from "@/components/admin/AdminCharts";
 import { adminKpis, channelData, monthlyRevenue, recentOrders, salesByCategory, ticketsData } from "@/components/admin/admin-data";
 
 export default function AdminDashboardPage() {
+  const kpiIcons = [UserRound, Waves, Coins, TrendingDown];
+
   return (
     <div className="max-w-[1400px] mx-auto px-2 md:px-4 pb-20 animate-in fade-in duration-700" dir="rtl">
       <div className="relative w-full rounded-[2.5rem] overflow-hidden bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-xl mb-8">
@@ -33,13 +35,21 @@ export default function AdminDashboardPage() {
       </div>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-8">
-        {adminKpis.map((kpi) => (
+        {adminKpis.map((kpi, index) => {
+          const KpiIcon = kpiIcons[index] ?? UserRound;
+
+          return (
           <div
             key={kpi.title}
             className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm dark:border-white/5 dark:bg-[#1c1e26] relative overflow-hidden"
           >
             <div className="absolute -top-10 -left-10 h-24 w-24 rounded-full blur-2xl bg-primary/10 pointer-events-none" />
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">{kpi.title}</p>
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">{kpi.title}</p>
+              <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-400/20 bg-emerald-500/10 text-emerald-300">
+                <KpiIcon className="h-4.5 w-4.5" />
+              </div>
+            </div>
             <p className="mt-3 text-2xl font-black tracking-tight text-gray-900 dark:text-white">
               {kpi.value}
               {kpi.unit ? <span className="mr-1 text-sm font-semibold text-gray-500">{kpi.unit}</span> : null}
@@ -49,7 +59,8 @@ export default function AdminDashboardPage() {
               {kpi.delta}
             </p>
           </div>
-        ))}
+          );
+        })}
       </section>
 
       <section className="grid gap-6 xl:grid-cols-3 mb-8">

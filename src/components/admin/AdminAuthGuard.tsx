@@ -19,7 +19,7 @@ export default function AdminAuthGuard({ children }: { children: React.ReactNode
     }
 
     if (user?.role !== "admin") {
-      router.replace("/panel");
+      router.replace(user?.role === "instructor" ? "/instructor/dashboard" : "/panel");
     }
   }, [isAuthenticated, isLoading, pathname, router, user?.role]);
 

@@ -17,9 +17,9 @@ const navItems = [
   { href: "/admin", label: "داشبورد", icon: "dashboard" },
   { href: "/admin/users", label: "کاربران", icon: "group" },
   { href: "/admin/courses", label: "دوره‌ها", icon: "school" },
+  { href: "/admin/discount-codes", label: "کدهای تخفیف", icon: "sell" },
   { href: "/admin/orders", label: "سفارش‌ها", icon: "receipt_long" },
   { href: "/admin/tickets", label: "تیکت‌ها", icon: "support_agent" },
-  { href: "/admin/reports", label: "گزارش‌ها", icon: "analytics" },
   { href: "/admin/settings", label: "تنظیمات", icon: "settings" },
 ];
 
@@ -153,7 +153,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
               </button>
               <div>
                 <h1 className="text-xl font-black text-gray-900 dark:text-white">پنل مدیریت اسپاتی‌کد</h1>
-                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">مدیریت کاربران، فروش، محتوای آموزشی و گزارش‌ها</p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">مدیریت کاربران، فروش و محتوای آموزشی</p>
               </div>
             </div>
             <Link

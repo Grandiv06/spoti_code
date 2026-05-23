@@ -18,6 +18,10 @@ export default function PanelAuthGuard({ children }: { children: React.ReactNode
     }
     if (user?.role === "admin") {
       router.replace("/admin");
+      return;
+    }
+    if (user?.role === "instructor") {
+      router.replace("/instructor/dashboard");
     }
   }, [isAuthenticated, isLoading, router, pathname, user?.role]);
 

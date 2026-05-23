@@ -9,6 +9,7 @@ import AuthTransitionLink from "@/app/components/AuthTransitionLink";
 const DEV_OTP = "123456";
 const ADMIN_PHONE = "09000000001";
 const USER_PHONE = "09000000002";
+const INSTRUCTOR_PHONE = "09000000003";
 
 /** اعداد فارسی/عربی را به انگلیسی تبدیل می‌کند */
 function normalizeDigits(str: string): string {
@@ -42,7 +43,7 @@ export default function LoginForm() {
     e.preventDefault();
     setError("");
     const value = normalizeDigits(phoneInput).replace(/[^0-9]/g, "");
-    if (value === ADMIN_PHONE || value === USER_PHONE) {
+    if (value === ADMIN_PHONE || value === USER_PHONE || value === INSTRUCTOR_PHONE) {
       setPhone(value);
       setStep("otp");
       return;
@@ -64,15 +65,20 @@ export default function LoginForm() {
     // برای تست: هر شماره + کد 123456
     if (normalizedOtp === DEV_OTP) {
       const normalizedPhone = normalizeDigits(phone) || "09123456789";
-      const role = normalizedPhone === ADMIN_PHONE ? "admin" : "user";
+      const role =
+        normalizedPhone === ADMIN_PHONE
+          ? "admin"
+          : normalizedPhone === INSTRUCTOR_PHONE
+            ? "instructor"
+            : "user";
       login({
-        id: role === "admin" ? "admin-dev-1" : "user-dev-1",
+        id: role === "admin" ? "admin-dev-1" : role === "instructor" ? "instructor-dev-1" : "user-dev-1",
         phone: normalizedPhone,
-        displayName: role === "admin" ? "ادمین تست" : "کاربر تست",
+        displayName: role === "admin" ? "ادمین تست" : role === "instructor" ? "مدرس تست" : "کاربر تست",
         avatarUrl: `https://i.pravatar.cc/150?u=dev-${role}`,
         role,
       });
-      const fallbackPath = role === "admin" ? "/admin" : "/panel";
+      const fallbackPath = role === "admin" ? "/admin" : role === "instructor" ? "/instructor/dashboard" : "/panel";
       router.push(requestedReturnUrl || fallbackPath);
       return;
     }
@@ -181,6 +187,10 @@ export default function LoginForm() {
           <p>
             شماره کاربر:{" "}
             <code className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/20">{USER_PHONE}</code>
+          </p>
+          <p>
+            شماره مدرس:{" "}
+            <code className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/20">{INSTRUCTOR_PHONE}</code>
           </p>
         </div>
       </div>

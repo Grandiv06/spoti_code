@@ -9,7 +9,7 @@ export type AuthUser = {
   phone: string;
   displayName: string;
   avatarUrl?: string;
-  role: "admin" | "user";
+  role: "admin" | "user" | "instructor";
 };
 
 type AuthContextType = {
@@ -29,7 +29,12 @@ function loadFromStorage(): AuthUser | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as AuthUser;
     if (!parsed?.id || !parsed?.phone) return null;
-    const role = parsed?.role === "admin" ? "admin" : "user";
+    const role =
+      parsed?.role === "admin"
+        ? "admin"
+        : parsed?.role === "instructor"
+          ? "instructor"
+          : "user";
     return {
       ...parsed,
       role,
