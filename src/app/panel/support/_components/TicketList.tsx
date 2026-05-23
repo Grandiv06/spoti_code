@@ -15,7 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 
 import { useRouter } from "next/navigation";
-import { mockTickets } from "../data";
+import { useTicketsQuery } from "@/hooks/api/useTicketsQuery";
 
 const tabs = [
   { id: "all", label: "همه تیکت‌ها" },
@@ -42,8 +42,9 @@ export default function TicketList({ onNewTicket }: { onNewTicket: () => void })
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const { data: tickets = [] } = useTicketsQuery();
 
-  const filteredTickets = mockTickets.filter(ticket => {
+  const filteredTickets = tickets.filter(ticket => {
     const matchesTab = activeTab === "all" || ticket.status === activeTab;
     const matchesSearch = ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                          ticket.id.toLowerCase().includes(searchQuery.toLowerCase());

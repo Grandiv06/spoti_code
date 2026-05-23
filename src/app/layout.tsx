@@ -8,6 +8,7 @@ import AppShell from "./components/AppShell";
 import { CartProvider } from "../context/CartContext";
 import { AuthProvider } from "../context/AuthContext";
 import CartSidebar from "./components/CartSidebar";
+import QueryProvider from "@/components/providers/QueryProvider";
 
 export const metadata: Metadata = {
   title: "آکادمی کد - آموزش برنامه‌نویسی",
@@ -57,12 +58,14 @@ export default function RootLayout({
           storageKey="spoticode-theme"
         >
           <ThemeWrapper>
-            <AuthProvider>
-              <CartProvider>
-                <AppShell>{children}</AppShell>
-                <CartSidebar />
-              </CartProvider>
-            </AuthProvider>
+            <QueryProvider>
+              <AuthProvider>
+                <CartProvider>
+                  <AppShell>{children}</AppShell>
+                  <CartSidebar />
+                </CartProvider>
+              </AuthProvider>
+            </QueryProvider>
           </ThemeWrapper>
         </ThemeProvider>
       </body>

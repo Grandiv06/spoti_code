@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "openapi:generate": "openapi-typescript https://spoticode.runflare.run/v2/swagger.json -o src/types/openapi.d.ts",
+    "gen:api": "openapi --input https://spoticode.runflare.run/v2/swagger.json --output ./src/api --client axios && node scripts/patch-openapi.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.1.0",
@@ -14,6 +16,9 @@
     "@capacitor/core": "^8.1.0",
     "@fontsource-variable/material-symbols-outlined": "^5.2.34",
     "@fontsource/material-icons-round": "^5.2.6",
+    "@tanstack/react-query": "^5.100.14",
+    "@tanstack/react-query-devtools": "^5.100.14",
+    "axios": "^1.16.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.35.1",
     "input-otp": "^1.4.2",
@@ -35,6 +40,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.5",
+    "openapi-typescript": "^7.13.0",
+    "openapi-typescript-codegen": "^0.30.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

@@ -15,13 +15,13 @@ import {
   MessageSquare,
   CircleDollarSign,
   UserRound,
-  Home,
   CheckCircle2,
   AlertCircle,
   Info
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useInstructorData } from "@/context/InstructorDataContext";
+import { useAuth } from "@/context/AuthContext";
 
 const navItems = [
   { href: "/instructor/dashboard", label: "داشبورد استاد", icon: LayoutDashboard },
@@ -36,7 +36,14 @@ export default function InstructorShell({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
   const { profile, toasts } = useInstructorData();
+  const { logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    router.replace("/login");
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#14161c] text-gray-900 dark:text-white" dir="rtl">
@@ -131,15 +138,16 @@ export default function InstructorShell({ children }: { children: React.ReactNod
           })}
         </nav>
 
-        {/* Return to Site Button */}
+        {/* Logout Button */}
         <div className="px-4 pb-6 mt-auto">
-          <Link
-            href="/"
+          <button
+            type="button"
+            onClick={() => setShowLogoutModal(true)}
             className="flex w-full min-h-[52px] items-center justify-center gap-2 rounded-[14px] bg-primary text-white hover:bg-primary-hover transition-all cursor-pointer shadow-lg shadow-primary/20 hover:scale-[1.02]"
           >
-            <Home className="h-4 w-4" />
-            <span className="whitespace-nowrap text-sm font-bold">بازگشت به آکادمی</span>
-          </Link>
+            <LogOut className="h-4 w-4" />
+            <span className="whitespace-nowrap text-sm font-bold">خروج از حساب کاربری</span>
+          </button>
         </div>
       </aside>
 
@@ -193,6 +201,24 @@ export default function InstructorShell({ children }: { children: React.ReactNod
           </div>
         ))}
       </div>
+
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4" dir="rtl">
+          <button className="absolute inset-0 bg-black/60" onClick={() => setShowLogoutModal(false)} aria-label="بستن مودال خروج" />
+          <div className="relative w-full max-w-sm rounded-3xl border border-gray-100 dark:border-white/10 bg-white dark:bg-[#1c1e26] p-6 shadow-2xl">
+            <h3 className="text-base font-black text-gray-900 dark:text-white mb-2">خروج از حساب کاربری</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-5 leading-relaxed">آیا مطمئن هستید که می‌خواهید از حساب خود خارج شوید؟</p>
+            <div className="flex items-center gap-3">
+              <button type="button" onClick={() => setShowLogoutModal(false)} className="flex-1 h-11 rounded-xl border border-gray-200 dark:border-white/10 text-xs font-bold text-gray-700 dark:text-gray-200 hover:border-gray-300 dark:hover:border-white/20">
+                انصراف
+              </button>
+              <button type="button" onClick={handleLogout} className="flex-1 h-11 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-black">
+                تایید خروج
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
