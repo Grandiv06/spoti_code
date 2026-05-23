@@ -18,7 +18,6 @@ const navItems = [
   { href: "/admin/users", label: "کاربران", icon: "group" },
   { href: "/admin/courses", label: "دوره‌ها", icon: "school" },
   { href: "/admin/orders", label: "سفارش‌ها", icon: "receipt_long" },
-  { href: "/admin/content", label: "محتوا", icon: "description" },
   { href: "/admin/reports", label: "گزارش‌ها", icon: "analytics" },
   { href: "/admin/settings", label: "تنظیمات", icon: "settings" },
 ];
