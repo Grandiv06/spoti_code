@@ -27,6 +27,7 @@ export default function LoginForm() {
   const [phoneInput, setPhoneInput] = useState("");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
+  const [otpSubmitting, setOtpSubmitting] = useState(false);
   const [error, setError] = useState("");
   const { login } = useAuth();
   const router = useRouter();
@@ -54,11 +55,12 @@ export default function LoginForm() {
     setPhoneInput(normalized);
   };
 
-  const handleOtpSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const verifyOtpAndLogin = () => {
+    if (otpSubmitting) return;
     setError("");
     if (otp.length !== 6) return;
     const normalizedOtp = normalizeDigits(otp);
+    setOtpSubmitting(true);
     // برای تست: هر شماره + کد 123456
     if (normalizedOtp === DEV_OTP) {
       const normalizedPhone = normalizeDigits(phone) || "09123456789";
@@ -74,7 +76,13 @@ export default function LoginForm() {
       router.push(requestedReturnUrl || fallbackPath);
       return;
     }
+    setOtpSubmitting(false);
     setError("کد تایید نامعتبر است. برای تست کد ۱۲۳۴۵۶ را وارد کنید.");
+  };
+
+  const handleOtpSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    verifyOtpAndLogin();
   };
 
   const handleBackToPhone = () => {
@@ -107,7 +115,16 @@ export default function LoginForm() {
               maxLength={6}
               pattern="^[0-9۰-۹٠-٩]+$"
               value={otp}
-              onChange={(v) => setOtp(normalizeDigits(v))}
+              onChange={(v) => {
+                setError("");
+                const normalized = normalizeDigits(v).replace(/[^0-9]/g, "").slice(0, 6);
+                setOtp(normalized);
+                if (normalized.length === 6) {
+                  setTimeout(() => {
+                    verifyOtpAndLogin();
+                  }, 0);
+                }
+              }}
               placeholder="•"
               textAlign="left"
               dir="ltr"
@@ -117,10 +134,10 @@ export default function LoginForm() {
 
           <button
             type="submit"
-            disabled={otp.length !== 6}
+            disabled={otp.length !== 6 || otpSubmitting}
             className="w-full h-14 bg-[#00c853] hover:bg-[#009624] dark:bg-[#00c853] dark:hover:bg-[#009624] disabled:opacity-50 disabled:cursor-not-allowed text-white text-lg font-bold rounded-[2.5rem] shadow-lg shadow-green-500/20 hover:shadow-green-600/30 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 mt-4 cursor-pointer"
           >
-            <span>تایید و ورود</span>
+            <span>{otpSubmitting ? "در حال تایید..." : "تایید و ورود"}</span>
           </button>
 
           <button
