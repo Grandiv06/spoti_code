@@ -205,7 +205,7 @@ export default function AdminOrdersPage() {
                 <td className="py-3 px-3 font-black">{order.id}</td>
                 <td className="py-3 px-3">{order.user}</td>
                 <td className="py-3 px-3">{order.course}</td>
-                <td className="py-3 px-3">{order.amount.toLocaleString("fa-IR")}</td>
+                <td className="py-3 px-3">{Number(order.amount.replace(/,/g, "")).toLocaleString("fa-IR")}</td>
                 <td className="py-3 px-3">{order.date}</td>
                 <td className="py-3 px-3">
                   <StatusPill status={order.status} />
@@ -266,7 +266,7 @@ export default function AdminOrdersPage() {
               </div>
               <h3 className="text-2xl font-black text-primary mb-2">جزئیات سفارش</h3>
               <div className="flex items-center justify-center gap-2">
-                <span className="text-3xl font-black text-gray-900 dark:text-white">{selectedOrder.amount.toLocaleString("fa-IR")}</span>
+                <span className="text-3xl font-black text-gray-900 dark:text-white">{Number(selectedOrder.amount.replace(/,/g, "")).toLocaleString("fa-IR")}</span>
                 <span className="text-xs font-bold text-gray-400">تومان</span>
               </div>
             </div>
@@ -278,7 +278,7 @@ export default function AdminOrdersPage() {
                 <OrderDetailItem icon={<User className="w-4 h-4" />} label="نام کاربر" value={selectedOrder.user} />
                 <OrderDetailItem icon={<BookOpen className="w-4 h-4" />} label="دوره خریداری شده" value={selectedOrder.course} />
                 <OrderDetailItem icon={<Wallet className="w-4 h-4" />} label="وضعیت پرداخت" value={selectedOrder.status} />
-                <OrderDetailItem icon={<Wallet className="w-4 h-4" />} label="مبلغ کل" value={`${selectedOrder.amount.toLocaleString("fa-IR")} تومان`} />
+                <OrderDetailItem icon={<Wallet className="w-4 h-4" />} label="مبلغ کل" value={`${Number(selectedOrder.amount.replace(/,/g, "")).toLocaleString("fa-IR")} تومان`} />
               </div>
 
               <div className="flex gap-4 pt-4">

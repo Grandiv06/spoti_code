@@ -59,8 +59,7 @@ export default function CourseDetailsPage() {
     updateLesson,
     deleteLesson,
     replyToReview,
-    replyToQuestion,
-    closeQuestion
+    replyToQuestion
   } = useInstructorData();
 
   // Find targeted course
