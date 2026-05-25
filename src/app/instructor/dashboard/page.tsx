@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -22,20 +22,49 @@ import {
   FileText
 } from "lucide-react";
 import { useInstructorData } from "@/context/InstructorDataContext";
+import { apiGet } from "@/lib/api";
 
 export default function InstructorDashboardPage() {
   const router = useRouter();
   const { courses, questions, transactions, profile } = useInstructorData();
+  const [overview, setOverview] = useState<Record<string, unknown> | null>(null);
+  const [apiCourses, setApiCourses] = useState<Record<string, unknown>[]>([]);
+
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+
+    apiGet<{ data?: Record<string, unknown> }>(
+      "/api/instructor-dashboard/overview",
+      headers
+    )
+      .then((res) => setOverview(res?.data ?? null))
+      .catch(() => setOverview(null));
+
+    apiGet<{ data?: unknown }>(
+      "/api/instructor-dashboard/my-courses",
+      headers
+    )
+      .then((res) => {
+        const list = Array.isArray(res?.data)
+          ? (res?.data as Record<string, unknown>[])
+          : Array.isArray((res?.data as { items?: unknown[] } | undefined)?.items)
+            ? (((res?.data as { items?: unknown[] }).items ?? []) as Record<string, unknown>[])
+            : [];
+        setApiCourses(list);
+      })
+      .catch(() => setApiCourses([]));
+  }, []);
 
   // Statistics Computations
   const stats = useMemo(() => {
-    const total = courses.length;
-    const published = courses.filter((c) => c.status === "published").length;
-    const pending = courses.filter((c) => c.status === "pending").length;
-    const draft = courses.filter((c) => c.status === "draft").length;
+    const total = Number(overview?.totalCourses ?? courses.length);
+    const published = Number(overview?.publishedCourses ?? courses.filter((c) => c.status === "published").length);
+    const pending = Number(overview?.pendingCourses ?? courses.filter((c) => c.status === "pending").length);
+    const draft = Number(overview?.draftCourses ?? courses.filter((c) => c.status === "draft").length);
     
-    const students = courses.reduce((sum, c) => sum + c.studentsCount, 0);
-    const revenue = courses.reduce((sum, c) => sum + c.revenue, 0);
+    const students = Number(overview?.totalStudents ?? courses.reduce((sum, c) => sum + c.studentsCount, 0));
+    const revenue = Number(overview?.totalRevenue ?? courses.reduce((sum, c) => sum + c.revenue, 0));
     
     // Average rating
     const ratedCourses = courses.filter((c) => c.rating > 0);
@@ -50,7 +79,7 @@ export default function InstructorDashboardPage() {
     );
 
     // New questions
-    const newQuestions = questions.filter((q) => q.status === "new").length;
+    const newQuestions = Number(overview?.newQuestions ?? questions.filter((q) => q.status === "new").length);
 
     return {
       total,
@@ -63,7 +92,20 @@ export default function InstructorDashboardPage() {
       unansweredReviews,
       newQuestions,
     };
-  }, [courses, questions]);
+  }, [courses, questions, overview]);
+
+  const recentCourses = useMemo(() => {
+    if (apiCourses.length === 0) return courses.slice(0, 4);
+    return apiCourses.slice(0, 4).map((row, idx) => ({
+      id: String(row.id ?? row.courseId ?? idx + 1),
+      cover: String(row.cover ?? row.thumbnail ?? ""),
+      title: String(row.title ?? row.name ?? "بدون عنوان"),
+      status: String(row.status ?? "draft"),
+      category: String(row.category ?? row.categoryTitle ?? "عمومی"),
+      studentsCount: Number(row.studentsCount ?? row.students ?? 0),
+      revenue: Number(row.revenue ?? row.totalRevenue ?? 0),
+    }));
+  }, [apiCourses, courses]);
 
   // Format currency
   const formatCurrency = (val: number) => {
@@ -241,7 +283,7 @@ export default function InstructorDashboardPage() {
               </Link>
             </div>
 
-            {courses.length === 0 ? (
+            {recentCourses.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-sm font-bold text-gray-400 mb-4">هنوز هیچ دوره‌ای ایجاد نکرده‌اید.</p>
                 <Link
@@ -253,7 +295,7 @@ export default function InstructorDashboardPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {courses.slice(0, 4).map((c) => (
+                {recentCourses.map((c) => (
                   <div
                     key={c.id}
                     className="group rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 p-4 flex flex-col sm:flex-row items-center gap-4 hover:border-primary/30 dark:hover:border-primary/20 transition-all duration-300"

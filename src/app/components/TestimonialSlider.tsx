@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight, ChevronLeft } from "lucide-react";
+import { apiGet } from "@/lib/api";
 
 export const testimonials = [
   {
@@ -30,18 +31,49 @@ export const testimonials = [
 ];
 
 export default function TestimonialSlider() {
+  const [items, setItems] = useState(testimonials);
   const [activeIndex, setActiveIndex] = useState(1);
 
+  useEffect(() => {
+    const fetchSurveys = async () => {
+      try {
+        const res = await apiGet<{ data?: unknown }>("/api/surveys");
+        const rawList = Array.isArray(res?.data)
+          ? res.data
+          : Array.isArray((res?.data as { items?: unknown[] } | undefined)?.items)
+            ? ((res?.data as { items?: unknown[] }).items as unknown[])
+            : [];
+
+        const mapped = rawList.slice(0, 10).map((row, idx) => {
+          const item = (row ?? {}) as Record<string, unknown>;
+          return {
+            id: Number(item.id ?? idx + 1),
+            name: String(item.fullName ?? item.name ?? "دانشجو"),
+            role: String(item.role ?? item.title ?? "دانشجو"),
+            image: String(item.avatar ?? "/images/student1.jpg"),
+            content: String(item.comment ?? item.message ?? ""),
+          };
+        }).filter((x) => x.content.trim().length > 0);
+
+        if (mapped.length > 0) {
+          setItems(mapped);
+          setActiveIndex(0);
+        }
+      } catch {}
+    };
+    fetchSurveys();
+  }, []);
+
   const handleNext = () => {
-    setActiveIndex((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1));
+    setActiveIndex((prev) => (prev === 0 ? items.length - 1 : prev - 1));
   };
 
   const handlePrev = () => {
-    setActiveIndex((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1));
+    setActiveIndex((prev) => (prev === items.length - 1 ? 0 : prev + 1));
   };
 
   const getPosition = (index: number) => {
-    const total = testimonials.length;
+    const total = items.length;
     let diff = index - activeIndex;
     
     if (diff < -1) diff += total;
@@ -84,7 +116,7 @@ export default function TestimonialSlider() {
 
           {/* موبایل - فقط کارت فعال با fade */}
           <div className="md:hidden">
-            {testimonials.map((t, index) => {
+            {items.map((t, index) => {
               if (index !== activeIndex) return null;
               return (
                 <div key={`${t.id}-${activeIndex}`} className="flex flex-col items-center animate-in fade-in duration-500">
@@ -127,7 +159,7 @@ export default function TestimonialSlider() {
 
             {/* دسکتاپ - انیمیشن اسلاید نرم با scale و fade (dir=ltr برای محاسبه صحیح translateX) */}
           <div className="hidden md:flex gap-10 relative min-h-[420px] items-center overflow-hidden pt-20 pb-4" dir="ltr">
-            {testimonials.map((t, index) => {
+            {items.map((t, index) => {
               const position = getPosition(index);
               const isCenter = position === 0;
               const isLeft = position === -1;

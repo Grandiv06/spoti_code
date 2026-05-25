@@ -13,10 +13,12 @@ import {
 } from "lucide-react";
 import { useInstructorData } from "@/context/InstructorDataContext";
 import CourseCard from "@/app/components/CourseCard";
+import { apiGet } from "@/lib/api";
 
 export default function InstructorCoursesPage() {
   const router = useRouter();
   const { courses, profile } = useInstructorData();
+  const [apiCourses, setApiCourses] = useState<Record<string, unknown>[]>([]);
 
   // Search & Filter State
   const [search, setSearch] = useState("");
@@ -31,9 +33,47 @@ export default function InstructorCoursesPage() {
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    apiGet<{ data?: unknown }>(
+      "/api/instructor-dashboard/my-courses",
+      token ? { Authorization: `Bearer ${token}` } : undefined
+    )
+      .then((res) => {
+        const list = Array.isArray(res?.data)
+          ? (res.data as Record<string, unknown>[])
+          : Array.isArray((res?.data as { items?: unknown[] } | undefined)?.items)
+            ? (((res?.data as { items?: unknown[] }).items ?? []) as Record<string, unknown>[])
+            : [];
+        setApiCourses(list);
+      })
+      .catch(() => setApiCourses([]));
+  }, []);
+
+  const effectiveCourses = useMemo(() => {
+    if (apiCourses.length === 0) return courses;
+    return apiCourses.map((row, idx) => ({
+      id: String(row.id ?? row.courseId ?? idx + 1),
+      title: String(row.title ?? row.name ?? "بدون عنوان"),
+      shortDescription: String(row.shortDescription ?? row.description ?? ""),
+      description: String(row.description ?? ""),
+      status: String(row.status ?? "draft"),
+      category: String(row.category ?? "Frontend"),
+      studentsCount: Number(row.studentsCount ?? row.students ?? 0),
+      revenue: Number(row.revenue ?? row.totalRevenue ?? 0),
+      rating: Number(row.rating ?? 0),
+      createdAt: String(row.createdAt ?? new Date().toISOString()),
+      cover: String(row.cover ?? row.thumbnail ?? "/images/course1.jpg"),
+      level: String(row.level ?? "intermediate"),
+      price: Number(row.price ?? 0),
+      chapters: Array.isArray(row.chapters) ? (row.chapters as Array<{ lessons?: unknown[] }>) : [],
+      faqs: Array.isArray(row.faqs) ? (row.faqs as unknown[]) : [],
+    }));
+  }, [apiCourses, courses]);
+
   // Filter & Sort Logic
   const filteredCourses = useMemo(() => {
-    let result = [...courses];
+    let result = [...effectiveCourses];
 
     // 1. Search Query
     if (search.trim()) {
@@ -71,7 +111,7 @@ export default function InstructorCoursesPage() {
     });
 
     return result;
-  }, [courses, search, statusFilter, categoryFilter, sortBy]);
+  }, [effectiveCourses, search, statusFilter, categoryFilter, sortBy]);
 
   const totalLessonsCount = (course: { chapters?: Array<{ lessons?: unknown[] }> }) => {
     return course.chapters?.reduce((sum, ch) => sum + (ch.lessons?.length || 0), 0) || 0;
@@ -122,7 +162,7 @@ export default function InstructorCoursesPage() {
             <div className="text-center md:text-right">
               <h1 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white mb-2">مدیریت دوره‌های آموزشی</h1>
               <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 font-medium">
-                شما در حال حاضر {courses.length} دوره آموزشی طراحی کرده‌اید.
+                شما در حال حاضر {effectiveCourses.length} دوره آموزشی طراحی کرده‌اید.
               </p>
             </div>
           </div>

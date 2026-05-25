@@ -1,9 +1,58 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import TestimonialSlider from "./components/TestimonialSlider";
 import PremiumStats from "./components/PremiumStats";
+import { apiGet } from "@/lib/api";
+
+type LandingCourse = {
+  id: string;
+  title: string;
+  instructor: string;
+  instructorImg: string;
+  image: string;
+  hours: string;
+  students: string;
+  price: string;
+};
 
 export default function Home() {
+  const [featuredCourses, setFeaturedCourses] = useState<LandingCourse[]>([]);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const res = await apiGet<{ data?: unknown }>("/api/courses/public");
+        const rawList = Array.isArray(res?.data)
+          ? res.data
+          : Array.isArray((res?.data as { items?: unknown[] } | undefined)?.items)
+            ? ((res?.data as { items?: unknown[] }).items as unknown[])
+            : [];
+
+        const mapped = rawList.slice(0, 6).map((item, index) => {
+          const row = (item ?? {}) as Record<string, unknown>;
+          return {
+            id: String(row.id ?? row.slug ?? `course-${index + 1}`),
+            title: String(row.title ?? row.name ?? "دوره بدون عنوان"),
+            instructor: String(row.instructorName ?? row.teacherName ?? "مدرس اسپاتی‌کد"),
+            instructorImg: String(row.instructorAvatar ?? "/images/inst1.jpg"),
+            image: String(row.cover ?? row.thumbnail ?? "/images/js-green.png"),
+            hours: String(row.durationHours ?? row.hours ?? "۰"),
+            students: Number(row.studentsCount ?? row.students ?? 0).toLocaleString("fa-IR"),
+            price: Number(row.price ?? 0).toLocaleString("fa-IR"),
+          };
+        });
+
+        setFeaturedCourses(mapped);
+      } catch {
+        setFeaturedCourses([]);
+      }
+    };
+    fetchCourses();
+  }, []);
+
   return (
     <div className="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark transition-colors duration-300">
       {/* Background Blobs */}
@@ -156,86 +205,7 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-              {[
-                {
-                  id: "javascript",
-                  title: "جادوی جاوااسکریپت",
-                  description: "قلب تعاملات — ES6+، DOM، Fetch API و مدیریت داده",
-                  instructor: "امیررضا رضایی",
-                  instructorImg: "/images/inst1.jpg",
-                  image: "/images/js-green.png",
-                  difficulty: "متوسط",
-                  hours: "۳۲",
-                  students: "۱,۶۵۰",
-                  price: "۲,۲۰۰,۰۰۰",
-                  alt: "JavaScript course",
-                },
-                {
-                  id: "react",
-                  title: "فریمورک React",
-                  description: "تفکر کامپوننتی — هوک‌ها، مدیریت وضعیت و اکوسیستم React",
-                  instructor: "مهرداد حیدری",
-                  instructorImg: "/images/inst4.jpg",
-                  image: "/images/react-green.png",
-                  difficulty: "متوسط",
-                  hours: "۴۰",
-                  students: "۱,۲۴۰",
-                  price: "۳,۵۰۰,۰۰۰",
-                  alt: "React course",
-                },
-                {
-                  id: "nextjs",
-                  title: "Next.js پیشرفته",
-                  description: "قدرت فول‌استک — SSR، SSG و بهینه‌سازی عملکرد",
-                  instructor: "امیررضا رضایی",
-                  instructorImg: "/images/inst1.jpg",
-                  image: "/images/nextjs-green.png",
-                  difficulty: "پیشرفته",
-                  hours: "۴۸",
-                  students: "۸۹۰",
-                  price: "۴,۵۰۰,۰۰۰",
-                  alt: "Next.js course",
-                },
-                {
-                  id: "html",
-                  title: "آشنایی با HTML",
-                  description: "اسکلت‌بندی وب — تگ‌های معنایی، دسترسی‌پذیری و اصول سئو",
-                  instructor: "نیما علوی",
-                  instructorImg: "/images/inst3.jpg",
-                  image: "/images/html-green.png",
-                  difficulty: "مقدماتی",
-                  hours: "۱۲",
-                  students: "۱,۸۵۰",
-                  price: "۹۸۰,۰۰۰",
-                  alt: "HTML course",
-                },
-                {
-                  id: "css",
-                  title: "استایل‌دهی با CSS",
-                  description: "جادوی بصری وب — Flexbox، Grid و طراحی واکنش‌گرا",
-                  instructor: "سارا محمدی",
-                  instructorImg: "/images/inst2.jpg",
-                  image: "/images/css-green.png",
-                  difficulty: "مقدماتی",
-                  hours: "۱۸",
-                  students: "۲,۱۲۰",
-                  price: "۱,۴۵۰,۰۰۰",
-                  alt: "CSS course",
-                },
-                {
-                  id: "python",
-                  title: "ورود به دنیای پایتون",
-                  description: "برنامه‌نویسی، ساخت اسکریپت و تحلیل داده مقدماتی",
-                  instructor: "امیرحسین عباسی",
-                  instructorImg: "/images/inst3.jpg",
-                  image: "/images/js-green.png",
-                  difficulty: "مقدماتی",
-                  hours: "۲۵",
-                  students: "۳,۲۰۰",
-                  price: "۱,۸۰۰,۰۰۰",
-                  alt: "Python course",
-                },
-              ].map((course) => (
+              {featuredCourses.map((course) => (
                  <div
                   key={course.id}
                   className="group flex flex-col h-full bg-white dark:bg-transparent dark:glass-premium rounded-4xl border border-gray-200 dark:border-white/5 overflow-hidden shadow-sm dark:shadow-none transition-all duration-500 md:hover:-translate-y-3 md:hover:shadow-[0_30px_60px_-15px_rgba(34,197,94,0.15)]"
