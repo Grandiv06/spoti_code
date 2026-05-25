@@ -2,15 +2,17 @@
 
 import React from "react";
 import { MessageSquare, Clock, CheckCircle2, Inbox, LucideIcon } from "lucide-react";
-
-const stats = [
-  { label: "کل تیکت‌ها", value: "۱۲", icon: Inbox, color: "blue" },
-  { label: "تیکت‌های باز", value: "۳", icon: MessageSquare, color: "primary" },
-  { label: "در حال بررسی", value: "۲", icon: Clock, color: "amber" },
-  { label: "پاسخ داده شده", value: "۷", icon: CheckCircle2, color: "green" },
-];
+import { useTicketsQuery } from "@/hooks/api/useTicketsQuery";
 
 export default function TicketStats() {
+  const { data: tickets = [] } = useTicketsQuery();
+  const stats = [
+    { label: "کل تیکت‌ها", value: tickets.length.toLocaleString("fa-IR"), icon: Inbox, color: "blue" },
+    { label: "تیکت‌های باز", value: tickets.filter((t) => t.status === "open").length.toLocaleString("fa-IR"), icon: MessageSquare, color: "primary" },
+    { label: "در حال بررسی", value: tickets.filter((t) => t.status === "investigating").length.toLocaleString("fa-IR"), icon: Clock, color: "amber" },
+    { label: "پاسخ داده شده", value: tickets.filter((t) => t.status === "answered").length.toLocaleString("fa-IR"), icon: CheckCircle2, color: "green" },
+  ];
+
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
       {stats.map((stat, i) => (

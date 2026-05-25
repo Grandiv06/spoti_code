@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useSocial } from "@/context/SocialContext";
 import { useProfileSettings } from "@/context/ProfileSettingsContext";
+import { apiRequest } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { SocialButton } from "@/components/social/SocialButton";
 import { ArrowRight, ImagePlus, User, Camera, X, Plus } from "lucide-react";
@@ -74,6 +75,8 @@ function ProfileEditContent() {
   const { currentUser } = useSocial();
   const { settings, updateSettings } = useProfileSettings();
   const [skillInput, setSkillInput] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -118,6 +121,41 @@ function ProfileEditContent() {
   };
 
   if (!isAuthenticated) return null;
+
+  const handleSaveProfile = async () => {
+    setSaveError("");
+    setSaving(true);
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+      await apiRequest(
+        "patch",
+        "/api/users/profile",
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          body: {
+            displayName: settings.displayName,
+            bio: settings.bio,
+            location: settings.location,
+            mbti: settings.mbti,
+            skills: settings.skills,
+            githubUrl: settings.githubUrl,
+            linkedinUrl: settings.linkedinUrl,
+            telegramUrl: settings.telegramUrl,
+            websiteUrl: settings.websiteUrl,
+            avatarImage: settings.avatarImage,
+            bannerImage: settings.bannerImage,
+            bannerColor: settings.bannerColor,
+            useDefaultBanner: settings.useDefaultBanner,
+          },
+        }
+      );
+      router.push("/panel/profile");
+    } catch {
+      setSaveError("ذخیره تغییرات انجام نشد. لطفاً دوباره تلاش کنید.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 pb-12">
@@ -325,7 +363,14 @@ function ProfileEditContent() {
           </div>
 
           <div className="space-y-3 pt-4">
-            <SocialButton variant="primary" className="w-full py-4 text-base font-black shadow-lg shadow-green-500/20" onClick={() => router.push("/panel/profile")}>ذخیره تغییرات</SocialButton>
+            {saveError && <p className="text-sm font-bold text-red-500 text-center">{saveError}</p>}
+            <SocialButton
+              variant="primary"
+              className="w-full py-4 text-base font-black shadow-lg shadow-green-500/20"
+              onClick={handleSaveProfile}
+            >
+              {saving ? "در حال ذخیره..." : "ذخیره تغییرات"}
+            </SocialButton>
             <button onClick={() => router.back()} className="w-full py-3 text-sm font-bold text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer">انصراف و بازگشت</button>
           </div>
         </div>

@@ -4,11 +4,15 @@ import React, { useState } from "react";
 import { Send, AlertCircle, Paperclip, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import CustomSelect from "@/components/ui/CustomSelect";
+import { apiPost } from "@/lib/api";
 
 export default function TicketForm({ onBack }: { onBack: () => void }) {
   const [loading, setLoading] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [priority, setPriority] = useState("normal");
+  const [error, setError] = useState("");
 
   const categoryOptions = [
     { label: "دوره های آموزشی", value: "courses" },
@@ -24,13 +28,28 @@ export default function TicketForm({ onBack }: { onBack: () => void }) {
     { label: "فوری", value: "urgent" },
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+      await apiPost(
+        "/api/tickets/my",
+        {
+          title,
+          description,
+          category,
+          priority,
+        },
+        token ? { Authorization: `Bearer ${token}` } : undefined
+      );
       onBack();
-    }, 2000);
+    } catch {
+      setError("ثبت تیکت انجام نشد. لطفاً دوباره تلاش کنید.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -88,12 +107,17 @@ export default function TicketForm({ onBack }: { onBack: () => void }) {
           {/* Form Section */}
           <div className="lg:col-span-8 p-8 md:p-12">
             <form onSubmit={handleSubmit} className="space-y-8">
+              {error && (
+                <p className="text-sm font-bold text-red-500">{error}</p>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="md:col-span-2">
                   <label className="block text-sm font-black text-gray-700 dark:text-gray-300 mb-3 mr-1">عنوان درخواست شما</label>
                   <input
                     type="text"
                     required
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
                     placeholder="یک عنوان کوتاه و گویا انتخاب کنید..."
                     className="w-full px-6 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 text-gray-900 dark:text-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-right font-bold"
                   />
@@ -122,6 +146,8 @@ export default function TicketForm({ onBack }: { onBack: () => void }) {
                   <label className="block text-sm font-black text-gray-700 dark:text-gray-300 mb-3 mr-1">توضیحات کامل مشکل</label>
                   <textarea
                     required
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
                     rows={8}
                     placeholder="جزئیات مشکل، خطاها و مراحلی که طی کردید را اینجا بنویسید..."
                     className="w-full px-6 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 text-gray-900 dark:text-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-right resize-none font-medium leading-relaxed"

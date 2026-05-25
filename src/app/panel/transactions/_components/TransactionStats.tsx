@@ -8,13 +8,23 @@ import {
   ArrowUpRight 
 } from "lucide-react";
 
-const stats = [
-  { label: "مجموع پرداخت‌ها", value: "۱۱,۲۵۰,۰۰۰", icon: CreditCard, color: "primary", unit: "تومان" },
-  { label: "تراکنش‌های موفق", value: "۸", icon: CheckCircle2, color: "green", unit: "مورد" },
-  { label: "آخرین تراکنش", value: "۲,۹۰۰,۰۰۰", icon: ArrowUpRight, color: "amber", unit: "تومان" },
-];
+interface TransactionStatsProps {
+  totalPayments: number;
+  successfulTransactions: number;
+  latestTransactionAmount: number;
+}
 
-export default function TransactionStats() {
+export default function TransactionStats({
+  totalPayments,
+  successfulTransactions,
+  latestTransactionAmount,
+}: TransactionStatsProps) {
+  const stats = [
+    { label: "مجموع پرداخت‌ها", value: totalPayments.toLocaleString(), icon: CreditCard, color: "primary", unit: "تومان" },
+    { label: "تراکنش‌های موفق", value: successfulTransactions.toLocaleString(), icon: CheckCircle2, color: "green", unit: "مورد" },
+    { label: "آخرین تراکنش", value: latestTransactionAmount.toLocaleString(), icon: ArrowUpRight, color: "amber", unit: "تومان" },
+  ];
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
       {stats.map((stat, i) => (

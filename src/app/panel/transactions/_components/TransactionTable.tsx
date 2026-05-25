@@ -11,7 +11,7 @@ import {
   Eye,
   FileText
 } from "lucide-react";
-import { Transaction, mockTransactions } from "../data";
+import { Transaction } from "../data";
 import { cn } from "@/lib/utils";
 import TransactionDetailsModal from "./TransactionDetailsModal";
 
@@ -22,10 +22,14 @@ const statusMap = {
   refunded: { label: "برگشت وجه", class: "bg-blue-500/10 text-blue-500 border-blue-500/20", icon: <RotateCcw className="w-3.5 h-3.5" /> },
 };
 
-export default function TransactionTable() {
+interface TransactionTableProps {
+  transactions: Transaction[];
+}
+
+export default function TransactionTable({ transactions }: TransactionTableProps) {
   const [selectedTrx, setSelectedTrx] = useState<Transaction | null>(null);
 
-  if (mockTransactions.length === 0) {
+  if (transactions.length === 0) {
     return (
       <div className="bg-white dark:bg-[#1c1e26] rounded-[2.5rem] p-16 text-center border border-gray-100 dark:border-white/5 shadow-sm">
         <div className="w-24 h-24 rounded-[2rem] bg-gray-50 dark:bg-white/5 flex items-center justify-center mx-auto mb-8 text-gray-300">
@@ -58,7 +62,7 @@ export default function TransactionTable() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-            {mockTransactions.map((trx) => (
+            {transactions.map((trx) => (
               <tr key={trx.id} className="group hover:bg-gray-50/50 dark:hover:bg-white/[0.01] transition-colors">
                 <td className="px-8 py-6">
                   <div className="flex items-center gap-4">
@@ -114,7 +118,7 @@ export default function TransactionTable() {
 
       {/* Mobile Card View */}
       <div className="lg:hidden space-y-4">
-        {mockTransactions.map((trx) => (
+        {transactions.map((trx) => (
           <div key={trx.id} className="bg-white dark:bg-[#1c1e26] p-6 rounded-[2rem] border border-gray-100 dark:border-white/5 shadow-sm">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">

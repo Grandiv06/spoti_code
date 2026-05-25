@@ -105,6 +105,58 @@ export class AdminDashboardService {
         });
     }
     /**
+     * @param courseId
+     * @returns any
+     * @throws ApiError
+     */
+    public static adminDashboardControllerGetCourseExtraDetails(
+        courseId: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/admin-dashboard/courses/{courseId}/extra-details',
+            path: {
+                'courseId': courseId,
+            },
+        });
+    }
+    /**
+     * @param courseId
+     * @param search Search by fullName, email, phoneNumber, nationalCode, or userName
+     * @param email
+     * @param phoneNumber
+     * @param nationalCode
+     * @param page
+     * @param limit
+     * @returns any
+     * @throws ApiError
+     */
+    public static adminDashboardControllerFindCourseStudents(
+        courseId: string,
+        search?: string,
+        email?: string,
+        phoneNumber?: string,
+        nationalCode?: string,
+        page?: number,
+        limit?: number,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/admin-dashboard/courses/{courseId}/students',
+            path: {
+                'courseId': courseId,
+            },
+            query: {
+                'search': search,
+                'email': email,
+                'phoneNumber': phoneNumber,
+                'nationalCode': nationalCode,
+                'page': page,
+                'limit': limit,
+            },
+        });
+    }
+    /**
      * @param type
      * @param limit Max rows to export (1..5000)
      * @returns any

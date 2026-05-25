@@ -7,8 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "openapi:generate": "openapi-typescript https://spoticode.runflare.run/v2/swagger.json -o src/types/openapi.d.ts",
-    "gen:api": "openapi --input https://spoticode.runflare.run/v2/swagger.json --output ./src/api --client axios && node scripts/patch-openapi.cjs"
+    "openapi:generate": "openapi-typescript https://spoticode.runflare.run/swagger.json -o src/types/openapi.d.ts",
+    "gen:api": "openapi --input https://spoticode.runflare.run/swagger.json --output ./src/api --client axios && node scripts/patch-openapi.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.1.0",

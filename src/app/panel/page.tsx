@@ -1,4 +1,47 @@
+ "use client";
+
+import { useEffect, useState } from "react";
+import { apiGet } from "@/lib/api";
+
+type DashboardOverviewResponse = {
+  data?: {
+    activeCourses?: number;
+    activeCoursesCount?: number;
+    learningHours?: number;
+    totalLearningHours?: number;
+    completedCourses?: number;
+    completedCoursesCount?: number;
+  };
+};
+
 export default function PanelDashboard() {
+  const [activeCourses, setActiveCourses] = useState(0);
+  const [learningHours, setLearningHours] = useState(0);
+  const [completedCourses, setCompletedCourses] = useState(0);
+
+  useEffect(() => {
+    const fetchOverview = async () => {
+      try {
+        const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+        const result = await apiGet<"/api/dashboard/overview", DashboardOverviewResponse>(
+          "/api/dashboard/overview",
+          token ? { Authorization: `Bearer ${token}` } : undefined
+        );
+
+        const payload = result?.data ?? {};
+        setActiveCourses(payload.activeCourses ?? payload.activeCoursesCount ?? 0);
+        setLearningHours(payload.learningHours ?? payload.totalLearningHours ?? 0);
+        setCompletedCourses(payload.completedCourses ?? payload.completedCoursesCount ?? 0);
+      } catch {
+        setActiveCourses(0);
+        setLearningHours(0);
+        setCompletedCourses(0);
+      }
+    };
+
+    fetchOverview();
+  }, []);
+
   return (
     <div className="space-y-6">
       <div className="bg-white dark:bg-[#1c1e26] rounded-3xl p-8 border border-gray-100 dark:border-gray-800 shadow-sm relative overflow-hidden">
@@ -20,7 +63,7 @@ export default function PanelDashboard() {
           </div>
           <div>
             <p className="text-sm font-bold text-gray-500 dark:text-gray-400">دوره‌های فعال</p>
-            <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">3</p>
+            <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">{activeCourses}</p>
           </div>
         </div>
 
@@ -30,7 +73,7 @@ export default function PanelDashboard() {
           </div>
           <div>
             <p className="text-sm font-bold text-gray-500 dark:text-gray-400">ساعت آموزش</p>
-            <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">12</p>
+            <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">{learningHours}</p>
           </div>
         </div>
 
@@ -40,7 +83,7 @@ export default function PanelDashboard() {
           </div>
           <div>
             <p className="text-sm font-bold text-gray-500 dark:text-gray-400">تکمیل شده</p>
-            <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">1</p>
+            <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">{completedCourses}</p>
           </div>
         </div>
       </div>

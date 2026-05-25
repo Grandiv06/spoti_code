@@ -2,18 +2,42 @@
 
 import React, { useState } from "react";
 import { Send, Paperclip, AlertCircle, Plus } from "lucide-react";
+import { apiPost } from "@/lib/api";
 
-export default function ReplyBox({ ticketStatus, onNewTicket }: { ticketStatus: string, onNewTicket: () => void }) {
+export default function ReplyBox({
+  ticketId,
+  ticketStatus,
+  onSent,
+  onNewTicket,
+}: {
+  ticketId: string;
+  ticketStatus: string;
+  onSent?: () => void;
+  onNewTicket: () => void;
+}) {
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
   const isClosed = ticketStatus === "closed";
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+      await apiPost(
+        `/api/tickets/my/${ticketId}/messages`,
+        { message },
+        token ? { Authorization: `Bearer ${token}` } : undefined
+      );
+      setMessage("");
+      onSent?.();
+    } catch {
+      setError("ارسال پاسخ انجام نشد. لطفاً دوباره تلاش کنید.");
+    } finally {
       setLoading(false);
-      alert("پاسخ شما با موفقیت ارسال شد.");
-    }, 1500);
+    }
   };
 
   if (isClosed) {
@@ -40,10 +64,13 @@ export default function ReplyBox({ ticketStatus, onNewTicket }: { ticketStatus: 
   return (
     <div className="bg-white dark:bg-[#1c1e26] rounded-[2.5rem] p-6 md:p-7 border border-gray-100 dark:border-white/5 shadow-xl shadow-gray-200/40 dark:shadow-none">
       <form onSubmit={handleSubmit} className="space-y-5">
+        {error && <p className="text-sm font-bold text-red-500">{error}</p>}
         <div className="relative group">
           <textarea
             required
             rows={3}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
             placeholder="پاسخ خود را اینجا بنویسید..."
             className="w-full min-h-[120px] max-h-[170px] px-5 py-4 rounded-3xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 text-gray-900 dark:text-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-right resize-y font-medium leading-relaxed"
           ></textarea>

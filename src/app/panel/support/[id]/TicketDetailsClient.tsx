@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { 
   ChevronRight, 
@@ -14,6 +14,7 @@ import { Ticket } from "../data";
 import { cn } from "@/lib/utils";
 import ConversationThread from "./_components/ConversationThread";
 import ReplyBox from "./_components/ReplyBox";
+import { apiRequest } from "@/lib/api";
 
 interface TicketDetailsClientProps {
   ticket: Ticket | undefined;
@@ -21,6 +22,49 @@ interface TicketDetailsClientProps {
 
 export default function TicketDetailsClient({ ticket }: TicketDetailsClientProps) {
   const router = useRouter();
+  const [messages, setMessages] = useState(ticket?.messages ?? []);
+
+  useEffect(() => {
+    if (!ticket?.id) return;
+
+    const fetchMessages = async () => {
+      try {
+        const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+        const result = await apiRequest<{ data?: unknown }>(
+          "get",
+          `/api/tickets/my/${ticket.id}/messages`,
+          token ? { headers: { Authorization: `Bearer ${token}` } } : {}
+        );
+
+        const rawList = Array.isArray(result?.data)
+          ? result.data
+          : Array.isArray((result?.data as { items?: unknown[] } | undefined)?.items)
+            ? ((result?.data as { items?: unknown[] }).items as unknown[])
+            : [];
+
+        const mapped = rawList.map((item, index) => {
+          const row = (item ?? {}) as Record<string, unknown>;
+          const createdAt = row.createdAt ? new Date(String(row.createdAt)) : null;
+          return {
+            id: String(row.id ?? `msg-${index + 1}`),
+            sender: String(row.senderType ?? row.sender ?? "").toLowerCase() === "support" ? "support" : "user",
+            senderName: String(row.senderName ?? row.authorName ?? "کاربر"),
+            text: String(row.message ?? row.text ?? ""),
+            timestamp:
+              createdAt && !Number.isNaN(createdAt.getTime())
+                ? createdAt.toLocaleString("fa-IR")
+                : String(row.timestamp ?? "-"),
+          };
+        });
+
+        setMessages(mapped);
+      } catch {
+        setMessages(ticket?.messages ?? []);
+      }
+    };
+
+    fetchMessages();
+  }, [ticket?.id]);
 
   if (!ticket) {
     return (
@@ -109,10 +153,42 @@ export default function TicketDetailsClient({ ticket }: TicketDetailsClientProps
       <div className="px-3 md:px-8 lg:px-14 max-w-[1100px] mx-auto min-h-[72vh] flex flex-col justify-center pt-10 md:pt-16">
         {/* Main Conversation Column */}
         <div className="space-y-8">
-          <ConversationThread messages={ticket.messages} />
+          <ConversationThread messages={messages} />
           
           <ReplyBox 
+            ticketId={ticket.id}
             ticketStatus={ticket.status} 
+            onSent={() => {
+              const currentId = ticket.id;
+              if (!currentId) return;
+              const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+              apiRequest<{ data?: unknown }>(
+                "get",
+                `/api/tickets/my/${currentId}/messages`,
+                token ? { headers: { Authorization: `Bearer ${token}` } } : {}
+              ).then((result) => {
+                const rawList = Array.isArray(result?.data)
+                  ? result.data
+                  : Array.isArray((result?.data as { items?: unknown[] } | undefined)?.items)
+                    ? ((result?.data as { items?: unknown[] }).items as unknown[])
+                    : [];
+                const mapped = rawList.map((item, index) => {
+                  const row = (item ?? {}) as Record<string, unknown>;
+                  const createdAt = row.createdAt ? new Date(String(row.createdAt)) : null;
+                  return {
+                    id: String(row.id ?? `msg-${index + 1}`),
+                    sender: String(row.senderType ?? row.sender ?? "").toLowerCase() === "support" ? "support" : "user",
+                    senderName: String(row.senderName ?? row.authorName ?? "کاربر"),
+                    text: String(row.message ?? row.text ?? ""),
+                    timestamp:
+                      createdAt && !Number.isNaN(createdAt.getTime())
+                        ? createdAt.toLocaleString("fa-IR")
+                        : String(row.timestamp ?? "-"),
+                  };
+                });
+                setMessages(mapped);
+              }).catch(() => {});
+            }}
             onNewTicket={() => router.push("/panel/support")} 
           />
         </div>

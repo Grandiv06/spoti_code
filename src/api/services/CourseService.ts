@@ -69,6 +69,70 @@ export class CourseService {
         });
     }
     /**
+     * @param courseId
+     * @returns CourseStepEntity
+     * @throws ApiError
+     */
+    public static courseControllerFindCourseSteps(
+        courseId: string,
+    ): CancelablePromise<Array<CourseStepEntity>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/courses/{courseId}/steps',
+            path: {
+                'courseId': courseId,
+            },
+        });
+    }
+    /**
+     * @param id
+     * @returns CourseStepEntity
+     * @throws ApiError
+     */
+    public static courseControllerFindCourseStepById(
+        id: string,
+    ): CancelablePromise<CourseStepEntity> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/courses/steps/{id}',
+            path: {
+                'id': id,
+            },
+        });
+    }
+    /**
+     * @param stepId
+     * @returns CourseLessonEntity
+     * @throws ApiError
+     */
+    public static courseControllerFindCourseStepLessons(
+        stepId: string,
+    ): CancelablePromise<Array<CourseLessonEntity>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/courses/steps/{stepId}/lessons',
+            path: {
+                'stepId': stepId,
+            },
+        });
+    }
+    /**
+     * @param id
+     * @returns CourseLessonEntity
+     * @throws ApiError
+     */
+    public static courseControllerFindCourseStepLessonById(
+        id: string,
+    ): CancelablePromise<CourseLessonEntity> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/courses/steps/lessons/{id}',
+            path: {
+                'id': id,
+            },
+        });
+    }
+    /**
      * @param category
      * @param discountCode
      * @param page

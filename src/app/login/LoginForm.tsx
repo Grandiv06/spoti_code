@@ -5,11 +5,8 @@ import { useEffect, useState } from "react";
 import { InputOTP } from "@/components/ui/input-otp";
 import { useAuth } from "@/context/AuthContext";
 import AuthTransitionLink from "@/app/components/AuthTransitionLink";
+import { useLoginByPhoneMutation } from "@/hooks/api/useAuthMutations";
 
-const DEV_OTP = "123456";
-const ADMIN_PHONE = "09000000001";
-const USER_PHONE = "09000000002";
-const INSTRUCTOR_PHONE = "09000000003";
 
 /** اعداد فارسی/عربی را به انگلیسی تبدیل می‌کند */
 function normalizeDigits(str: string): string {
@@ -23,32 +20,53 @@ function normalizeDigits(str: string): string {
   return result.replace(/\s/g, "").replace(/-/g, "");
 }
 
+function toIranIntlPhone(input: string): string {
+  let value = normalizeDigits(input).replace(/[^0-9]/g, "");
+  if (value.startsWith("98")) value = value.slice(2);
+  if (value.startsWith("0")) value = value.slice(1);
+  return `+98${value}`;
+}
+
 export default function LoginForm() {
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [phoneInput, setPhoneInput] = useState("");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [otpSubmitting, setOtpSubmitting] = useState(false);
+  const [sentOtp, setSentOtp] = useState("");
   const [error, setError] = useState("");
   const { login } = useAuth();
+  const loginMutation = useLoginByPhoneMutation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const requestedReturnUrl = searchParams.get("returnUrl");
 
   useEffect(() => {
     document.documentElement.classList.remove("auth-route-transitioning");
-  }, []);
+    const initialPhone = searchParams.get("phone");
+    if (initialPhone) setPhoneInput(normalizeDigits(initialPhone).replace(/[^0-9]/g, ""));
+  }, [searchParams]);
 
-  const handlePhoneSubmit = (e: React.FormEvent) => {
+  const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     const value = normalizeDigits(phoneInput).replace(/[^0-9]/g, "");
-    if (value === ADMIN_PHONE || value === USER_PHONE || value === INSTRUCTOR_PHONE) {
-      setPhone(value);
-      setStep("otp");
+    if (value.length < 10) {
+      setError("شماره معتبر نیست.");
       return;
     }
-    setError("شماره معتبر نیست. برای تست از شماره‌های تعیین‌شده استفاده کنید.");
+
+    const normalizedPhone = toIranIntlPhone(value);
+    try {
+      const result = await loginMutation.mutateAsync({ phone: normalizedPhone, otp: "" }) as {
+        data?: { otp?: string; phoneNumber?: string };
+      };
+      setPhone(normalizedPhone);
+      setSentOtp(result?.data?.otp || "");
+      setStep("otp");
+    } catch {
+      setError("ارسال کد تایید انجام نشد.");
+    }
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,34 +74,45 @@ export default function LoginForm() {
     setPhoneInput(normalized);
   };
 
-  const verifyOtpAndLogin = () => {
-    if (otpSubmitting) return;
+  const verifyOtpAndLogin = async () => {
+    if (otpSubmitting || loginMutation.isPending) return;
     setError("");
     if (otp.length !== 6) return;
-    const normalizedOtp = normalizeDigits(otp);
+    const normalizedOtp = normalizeDigits(otp).replace(/[^0-9]/g, "");
     setOtpSubmitting(true);
-    // برای تست: هر شماره + کد 123456
-    if (normalizedOtp === DEV_OTP) {
-      const normalizedPhone = normalizeDigits(phone) || "09123456789";
-      const role =
-        normalizedPhone === ADMIN_PHONE
-          ? "admin"
-          : normalizedPhone === INSTRUCTOR_PHONE
-            ? "instructor"
-            : "user";
-      login({
-        id: role === "admin" ? "admin-dev-1" : role === "instructor" ? "instructor-dev-1" : "user-dev-1",
+
+    try {
+      const normalizedPhone = toIranIntlPhone(phone);
+      const result = await loginMutation.mutateAsync({
         phone: normalizedPhone,
-        displayName: role === "admin" ? "ادمین تست" : role === "instructor" ? "مدرس تست" : "کاربر تست",
-        avatarUrl: `https://i.pravatar.cc/150?u=dev-${role}`,
+        otp: normalizedOtp,
+      }) as {
+        accessToken?: string;
+        token?: string;
+        user?: { id?: string; phone?: string; displayName?: string; role?: "admin" | "user" | "instructor" };
+      };
+
+      const accessToken = result?.accessToken || result?.token;
+      if (accessToken && typeof window !== "undefined") {
+        localStorage.setItem("accessToken", accessToken);
+      }
+
+      const role = result?.user?.role === "admin" || result?.user?.role === "instructor" ? result.user.role : "user";
+      login({
+        id: result?.user?.id || `${role}-${normalizedPhone}`,
+        phone: result?.user?.phone || normalizedPhone,
+        displayName: result?.user?.displayName || "کاربر اسپاتی‌کد",
         role,
       });
+
       const fallbackPath = role === "admin" ? "/admin" : role === "instructor" ? "/instructor/dashboard" : "/panel";
       router.push(requestedReturnUrl || fallbackPath);
       return;
+    } catch {
+      setError("کد تایید نامعتبر است یا ورود انجام نشد.");
+    } finally {
+      setOtpSubmitting(false);
     }
-    setOtpSubmitting(false);
-    setError("کد تایید نامعتبر است. برای تست کد ۱۲۳۴۵۶ را وارد کنید.");
   };
 
   const handleOtpSubmit = (e: React.FormEvent) => {
@@ -105,9 +134,11 @@ export default function LoginForm() {
         <p className="text-gray-500 dark:text-gray-400 font-medium text-sm leading-relaxed">
           کد ۶ رقمی ارسال شده به {phone} را وارد کنید
         </p>
-        <p className="text-green-600 dark:text-green-400 text-sm font-medium mt-2">
-            برای تست: کد <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded">123456</code> را وارد کنید
+        {sentOtp && (
+          <p className="text-emerald-600 dark:text-emerald-400 font-bold text-sm mt-2">
+            کد OTP (تست): {sentOtp}
           </p>
+        )}
 
         <form
           onSubmit={handleOtpSubmit}
@@ -140,10 +171,10 @@ export default function LoginForm() {
 
           <button
             type="submit"
-            disabled={otp.length !== 6 || otpSubmitting}
+            disabled={otp.length !== 6 || otpSubmitting || loginMutation.isPending}
             className="w-full h-14 bg-[#00c853] hover:bg-[#009624] dark:bg-[#00c853] dark:hover:bg-[#009624] disabled:opacity-50 disabled:cursor-not-allowed text-white text-lg font-bold rounded-[2.5rem] shadow-lg shadow-green-500/20 hover:shadow-green-600/30 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 mt-4 cursor-pointer"
           >
-            <span>{otpSubmitting ? "در حال تایید..." : "تایید و ورود"}</span>
+            <span>{otpSubmitting || loginMutation.isPending ? "در حال تایید..." : "تایید و ورود"}</span>
           </button>
 
           <button
@@ -179,20 +210,7 @@ export default function LoginForm() {
         <p className="text-gray-500 dark:text-gray-400 font-medium text-sm leading-relaxed">
           برای استفاده از خدمات آکادمی، شماره موبایل خود را وارد کنید
         </p>
-        <div className="mt-3 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 px-4 py-3 text-right text-xs sm:text-sm text-emerald-800 dark:text-emerald-200 space-y-1">
-          <p>
-            شماره ادمین:{" "}
-            <code className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/20">{ADMIN_PHONE}</code>
-          </p>
-          <p>
-            شماره کاربر:{" "}
-            <code className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/20">{USER_PHONE}</code>
-          </p>
-          <p>
-            شماره مدرس:{" "}
-            <code className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/20">{INSTRUCTOR_PHONE}</code>
-          </p>
-        </div>
+
       </div>
 
       <form className="space-y-6" onSubmit={handlePhoneSubmit}>
@@ -228,9 +246,10 @@ export default function LoginForm() {
         </div>
         <button
           type="submit"
+          disabled={loginMutation.isPending}
           className="w-full h-14 bg-[#00c853] hover:bg-[#009624] dark:bg-[#00c853] dark:hover:bg-[#009624] text-white text-lg font-bold rounded-[2.5rem] shadow-lg shadow-green-500/20 hover:shadow-green-600/30 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 mt-4 cursor-pointer"
         >
-          <span>دریافت کد تایید</span>
+          <span>{loginMutation.isPending ? "در حال ارسال..." : "دریافت کد تایید"}</span>
         </button>
       </form>
 

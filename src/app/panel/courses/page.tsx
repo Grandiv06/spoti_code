@@ -1,30 +1,73 @@
-import Link from 'next/link';
+ "use client";
 
-const courses = [
-  {
-    id: 1,
-    title: "مسترکلاس ری‌اکت و نکست جی‌اس",
-    progress: 45,
-    image: "/course-react.jpg", // Placeholder
-    instructor: "سروش مشایخی",
-  },
-  {
-    id: 2,
-    title: "آموزش جامع جاوا اسکریپت",
-    progress: 80,
-    image: "/course-js.jpg", // Placeholder
-    instructor: "سروش مشایخی",
-  },
-   {
-    id: 3,
-    title: "طراحی رابط کاربری مدرن",
-    progress: 10,
-    image: "/course-ui.jpg", // Placeholder
-    instructor: "نازنین",
-  },
-];
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { apiGet } from "@/lib/api";
+
+type PanelCourse = {
+  id: string;
+  title: string;
+  progress: number;
+  image?: string;
+  instructor: string;
+};
+
+type MyCoursesResponse = {
+  data?: unknown;
+};
 
 export default function PanelCourses() {
+  const [courses, setCourses] = useState<PanelCourse[]>([]);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+        const result = await apiGet<"/api/dashboard/my-courses", MyCoursesResponse>(
+          "/api/dashboard/my-courses",
+          token ? { Authorization: `Bearer ${token}` } : undefined
+        );
+
+        const rawList = Array.isArray(result?.data)
+          ? result.data
+          : Array.isArray((result?.data as { items?: unknown[] } | undefined)?.items)
+            ? ((result?.data as { items?: unknown[] }).items as unknown[])
+            : [];
+
+        const mapped = rawList.map((item, index) => {
+          const row = (item ?? {}) as Record<string, unknown>;
+          const id = String(row.id ?? row.courseId ?? index + 1);
+          const title = String(row.title ?? row.name ?? "دوره بدون عنوان");
+          const progressRaw = Number(row.progress ?? row.progressPercent ?? row.completionPercent ?? 0);
+          const progress = Number.isFinite(progressRaw) ? Math.max(0, Math.min(100, progressRaw)) : 0;
+          const image = typeof row.image === "string"
+            ? row.image
+            : typeof row.cover === "string"
+              ? row.cover
+              : typeof row.thumbnail === "string"
+                ? row.thumbnail
+                : undefined;
+          const instructor = String(
+            row.instructorName ??
+              (typeof row.instructor === "object" && row.instructor
+                ? (row.instructor as Record<string, unknown>).fullName ??
+                  (row.instructor as Record<string, unknown>).name
+                : row.instructor) ??
+              "نامشخص"
+          );
+
+          return { id, title, progress, image, instructor };
+        });
+
+        setCourses(mapped);
+      } catch {
+        setCourses([]);
+      }
+    };
+
+    fetchCourses();
+  }, []);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -40,10 +83,14 @@ export default function PanelCourses() {
             className="bg-white dark:bg-[#1c1e26] rounded-3xl p-5 border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow group"
           >
             <div className="aspect-video rounded-2xl bg-gray-100 dark:bg-gray-800 relative overflow-hidden mb-4">
-              {/* Image Placeholder */}
-              <div className="absolute inset-0 flex items-center justify-center text-gray-400 dark:text-gray-500">
-                 <span className="material-symbols-outlined text-5xl">image</span>
-              </div>
+              {course.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={course.image} alt={course.title} className="absolute inset-0 w-full h-full object-cover" />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center text-gray-400 dark:text-gray-500">
+                  <span className="material-symbols-outlined text-5xl">image</span>
+                </div>
+              )}
             </div>
 
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 group-hover:text-primary transition-colors">
@@ -72,6 +119,11 @@ export default function PanelCourses() {
           </div>
         ))}
       </div>
+      {courses.length === 0 && (
+        <div className="bg-white dark:bg-[#1c1e26] rounded-3xl p-8 border border-gray-100 dark:border-gray-800 shadow-sm text-center text-gray-500 dark:text-gray-400 font-semibold">
+          هنوز دوره‌ای برای نمایش وجود ندارد.
+        </div>
+      )}
     </div>
   );
 }

@@ -116,4 +116,50 @@ export class InstructorDashboardService {
             },
         });
     }
+    /**
+     * @param courseId
+     * @returns any
+     * @throws ApiError
+     */
+    public static instructorDashboardControllerGetMyCourseExtraDetails(
+        courseId: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/instructor-dashboard/my-courses/{courseId}/extra-details',
+            path: {
+                'courseId': courseId,
+            },
+        });
+    }
+    /**
+     * @param courseId
+     * @param search
+     * @param category
+     * @param page
+     * @param limit
+     * @returns any
+     * @throws ApiError
+     */
+    public static instructorDashboardControllerFindMyCourseStudents(
+        courseId: string,
+        search?: string,
+        category?: 'frontend' | 'backend' | 'ai' | 'base' | 'mobile' | 'devops',
+        page?: number,
+        limit?: number,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/instructor-dashboard/my-courses/{courseId}/students',
+            path: {
+                'courseId': courseId,
+            },
+            query: {
+                'search': search,
+                'category': category,
+                'page': page,
+                'limit': limit,
+            },
+        });
+    }
 }

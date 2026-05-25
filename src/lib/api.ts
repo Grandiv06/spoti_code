@@ -1,6 +1,7 @@
 import type { paths } from "@/types/openapi";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "https://spoticode.runflare.run";
 
 type HttpMethod = "get" | "post" | "put" | "patch" | "delete";
 
@@ -38,4 +39,8 @@ export async function apiRequest<T>(
 
 export function apiGet<P extends PathWithMethod<"get">, T>(path: P, headers?: HeadersInit) {
   return apiRequest<T>("get", path, { headers });
+}
+
+export function apiPost<T>(path: string, body?: unknown, headers?: HeadersInit) {
+  return apiRequest<T>("post", path, { body, headers });
 }

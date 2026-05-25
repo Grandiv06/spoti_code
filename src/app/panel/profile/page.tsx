@@ -4,6 +4,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { useSocial } from "@/context/SocialContext";
 import { useProfileSettings } from "@/context/ProfileSettingsContext";
+import { apiGet } from "@/lib/api";
 import ProfileHeader from "../../social/profile/_components/ProfileHeader";
 import ProfileSidebar from "../../social/profile/_components/ProfileSidebar";
 import ProjectsTabs from "../../social/profile/_components/ProjectsTabs";
@@ -14,6 +15,23 @@ export default function PanelProfilePage() {
   const router = useRouter();
   const { currentUser } = useSocial();
   const { settings } = useProfileSettings();
+  const [apiProfile, setApiProfile] = React.useState<Record<string, unknown> | null>(null);
+
+  React.useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+        const result = await apiGet<{ data?: Record<string, unknown> }>(
+          "/api/users/profile",
+          token ? { Authorization: `Bearer ${token}` } : undefined
+        );
+        setApiProfile(result?.data ?? null);
+      } catch {
+        setApiProfile(null);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   if (!currentUser) {
     return (
@@ -28,15 +46,15 @@ export default function PanelProfilePage() {
 
   // Combine currentUser data with settings
   const userProfileData = {
-    displayName: settings.displayName || currentUser.displayName,
-    username: currentUser.username,
-    description: settings.bio || currentUser.bio || "عاشق یادگیری تکنولوژی‌های وب و ساخت رابط‌های کاربری مدرن.",
-    bannerUrl: settings.bannerImage || "",
-    avatarUrl: settings.avatarImage || currentUser.avatarUrl,
-    role: "Frontend Learner",
+    displayName: settings.displayName || String(apiProfile?.fullName ?? currentUser.displayName),
+    username: String(apiProfile?.userName ?? currentUser.username),
+    description: settings.bio || String(apiProfile?.bio ?? currentUser.bio ?? "عاشق یادگیری تکنولوژی‌های وب و ساخت رابط‌های کاربری مدرن."),
+    bannerUrl: settings.bannerImage || String(apiProfile?.bannerImage ?? ""),
+    avatarUrl: settings.avatarImage || String(apiProfile?.avatar ?? currentUser.avatarUrl),
+    role: String(apiProfile?.roleLabel ?? "Frontend Learner"),
     mbti: settings.mbti || "INTJ",
-    location: settings.location || "تهران، ایران",
-    joinDate: "۱۴۰۲",
+    location: settings.location || String(apiProfile?.location ?? "تهران، ایران"),
+    joinDate: String(apiProfile?.joinDate ?? "۱۴۰۲"),
     socials: {
       github: settings.githubUrl || `https://github.com/${currentUser.username}`,
       linkedin: settings.linkedinUrl || "",
