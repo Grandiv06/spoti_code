@@ -2,108 +2,156 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { apiGet } from "@/lib/api";
+
+type CourseItem = {
+  id: string;
+  category: string;
+  categoryLabel: string;
+  title: string;
+  description: string;
+  instructor: string;
+  instructorImg: string;
+  image: string;
+  difficulty: string;
+  hours: string;
+  students: string;
+  studentsCount: number;
+  price: string;
+};
+
+function CourseCardSkeleton() {
+  return (
+    <div
+      className="flex flex-col h-full bg-white dark:bg-transparent dark:glass-premium rounded-4xl border border-gray-200 dark:border-white/5 overflow-hidden shadow-sm dark:shadow-none animate-pulse"
+      dir="rtl"
+      aria-hidden="true"
+    >
+      <div className="relative h-64 overflow-hidden rounded-t-4xl isolate bg-gradient-to-b from-gray-100 to-gray-200 dark:from-[#0b0f18] dark:to-[#0a0d14]">
+        <div className="absolute inset-0 bg-gradient-to-t from-gray-300/70 via-gray-200/40 to-gray-100 dark:from-white/10 dark:via-white/5 dark:to-white/[0.02]" />
+      </div>
+
+      <div className="p-7 flex flex-col flex-1">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="size-8 rounded-full border border-white/50 p-0.5 overflow-hidden">
+            <div className="w-full h-full rounded-full bg-gray-200 dark:bg-white/10" />
+          </div>
+          <div className="h-3 w-24 rounded-full bg-gray-200 dark:bg-white/10" />
+        </div>
+
+        <div className="space-y-3 mb-3 min-h-[56px]">
+          <div className="h-6 w-11/12 rounded-full bg-gray-200 dark:bg-white/10" />
+          <div className="h-6 w-2/3 rounded-full bg-gray-200 dark:bg-white/10" />
+        </div>
+
+        <div className="flex items-center gap-4 mb-8">
+          <div className="flex items-center gap-1">
+            <div className="size-4 rounded bg-gray-200 dark:bg-white/10" />
+            <div className="h-3 w-14 rounded-full bg-gray-200 dark:bg-white/10" />
+          </div>
+          <div className="size-1 rounded-full bg-gray-200 dark:bg-white/10" />
+          <div className="flex items-center gap-1">
+            <div className="size-4 rounded bg-gray-200 dark:bg-white/10" />
+            <div className="h-3 w-20 rounded-full bg-gray-200 dark:bg-white/10" />
+          </div>
+        </div>
+
+        <div className="mt-auto flex items-center justify-between gap-4 pt-6 border-t border-gray-100/50 dark:border-white/5">
+          <div className="h-10 w-32 rounded-2xl bg-primary/10 dark:bg-primary/15" />
+          <div className="h-10 flex-1 rounded-2xl bg-gray-100 dark:bg-white/10" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function CoursesPage() {
   const [activeFilter, setActiveFilter] = useState("all");
+  const [allCourses, setAllCourses] = useState<CourseItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const categories = [
-    { id: "all", label: "همه دوره‌ها", count: 5, icon: "stream" },
-    { id: "frontend", label: "فرانت‌اند", count: 5, icon: "code" },
-  ];
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const res = await apiGet<"/api/courses/public", { data?: unknown }>(
+          "/api/courses/public"
+        );
+        const rawList = Array.isArray(res?.data)
+          ? res.data
+          : Array.isArray((res?.data as { items?: unknown[] } | undefined)?.items)
+            ? ((res?.data as { items?: unknown[] }).items as unknown[])
+            : [];
 
-  const allCourses = [
-    {
-      id: "html",
-      category: "frontend",
-      title: "آشنایی با HTML",
-      description: "آشنایی با پایه و اساس وب و ساختار صفحات",
-      instructor: "نیما علوی",
-      instructorImg: "/images/inst3.jpg",
-      image: "/images/html-green.png",
-      difficulty: "مقدماتی",
-      hours: "۱۲",
-      students: "۱,۸۵۰",
-      price: "۹۸۰,۰۰۰",
-      alt: "HTML course",
-    },
-    {
-      id: "css",
-      category: "frontend",
-      title: "استایل‌دهی با CSS",
-      description: "جادوی بصری وب — Flexbox، Grid و طراحی واکنش‌گرا",
-      instructor: "سارا محمدی",
-      instructorImg: "/images/inst2.jpg",
-      image: "/images/css-green.png",
-      difficulty: "مقدماتی",
-      hours: "۱۸",
-      students: "۲,۱۲۰",
-      price: "۱,۴۵۰,۰۰۰",
-      alt: "CSS course",
-    },
-    {
-      id: "javascript",
-      category: "frontend",
-      title: "جادوی جاوااسکریپت",
-      description: "قلب تعاملات — ES۶+، DOM، Fetch API و مدیریت داده",
-      instructor: "امیررضا رضایی",
-      instructorImg: "/images/inst1.jpg",
-      image: "/images/js-green.png",
-      difficulty: "متوسط",
-      hours: "۳۲",
-      students: "۱,۶۵۰",
-      price: "۲,۲۰۰,۰۰۰",
-      alt: "JavaScript course",
-    },
-    {
-      id: "react",
-      category: "frontend",
-      title: "فریمورک React",
-      description: "تفکر کامپوننتی — هوک‌ها، مدیریت وضعیت و اکوسیستم React",
-      instructor: "مهرداد حیدری",
-      instructorImg: "/images/inst4.jpg",
-      image: "/images/react-green.png",
-      difficulty: "متوسط",
-      hours: "۴۰",
-      students: "۱,۲۴۰",
-      price: "۳,۵۰۰,۰۰۰",
-      alt: "React course",
-    },
-    {
-      id: "typescript",
-      category: "frontend",
-      title: "تایپ‌اسکریپت پیشرفته",
-      description: "کدنویسی امن و مقیاس‌پذیر — Typeها، Interfaceها و Generics",
-      instructor: "امیررضا رضایی",
-      instructorImg: "/images/inst1.jpg",
-      image: "/images/ts-green.png",
-      difficulty: "پیشرفته",
-      hours: "۲۵",
-      students: "۱,۳۴۰",
-      price: "۱,۹۰۰,۰۰۰",
-      alt: "TypeScript course",
-    },
-    {
-      id: "react-native",
-      category: "frontend",
-      title: "توسعه موبایل با React Native",
-      description:
-        "برنامه‌های نیتیو با جاوااسکریپت — کراس‌پلتفرم برای iOS و Android",
-      instructor: "مهرداد حیدری",
-      instructorImg: "/images/inst4.jpg",
-      image: "/images/react-native-green.png",
-      difficulty: "پیشرفته",
-      hours: "۵۵",
-      students: "۷۸۰",
-      price: "۴,۲۰۰,۰۰۰",
-      alt: "React Native course",
-    },
-  ];
+        const mapped = rawList.map((item, index) => {
+          const row = (item ?? {}) as Record<string, unknown>;
+          const studentsCount = Number(row.studentsCount ?? row.students ?? 0);
+          const rawCategory = String(
+            row.categorySlug ?? row.category ?? row.track ?? "general"
+          );
+
+          return {
+            id: String(row.id ?? row.slug ?? `course-${index + 1}`),
+            category: rawCategory.toLowerCase(),
+            categoryLabel: String(
+              row.categoryTitle ?? row.categoryName ?? row.category ?? "سایر"
+            ),
+            title: String(row.title ?? row.name ?? "دوره بدون عنوان"),
+            description: String(
+              row.shortDescription ??
+                row.description ??
+                "توضیحات این دوره به زودی تکمیل می‌شود."
+            ),
+            instructor: String(
+              row.instructorName ?? row.teacherName ?? "مدرس اسپاتی‌کد"
+            ),
+            instructorImg: String(row.instructorAvatar ?? "/images/inst1.jpg"),
+            image: String(row.cover ?? row.thumbnail ?? "/images/js-green.png"),
+            difficulty: String(row.difficulty ?? row.level ?? "نامشخص"),
+            hours: String(row.durationHours ?? row.hours ?? "۰"),
+            students: studentsCount.toLocaleString("fa-IR"),
+            studentsCount,
+            price: Number(row.price ?? 0).toLocaleString("fa-IR"),
+          };
+        });
+
+        setAllCourses(mapped);
+      } catch {
+        setAllCourses([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, []);
+
+  const categories = useMemo(() => {
+    const byCategory = allCourses.reduce<Record<string, number>>((acc, course) => {
+      acc[course.category] = (acc[course.category] ?? 0) + 1;
+      return acc;
+    }, {});
+
+    const dynamicCategories = Object.keys(byCategory).map((id) => {
+      const firstMatch = allCourses.find((course) => course.category === id);
+      return {
+        id,
+        label: firstMatch?.categoryLabel ?? id,
+        count: byCategory[id],
+        icon: "code",
+      };
+    });
+
+    return [
+      { id: "all", label: "همه دوره‌ها", count: allCourses.length, icon: "stream" },
+      ...dynamicCategories,
+    ];
+  }, [allCourses]);
 
   const filteredCourses = useMemo(() => {
     if (activeFilter === "all") return allCourses;
     return allCourses.filter((course) => course.category === activeFilter);
-  }, [activeFilter]);
+  }, [activeFilter, allCourses]);
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark transition-colors duration-300 relative overflow-x-hidden min-h-screen">
@@ -187,7 +235,17 @@ export default function CoursesPage() {
 
         {/* Courses Grid */}
         <div className="w-full">
-          {filteredCourses.length === 0 ? (
+          {isLoading ? (
+            <div
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10"
+              role="status"
+              aria-label="در حال بارگذاری دوره‌ها"
+            >
+              {Array.from({ length: 6 }).map((_, index) => (
+                <CourseCardSkeleton key={index} />
+              ))}
+            </div>
+          ) : filteredCourses.length === 0 ? (
             <div className="py-20 flex items-center justify-center">
               <p className="text-xl font-bold text-gray-400">
                 دوره‌ای در این دسته‌بندی یافت نشد.

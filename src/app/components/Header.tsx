@@ -68,7 +68,6 @@ export default function Header() {
     { label: "خانه", href: "/", icon: "home" },
     { label: "دوره‌ها", href: "/courses", icon: "school" },
     { label: "مسیر یادگیری", href: "/learning-path", icon: "route" },
-    { label: "اسپاتی هاب", href: "/social", icon: "tag" },
   ];
 
   const renderCartButton = (className = "") => {

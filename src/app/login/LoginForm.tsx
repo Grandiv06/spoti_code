@@ -8,6 +8,15 @@ import AuthTransitionLink from "@/app/components/AuthTransitionLink";
 import { useLoginByPhoneMutation } from "@/hooks/api/useAuthMutations";
 
 
+type AppRole = "admin" | "user" | "instructor";
+
+const PHONE_ROLE_MAP: Record<string, AppRole> = {
+  "+989100000001": "admin", // superadmin -> admin panel
+  "+989100000002": "admin",
+  "+989100000003": "instructor",
+  "+989100000004": "user",
+};
+
 /** اعداد فارسی/عربی را به انگلیسی تبدیل می‌کند */
 function normalizeDigits(str: string): string {
   const persian = "۰۱۲۳۴۵۶۷۸۹";
@@ -25,6 +34,28 @@ function toIranIntlPhone(input: string): string {
   if (value.startsWith("98")) value = value.slice(2);
   if (value.startsWith("0")) value = value.slice(1);
   return `+98${value}`;
+}
+
+function resolveAppRole(result: {
+  user?: { role?: string; roles?: Array<{ name?: string }> };
+  data?: { role?: string; roles?: Array<{ name?: string }>; phoneNumber?: string; phone?: string };
+}, fallbackPhone: string): AppRole {
+  const roleNames = [
+    ...(result?.data?.roles ?? []).map((r) => String(r?.name || "").toUpperCase()),
+    ...(result?.user?.roles ?? []).map((r) => String(r?.name || "").toUpperCase()),
+  ];
+
+  if (roleNames.some((r) => r === "SUPER_ADMIN" || r === "ADMIN")) return "admin";
+  if (roleNames.some((r) => r === "INSTRUCTOR")) return "instructor";
+  if (roleNames.some((r) => r === "USER")) return "user";
+
+  const directRole = String(result?.data?.role || result?.user?.role || "").toLowerCase();
+  if (directRole === "superadmin" || directRole === "super_admin" || directRole === "admin") return "admin";
+  if (directRole === "instructor") return "instructor";
+  if (directRole === "user") return "user";
+
+  const phone = result?.data?.phoneNumber || result?.data?.phone || fallbackPhone;
+  return PHONE_ROLE_MAP[phone] || "user";
 }
 
 export default function LoginForm() {
@@ -89,21 +120,46 @@ export default function LoginForm() {
       }) as {
         accessToken?: string;
         token?: string;
-        user?: { id?: string; phone?: string; displayName?: string; role?: "admin" | "user" | "instructor" };
+        data?: {
+          accessToken?: string;
+          token?: string;
+          id?: string;
+          userName?: string;
+          fullName?: string | null;
+          displayName?: string;
+          phoneNumber?: string;
+          phone?: string;
+          role?: string;
+          roles?: Array<{ name?: string }>;
+        };
+        user?: {
+          id?: string;
+          phone?: string;
+          phoneNumber?: string;
+          userName?: string;
+          fullName?: string | null;
+          displayName?: string;
+          role?: string;
+          roles?: Array<{ name?: string }>;
+        };
       };
 
-      const accessToken = result?.accessToken || result?.token;
+      const accessToken = result?.accessToken || result?.token || result?.data?.accessToken || result?.data?.token;
       if (accessToken && typeof window !== "undefined") {
         localStorage.setItem("accessToken", accessToken);
       }
 
-      const role = result?.user?.role === "admin" || result?.user?.role === "instructor" ? result.user.role : "user";
+      const apiUser = result?.data || result?.user;
+      const role = resolveAppRole(result, normalizedPhone);
+      const userPhone = apiUser?.phoneNumber || apiUser?.phone || normalizedPhone;
+      const displayName = apiUser?.fullName || apiUser?.displayName || apiUser?.userName || "کاربر اسپاتی‌کد";
+
       login({
-        id: result?.user?.id || `${role}-${normalizedPhone}`,
-        phone: result?.user?.phone || normalizedPhone,
-        displayName: result?.user?.displayName || "کاربر اسپاتی‌کد",
+        id: apiUser?.id || `${role}-${userPhone}`,
+        phone: userPhone,
+        displayName,
         role,
-      });
+      }, accessToken);
 
       const fallbackPath = role === "admin" ? "/admin" : role === "instructor" ? "/instructor/dashboard" : "/panel";
       router.push(requestedReturnUrl || fallbackPath);

@@ -18,8 +18,54 @@ type LandingCourse = {
   price: string;
 };
 
+function CourseCardSkeleton() {
+  return (
+    <div
+      className="flex flex-col h-full bg-white dark:bg-transparent dark:glass-premium rounded-4xl border border-gray-200 dark:border-white/5 overflow-hidden shadow-sm dark:shadow-none animate-pulse"
+      dir="rtl"
+      aria-hidden="true"
+    >
+      <div className="relative h-64 overflow-hidden rounded-t-4xl isolate bg-gradient-to-b from-gray-100 to-gray-200 dark:from-[#0b0f18] dark:to-[#0a0d14]">
+        <div className="absolute inset-0 bg-gradient-to-t from-gray-300/70 via-gray-200/40 to-gray-100 dark:from-white/10 dark:via-white/5 dark:to-white/[0.02]" />
+      </div>
+
+      <div className="p-7 flex flex-col flex-1">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="size-8 rounded-full border border-white/50 p-0.5 overflow-hidden">
+            <div className="w-full h-full rounded-full bg-gray-200 dark:bg-white/10" />
+          </div>
+          <div className="h-3 w-24 rounded-full bg-gray-200 dark:bg-white/10" />
+        </div>
+
+        <div className="space-y-3 mb-3 min-h-[56px]">
+          <div className="h-6 w-11/12 rounded-full bg-gray-200 dark:bg-white/10" />
+          <div className="h-6 w-2/3 rounded-full bg-gray-200 dark:bg-white/10" />
+        </div>
+
+        <div className="flex items-center gap-4 mb-8">
+          <div className="flex items-center gap-1">
+            <div className="size-4 rounded bg-gray-200 dark:bg-white/10" />
+            <div className="h-3 w-14 rounded-full bg-gray-200 dark:bg-white/10" />
+          </div>
+          <div className="size-1 rounded-full bg-gray-200 dark:bg-white/10" />
+          <div className="flex items-center gap-1">
+            <div className="size-4 rounded bg-gray-200 dark:bg-white/10" />
+            <div className="h-3 w-20 rounded-full bg-gray-200 dark:bg-white/10" />
+          </div>
+        </div>
+
+        <div className="mt-auto flex items-center justify-between gap-4 pt-6 border-t border-gray-100/50 dark:border-white/5">
+          <div className="h-10 w-32 rounded-2xl bg-primary/10 dark:bg-primary/15" />
+          <div className="h-10 flex-1 rounded-2xl bg-gray-100 dark:bg-white/10" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [featuredCourses, setFeaturedCourses] = useState<LandingCourse[]>([]);
+  const [isLoadingCourses, setIsLoadingCourses] = useState(true);
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -48,6 +94,8 @@ export default function Home() {
         setFeaturedCourses(mapped);
       } catch {
         setFeaturedCourses([]);
+      } finally {
+        setIsLoadingCourses(false);
       }
     };
     fetchCourses();
@@ -108,7 +156,7 @@ export default function Home() {
                     arrow_right_alt
                   </span>
                 </a>
-                <a
+                <Link
                   className="bg-white/70 dark:bg-surface-dark/80 md:backdrop-blur-xl md:hover:bg-white/90 md:dark:hover:bg-surface-dark text-text-light dark:text-white px-10 py-5 rounded-4xl text-lg font-extrabold transition-all duration-300 shadow-lg flex items-center justify-center gap-3 border border-white/30 dark:border-white/10"
                   href="/courses"
                 >
@@ -116,7 +164,7 @@ export default function Home() {
                     category
                   </span>
                   مشاهده دوره‌ها
-                </a>
+                </Link>
               </div>
               <div className="flex items-center justify-center lg:justify-start gap-4 pt-6">
                 <div className="flex -space-x-3 space-x-reverse">
@@ -193,7 +241,7 @@ export default function Home() {
                   </span>
                 </h2>
               </div>
-              <a
+              <Link
                 className="hidden md:flex items-center gap-3 text-primary font-black hover:gap-5 transition-all text-lg group"
                 href="/courses"
               >
@@ -201,11 +249,20 @@ export default function Home() {
                 <span className="material-symbols-outlined font-bold rtl:rotate-180">
                   arrow_right_alt
                 </span>
-              </a>
+              </Link>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-              {featuredCourses.map((course) => (
+            <div
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10"
+              role={isLoadingCourses ? "status" : undefined}
+              aria-label={isLoadingCourses ? "در حال بارگذاری دوره‌های پرطرفدار" : undefined}
+            >
+              {isLoadingCourses ? (
+                Array.from({ length: 6 }).map((_, index) => (
+                  <CourseCardSkeleton key={index} />
+                ))
+              ) : (
+                featuredCourses.map((course) => (
                  <div
                   key={course.id}
                   className="group flex flex-col h-full bg-white dark:bg-transparent dark:glass-premium rounded-4xl border border-gray-200 dark:border-white/5 overflow-hidden shadow-sm dark:shadow-none transition-all duration-500 md:hover:-translate-y-3 md:hover:shadow-[0_30px_60px_-15px_rgba(34,197,94,0.15)]"
@@ -273,11 +330,12 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
-              ))}
+                ))
+              )}
             </div>
             
             <div className="mt-12 flex justify-end">
-              <a
+              <Link
                 className="inline-flex items-center gap-2 text-primary hover:text-primary-hover font-bold transition-colors group"
                 href="/courses"
               >
@@ -285,7 +343,7 @@ export default function Home() {
                 <span className="material-symbols-outlined rtl:rotate-180 group-hover:-translate-x-1 transition-transform">
                   arrow_right_alt
                 </span>
-              </a>
+              </Link>
             </div>
           </div>
         </section>

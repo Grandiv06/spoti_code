@@ -19,12 +19,16 @@ export async function apiRequest<T>(
   path: string,
   options: ApiRequestOptions = {}
 ): Promise<T> {
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+
   const url = `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
   const response = await fetch(url, {
     method: method.toUpperCase(),
     cache: "no-store",
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     },
     body: options.body ? JSON.stringify(options.body) : undefined,

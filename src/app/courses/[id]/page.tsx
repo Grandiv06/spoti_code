@@ -4,6 +4,7 @@ import CourseFAQ from "../../components/CourseFAQ";
 import CourseReviews from "../../components/CourseReviews";
 import CourseHero from "../../components/CourseHero";
 import AddToCartButton from "../../components/AddToCartButton";
+import { apiRequest } from "@/lib/api";
 
 const COURSE_IDS = ["html", "css", "javascript", "react", "nextjs"];
 
@@ -17,6 +18,78 @@ export default async function CourseDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
+  const mapSpecialWordColor = (
+    value: unknown
+  ): "green" | "blue" | "yellow" | "white" => {
+    const raw = String(value ?? "").toLowerCase();
+    if (raw.includes("blue") || raw.includes("آبی")) return "blue";
+    if (raw.includes("yellow") || raw.includes("زرد")) return "yellow";
+    if (raw.includes("white") || raw.includes("سفید")) return "white";
+    return "green";
+  };
+
+  let courseData: Record<string, unknown> = {};
+  try {
+    const res = await apiRequest<{ data?: unknown }>(
+      "get",
+      `/api/courses/public/${encodeURIComponent(id)}`
+    );
+    const payload = (res?.data ?? res) as unknown;
+    courseData =
+      payload && typeof payload === "object"
+        ? (payload as Record<string, unknown>)
+        : {};
+  } catch {
+    courseData = {};
+  }
+
+  const title = String(
+    courseData.title ?? courseData.name ?? "متخصص React و Next.js"
+  );
+  const category = String(
+    courseData.categoryTitle ??
+      courseData.categoryName ??
+      courseData.category ??
+      "فرانت‌اند"
+  );
+  const level = String(courseData.difficulty ?? courseData.level ?? "پیشرفته");
+  const duration = String(
+    courseData.time ?? courseData.duration ?? courseData.hours ?? "۶۵ ساعت"
+  );
+  const rating = Number(courseData.rating ?? 4.9);
+  const shortDescription = String(
+    courseData.shortDescription ??
+      courseData.description ??
+      "مسیر صفر تا صد ورود به بازار کار جهانی. یادگیری عمیق هوک‌ها، SSR، و معماری مدرن وب با جدیدترین نسخه Next.js."
+  );
+  const coverImage = String(
+    courseData.cover ?? courseData.thumbnail ?? "/images/course3.jpg"
+  );
+  const introVideo = String(courseData.introVideo ?? "");
+  const normalizedPrice = Number(courseData.price);
+  const priceNumber = Number.isFinite(normalizedPrice) ? normalizedPrice : 4500000;
+  const displayPrice = priceNumber.toLocaleString("fa-IR");
+  const basePrice = Math.max(Math.round(priceNumber * 1.33), priceNumber);
+  const basePriceDisplay = basePrice.toLocaleString("fa-IR");
+  const discountPercent =
+    basePrice > 0
+      ? Math.round(((basePrice - priceNumber) / basePrice) * 100)
+      : 0;
+  const courseIdForActions = String(courseData.id ?? id);
+
+  const specialWordRaw =
+    courseData.specialWord ??
+    (courseData.specialWords as { color?: unknown } | undefined)?.color;
+  const specialWordColor = mapSpecialWordColor(specialWordRaw);
+  const underlineWord =
+    typeof courseData.specialWord === "string" &&
+    !["green", "blue", "yellow", "white"].includes(
+      courseData.specialWord.toLowerCase()
+    )
+      ? courseData.specialWord
+      : "Next.js";
+
   return (
     <div className="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark transition-colors duration-300 relative overflow-x-hidden min-h-screen">
       <div className="mesh-bg"></div>
@@ -24,7 +97,21 @@ export default async function CourseDetailPage({
       <div className="fixed bottom-20 right-20 w-96 h-96 bg-blue-300/20 rounded-full blur-3xl -z-10"></div>
 
       <main className="max-w-[1440px] mx-auto px-4 md:px-12 py-12 relative z-10">
-        <CourseHero />
+        <CourseHero
+          title={title}
+          category={category}
+          level={level}
+          duration={duration}
+          rating={Number.isFinite(rating) ? rating : 4.9}
+          shortDescription={shortDescription}
+          coverImage={coverImage}
+          introVideo={introVideo}
+          specialWords={{
+            highlighted: ["React"],
+            underlined: [underlineWord],
+            color: specialWordColor,
+          }}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Main Content */}
@@ -158,7 +245,7 @@ export default async function CourseDetailPage({
             </section>
 
             {/* Reviews Section */}
-            <CourseReviews />
+            <CourseReviews courseId={courseIdForActions} />
           </div>
 
           {/* Sidebar */}
@@ -170,27 +257,29 @@ export default async function CourseDetailPage({
                 <div className="relative z-10">
                   <div className="flex flex-col items-center text-center mb-6 md:mb-8">
                     <span className="text-xs md:text-sm font-bold text-gray-500 dark:text-gray-400 line-through decoration-red-500 decoration-2 mb-1.5 md:mb-2">
-                      ۶,۰۰۰,۰۰۰ تومان
+                      {basePriceDisplay} تومان
                     </span>
                     <div className="flex items-center gap-1.5 md:gap-2">
                       <span className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight">
-                        ۴,۵۰۰,۰۰۰
+                        {displayPrice}
                       </span>
                       <span className="text-base md:text-lg font-bold text-primary">
                         تومان
                       </span>
                     </div>
                     <span className="mt-3 md:mt-4 bg-red-500 text-white text-[10px] md:text-xs font-bold px-3 py-1.5 rounded-full animate-pulse shadow-lg shadow-red-500/30">
-                      ۲۰٪ تخفیف محدود
+                      {discountPercent.toLocaleString("fa-IR")}٪ تخفیف محدود
                     </span>
                   </div>
                   <AddToCartButton
                     course={{
-                      id,
-                      title: "دوره جامع React و Next.js",
-                      price: "4,500,000",
-                      image: "/images/react-green.png",
-                      instructor: "امیررضا رضایی",
+                      id: courseIdForActions,
+                      title,
+                      price: String(priceNumber),
+                      image: coverImage,
+                      instructor: String(
+                        courseData.instructorName ?? "مدرس اسپاتی‌کد"
+                      ),
                     }}
                   />
                   <p className="text-center text-[10px] md:text-xs font-bold text-gray-500 dark:text-gray-400 mt-4 md:mt-5 flex items-center justify-center gap-1">
