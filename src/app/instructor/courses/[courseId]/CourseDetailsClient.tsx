@@ -42,11 +42,21 @@ import { useInstructorData, Lesson } from "@/context/InstructorDataContext";
 import { cn } from "@/lib/utils";
 import InstructorQuestionsBoard from "@/components/instructor/InstructorQuestionsBoard";
 
+const COURSE_ID_ALIASES: Record<string, string> = {
+  html: "CRS-410",
+  css: "CRS-410",
+  javascript: "CRS-410",
+  react: "CRS-410",
+  nextjs: "CRS-410",
+  typescript: "CRS-407",
+};
+
 export default function CourseDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
   const courseId = params.courseId as string;
+  const canonicalCourseId = COURSE_ID_ALIASES[courseId] || courseId;
 
   const {
     courses,
@@ -64,8 +74,8 @@ export default function CourseDetailsPage() {
 
   // Find targeted course
   const course = useMemo(() => {
-    return courses.find((c) => c.id === courseId);
-  }, [courses, courseId]);
+    return courses.find((c) => c.id === canonicalCourseId || c.slug === courseId);
+  }, [courses, canonicalCourseId, courseId]);
 
   // Current Active Tab
   const [activeTab, setActiveTab] = useState("overview");
@@ -194,7 +204,7 @@ export default function CourseDetailsPage() {
   };
 
   const addLessonInline = (chapterId: string) => {
-    addLesson(course.id, chapterId, {
+      addLesson(course.id, chapterId, {
       title: "درس جدید",
       type: "video",
       duration: "10:00",

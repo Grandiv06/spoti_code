@@ -1,12 +1,15 @@
 import CourseLearningClient from "./CourseLearningClient";
 
 // Since we are using static export (output: "export"), dynamic routes need generateStaticParams.
-// Here we mock the available course IDs.
+// Keep this list aligned with the course ids used by panel links and mock API data.
 export function generateStaticParams() {
   return [
-    { courseId: "1" },
-    { courseId: "2" },
-    { courseId: "3" },
+    { courseId: "html" },
+    { courseId: "css" },
+    { courseId: "javascript" },
+    { courseId: "react" },
+    { courseId: "nextjs" },
+    { courseId: "typescript" },
   ];
 }
 

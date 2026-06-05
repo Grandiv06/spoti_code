@@ -6,6 +6,12 @@ export function generateStaticParams() {
     { courseId: "CRS-410" },
     { courseId: "CRS-398" },
     { courseId: "CRS-407" },
+    { courseId: "html" },
+    { courseId: "css" },
+    { courseId: "javascript" },
+    { courseId: "react" },
+    { courseId: "nextjs" },
+    { courseId: "typescript" },
   ];
 }
 

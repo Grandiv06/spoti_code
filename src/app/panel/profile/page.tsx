@@ -53,7 +53,6 @@ export default function PanelProfilePage() {
     avatarUrl: settings.avatarImage || String(apiProfile?.avatar ?? currentUser.avatarUrl),
     role: String(apiProfile?.roleLabel ?? "Frontend Learner"),
     mbti: settings.mbti || "INTJ",
-    location: settings.location || String(apiProfile?.location ?? "تهران، ایران"),
     joinDate: String(apiProfile?.joinDate ?? "۱۴۰۲"),
     socials: {
       github: settings.githubUrl || `https://github.com/${currentUser.username}`,

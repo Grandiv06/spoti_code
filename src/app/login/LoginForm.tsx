@@ -17,6 +17,15 @@ const PHONE_ROLE_MAP: Record<string, AppRole> = {
   "+989100000004": "user",
 };
 
+const DEV_LOGIN_PROFILES: Record<string, { role: AppRole; displayName: string }> = {
+  "+989100000001": { role: "admin", displayName: "ادمین تست" },
+  "+989100000002": { role: "admin", displayName: "مدیر تست" },
+  "+989100000003": { role: "instructor", displayName: "مدرس تست" },
+  "+989100000004": { role: "user", displayName: "کاربر تست" },
+};
+
+const isDevLoginEnabled = process.env.NODE_ENV === "development";
+
 /** اعداد فارسی/عربی را به انگلیسی تبدیل می‌کند */
 function normalizeDigits(str: string): string {
   const persian = "۰۱۲۳۴۵۶۷۸۹";
@@ -72,6 +81,27 @@ export default function LoginForm() {
   const searchParams = useSearchParams();
   const requestedReturnUrl = searchParams.get("returnUrl");
 
+  const completeLogin = (
+    user: {
+      id: string;
+      phone: string;
+      displayName: string;
+      role: AppRole;
+    },
+    token?: string
+  ) => {
+    login(user, token);
+
+    const fallbackPath =
+      user.role === "admin"
+        ? "/admin"
+        : user.role === "instructor"
+          ? "/instructor/dashboard"
+          : "/panel";
+
+    router.push(requestedReturnUrl || fallbackPath);
+  };
+
   useEffect(() => {
     document.documentElement.classList.remove("auth-route-transitioning");
     const initialPhone = searchParams.get("phone");
@@ -88,6 +118,18 @@ export default function LoginForm() {
     }
 
     const normalizedPhone = toIranIntlPhone(value);
+
+    if (isDevLoginEnabled && DEV_LOGIN_PROFILES[normalizedPhone]) {
+      const profile = DEV_LOGIN_PROFILES[normalizedPhone];
+      completeLogin({
+        id: `dev-${profile.role}-${normalizedPhone}`,
+        phone: normalizedPhone,
+        displayName: profile.displayName,
+        role: profile.role,
+      }, `dev-token-${profile.role}`);
+      return;
+    }
+
     try {
       const result = await loginMutation.mutateAsync({ phone: normalizedPhone, otp: "" }) as {
         data?: { otp?: string; phoneNumber?: string };
@@ -154,15 +196,12 @@ export default function LoginForm() {
       const userPhone = apiUser?.phoneNumber || apiUser?.phone || normalizedPhone;
       const displayName = apiUser?.fullName || apiUser?.displayName || apiUser?.userName || "کاربر اسپاتی‌کد";
 
-      login({
+      completeLogin({
         id: apiUser?.id || `${role}-${userPhone}`,
         phone: userPhone,
         displayName,
         role,
       }, accessToken);
-
-      const fallbackPath = role === "admin" ? "/admin" : role === "instructor" ? "/instructor/dashboard" : "/panel";
-      router.push(requestedReturnUrl || fallbackPath);
       return;
     } catch {
       setError("کد تایید نامعتبر است یا ورود انجام نشد.");
@@ -308,6 +347,39 @@ export default function LoginForm() {
           <span>{loginMutation.isPending ? "در حال ارسال..." : "دریافت کد تایید"}</span>
         </button>
       </form>
+
+      {isDevLoginEnabled && (
+        <div className="mt-5 rounded-3xl border border-emerald-200/70 dark:border-emerald-500/20 bg-emerald-50/70 dark:bg-emerald-500/10 p-4 text-right">
+          <p className="text-xs font-black text-emerald-700 dark:text-emerald-300 mb-3">
+            شماره‌های تست بدون کد تایید
+          </p>
+          <div className="grid grid-cols-1 gap-2">
+            {Object.entries(DEV_LOGIN_PROFILES).map(([testPhone, profile]) => {
+              const localPhone = `0${testPhone.replace("+98", "")}`;
+              const roleLabel =
+                profile.role === "admin"
+                  ? "ادمین"
+                  : profile.role === "instructor"
+                    ? "مدرس"
+                    : "پنل کاربر";
+
+              return (
+                <button
+                  key={testPhone}
+                  type="button"
+                  onClick={() => setPhoneInput(localPhone)}
+                  className="flex items-center justify-between gap-3 rounded-2xl bg-white/70 dark:bg-black/15 px-3 py-2 text-xs font-bold text-gray-700 dark:text-gray-200 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors cursor-pointer"
+                >
+                  <span>{roleLabel}</span>
+                  <span dir="ltr" className="font-mono text-[13px]">
+                    {localPhone}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="mt-8 space-y-5 text-center">
         <div>

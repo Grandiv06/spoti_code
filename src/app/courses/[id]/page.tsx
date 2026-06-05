@@ -1,12 +1,18 @@
 import Image from "next/image";
+import Link from "next/link";
 import CourseCurriculum from "../../components/CourseCurriculum";
 import CourseFAQ from "../../components/CourseFAQ";
 import CourseReviews from "../../components/CourseReviews";
 import CourseHero from "../../components/CourseHero";
 import AddToCartButton from "../../components/AddToCartButton";
 import { apiRequest } from "@/lib/api";
+import {
+  findPublicInstructorByName,
+  getPublicInstructorById,
+  getPublicInstructorBySlug,
+} from "@/lib/public-instructors";
 
-const COURSE_IDS = ["html", "css", "javascript", "react", "nextjs"];
+const COURSE_IDS = ["html", "css", "javascript", "react", "nextjs", "typescript"];
 
 export function generateStaticParams() {
   return COURSE_IDS.map((id) => ({ id }));
@@ -77,6 +83,23 @@ export default async function CourseDetailPage({
       ? Math.round(((basePrice - priceNumber) / basePrice) * 100)
       : 0;
   const courseIdForActions = String(courseData.id ?? id);
+  const instructorProfile =
+    getPublicInstructorBySlug(String(courseData.instructorSlug ?? "")) ??
+    getPublicInstructorById(String(courseData.instructorId ?? "")) ??
+    findPublicInstructorByName(
+      String(courseData.instructorName ?? courseData.teacherName ?? "")
+    );
+
+  const instructorName =
+    instructorProfile?.fullName ??
+    String(courseData.instructorName ?? courseData.teacherName ?? "مدرس اسپاتی‌کد");
+  const instructorTitle =
+    instructorProfile?.displayTitle ?? "مدرس ارشد توسعه وب";
+  const instructorBio =
+    instructorProfile?.shortBio ??
+    "عاشق جاوااسکریپت و یادگیری مستمر. تمرکز این مدرس روی انتقال تجربه واقعی بازار کار و مهارت‌های قابل استفاده در پروژه‌های حرفه‌ای است.";
+  const instructorAvatar =
+    instructorProfile?.avatar ?? "/images/inst1.jpg";
 
   const specialWordRaw =
     courseData.specialWord ??
@@ -197,17 +220,17 @@ export default async function CourseDetailPage({
                   <div className="size-32 md:size-40 rounded-[2rem] md:rounded-[2.5rem] overflow-hidden border-4 border-white dark:border-gray-700 shadow-2xl rotate-3 group-hover:rotate-0 transition-transform duration-500">
                     <Image
                       className="w-full h-full object-cover"
-                      alt="Instructor"
-                      src="/images/inst1.jpg"
+                      alt={instructorName}
+                      src={instructorAvatar}
                       width={160}
                       height={160}
                     />
                   </div>
                   <div className="absolute -bottom-3 -right-3 md:-bottom-4 md:-right-4 bg-white dark:bg-gray-800 p-2 md:p-3 rounded-xl md:rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 flex items-center justify-center">
                     <Image
-                      alt="TS"
+                      alt={instructorName}
                       className="size-6 md:size-8"
-                      src="/images/inst4.jpg"
+                      src={instructorAvatar}
                       width={32}
                       height={32}
                     />
@@ -215,24 +238,23 @@ export default async function CourseDetailPage({
                 </div>
                 <div className="flex-1 w-full">
                   <h3 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white mb-1 md:mb-2">
-                    امیررضا رضایی
+                    {instructorName}
                   </h3>
                   <span className="text-sm md:text-base text-primary font-bold block mb-3 md:mb-4">
-                    توسعه‌دهنده ارشد در اسنپ
+                    {instructorTitle}
                   </span>
                   <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 leading-relaxed font-medium mb-6 text-justify md:text-right">
-                    عاشق جاوااسکریپت و یادگیری مستمر. در این سال‌ها به بیش از
-                    ۵۰۰۰ دانشجو کمک کرده‌ام تا با اعتماد به نفس وارد دنیای
-                    حرفه‌ای برنامه‌نویسی شوند. تمرکز من بر روی انتقال تجربیات
-                    واقعی بازار کار است.
+                    {instructorBio}
                   </p>
                   <div className="flex flex-col sm:flex-row flex-wrap gap-3 md:gap-4 justify-center md:justify-start w-full">
-                    <a
+                    {instructorProfile ? (
+                    <Link
                       className="w-full sm:w-auto text-center px-5 md:px-6 py-2.5 rounded-xl bg-white/60 dark:bg-white/10 hover:bg-white dark:hover:bg-white/20 text-gray-900 dark:text-white font-bold text-sm shadow-sm transition-colors border border-white dark:border-gray-700"
-                      href="#"
+                      href={`/instructors/${instructorProfile.slug}`}
                     >
-                      مشاهده رزومه
-                    </a>
+                      مشاهده پروفایل استاد
+                    </Link>
+                    ) : null}
                     <div className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary font-bold text-sm border border-primary/20 dark:border-primary/30">
                       <span className="material-symbols-outlined text-lg filled">
                         stars

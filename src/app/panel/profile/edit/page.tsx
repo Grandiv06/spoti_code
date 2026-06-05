@@ -8,43 +8,10 @@ import { useProfileSettings } from "@/context/ProfileSettingsContext";
 import { apiRequest } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { SocialButton } from "@/components/social/SocialButton";
-import { ArrowRight, ImagePlus, User, Camera, X, Plus } from "lucide-react";
+import { ArrowRight, User, Camera, X, Plus, Check, ChevronDown } from "lucide-react";
 import Image from "next/image";
 
 import { SkillSelect } from "@/components/social/SkillSelect";
-
-const PRESET_COLORS = [
-  "#22c55e",
-  "#0ea5e9",
-  "#8b5cf6",
-  "#f59e0b",
-  "#ef4444",
-  "#ec4899",
-  "#06b6d4",
-  "#84cc16",
-];
-
-const IRAN_CITIES = [
-  "تهران، ایران",
-  "مشهد، ایران",
-  "اصفهان، ایران",
-  "شیراز، ایران",
-  "تبریز، ایران",
-  "کرج، ایران",
-  "اهواز، ایران",
-  "قم، ایران",
-  "کرمانشاه، ایران",
-  "رشت، ایران",
-  "زاهدان، ایران",
-  "ارومیه، ایران",
-  "یزد، ایران",
-  "همدان، ایران",
-  "قزوین، ایران",
-  "اردبیل، ایران",
-  "بندرعباس، ایران",
-  "سایر شهرها",
-  "خارج از ایران"
-];
 
 const MBTI_TYPES = [
   "INTJ", "INTP", "ENTJ", "ENTP",
@@ -69,7 +36,6 @@ const BACKEND_SKILLS = [
 
 function ProfileEditContent() {
   const router = useRouter();
-  const bannerInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const { isAuthenticated, user: authUser } = useAuth();
   const { currentUser } = useSocial();
@@ -77,6 +43,8 @@ function ProfileEditContent() {
   const [skillInput, setSkillInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [isMbtiOpen, setIsMbtiOpen] = useState(false);
+  const mbtiRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -90,14 +58,23 @@ function ProfileEditContent() {
     }
   }, [authUser?.displayName]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "banner" | "avatar") => {
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (mbtiRef.current && !mbtiRef.current.contains(event.target as Node)) {
+        setIsMbtiOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onloadend = () => {
       const result = reader.result as string;
-      if (type === "banner") updateSettings({ bannerImage: result, useDefaultBanner: false });
-      else updateSettings({ avatarImage: result });
+      updateSettings({ avatarImage: result });
     };
     reader.readAsDataURL(file);
   };
@@ -135,7 +112,6 @@ function ProfileEditContent() {
           body: {
             displayName: settings.displayName,
             bio: settings.bio,
-            location: settings.location,
             mbti: settings.mbti,
             skills: settings.skills,
             githubUrl: settings.githubUrl,
@@ -143,9 +119,6 @@ function ProfileEditContent() {
             telegramUrl: settings.telegramUrl,
             websiteUrl: settings.websiteUrl,
             avatarImage: settings.avatarImage,
-            bannerImage: settings.bannerImage,
-            bannerColor: settings.bannerColor,
-            useDefaultBanner: settings.useDefaultBanner,
           },
         }
       );
@@ -200,34 +173,58 @@ function ProfileEditContent() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="location" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">محل سکونت</label>
-                  <select
-                    id="location"
-                    value={settings.location}
-                    onChange={(e) => updateSettings({ location: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#14161c] text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all cursor-pointer"
-                  >
-                    <option value="" disabled>انتخاب شهر...</option>
-                    {IRAN_CITIES.map((city) => (
-                      <option key={city} value={city}>{city}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
+              <div className="grid grid-cols-1 gap-6">
+                <div className="space-y-3" ref={mbtiRef}>
                   <label htmlFor="mbti" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">تایپ MBTI</label>
-                  <select
-                    id="mbti"
-                    value={settings.mbti}
-                    onChange={(e) => updateSettings({ mbti: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#14161c] text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all cursor-pointer"
-                  >
-                    {MBTI_TYPES.map((type) => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsMbtiOpen((prev) => !prev)}
+                      className={cn(
+                        "relative flex items-center w-full px-4 py-3 rounded-xl border transition-all text-right",
+                        isMbtiOpen
+                          ? "border-primary ring-2 ring-primary/10 bg-white dark:bg-[#1c1e26]"
+                          : "border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-[#14161c] hover:border-gray-300 dark:hover:border-white/20"
+                      )}
+                    >
+                      <span className="flex-1 text-sm font-bold text-gray-900 dark:text-white">
+                        {settings.mbti || "انتخاب MBTI"}
+                      </span>
+                      <ChevronDown
+                        className={cn(
+                          "w-4 h-4 text-gray-400 transition-transform duration-200",
+                          isMbtiOpen && "rotate-180"
+                        )}
+                      />
+                    </button>
+
+                    {isMbtiOpen && (
+                      <div className="absolute z-50 w-full mt-2 py-2 overflow-auto max-h-60 rounded-2xl border border-gray-100 dark:border-white/[0.08] bg-white dark:bg-[#1c1e26] shadow-xl animate-in fade-in zoom-in-95 duration-200">
+                        {MBTI_TYPES.map((type) => {
+                          const isSelected = settings.mbti === type;
+                          return (
+                            <button
+                              key={type}
+                              type="button"
+                              onClick={() => {
+                                updateSettings({ mbti: type });
+                                setIsMbtiOpen(false);
+                              }}
+                              className={cn(
+                                "flex items-center justify-between w-full px-4 py-2.5 text-sm text-right transition-colors",
+                                isSelected
+                                  ? "bg-primary/5 text-primary font-bold"
+                                  : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.04]"
+                              )}
+                            >
+                              <span>{type}</span>
+                              {isSelected && <Check className="w-4 h-4" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -322,44 +319,9 @@ function ProfileEditContent() {
               <button onClick={() => avatarInputRef.current?.click()} className="absolute bottom-0 right-0 w-10 h-10 bg-primary text-white rounded-full border-4 border-white dark:border-[#1c1e26] flex items-center justify-center hover:scale-110 transition-transform cursor-pointer shadow-lg">
                 <Camera className="w-4 h-4" />
               </button>
-              <input type="file" ref={avatarInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, "avatar")} />
+              <input type="file" ref={avatarInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
             </div>
             <p className="text-xs text-gray-500 mt-4">تصویر با فرمت JPG، PNG یا WEBP</p>
-          </div>
-
-          <div className="bg-white dark:bg-[#1c1e26] rounded-3xl border border-gray-100 dark:border-white/[0.06] shadow-sm p-6">
-            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-4 text-center">بنر پروفایل</label>
-            <div 
-              className="w-full h-24 rounded-2xl mb-4 relative overflow-hidden group cursor-pointer border-2 border-dashed border-gray-200 dark:border-white/10"
-              onClick={() => bannerInputRef.current?.click()}
-              style={settings.bannerImage ? { backgroundImage: `url(${settings.bannerImage})`, backgroundSize: "cover", backgroundPosition: "center" } : !settings.useDefaultBanner ? { backgroundColor: settings.bannerColor } : undefined}
-            >
-              {settings.useDefaultBanner && !settings.bannerImage && (
-                <>
-                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-green-50/90 to-teal-50/70 dark:bg-[linear-gradient(135deg,#0a0a0a,#0d1210,#051008)]" />
-                  <div className="absolute inset-0 bg-repeat bg-[url('/patterns/spoticode-banner-pattern-light.svg')] dark:bg-[url('/patterns/spoticode-banner-pattern.svg')]" style={{ backgroundSize: "80px 80px" }} />
-                </>
-              )}
-              <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-colors">
-                <ImagePlus className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-            </div>
-            <input type="file" ref={bannerInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, "banner")} />
-            
-            <div className="space-y-4">
-              <button
-                onClick={() => updateSettings({ useDefaultBanner: true, bannerImage: "" })}
-                className={cn("w-full py-2 px-4 rounded-xl border text-sm font-medium transition-all", settings.useDefaultBanner && !settings.bannerImage ? "border-primary bg-primary/5 text-primary" : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20 cursor-pointer text-gray-600 dark:text-gray-400")}
-              >
-                استفاده از طرح پیش‌فرض
-              </button>
-              
-              <div className="flex flex-wrap gap-2 justify-center">
-                {PRESET_COLORS.map((color) => (
-                  <button key={color} onClick={() => updateSettings({ bannerColor: color, useDefaultBanner: false, bannerImage: "" })} className={cn("w-8 h-8 rounded-lg transition-all", settings.bannerColor === color && !settings.useDefaultBanner && !settings.bannerImage ? "ring-2 ring-primary ring-offset-2 dark:ring-offset-[#1c1e26] scale-110" : "hover:scale-105 cursor-pointer")} style={{ backgroundColor: color }} />
-                ))}
-              </div>
-            </div>
           </div>
 
           <div className="space-y-3 pt-4">

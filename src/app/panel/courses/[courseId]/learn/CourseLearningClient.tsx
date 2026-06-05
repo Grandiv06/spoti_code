@@ -42,9 +42,9 @@ type LearningCourseData = {
 // Mock Data with different course types
 const getCourseData = (id: string) => {
   const courses: Record<string, LearningCourseData> = {
-    "1": {
-      id: "1",
-      title: "مسترکلاس ری‌اکت و نکست جی‌اس",
+    react: {
+      id: "react",
+      title: "مسترکلاس ری‌اکت",
       instructor: "سروش مشایخی",
       progress: 45,
       playerType: "internal", // Internal video player
@@ -68,8 +68,8 @@ const getCourseData = (id: string) => {
         },
       ],
     },
-    "2": {
-      id: "2",
+    javascript: {
+      id: "javascript",
       title: "آموزش جامع جاوا اسکریپت",
       instructor: "سروش مشایخی",
       progress: 80,
@@ -99,8 +99,8 @@ const getCourseData = (id: string) => {
         },
       ],
     },
-    "3": {
-      id: "3",
+    html: {
+      id: "html",
       title: "طراحی رابط کاربری مدرن",
       instructor: "نازنین",
       progress: 10,
@@ -126,7 +126,15 @@ const getCourseData = (id: string) => {
       ],
     },
   };
-  return courses[id] || courses["1"];
+  return (
+    courses[id] ||
+    ({
+      css: courses.html,
+      nextjs: courses.react,
+      typescript: courses.javascript,
+    }[id]) ||
+    courses.react
+  );
 };
 
 type QuestionAttachment = {
@@ -181,9 +189,12 @@ const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 const MAX_FILES_COUNT = 4;
 
 const courseMap: Record<string, string> = {
-  "1": "CRS-410",
-  "2": "CRS-398",
-  "3": "CRS-407",
+  html: "CRS-407",
+  css: "CRS-407",
+  javascript: "CRS-398",
+  react: "CRS-410",
+  nextjs: "CRS-410",
+  typescript: "CRS-398",
 };
 
 const toDataUrl = (file: File) =>

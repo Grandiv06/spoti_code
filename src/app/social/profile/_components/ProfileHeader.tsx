@@ -8,8 +8,6 @@ import {
   Linkedin,
   Globe,
   Share2,
-  UserPlus,
-  MapPin,
   Briefcase,
   Sparkles,
   Edit3,
@@ -24,7 +22,6 @@ interface ProfileHeaderProps {
     avatarUrl: string;
     role: string;
     mbti: string;
-    location: string;
     joinDate: string;
     socials: {
       github?: string;
@@ -82,18 +79,11 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isOwnProfile }) => 
                     {user.mbti}
                   </span>
                 </h1>
-                <p className="text-gray-500 dark:text-gray-400 font-medium text-base md:text-lg mt-1 opacity-80">
-                  @{user.username}
-                </p>
 
                 <div className="flex items-center justify-center md:justify-start gap-4 mt-6 text-sm text-gray-600 dark:text-gray-400 flex-wrap">
                   <span className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-white/5 rounded-full border border-gray-100 dark:border-white/5">
                     <Briefcase className="w-4 h-4 text-green-500" />
                     {user.role}
-                  </span>
-                  <span className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-white/5 rounded-full border border-gray-100 dark:border-white/5">
-                    <MapPin className="w-4 h-4 text-gray-400" />
-                    {user.location}
                   </span>
                   <span className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-white/5 rounded-full border border-gray-100 dark:border-white/5">
                     <Sparkles className="w-4 h-4 text-yellow-500" />

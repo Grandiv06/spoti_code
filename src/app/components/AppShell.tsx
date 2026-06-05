@@ -13,7 +13,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     pathname?.startsWith("/register/");
   const isPanelPage = pathname?.startsWith("/panel");
   const isAdminPage = pathname?.startsWith("/admin");
-  const isInstructorPage = pathname?.startsWith("/instructor");
+  const isInstructorPage =
+    pathname === "/instructor" || pathname?.startsWith("/instructor/");
   const isDashboardPage = isPanelPage || isAdminPage || isInstructorPage;
 
   return (

@@ -10,7 +10,7 @@ import {
   AlertCircle,
   ArrowRight
 } from "lucide-react";
-import { Ticket } from "../data";
+import { Message, Ticket } from "../data";
 import { cn } from "@/lib/utils";
 import ConversationThread from "./_components/ConversationThread";
 import ReplyBox from "./_components/ReplyBox";
@@ -42,12 +42,16 @@ export default function TicketDetailsClient({ ticket }: TicketDetailsClientProps
             ? ((result?.data as { items?: unknown[] }).items as unknown[])
             : [];
 
-        const mapped = rawList.map((item, index) => {
+        const mapped: Message[] = rawList.map((item, index) => {
           const row = (item ?? {}) as Record<string, unknown>;
           const createdAt = row.createdAt ? new Date(String(row.createdAt)) : null;
+          const sender: Message["sender"] =
+            String(row.senderType ?? row.sender ?? "").toLowerCase() === "support"
+              ? "support"
+              : "user";
           return {
             id: String(row.id ?? `msg-${index + 1}`),
-            sender: String(row.senderType ?? row.sender ?? "").toLowerCase() === "support" ? "support" : "user",
+            sender,
             senderName: String(row.senderName ?? row.authorName ?? "کاربر"),
             text: String(row.message ?? row.text ?? ""),
             timestamp:
@@ -172,12 +176,16 @@ export default function TicketDetailsClient({ ticket }: TicketDetailsClientProps
                   : Array.isArray((result?.data as { items?: unknown[] } | undefined)?.items)
                     ? ((result?.data as { items?: unknown[] }).items as unknown[])
                     : [];
-                const mapped = rawList.map((item, index) => {
+                const mapped: Message[] = rawList.map((item, index) => {
                   const row = (item ?? {}) as Record<string, unknown>;
                   const createdAt = row.createdAt ? new Date(String(row.createdAt)) : null;
+                  const sender: Message["sender"] =
+                    String(row.senderType ?? row.sender ?? "").toLowerCase() === "support"
+                      ? "support"
+                      : "user";
                   return {
                     id: String(row.id ?? `msg-${index + 1}`),
-                    sender: String(row.senderType ?? row.sender ?? "").toLowerCase() === "support" ? "support" : "user",
+                    sender,
                     senderName: String(row.senderName ?? row.authorName ?? "کاربر"),
                     text: String(row.message ?? row.text ?? ""),
                     timestamp:

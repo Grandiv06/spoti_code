@@ -56,7 +56,6 @@ export default function CreateCourseWizardPage() {
     level: "intermediate",
     language: "فارسی",
     duration: "18",
-    studentsCount: 0,
     price: 1450000,
     isPaid: "paid", // free or paid
     cover: "",
@@ -194,16 +193,6 @@ export default function CreateCourseWizardPage() {
     const digitsOnly = englishDigits.replace(/\D/g, "");
     const withoutLeadingZeros = digitsOnly.replace(/^0+/, "");
     setFormData((p) => ({ ...p, duration: withoutLeadingZeros }));
-  };
-
-  const handleStudentsCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const englishDigits = normalizeDigitsToEnglish(e.target.value);
-    const digitsOnly = englishDigits.replace(/\D/g, "");
-    const withoutLeadingZeros = digitsOnly.replace(/^0+/, "");
-    setFormData((p) => ({
-      ...p,
-      studentsCount: withoutLeadingZeros ? Number(withoutLeadingZeros) : 0,
-    }));
   };
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -767,7 +756,6 @@ export default function CreateCourseWizardPage() {
       shortDescription: formData.shortDescription,
       description: formData.aboutDescription,
       price: formData.isPaid === "free" ? 0 : formData.price,
-      studentsCount: Number(formData.studentsCount) || 0,
       introText: formData.shortDescription,
       objectives: formData.aboutHighlights,
       prerequisites: ["تسلط بر مبانی مرتبط با دوره"],
@@ -962,41 +950,6 @@ export default function CreateCourseWizardPage() {
                     />
                   </div>
 
-                  {/* Duration */}
-                  <div className="flex flex-col gap-2">
-                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300">مدت زمان دوره <span className="text-red-500">*</span></label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        placeholder="18"
-                        value={formData.duration}
-                        onChange={handleDurationChange}
-                        className="w-full px-4 py-2.5 pl-14 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-left"
-                        dir="ltr"
-                      />
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 pointer-events-none">
-                        ساعت
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Students count */}
-                  <div className="flex flex-col gap-2">
-                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300">تعداد دانشجو اولیه (Mock)</label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      placeholder="0"
-                      value={formData.studentsCount === 0 ? "" : String(formData.studentsCount)}
-                      onChange={handleStudentsCountChange}
-                      className="px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-left"
-                      dir="ltr"
-                    />
-                  </div>
-
                 </div>
 
                 {/* Free / Paid Toggle */}
@@ -1031,26 +984,46 @@ export default function CreateCourseWizardPage() {
                   </div>
                 </div>
 
-                {/* Price input */}
-                {formData.isPaid === "paid" && (
-                  <div className="flex flex-col gap-2 animate-in slide-in-from-top-4 duration-300">
-                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300">قیمت دوره (به تومان) <span className="text-red-500">*</span></label>
-                    <div className="relative flex items-center">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300">مدت زمان دوره <span className="text-red-500">*</span></label>
+                    <div className="relative">
                       <input
                         type="text"
                         inputMode="numeric"
                         pattern="[0-9]*"
-                        placeholder="1450000"
-                        value={formData.price === 0 ? "" : String(formData.price)}
-                        onChange={handlePriceChange}
-                        className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border ${errors.price ? "border-red-500" : "border-gray-200/60 dark:border-white/5"} rounded-xl text-xs font-black focus:border-primary focus:outline-none transition-all text-left`}
+                        placeholder="18"
+                        value={formData.duration}
+                        onChange={handleDurationChange}
+                        className="w-full px-4 py-2.5 pl-14 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-left"
                         dir="ltr"
                       />
-                      <span className="absolute right-4 text-xs font-bold text-gray-400">تومان</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 pointer-events-none">
+                        ساعت
+                      </span>
                     </div>
-                    {errors.price && <span className="text-[10px] text-red-500 font-bold">{errors.price}</span>}
                   </div>
-                )}
+
+                  {formData.isPaid === "paid" && (
+                    <div className="flex flex-col gap-2 animate-in slide-in-from-top-4 duration-300">
+                      <label className="text-xs font-bold text-gray-700 dark:text-gray-300">قیمت دوره (به تومان) <span className="text-red-500">*</span></label>
+                      <div className="relative flex items-center">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          placeholder="1450000"
+                          value={formData.price === 0 ? "" : String(formData.price)}
+                          onChange={handlePriceChange}
+                          className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border ${errors.price ? "border-red-500" : "border-gray-200/60 dark:border-white/5"} rounded-xl text-xs font-black focus:border-primary focus:outline-none transition-all text-left`}
+                          dir="ltr"
+                        />
+                        <span className="absolute right-4 text-xs font-bold text-gray-400">تومان</span>
+                      </div>
+                      {errors.price && <span className="text-[10px] text-red-500 font-bold">{errors.price}</span>}
+                    </div>
+                  )}
+                </div>
 
                 {/* Cover Image Upload (Mock) */}
                 <div className="flex flex-col gap-3">
@@ -2004,22 +1977,22 @@ export default function CreateCourseWizardPage() {
             
             {/* PREVIEW: STEP 1 (Focus on course card only) */}
             {step === 1 && (
-              <div className="py-12 animate-in fade-in duration-500 flex flex-col items-center">
+              <div className="py-12 animate-in fade-in duration-500 flex flex-col items-center w-full">
                 <div className="text-center mb-6">
                   <span className="text-[10px] text-gray-400 font-bold block">موقعیت: نمایش در صفحه اصلی یا آرشیو دوره‌ها</span>
                   <span className="text-xs font-black text-gray-800 dark:text-gray-200 block mt-1">کارت دوره شما (CourseCard)</span>
                 </div>
-                <CourseCard
-                  title={formData.title}
-                  instructor={profile?.name || "اصغر رضایی"}
-                  instructorImg={profile?.avatar || "/images/inst1.jpg"}
-                  image={formData.cover}
-                  difficulty={formData.level === "elementary" ? "مقدماتی" : formData.level === "intermediate" ? "متوسط" : "پیشرفته"}
-                  hours={formData.duration}
-                  students={formData.studentsCount}
-                  price={formData.isPaid === "free" ? "رایگان" : formData.price}
-                  disableViewNavigation
-                />
+                <div className="w-full max-w-[390px]">
+                  <CourseCard
+                    title={formData.title}
+                    instructor={profile?.name || "اصغر رضایی"}
+                    instructorImg={profile?.avatar || "/images/inst1.jpg"}
+                    image={formData.cover}
+                    hours={formData.duration}
+                    price={formData.isPaid === "free" ? "رایگان" : formData.price}
+                    disableViewNavigation
+                  />
+                </div>
               </div>
             )}
 
