@@ -1,10 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import CourseCurriculum from "../../components/CourseCurriculum";
 import CourseFAQ from "../../components/CourseFAQ";
 import CourseReviews from "../../components/CourseReviews";
-import CourseHero from "../../components/CourseHero";
 import AddToCartButton from "../../components/AddToCartButton";
+import CourseDetailClient from "./CourseDetailClient";
 import { apiRequest } from "@/lib/api";
 import {
   findPublicInstructorByName,
@@ -33,6 +32,77 @@ export default async function CourseDetailPage({
     if (raw.includes("yellow") || raw.includes("زرد")) return "yellow";
     if (raw.includes("white") || raw.includes("سفید")) return "white";
     return "green";
+  };
+
+  const formatFaChapterNumber = (value: number) =>
+    value.toLocaleString("fa-IR", { minimumIntegerDigits: 2, useGrouping: false });
+
+  const normalizePublicChapters = (rawChapters: unknown): Array<{
+    id: string;
+    number: string;
+    title: string;
+    subtitle: string;
+    lessons: Array<{
+      id: string;
+      title: string;
+      duration: string;
+      isLocked?: boolean;
+      isFree?: boolean;
+      isFreePreview?: boolean;
+      isUnlocked?: boolean;
+      videoUrl?: string;
+    }>;
+  }> | undefined => {
+    if (!Array.isArray(rawChapters)) return undefined;
+
+    return rawChapters.map((chapter, chapterIndex) => {
+      const chapterRecord = chapter as Record<string, unknown>;
+      const rawLessons = Array.isArray(chapterRecord.lessons) ? chapterRecord.lessons : [];
+
+      return {
+        id: String(chapterRecord.id ?? `chapter-${chapterIndex + 1}`),
+        number: formatFaChapterNumber(chapterIndex + 1),
+        title: String(chapterRecord.title ?? chapterRecord.name ?? `فصل ${chapterIndex + 1}`),
+        subtitle: String(
+          chapterRecord.subtitle ??
+            chapterRecord.description ??
+            chapterRecord.summary ??
+            ""
+        ),
+        lessons: rawLessons.map((lesson, lessonIndex) => {
+          const lessonRecord = lesson as Record<string, unknown>;
+          const videoUrl = String(
+            lessonRecord.videoUrl ??
+              lessonRecord.video ??
+              lessonRecord.url ??
+              lessonRecord.mediaUrl ??
+              ""
+          );
+
+          return {
+            id: String(lessonRecord.id ?? `lesson-${chapterIndex + 1}-${lessonIndex + 1}`),
+            title: String(lessonRecord.title ?? lessonRecord.name ?? `جلسه ${lessonIndex + 1}`),
+            duration: String(lessonRecord.duration ?? lessonRecord.time ?? "00:00"),
+            isLocked:
+              lessonIndex === 0
+                ? false
+                : typeof lessonRecord.isLocked === "boolean"
+                  ? lessonRecord.isLocked
+                  : undefined,
+            isFree: typeof lessonRecord.isFree === "boolean" ? lessonRecord.isFree : undefined,
+            isFreePreview:
+              lessonIndex === 0
+                ? true
+                : typeof lessonRecord.isFreePreview === "boolean"
+                  ? lessonRecord.isFreePreview
+                  : undefined,
+            isUnlocked:
+              typeof lessonRecord.isUnlocked === "boolean" ? lessonRecord.isUnlocked : undefined,
+            videoUrl,
+          };
+        }),
+      };
+    });
   };
 
   let courseData: Record<string, unknown> = {};
@@ -73,6 +143,11 @@ export default async function CourseDetailPage({
     courseData.cover ?? courseData.thumbnail ?? "/images/course3.jpg"
   );
   const introVideo = String(courseData.introVideo ?? "");
+  const publicChapters = normalizePublicChapters(courseData.chapters);
+  const coursePurchased = Boolean(
+    courseData.isPurchased ?? courseData.userHasPurchased ?? courseData.enrolled ?? false
+  );
+  const totalLessons = publicChapters?.reduce((sum, chapter) => sum + chapter.lessons.length, 0) || 120;
   const normalizedPrice = Number(courseData.price);
   const priceNumber = Number.isFinite(normalizedPrice) ? normalizedPrice : 4500000;
   const displayPrice = priceNumber.toLocaleString("fa-IR");
@@ -113,6 +188,81 @@ export default async function CourseDetailPage({
       ? courseData.specialWord
       : "Next.js";
 
+  const sidebar = (
+    <aside className="lg:col-span-4 relative z-20 order-1 lg:order-2 mb-4 lg:mb-0">
+      <div className="sticky top-28 space-y-6">
+        <div className="glass-panel rounded-[2rem] md:rounded-4xl p-6 md:p-8 border border-white/80 dark:border-gray-700 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1),0_10px_20px_-5px_rgba(0,0,0,0.04)] relative overflow-hidden group">
+          <div className="absolute -top-20 -right-20 size-32 md:size-40 bg-primary/20 rounded-full blur-3xl group-hover:bg-primary/30 transition-colors"></div>
+          <div className="relative z-10">
+            <div className="flex flex-col items-center text-center mb-6 md:mb-8">
+              <span className="text-xs md:text-sm font-bold text-gray-500 dark:text-gray-400 line-through decoration-red-500 decoration-2 mb-1.5 md:mb-2">
+                {basePriceDisplay} تومان
+              </span>
+              <div className="flex items-center gap-1.5 md:gap-2">
+                <span className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight">
+                  {displayPrice}
+                </span>
+                <span className="text-base md:text-lg font-bold text-primary">
+                  تومان
+                </span>
+              </div>
+              <span className="mt-3 md:mt-4 bg-red-500 text-white text-[10px] md:text-xs font-bold px-3 py-1.5 rounded-full animate-pulse shadow-lg shadow-red-500/30">
+                {discountPercent.toLocaleString("fa-IR")}٪ تخفیف محدود
+              </span>
+            </div>
+            <AddToCartButton
+              course={{
+                id: courseIdForActions,
+                title,
+                price: String(priceNumber),
+                image: coverImage,
+                instructor: String(courseData.instructorName ?? "مدرس اسپاتی‌کد"),
+              }}
+            />
+            <p className="text-center text-[10px] md:text-xs font-bold text-gray-500 dark:text-gray-400 mt-4 md:mt-5 flex items-center justify-center gap-1">
+              <span className="material-symbols-outlined text-[14px] md:text-sm">
+                verified_user
+              </span>
+              گارانتی بازگشت وجه تا ۳۰ روز
+            </p>
+          </div>
+        </div>
+
+        <div className="glass-panel rounded-[2rem] md:rounded-4xl p-6 md:p-8 border border-white/60 dark:border-gray-700">
+          <h4 className="font-black text-gray-900 dark:text-white text-base md:text-lg mb-5 md:mb-6 px-2 border-r-4 border-primary rounded-r">
+            ویژگی‌های متمایز
+          </h4>
+          <ul className="space-y-4 md:space-y-5">
+            <li className="flex items-center gap-3 md:gap-4 text-gray-700 dark:text-gray-300 font-bold text-xs md:text-sm">
+              <span className="size-8 md:size-10 rounded-xl md:rounded-2xl bg-white dark:bg-gray-800 shadow-sm text-primary-dark dark:text-primary flex items-center justify-center shrink-0 border border-primary/20 dark:border-primary/30">
+                <span className="material-symbols-outlined text-base md:text-[20px]">
+                  all_inclusive
+                </span>
+              </span>
+              دسترسی همیشگی به دوره و آپدیت‌ها
+            </li>
+            <li className="flex items-center gap-3 md:gap-4 text-gray-700 dark:text-gray-300 font-bold text-xs md:text-sm">
+              <span className="size-8 md:size-10 rounded-xl md:rounded-2xl bg-white dark:bg-gray-800 shadow-sm text-blue-500 flex items-center justify-center shrink-0 border border-blue-100 dark:border-blue-900/30">
+                <span className="material-symbols-outlined text-base md:text-[20px]">
+                  workspace_premium
+                </span>
+              </span>
+              مدرک معتبر و قابل ترجمه
+            </li>
+            <li className="flex items-center gap-3 md:gap-4 text-gray-700 dark:text-gray-300 font-bold text-xs md:text-sm">
+              <span className="size-8 md:size-10 rounded-xl md:rounded-2xl bg-white dark:bg-gray-800 shadow-sm text-purple-500 flex items-center justify-center shrink-0 border border-purple-100 dark:border-purple-900/30">
+                <span className="material-symbols-outlined text-base md:text-[20px]">
+                  forum
+                </span>
+              </span>
+              پشتیبانی اختصاصی در تلگرام
+            </li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+  );
+
   return (
     <div className="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark transition-colors duration-300 relative overflow-x-hidden min-h-screen">
       <div className="mesh-bg"></div>
@@ -120,59 +270,29 @@ export default async function CourseDetailPage({
       <div className="fixed bottom-20 right-20 w-96 h-96 bg-blue-300/20 rounded-full blur-3xl -z-10"></div>
 
       <main className="max-w-[1440px] mx-auto px-4 md:px-12 py-12 relative z-10">
-        <CourseHero
-          title={title}
-          category={category}
-          level={level}
-          duration={duration}
-          rating={Number.isFinite(rating) ? rating : 4.9}
-          shortDescription={shortDescription}
-          coverImage={coverImage}
-          introVideo={introVideo}
-          specialWords={{
-            highlighted: ["React"],
-            underlined: [underlineWord],
-            color: specialWordColor,
-          }}
-        />
+        <CourseDetailClient
+              hero={{
+                title,
+                category,
+                level,
+                duration,
+                rating: Number.isFinite(rating) ? rating : 4.9,
+                shortDescription,
+                coverImage,
+                introVideo,
+                specialWords: {
+                  highlighted: ["React"],
+                  underlined: [underlineWord],
+                  color: specialWordColor,
+                },
+              }}
+              aboutDescription={String(courseData.aboutDescription ?? "")}
+              totalLessons={totalLessons}
+              chapters={publicChapters}
+              coursePurchased={coursePurchased}
+              sidebar={sidebar}
+            >
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Main Content */}
-          <div className="lg:col-span-8 flex flex-col gap-6 md:gap-8 order-2 lg:order-1">
-            {/* About Section */}
-            <section className="glass-panel rounded-[2rem] md:rounded-4xl p-6 md:p-8 lg:p-12 glass-card-hover">
-              <div className="flex items-center gap-3 md:gap-4 mb-6 md:mb-8">
-                <div className="size-10 md:size-12 rounded-xl md:rounded-2xl bg-gradient-to-br from-emerald-100 dark:from-emerald-900/30 to-white dark:to-gray-800 flex items-center justify-center text-primary shadow-sm border border-white/50 dark:border-gray-700 shrink-0">
-                  <span className="material-symbols-outlined filled text-xl md:text-2xl">
-                    description
-                  </span>
-                </div>
-                <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white">
-                  درباره این دوره
-                </h2>
-              </div>
-              <div className="prose prose-base md:prose-lg max-w-none text-gray-600 dark:text-gray-300 leading-8 md:leading-9 font-medium text-justify md:text-right">
-                <p className="mb-4">
-                  این دوره حاصل تجربه‌ی سال‌ها کار بر روی پروژه‌های بزرگ مقیاس
-                  است. هدف ما صرفاً آموزش سینتکس نیست، بلکه انتقال{" "}
-                  <span className="text-primary font-bold bg-primary/10 dark:bg-primary/20 px-2 py-0.5 rounded-md inline-block my-1 md:my-0">
-                    طرز تفکر مهندسی
-                  </span>{" "}
-                  است.
-                </p>
-                <p>
-                  در طول این مسیر، شما با چالش‌های واقعی روبرو می‌شوید. از
-                  بهینه‌سازی پرفرمنس گرفته تا مدیریت state‌های پیچیده با Redux
-                  Toolkit و پیاده‌سازی Authentication امن در Next.js. این یک
-                  دوره تئوری نیست؛ یک شبیه‌ساز محیط کار است.
-                </p>
-              </div>
-            </section>
-
-            {/* سرفصل‌های آموزشی - باکس جدا با دکمه بستن */}
-            <CourseCurriculum totalLessons={120} />
-
-            {/* سوالات متداول - باکس جدا با دکمه بستن */}
             <CourseFAQ />
 
             {/* Students Section */}
@@ -268,86 +388,7 @@ export default async function CourseDetailPage({
 
             {/* Reviews Section */}
             <CourseReviews courseId={courseIdForActions} />
-          </div>
-
-          {/* Sidebar */}
-          <aside className="lg:col-span-4 relative z-20 order-1 lg:order-2 mb-4 lg:mb-0">
-            <div className="sticky top-28 space-y-6">
-              {/* Price Card */}
-              <div className="glass-panel rounded-[2rem] md:rounded-4xl p-6 md:p-8 border border-white/80 dark:border-gray-700 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1),0_10px_20px_-5px_rgba(0,0,0,0.04)] relative overflow-hidden group">
-                <div className="absolute -top-20 -right-20 size-32 md:size-40 bg-primary/20 rounded-full blur-3xl group-hover:bg-primary/30 transition-colors"></div>
-                <div className="relative z-10">
-                  <div className="flex flex-col items-center text-center mb-6 md:mb-8">
-                    <span className="text-xs md:text-sm font-bold text-gray-500 dark:text-gray-400 line-through decoration-red-500 decoration-2 mb-1.5 md:mb-2">
-                      {basePriceDisplay} تومان
-                    </span>
-                    <div className="flex items-center gap-1.5 md:gap-2">
-                      <span className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight">
-                        {displayPrice}
-                      </span>
-                      <span className="text-base md:text-lg font-bold text-primary">
-                        تومان
-                      </span>
-                    </div>
-                    <span className="mt-3 md:mt-4 bg-red-500 text-white text-[10px] md:text-xs font-bold px-3 py-1.5 rounded-full animate-pulse shadow-lg shadow-red-500/30">
-                      {discountPercent.toLocaleString("fa-IR")}٪ تخفیف محدود
-                    </span>
-                  </div>
-                  <AddToCartButton
-                    course={{
-                      id: courseIdForActions,
-                      title,
-                      price: String(priceNumber),
-                      image: coverImage,
-                      instructor: String(
-                        courseData.instructorName ?? "مدرس اسپاتی‌کد"
-                      ),
-                    }}
-                  />
-                  <p className="text-center text-[10px] md:text-xs font-bold text-gray-500 dark:text-gray-400 mt-4 md:mt-5 flex items-center justify-center gap-1">
-                    <span className="material-symbols-outlined text-[14px] md:text-sm">
-                      verified_user
-                    </span>
-                    گارانتی بازگشت وجه تا ۳۰ روز
-                  </p>
-                </div>
-              </div>
-
-              {/* Features Card */}
-              <div className="glass-panel rounded-[2rem] md:rounded-4xl p-6 md:p-8 border border-white/60 dark:border-gray-700">
-                <h4 className="font-black text-gray-900 dark:text-white text-base md:text-lg mb-5 md:mb-6 px-2 border-r-4 border-primary rounded-r">
-                  ویژگی‌های متمایز
-                </h4>
-                <ul className="space-y-4 md:space-y-5">
-                  <li className="flex items-center gap-3 md:gap-4 text-gray-700 dark:text-gray-300 font-bold text-xs md:text-sm">
-                    <span className="size-8 md:size-10 rounded-xl md:rounded-2xl bg-white dark:bg-gray-800 shadow-sm text-primary-dark dark:text-primary flex items-center justify-center shrink-0 border border-primary/20 dark:border-primary/30">
-                      <span className="material-symbols-outlined text-base md:text-[20px]">
-                        all_inclusive
-                      </span>
-                    </span>
-                    دسترسی همیشگی به دوره و آپدیت‌ها
-                  </li>
-                  <li className="flex items-center gap-3 md:gap-4 text-gray-700 dark:text-gray-300 font-bold text-xs md:text-sm">
-                    <span className="size-8 md:size-10 rounded-xl md:rounded-2xl bg-white dark:bg-gray-800 shadow-sm text-blue-500 flex items-center justify-center shrink-0 border border-blue-100 dark:border-blue-900/30">
-                      <span className="material-symbols-outlined text-base md:text-[20px]">
-                        workspace_premium
-                      </span>
-                    </span>
-                    مدرک معتبر و قابل ترجمه
-                  </li>
-                  <li className="flex items-center gap-3 md:gap-4 text-gray-700 dark:text-gray-300 font-bold text-xs md:text-sm">
-                    <span className="size-8 md:size-10 rounded-xl md:rounded-2xl bg-white dark:bg-gray-800 shadow-sm text-purple-500 flex items-center justify-center shrink-0 border border-purple-100 dark:border-purple-900/30">
-                      <span className="material-symbols-outlined text-base md:text-[20px]">
-                        forum
-                      </span>
-                    </span>
-                    پشتیبانی اختصاصی در تلگرام
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </aside>
-        </div>
+        </CourseDetailClient>
       </main>
     </div>
   );

@@ -26,6 +26,13 @@ export interface CourseHeroProps {
   };
   coverImage?: string;
   introVideo?: string;
+  isPreviewActive?: boolean;
+  activeVideoTitle?: string;
+  activeVideoDuration?: string;
+  onResetPreview?: () => void;
+  playTrigger?: number;
+  disableFallbackVideo?: boolean;
+  missingVideoMessage?: string;
 }
 
 export default function CourseHero({
@@ -42,12 +49,19 @@ export default function CourseHero({
   },
   coverImage = "/images/course3.jpg",
   introVideo = "",
+  isPreviewActive = false,
+  activeVideoTitle = "",
+  activeVideoDuration = "",
+  onResetPreview,
+  playTrigger = 0,
+  disableFallbackVideo = false,
+  missingVideoMessage = "ویدیوی این بخش هنوز در دسترس نیست.",
 }: CourseHeroProps) {
   const [isVideoExpanded, setIsVideoExpanded] = useState(false);
   const [fixedHeight, setFixedHeight] = useState<number | null>(null);
   
   // Use introVideo if provided, otherwise fallback to test video
-  const activeVideoUrl = introVideo || TEST_VIDEO_URL;
+  const activeVideoUrl = introVideo || (disableFallbackVideo ? "" : TEST_VIDEO_URL);
   const [videoUrl, setVideoUrl] = useState(activeVideoUrl);
   const [videoError, setVideoError] = useState(false);
   
@@ -56,9 +70,23 @@ export default function CourseHero({
 
   // Sync videoUrl when introVideo prop changes
   useEffect(() => {
-    setVideoUrl(introVideo || TEST_VIDEO_URL);
+    setVideoUrl(introVideo || (disableFallbackVideo ? "" : TEST_VIDEO_URL));
     setVideoError(false);
-  }, [introVideo]);
+  }, [introVideo, disableFallbackVideo]);
+
+  useEffect(() => {
+    if (!playTrigger) return;
+    if (!introVideo && disableFallbackVideo) return;
+    setIsVideoExpanded(true);
+    setVideoError(false);
+    setVideoUrl(introVideo || (disableFallbackVideo ? "" : TEST_VIDEO_URL));
+    const frame = window.requestAnimationFrame(() => {
+      videoRef.current?.play().catch(() => {
+        // Browsers can block autoplay with sound; keep the video loaded so the user can start it.
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [playTrigger, introVideo, disableFallbackVideo]);
 
   const handleVideoError = () => {
     if (videoUrl === TEST_VIDEO_URL) {
@@ -69,12 +97,13 @@ export default function CourseHero({
   };
 
   const handleToggle = () => {
+    if (disableFallbackVideo && !videoUrl) return;
     if (!isVideoExpanded && gridRef.current) {
       setFixedHeight(gridRef.current.offsetHeight);
     }
     if (!isVideoExpanded && !videoError) {
       videoRef.current?.play().catch(() => {
-        setVideoError(true);
+        // Keep the player open if autoplay is blocked.
       });
     } else {
       videoRef.current?.pause();
@@ -249,7 +278,7 @@ export default function CourseHero({
           </div>
 
           {/* Video - visible and plays when expanded */}
-          {!videoError && (
+          {!videoError && videoUrl ? (
             <video
               key={videoUrl}
               ref={videoRef}
@@ -264,17 +293,54 @@ export default function CourseHero({
               controls={false}
               loop
             />
-          )}
+          ) : disableFallbackVideo ? (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/55 backdrop-blur-sm px-6">
+              <div className="max-w-md rounded-3xl border border-white/10 bg-black/35 p-6 text-center text-white shadow-2xl">
+                <span className="material-symbols-outlined text-4xl text-primary block mb-3">
+                  play_circle
+                </span>
+                <p className="text-sm font-black mb-1">{missingVideoMessage}</p>
+                <p className="text-[10px] text-white/60 leading-relaxed">
+                  در صورت بارگذاری ویدیوی معرفی یا جلسه‌ی آزاد، پخش آن در همین بخش فعال می‌شود.
+                </p>
+              </div>
+            </div>
+          ) : null}
 
           {/* Custom controls - only when expanded */}
-          {isVideoExpanded && !videoError && (
+          {isVideoExpanded && !videoError && videoUrl && (
             <div className="absolute bottom-0 right-0 left-0 z-20 p-4">
               <VideoControls
                 videoRef={videoRef}
                 videoUrl={videoUrl}
-                title="پیش‌نمایش ویدیو معرفی"
-                subtitle={title}
+                title={isPreviewActive ? "در حال پخش" : "پیش‌نمایش ویدیوی معرفی"}
+                subtitle={isPreviewActive ? activeVideoTitle || title : title}
               />
+            </div>
+          )}
+
+          {isPreviewActive && (
+            <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between gap-3">
+              <div className="inline-flex max-w-[70%] items-center gap-2 rounded-2xl bg-black/45 backdrop-blur-md px-3 py-2 border border-white/10 text-white shadow-lg">
+                <span className="material-symbols-outlined text-lg text-primary">play_circle</span>
+                <div className="min-w-0 text-right">
+                  <p className="text-[10px] text-white/60 leading-none">در حال پخش</p>
+                  <p className="text-xs font-black truncate">{activeVideoTitle || title}</p>
+                </div>
+                {activeVideoDuration ? (
+                  <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-white/10 shrink-0">
+                    {activeVideoDuration}
+                  </span>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                onClick={onResetPreview}
+                className="inline-flex items-center gap-2 rounded-2xl bg-black/45 backdrop-blur-md px-3 py-2 border border-white/10 text-white shadow-lg hover:bg-black/60 transition-colors cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-lg">replay</span>
+                <span className="text-[10px] font-black">بازگشت به ویدیوی معرفی دوره</span>
+              </button>
             </div>
           )}
 
@@ -317,11 +383,15 @@ export default function CourseHero({
             <div className="absolute bottom-8 right-8 left-8 z-20">
               <div className="bg-black/40 backdrop-blur-md rounded-3xl p-5 border border-white/10 flex items-center justify-between text-white shadow-lg">
                 <div className="flex flex-col text-right">
-                  <span className="text-xs text-white/70 mb-1">جلسه اول رایگان</span>
-                  <span className="font-bold text-base">ویدیو معرفی دوره</span>
+                  <span className="text-xs text-white/70 mb-1">
+                    {isPreviewActive ? "در حال پخش" : "جلسه اول رایگان"}
+                  </span>
+                  <span className="font-bold text-base">
+                    {isPreviewActive ? activeVideoTitle || title : "ویدیو معرفی دوره"}
+                  </span>
                 </div>
                 <span className="text-xs bg-white/20 px-3 py-1.5 rounded-xl font-mono dir-ltr">
-                  05:34
+                  {isPreviewActive && activeVideoDuration ? activeVideoDuration : "05:34"}
                 </span>
               </div>
             </div>

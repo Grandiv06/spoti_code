@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export interface Lesson {
   id: string;
   title: string;
   duration: string;
   isLocked?: boolean;
+  isFree?: boolean;
+  isFreePreview?: boolean;
+  isUnlocked?: boolean;
+  videoUrl?: string;
 }
 
 export interface Chapter {
@@ -24,24 +28,9 @@ const MOCK_CHAPTERS: Chapter[] = [
     title: "مبانی و مفاهیم پایه‌ای",
     subtitle: "شروع قدرتمند با جاوااسکریپت مدرن",
     lessons: [
-      {
-        id: "1-1",
-        title: "آشنایی با اکوسیستم React",
-        duration: "۱۲:۲۰",
-        isLocked: false,
-      },
-      {
-        id: "1-2",
-        title: "نصب و راه‌اندازی پروژه",
-        duration: "۱۸:۴۵",
-        isLocked: false,
-      },
-      {
-        id: "1-3",
-        title: "Component و JSX",
-        duration: "۲۵:۱۰",
-        isLocked: false,
-      },
+      { id: "1-1", title: "آشنایی با اکوسیستم React", duration: "۱۲:۲۰", isLocked: false },
+      { id: "1-2", title: "نصب و راه‌اندازی پروژه", duration: "۱۸:۴۵", isLocked: false },
+      { id: "1-3", title: "Component و JSX", duration: "۲۵:۱۰", isLocked: false },
     ],
   },
   {
@@ -50,24 +39,9 @@ const MOCK_CHAPTERS: Chapter[] = [
     title: "عمیق شدن در Hooks",
     subtitle: "مدیریت حرفه‌ای وضعیت",
     lessons: [
-      {
-        id: "2-1",
-        title: "مفهوم Closure و useState",
-        duration: "۱۵:۰۰",
-        isLocked: false,
-      },
-      {
-        id: "2-2",
-        title: "هوک useEffect و چرخه حیات",
-        duration: "۲۲:۳۰",
-        isLocked: false,
-      },
-      {
-        id: "2-3",
-        title: "هوک‌های سفارشی (Custom Hooks)",
-        duration: "۱۹:۱۵",
-        isLocked: true,
-      },
+      { id: "2-1", title: "مفهوم Closure و useState", duration: "۱۵:۰۰", isLocked: false },
+      { id: "2-2", title: "هوک useEffect و چرخه حیات", duration: "۲۲:۳۰", isLocked: false },
+      { id: "2-3", title: "هوک‌های سفارشی (Custom Hooks)", duration: "۱۹:۱۵", isLocked: true },
     ],
   },
   {
@@ -76,24 +50,9 @@ const MOCK_CHAPTERS: Chapter[] = [
     title: "معماری Next.js 14",
     subtitle: "رندرینگ سمت سرور و کلاینت",
     lessons: [
-      {
-        id: "3-1",
-        title: "معرفی App Router",
-        duration: "۱۴:۰۰",
-        isLocked: false,
-      },
-      {
-        id: "3-2",
-        title: "Server Components vs Client",
-        duration: "۲۰:۳۰",
-        isLocked: false,
-      },
-      {
-        id: "3-3",
-        title: "مسیریابی و Layouts",
-        duration: "۱۷:۴۵",
-        isLocked: true,
-      },
+      { id: "3-1", title: "معرفی App Router", duration: "۱۴:۰۰", isLocked: false },
+      { id: "3-2", title: "Server Components vs Client", duration: "۲۰:۳۰", isLocked: false },
+      { id: "3-3", title: "مسیریابی و Layouts", duration: "۱۷:۴۵", isLocked: true },
     ],
   },
   {
@@ -102,12 +61,7 @@ const MOCK_CHAPTERS: Chapter[] = [
     title: "API Routes و Data Fetching",
     subtitle: "ارتباط با سرور و دیتابیس",
     lessons: [
-      {
-        id: "4-1",
-        title: "Route Handlers",
-        duration: "۱۶:۲۰",
-        isLocked: false,
-      },
+      { id: "4-1", title: "Route Handlers", duration: "۱۶:۲۰", isLocked: false },
       { id: "4-2", title: "Server Actions", duration: "۲۳:۱۰", isLocked: true },
     ],
   },
@@ -116,14 +70,40 @@ const MOCK_CHAPTERS: Chapter[] = [
 interface CourseCurriculumProps {
   totalLessons?: number;
   chapters?: Chapter[];
+  activeLessonId?: string | null;
+  coursePurchased?: boolean;
+  onLessonSelect?: (lesson: Lesson, chapter: Chapter) => void;
+  onLockedLessonClick?: () => void;
 }
+
+const isLessonPlayable = (lesson: Lesson, coursePurchased: boolean) =>
+  coursePurchased ||
+  lesson.isUnlocked === true ||
+  lesson.isFreePreview === true ||
+  lesson.isFree === true ||
+  (typeof lesson.isLocked === "boolean" ? !lesson.isLocked : false);
 
 export default function CourseCurriculum({
   totalLessons = 120,
   chapters = MOCK_CHAPTERS,
+  activeLessonId = null,
+  coursePurchased = false,
+  onLessonSelect,
+  onLockedLessonClick,
 }: CourseCurriculumProps) {
   const [isCurriculumVisible, setIsCurriculumVisible] = useState(true);
   const [openChapterId, setOpenChapterId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!activeLessonId) return;
+    const activeChapter = chapters.find((chapter) =>
+      chapter.lessons.some((lesson) => lesson.id === activeLessonId)
+    );
+    if (activeChapter) {
+      setIsCurriculumVisible(true);
+      setOpenChapterId(activeChapter.id);
+    }
+  }, [activeLessonId, chapters]);
 
   const toggleChapter = (id: string) => {
     setOpenChapterId((prev) => (prev === id ? null : id));
@@ -142,14 +122,10 @@ export default function CourseCurriculum({
         >
           <div className="flex items-center gap-4">
             <span className="flex items-center justify-center size-14 rounded-3xl bg-primary/20 dark:bg-primary/30 text-primary group-hover:scale-110 transition-transform">
-              <span className="material-symbols-outlined filled text-3xl">
-                toc
-              </span>
+              <span className="material-symbols-outlined filled text-3xl">toc</span>
             </span>
             <div className="text-right">
-              <h2 className="text-xl font-black text-gray-900 dark:text-white">
-                سرفصل‌های آموزشی
-              </h2>
+              <h2 className="text-xl font-black text-gray-900 dark:text-white">سرفصل‌های آموزشی</h2>
               <span className="text-sm text-gray-600 dark:text-gray-400">
                 {chapters.length} فصل • {totalLessons} جلسه
               </span>
@@ -167,9 +143,7 @@ export default function CourseCurriculum({
     <section className="rounded-4xl overflow-hidden bg-white dark:bg-[#1c1e26]/90 border border-gray-200/80 dark:border-white/[0.06] shadow-learning-card-light dark:shadow-learning-card-dark">
       <div className="px-8 py-6 flex flex-wrap items-center justify-between gap-4 border-b border-gray-200/80 dark:border-white/[0.06]">
         <h2 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3">
-          <span className="material-symbols-outlined filled text-primary">
-            toc
-          </span>
+          <span className="material-symbols-outlined filled text-primary">toc</span>
           سرفصل‌های آموزشی
         </h2>
         <div className="flex flex-row-reverse items-center gap-3">
@@ -219,9 +193,7 @@ export default function CourseCurriculum({
                   <div className="min-w-0 pr-1">
                     <h3
                       className={`font-bold text-sm sm:text-base md:text-lg lg:text-xl mb-0.5 md:mb-1 transition-colors truncate ${
-                        isOpen
-                          ? "text-gray-900 dark:text-white white-space-normal"
-                          : "text-gray-900 dark:text-white group-hover:text-primary-dark"
+                        isOpen ? "text-gray-900 dark:text-white" : "text-gray-900 dark:text-white group-hover:text-primary-dark"
                       }`}
                     >
                       {chapter.title}
@@ -251,44 +223,53 @@ export default function CourseCurriculum({
               {isOpen && (
                 <div className="p-4 md:p-6 lg:p-8 bg-gray-50/80 dark:bg-white/5 backdrop-blur-sm border-t border-gray-200/80 dark:border-white/[0.06]">
                   <ul className="space-y-4 border-r-2 border-primary/30 pr-6 mr-3">
-                    {chapter.lessons.map((lesson) => (
-                      <li
-                        key={lesson.id}
-                        className={`flex items-center justify-between group/li ${
-                          lesson.isLocked ? "" : "cursor-pointer"
-                        }`}
-                      >
-                        <div
-                          className={`flex items-center gap-3 transition-colors ${
-                            lesson.isLocked
-                              ? "text-gray-500 dark:text-gray-500"
-                              : "text-gray-700 dark:text-gray-300 group-hover/li:text-gray-900 dark:group-hover/li:text-white"
+                    {chapter.lessons.map((lesson) => {
+                      const playable = isLessonPlayable(lesson, coursePurchased);
+                      const isActive = activeLessonId === lesson.id;
+
+                      return (
+                        <li
+                          key={lesson.id}
+                          className={`flex items-center justify-between group/li transition-all rounded-2xl px-3 py-2 ${
+                            isActive ? "bg-primary/10 dark:bg-primary/15 ring-1 ring-primary/30" : ""
                           }`}
                         >
-                          {lesson.isLocked ? (
-                            <span className="material-symbols-outlined text-gray-400 dark:text-gray-600 text-xl">
-                              lock
-                            </span>
-                          ) : (
-                            <span className="material-symbols-outlined text-primary text-xl">
-                              play_circle
-                            </span>
-                          )}
-                          <span className="font-bold text-sm">
-                            {lesson.title}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!playable) {
+                                onLockedLessonClick?.();
+                                return;
+                              }
+                              onLessonSelect?.(lesson, chapter);
+                            }}
+                            className={`flex items-center gap-3 transition-colors text-right ${
+                              playable
+                                ? "text-gray-700 dark:text-gray-300 group-hover/li:text-gray-900 dark:group-hover/li:text-white cursor-pointer"
+                                : "text-gray-500 dark:text-gray-500 cursor-not-allowed"
+                            }`}
+                            disabled={!playable}
+                          >
+                            {playable ? (
+                              <span className="material-symbols-outlined text-primary text-xl">play_circle</span>
+                            ) : (
+                              <span className="material-symbols-outlined text-gray-400 dark:text-gray-600 text-xl">lock</span>
+                            )}
+                            <span className="font-bold text-sm">{lesson.title}</span>
+                          </button>
+
+                          <span
+                            className={`text-xs font-bold px-2 py-1 rounded shrink-0 ${
+                              playable
+                                ? "bg-primary/10 dark:bg-white/10 text-primary"
+                                : "bg-gray-200/80 dark:bg-gray-800/50 text-gray-500 dark:text-gray-500"
+                            }`}
+                          >
+                            {playable ? lesson.duration : "قفل"}
                           </span>
-                        </div>
-                        <span
-                          className={`text-xs font-bold px-2 py-1 rounded ${
-                            lesson.isLocked
-                              ? "bg-gray-200/80 dark:bg-gray-800/50 text-gray-500 dark:text-gray-500"
-                              : "bg-primary/10 dark:bg-white/10 text-primary"
-                          }`}
-                        >
-                          {lesson.isLocked ? "قفل" : lesson.duration}
-                        </span>
-                      </li>
-                    ))}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               )}
@@ -299,4 +280,3 @@ export default function CourseCurriculum({
     </section>
   );
 }
-

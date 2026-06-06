@@ -67,7 +67,19 @@ const courses = [
     revenue: 3074000000,
     createdAt: "2026-01-24T08:30:00.000Z",
     chapters: [
-      { title: "مبانی CSS", lessons: [{ title: "Selectors" }, { title: "Box Model" }] },
+      {
+        title: "مبانی CSS",
+        lessons: [
+          {
+            title: "Selectors",
+            isFreePreview: true,
+            isLocked: false,
+            duration: "00:10",
+            videoUrl: "/videos/css-selectors-preview.mp4",
+          },
+          { title: "Box Model", isLocked: true },
+        ],
+      },
       { title: "Layout", lessons: [{ title: "Flexbox" }, { title: "Grid" }] },
     ],
   },
