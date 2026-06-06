@@ -58,7 +58,6 @@ export default function CourseHero({
   missingVideoMessage = "ویدیوی این بخش هنوز در دسترس نیست.",
 }: CourseHeroProps) {
   const [isVideoExpanded, setIsVideoExpanded] = useState(false);
-  const [fixedHeight, setFixedHeight] = useState<number | null>(null);
   
   // Use introVideo if provided, otherwise fallback to test video
   const activeVideoUrl = introVideo || (disableFallbackVideo ? "" : TEST_VIDEO_URL);
@@ -98,9 +97,6 @@ export default function CourseHero({
 
   const handleToggle = () => {
     if (disableFallbackVideo && !videoUrl) return;
-    if (!isVideoExpanded && gridRef.current) {
-      setFixedHeight(gridRef.current.offsetHeight);
-    }
     if (!isVideoExpanded && !videoError) {
       videoRef.current?.play().catch(() => {
         // Keep the player open if autoplay is blocked.
@@ -193,11 +189,12 @@ export default function CourseHero({
       <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent pointer-events-none" />
       <div
         ref={gridRef}
-        className="relative grid grid-cols-1 grid-rows-[auto_auto] lg:grid-cols-[minmax(0,var(--hero-col1,1fr))_1fr] lg:grid-rows-1 rounded-4xl bg-white/20 dark:bg-white/[0.03] overflow-hidden backdrop-blur-sm min-h-[500px] lg:min-h-[480px] transition-[grid-template-columns] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]"
+        className={`relative grid grid-cols-1 grid-rows-[auto_auto] lg:grid-cols-[minmax(0,var(--hero-col1,1fr))_1fr] lg:grid-rows-1 rounded-4xl bg-white/20 dark:bg-white/[0.03] overflow-hidden backdrop-blur-sm min-h-[500px] lg:min-h-[480px] transition-[grid-template-columns,height] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+          isVideoExpanded ? "aspect-video min-h-0 lg:min-h-0" : ""
+        }`}
         style={
           {
             "--hero-col1": isVideoExpanded ? "0fr" : "1fr",
-            ...(fixedHeight ? { height: fixedHeight } : {}),
           } as React.CSSProperties
         }
       >
@@ -256,7 +253,7 @@ export default function CourseHero({
         <div
           className={`video-fullscreen-container relative cursor-pointer overflow-hidden min-h-[400px] lg:min-h-0 row-start-1 group/video transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] w-full min-w-0 flex items-center justify-center bg-black ${
             isVideoExpanded
-              ? "rounded-4xl m-0"
+              ? "rounded-4xl m-0 aspect-video"
               : "rounded-4xl lg:rounded-l-none lg:rounded-r-4xl m-2 lg:m-0 lg:ml-2"
           }`}
         >
