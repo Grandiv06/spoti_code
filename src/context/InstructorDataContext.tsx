@@ -21,6 +21,26 @@ export interface Chapter {
   lessons: Lesson[];
 }
 
+export interface CourseFeature {
+  id: string;
+  title: string;
+  icon: string;
+  color: string;
+  description?: string;
+}
+
+export interface CourseFaq {
+  id: string;
+  question: string;
+  answer: string;
+}
+
+export interface CourseSpecialWords {
+  highlighted: string[];
+  underlined: string[];
+  color: string;
+}
+
 export interface CourseStudent {
   id: string;
   name: string;
@@ -112,6 +132,19 @@ export interface Course {
   objectives?: string[];
   prerequisites?: string[];
   targetAudience?: string[];
+  heroTitle?: string;
+  aboutTitle?: string;
+  aboutDescription?: string;
+  aboutHighlights?: string[];
+  features?: CourseFeature[];
+  faqs?: CourseFaq[];
+  specialWords?: CourseSpecialWords;
+  tags?: string[];
+  badges?: string[];
+  benefits?: string[];
+  publicDescription?: string;
+  visibility?: "public" | "private" | "unlisted";
+  needsReviewAfterChanges?: boolean;
 }
 
 export interface SaleTransaction {
@@ -629,6 +662,19 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
       objectives: newCourse.objectives || [],
       prerequisites: newCourse.prerequisites || [],
       targetAudience: newCourse.targetAudience || [],
+      heroTitle: newCourse.heroTitle || newCourse.title || "",
+      aboutTitle: newCourse.aboutTitle,
+      aboutDescription: newCourse.aboutDescription,
+      aboutHighlights: newCourse.aboutHighlights || [],
+      features: newCourse.features || [],
+      faqs: newCourse.faqs || [],
+      specialWords: newCourse.specialWords || { highlighted: [], underlined: [], color: "green" },
+      tags: newCourse.tags || [],
+      badges: newCourse.badges || [],
+      benefits: newCourse.benefits || [],
+      publicDescription: newCourse.publicDescription || newCourse.description || "",
+      visibility: newCourse.visibility || "public",
+      needsReviewAfterChanges: newCourse.needsReviewAfterChanges || false,
     };
     const updated = [prepared, ...courses];
     syncCourses(updated);

@@ -10,8 +10,9 @@ export interface CourseCardProps {
   instructor: string;
   instructorImg?: string;
   image: string;
+  difficulty?: string;
   hours: string;
-  students: string | number;
+  students?: string | number;
   price: string | number;
   alt?: string;
   viewHref?: string;
@@ -25,6 +26,7 @@ export default function CourseCard({
   instructor,
   instructorImg = "/images/inst1.jpg",
   image,
+  difficulty,
   hours,
   students,
   price,
@@ -46,14 +48,30 @@ export default function CourseCard({
       dir="rtl"
     >
       <div className="relative h-56 overflow-hidden rounded-t-4xl isolate">
-        <Image
-          src={image}
-          alt={title || alt}
-          fill
-          className="object-cover transform-gpu md:group-hover:scale-105 transition-transform duration-700 ease-out"
-        />
+        {image.startsWith("blob:") || image.startsWith("data:") ? (
+          // Blob/data URLs are used for local upload previews.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={image}
+            alt={title || alt}
+            className="h-full w-full object-cover transform-gpu md:group-hover:scale-105 transition-transform duration-700 ease-out"
+          />
+        ) : (
+          <Image
+            src={image}
+            alt={title || alt}
+            fill
+            className="object-cover transform-gpu md:group-hover:scale-105 transition-transform duration-700 ease-out"
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-60"></div>
-        <div className="absolute top-5 left-5 right-5 flex justify-between items-start z-20" />
+        <div className="absolute top-5 left-5 right-5 flex justify-between items-start z-20">
+          {difficulty && (
+            <span className="rounded-2xl border border-primary/20 bg-primary/15 px-3 py-1.5 text-xs font-black text-primary backdrop-blur-xl">
+              {difficulty}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="p-6 flex flex-col flex-1">
@@ -83,13 +101,17 @@ export default function CourseCard({
             </span>
             <span>{hours || "۰"} ساعت</span>
           </div>
-          <span>•</span>
-          <div className="flex items-center gap-1">
-            <span className="material-symbols-outlined text-[16px]">
-              groups
-            </span>
-            <span>{formattedStudents || "۰"} دانشجو</span>
-          </div>
+          {students !== undefined && (
+            <>
+              <span>•</span>
+              <div className="flex items-center gap-1">
+                <span className="material-symbols-outlined text-[16px]">
+                  groups
+                </span>
+                <span>{formattedStudents || "۰"} دانشجو</span>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="mt-auto flex items-center justify-between gap-4 pt-5 border-t border-gray-100/50 dark:border-white/5">

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import CourseCard from "@/app/components/CourseCard";
 import {
+  Award,
   BadgeCheck,
   Clock3,
   ExternalLink,

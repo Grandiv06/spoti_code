@@ -41,6 +41,71 @@ import {
 import { useInstructorData, Lesson } from "@/context/InstructorDataContext";
 import { cn } from "@/lib/utils";
 import InstructorQuestionsBoard from "@/components/instructor/InstructorQuestionsBoard";
+import CourseCard from "@/app/components/CourseCard";
+import CustomSelect from "@/components/ui/CustomSelect";
+import HighlightableTextareaWithBadges from "@/components/ui/HighlightableTextareaWithBadges";
+
+const FEATURE_ICON_OPTIONS = [
+  { value: "all_inclusive", label: "بینهایت / مادام‌العمر", icon: "all_inclusive" },
+  { value: "workspace_premium", label: "مدرک تحصیلی", icon: "workspace_premium" },
+  { value: "forum", label: "پشتیبانی / تالار", icon: "forum" },
+  { value: "video_library", label: "ویدیوی کلاسی", icon: "video_library" },
+  { value: "architecture", label: "پروژه‌محور", icon: "architecture" },
+] as const;
+
+type CourseCategory = "Frontend" | "Backend" | "DevOps" | "Mobile" | "UI/UX";
+type CourseLevel = "elementary" | "intermediate" | "advanced";
+type CourseStatus = "published" | "draft" | "pending" | "inactive";
+type SettingsFeature = {
+  id: string;
+  title: string;
+  icon: string;
+  color: string;
+  description?: string;
+};
+
+type SettingsFaq = {
+  id: string;
+  question: string;
+  answer: string;
+};
+
+type SettingsForm = {
+  title: string;
+  slug: string;
+  category: CourseCategory;
+  level: CourseLevel;
+  cover: string;
+  introVideo: string;
+  shortDescription: string;
+  description: string;
+  price: number;
+  discountPrice: number;
+  status: CourseStatus;
+  pricingType: "free" | "paid";
+  duration: string;
+  heroTitle: string;
+  introText: string;
+  specialWords: {
+    highlighted: string[];
+    underlined: string[];
+    color: string;
+  };
+  tags: string[];
+  badges: string[];
+  aboutTitle: string;
+  aboutDescription: string;
+  aboutHighlights: string[];
+  objectives: string[];
+  prerequisites: string[];
+  targetAudience: string[];
+  features: SettingsFeature[];
+  faqs: SettingsFaq[];
+  benefits: string[];
+  publicDescription: string;
+  visibility: "public" | "private" | "unlisted";
+  needsReviewAfterChanges: boolean;
+};
 
 const COURSE_ID_ALIASES: Record<string, string> = {
   html: "CRS-410",
@@ -79,12 +144,14 @@ export default function CourseDetailsPage() {
 
   // Current Active Tab
   const [activeTab, setActiveTab] = useState("overview");
+  const [activeSettingsSection, setActiveSettingsSection] = useState("card");
 
   // Read tab parameter from URL if present
   useEffect(() => {
     const tabParam = searchParams.get("tab");
     if (tabParam && ["overview", "content", "students", "reviews", "questions", "settings"].includes(tabParam)) {
-      setActiveTab(tabParam);
+      const timeoutId = window.setTimeout(() => setActiveTab(tabParam), 0);
+      return () => window.clearTimeout(timeoutId);
     }
   }, [searchParams]);
 
@@ -152,26 +219,86 @@ export default function CourseDetailsPage() {
   const [studentDateSort, setStudentDateSort] = useState("newest");
 
   // Local settings form state
-  const [settingsForm, setSettingsForm] = useState({
+  const [settingsForm, setSettingsForm] = useState<SettingsForm>({
     title: "",
+    slug: "",
+    category: "Frontend",
+    level: "intermediate",
+    cover: "",
+    introVideo: "",
     shortDescription: "",
     description: "",
     price: 0,
     discountPrice: 0,
-    status: "draft" as any,
+    status: "draft",
+    pricingType: "paid" as "free" | "paid",
+    duration: "",
+    heroTitle: "",
+    introText: "",
+    specialWords: { highlighted: [] as string[], underlined: [] as string[], color: "green" },
+    tags: [] as string[],
+    badges: [] as string[],
+    aboutTitle: "",
+    aboutDescription: "",
+    aboutHighlights: [] as string[],
+    objectives: [] as string[],
+    prerequisites: [] as string[],
+    targetAudience: [] as string[],
+    features: [] as { id: string; title: string; icon: string; color: string; description?: string }[],
+    faqs: [] as { id: string; question: string; answer: string }[],
+    benefits: [] as string[],
+    publicDescription: "",
+    visibility: "public",
+    needsReviewAfterChanges: false,
   });
+  const [settingsNewHighlightWord, setSettingsNewHighlightWord] = useState("");
+  const [settingsNewUnderlineWord, setSettingsNewUnderlineWord] = useState("");
+  const [settingsNewHighlight, setSettingsNewHighlight] = useState("");
+  const [settingsFeatureDraft, setSettingsFeatureDraft] = useState({
+    title: "",
+    icon: "all_inclusive",
+    color: "primary",
+  });
+  const [settingsEditingFeatureId, setSettingsEditingFeatureId] = useState<string | null>(null);
+  const [settingsOpenFaqId, setSettingsOpenFaqId] = useState<string | null>(null);
 
   // Load course details into settings form
   useEffect(() => {
     if (course) {
-      setSettingsForm({
+      const nextSettingsForm: SettingsForm = {
         title: course.title,
+        slug: course.slug,
+        category: course.category,
+        level: course.level,
+        cover: course.cover,
+        introVideo: course.introVideo || "",
         shortDescription: course.shortDescription,
         description: course.description,
         price: course.price,
         discountPrice: course.discountPrice || 0,
         status: course.status,
-      });
+        pricingType: course.price > 0 ? "paid" : "free",
+        duration: course.chapters.reduce((sum, ch) => sum + ch.lessons.length, 0).toLocaleString("fa-IR"),
+        heroTitle: course.heroTitle || course.title,
+        introText: course.introText || course.shortDescription,
+        specialWords: course.specialWords || { highlighted: [], underlined: [], color: "green" },
+        tags: course.tags || [],
+        badges: course.badges || [],
+        aboutTitle: course.aboutTitle || "درباره این دوره",
+        aboutDescription: course.aboutDescription || course.description,
+        aboutHighlights: course.aboutHighlights || [],
+        objectives: course.objectives || [],
+        prerequisites: course.prerequisites || [],
+        targetAudience: course.targetAudience || [],
+        features: course.features || [],
+        faqs: course.faqs || [],
+        benefits: course.benefits || [],
+        publicDescription: course.publicDescription || course.description,
+        visibility: course.visibility || "public",
+        needsReviewAfterChanges: course.needsReviewAfterChanges || false,
+      };
+      const timeoutId = window.setTimeout(() => setSettingsForm(nextSettingsForm), 0);
+      return () => window.clearTimeout(timeoutId);
     }
   }, [course]);
 
@@ -384,10 +511,381 @@ export default function CourseDetailsPage() {
     }
   };
 
+  const settingsSections: {
+    id: string;
+    label: string;
+    description: string;
+    icon: typeof GraduationCap;
+  }[] = [
+    {
+      id: "card",
+      label: "بخش اول: اطلاعات اولیه کارت دوره",
+      description: "نام، قیمت، سطح و کاور",
+      icon: GraduationCap,
+    },
+    {
+      id: "hero",
+      label: "بخش دوم: معرفی هیرو دوره",
+      description: "عنوان، کلمات ویژه و ویدیو",
+      icon: Sparkles,
+    },
+    {
+      id: "details",
+      label: "بخش سوم: جزئیات محتوای دوره",
+      description: "درباره، ویژگی‌ها و FAQ",
+      icon: Layers,
+    },
+  ];
+
+  const normalizeDigitsToEnglish = (value: string) => {
+    return value
+      .replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 1776))
+      .replace(/[٠-٩]/g, (digit) => String(digit.charCodeAt(0) - 1632));
+  };
+
+  const handleSettingsTitleChange = (value: string) => {
+    setSettingsForm((prev) => ({
+      ...prev,
+      title: value,
+      slug: prev.slug
+        ? prev.slug
+        : value
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-zA-Z0-9آ-ی\s]/g, "")
+            .replace(/\s+/g, "-"),
+    }));
+  };
+
+  const handleSettingsDurationChange = (value: string) => {
+    const digitsOnly = normalizeDigitsToEnglish(value).replace(/\D/g, "").replace(/^0+/, "");
+    setSettingsForm((prev) => ({ ...prev, duration: digitsOnly }));
+  };
+
+  const handleSettingsPriceChange = (value: string) => {
+    const digitsOnly = normalizeDigitsToEnglish(value).replace(/\D/g, "").replace(/^0+/, "");
+    setSettingsForm((prev) => ({ ...prev, price: digitsOnly ? Number(digitsOnly) : 0 }));
+  };
+
+  const addSettingsSpecialWord = (field: "highlighted" | "underlined") => {
+    const value = field === "highlighted" ? settingsNewHighlightWord.trim() : settingsNewUnderlineWord.trim();
+    if (!value || settingsForm.specialWords[field].includes(value)) return;
+
+    setSettingsForm((prev) => ({
+      ...prev,
+      specialWords: {
+        ...prev.specialWords,
+        [field]: [...prev.specialWords[field], value],
+      },
+    }));
+
+    if (field === "highlighted") setSettingsNewHighlightWord("");
+    else setSettingsNewUnderlineWord("");
+  };
+
+  const removeSettingsSpecialWord = (field: "highlighted" | "underlined", word: string) => {
+    setSettingsForm((prev) => ({
+      ...prev,
+      specialWords: {
+        ...prev.specialWords,
+        [field]: prev.specialWords[field].filter((item) => item !== word),
+      },
+    }));
+  };
+
+  const addSettingsHighlight = () => {
+    const value = settingsNewHighlight.trim();
+    if (!value || settingsForm.aboutHighlights.includes(value)) return;
+
+    setSettingsForm((prev) => ({
+      ...prev,
+      aboutHighlights: [...prev.aboutHighlights, value],
+    }));
+    setSettingsNewHighlight("");
+  };
+
+  const removeSettingsHighlight = (item: string) => {
+    setSettingsForm((prev) => ({
+      ...prev,
+      aboutHighlights: prev.aboutHighlights.filter((highlight) => highlight !== item),
+    }));
+  };
+
+  const addOrUpdateSettingsFeature = () => {
+    const title = settingsFeatureDraft.title.trim();
+    if (!title) return;
+
+    if (settingsEditingFeatureId) {
+      setSettingsForm((prev) => ({
+        ...prev,
+        features: prev.features.map((feature) =>
+          feature.id === settingsEditingFeatureId ? { ...feature, ...settingsFeatureDraft, title } : feature
+        ),
+      }));
+      setSettingsEditingFeatureId(null);
+    } else {
+      setSettingsForm((prev) => ({
+        ...prev,
+        features: [
+          ...prev.features,
+          {
+            id: `feat-${Math.random().toString(36).slice(2, 9)}`,
+            title,
+            icon: settingsFeatureDraft.icon,
+            color: settingsFeatureDraft.color,
+          },
+        ],
+      }));
+    }
+
+    setSettingsFeatureDraft({ title: "", icon: "all_inclusive", color: "primary" });
+  };
+
+  const editSettingsFeature = (feature: SettingsFeature) => {
+    setSettingsFeatureDraft({
+      title: feature.title,
+      icon: feature.icon,
+      color: feature.color,
+    });
+    setSettingsEditingFeatureId(feature.id);
+  };
+
+  const deleteSettingsFeature = (id: string) => {
+    setSettingsForm((prev) => ({
+      ...prev,
+      features: prev.features.filter((feature) => feature.id !== id),
+    }));
+    if (settingsEditingFeatureId === id) {
+      setSettingsEditingFeatureId(null);
+      setSettingsFeatureDraft({ title: "", icon: "all_inclusive", color: "primary" });
+    }
+  };
+
+  const addSettingsFaq = () => {
+    const id = `faq-${Math.random().toString(36).slice(2, 9)}`;
+    setSettingsForm((prev) => ({
+      ...prev,
+      faqs: [...prev.faqs, { id, question: "", answer: "" }],
+    }));
+    setSettingsOpenFaqId(id);
+  };
+
+  const updateSettingsFaq = (id: string, updates: Partial<SettingsFaq>) => {
+    setSettingsForm((prev) => ({
+      ...prev,
+      faqs: prev.faqs.map((faq) => (faq.id === id ? { ...faq, ...updates } : faq)),
+    }));
+  };
+
+  const deleteSettingsFaq = (id: string) => {
+    setSettingsForm((prev) => ({
+      ...prev,
+      faqs: prev.faqs.filter((faq) => faq.id !== id),
+    }));
+    if (settingsOpenFaqId === id) setSettingsOpenFaqId(null);
+  };
+
+  type TextListField = "tags" | "badges" | "aboutHighlights" | "objectives" | "prerequisites" | "targetAudience" | "benefits";
+
+  const addTextItem = (field: TextListField, fallback: string) => {
+    setSettingsForm((prev) => ({ ...prev, [field]: [...prev[field], fallback] }));
+  };
+
+  const updateTextItem = (field: TextListField, index: number, value: string) => {
+    setSettingsForm((prev) => ({
+      ...prev,
+      [field]: prev[field].map((item, idx) => (idx === index ? value : item)),
+    }));
+  };
+
+  const removeTextItem = (field: TextListField, index: number) => {
+    setSettingsForm((prev) => ({
+      ...prev,
+      [field]: prev[field].filter((_, idx) => idx !== index),
+    }));
+  };
+
+  const moveTextItem = (field: TextListField, index: number, direction: "up" | "down") => {
+    const target = direction === "up" ? index - 1 : index + 1;
+    const list = settingsForm[field];
+    if (target < 0 || target >= list.length) return;
+    const next = [...list];
+    const [moved] = next.splice(index, 1);
+    next.splice(target, 0, moved);
+    setSettingsForm((prev) => ({ ...prev, [field]: next }));
+  };
+
+  const updateSpecialWord = (field: "highlighted" | "underlined", index: number, value: string) => {
+    setSettingsForm((prev) => ({
+      ...prev,
+      specialWords: {
+        ...prev.specialWords,
+        [field]: prev.specialWords[field].map((item, idx) => (idx === index ? value : item)),
+      },
+    }));
+  };
+
+  const addSpecialWord = (field: "highlighted" | "underlined") => {
+    setSettingsForm((prev) => ({
+      ...prev,
+      specialWords: {
+        ...prev.specialWords,
+        [field]: [...prev.specialWords[field], field === "highlighted" ? "کلمه ویژه" : "کلمه خط‌دار"],
+      },
+    }));
+  };
+
+  const removeSpecialWord = (field: "highlighted" | "underlined", index: number) => {
+    setSettingsForm((prev) => ({
+      ...prev,
+      specialWords: {
+        ...prev.specialWords,
+        [field]: prev.specialWords[field].filter((_, idx) => idx !== index),
+      },
+    }));
+  };
+
+  const addFeatureItem = () => {
+    setSettingsForm((prev) => ({
+      ...prev,
+      features: [
+        ...prev.features,
+        { id: `FEAT-${Date.now()}`, title: "ویژگی جدید", icon: "star", color: "primary", description: "" },
+      ],
+    }));
+  };
+
+  const updateFeatureItem = (index: number, updates: Partial<SettingsFeature>) => {
+    setSettingsForm((prev) => ({
+      ...prev,
+      features: prev.features.map((item, idx) => (idx === index ? { ...item, ...updates } : item)),
+    }));
+  };
+
+  const removeFeatureItem = (index: number) => {
+    setSettingsForm((prev) => ({ ...prev, features: prev.features.filter((_, idx) => idx !== index) }));
+  };
+
+  const moveFeatureItem = (index: number, direction: "up" | "down") => {
+    const target = direction === "up" ? index - 1 : index + 1;
+    if (target < 0 || target >= settingsForm.features.length) return;
+    const next = [...settingsForm.features];
+    const [moved] = next.splice(index, 1);
+    next.splice(target, 0, moved);
+    setSettingsForm((prev) => ({ ...prev, features: next }));
+  };
+
+  const addFaqItem = () => {
+    setSettingsForm((prev) => ({
+      ...prev,
+      faqs: [...prev.faqs, { id: `FAQ-${Date.now()}`, question: "سوال جدید", answer: "پاسخ را اینجا بنویسید." }],
+    }));
+  };
+
+  const updateFaqItem = (index: number, updates: Partial<SettingsFaq>) => {
+    setSettingsForm((prev) => ({
+      ...prev,
+      faqs: prev.faqs.map((item, idx) => (idx === index ? { ...item, ...updates } : item)),
+    }));
+  };
+
+  const removeFaqItem = (index: number) => {
+    setSettingsForm((prev) => ({ ...prev, faqs: prev.faqs.filter((_, idx) => idx !== index) }));
+  };
+
+  const moveFaqItem = (index: number, direction: "up" | "down") => {
+    const target = direction === "up" ? index - 1 : index + 1;
+    if (target < 0 || target >= settingsForm.faqs.length) return;
+    const next = [...settingsForm.faqs];
+    const [moved] = next.splice(index, 1);
+    next.splice(target, 0, moved);
+    setSettingsForm((prev) => ({ ...prev, faqs: next }));
+  };
+
+  const handleSettingsMediaUpload = (field: "cover" | "introVideo", file?: File) => {
+    if (!file) return;
+    if (field === "cover") {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSettingsForm((prev) => ({ ...prev, cover: String(reader.result || prev.cover) }));
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+    setSettingsForm((prev) => ({ ...prev, introVideo: URL.createObjectURL(file) }));
+  };
+
   // Handle Settings Save
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
-    updateCourse(course.id, settingsForm);
+    const finalPrice = settingsForm.pricingType === "free" ? 0 : settingsForm.price;
+
+    updateCourse(course.id, {
+      title: settingsForm.title,
+      slug: settingsForm.slug,
+      category: settingsForm.category,
+      level: settingsForm.level,
+      cover: settingsForm.cover,
+      introVideo: settingsForm.introVideo || undefined,
+      status: settingsForm.status,
+      shortDescription: settingsForm.shortDescription,
+      description: settingsForm.aboutDescription,
+      price: finalPrice,
+      discountPrice: undefined,
+      heroTitle: settingsForm.heroTitle,
+      introText: settingsForm.shortDescription,
+      aboutTitle: settingsForm.aboutTitle,
+      aboutDescription: settingsForm.aboutDescription,
+      aboutHighlights: settingsForm.aboutHighlights,
+      publicDescription: settingsForm.aboutDescription,
+      objectives: settingsForm.aboutHighlights,
+      prerequisites: settingsForm.prerequisites,
+      targetAudience: settingsForm.targetAudience,
+      features: settingsForm.features,
+      faqs: settingsForm.faqs,
+      specialWords: settingsForm.specialWords,
+    });
+  };
+
+  const settingsInputClass =
+    "px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-right";
+
+  const renderSettingsHeader = (title: string, description: string) => (
+    <div className="space-y-1 border-b border-gray-100 dark:border-white/5 pb-4">
+      <h3 className="text-base font-black text-gray-900 dark:text-white">{title}</h3>
+      <p className="text-[11px] font-bold leading-6 text-gray-500 dark:text-gray-400">{description}</p>
+    </div>
+  );
+
+  const renderTextList = (field: TextListField, label: string, emptyText: string) => {
+    const list = settingsForm[field];
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <label className="text-xs font-black text-gray-800 dark:text-gray-200">{label}</label>
+          <button type="button" onClick={() => addTextItem(field, emptyText)} className="inline-flex items-center gap-1 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-[10px] font-black text-primary">
+            <Plus className="w-3.5 h-3.5" />
+            افزودن
+          </button>
+        </div>
+        {list.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-gray-200 dark:border-white/10 bg-gray-50/40 dark:bg-white/[0.03] px-4 py-6 text-center text-[11px] font-bold text-gray-400">
+            هنوز موردی ثبت نشده است.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {list.map((item, index) => (
+              <div key={`${field}-${index}`} className="flex items-center gap-2 rounded-2xl border border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.03] p-2">
+                <input value={item} onChange={(e) => updateTextItem(field, index, e.target.value)} className="flex-1 bg-transparent px-2 py-2 text-xs font-bold text-gray-900 dark:text-white focus:outline-none" />
+                <button type="button" onClick={() => moveTextItem(field, index, "up")} disabled={index === 0} className="size-8 rounded-xl border border-gray-200 dark:border-white/10 text-gray-400 disabled:opacity-30 inline-flex items-center justify-center"><ArrowUp className="w-3.5 h-3.5" /></button>
+                <button type="button" onClick={() => moveTextItem(field, index, "down")} disabled={index === list.length - 1} className="size-8 rounded-xl border border-gray-200 dark:border-white/10 text-gray-400 disabled:opacity-30 inline-flex items-center justify-center"><ArrowDown className="w-3.5 h-3.5" /></button>
+                <button type="button" onClick={() => removeTextItem(field, index)} className="size-8 rounded-xl border border-red-200 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500 inline-flex items-center justify-center"><Trash2 className="w-3.5 h-3.5" /></button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -995,95 +1493,842 @@ export default function CourseDetailsPage() {
           />
         )}
 
-        {/* --- TAB: SETTINGS & QUICK DETAILS EDIT --- */}
+        {/* --- TAB: SECTIONED COURSE SETTINGS EDITOR --- */}
         {activeTab === "settings" && (
-          <form onSubmit={handleSaveSettings} className="rounded-3xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md p-6 md:p-10 space-y-6 animate-in fade-in duration-300">
-            <h3 className="text-sm font-black text-gray-900 dark:text-white border-b border-gray-100 dark:border-white/5 pb-3">تنظیمات و تغییر وضعیت انتشار</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              {/* Title */}
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-gray-700 dark:text-gray-300">عنوان دوره</label>
-                <input
-                  type="text"
-                  required
-                  value={settingsForm.title}
-                  onChange={(e) => setSettingsForm((p) => ({ ...p, title: e.target.value }))}
-                  className="px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-2xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-right"
-                />
+          <form onSubmit={handleSaveSettings} className="rounded-3xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md p-5 md:p-8 animate-in fade-in duration-300">
+            <div className="mb-6 flex flex-col gap-3 border-b border-gray-100 dark:border-white/5 pb-5 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 className="text-lg font-black text-gray-900 dark:text-white">تنظیمات کامل دوره</h2>
+                <p className="mt-1 text-[11px] font-bold leading-6 text-gray-500 dark:text-gray-400">
+                  تمام بخش‌های دوره بعد از انتشار از همین صفحه مدیریت می‌شوند.
+                </p>
               </div>
-
-              {/* Status */}
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-gray-700 dark:text-gray-300">وضعیت دوره</label>
-                <select
-                  value={settingsForm.status}
-                  onChange={(e) => setSettingsForm((p) => ({ ...p, status: e.target.value as any }))}
-                  className="px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-2xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-right cursor-pointer"
-                >
-                  <option value="published">منتشر شده</option>
-                  <option value="draft">پیش‌نویس</option>
-                  <option value="pending">در انتظار بررسی</option>
-                  <option value="inactive">غیرفعال</option>
-                </select>
-              </div>
-
-              {/* Price */}
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-gray-700 dark:text-gray-300">قیمت اصلی دوره (تومان)</label>
-                <input
-                  type="number"
-                  value={settingsForm.price}
-                  onChange={(e) => setSettingsForm((p) => ({ ...p, price: Number(e.target.value) }))}
-                  className="px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-2xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-left"
-                  dir="ltr"
-                />
-              </div>
-
-              {/* Discount price */}
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-gray-700 dark:text-gray-300">قیمت با تخفیف (تومان)</label>
-                <input
-                  type="number"
-                  value={settingsForm.discountPrice || ""}
-                  onChange={(e) => setSettingsForm((p) => ({ ...p, discountPrice: Number(e.target.value) }))}
-                  className="px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-2xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-left"
-                  dir="ltr"
-                />
-              </div>
-
-            </div>
-
-            {/* Short Desc */}
-            <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold text-gray-700 dark:text-gray-300">توضیح کوتاه</label>
-              <textarea
-                rows={2}
-                value={settingsForm.shortDescription}
-                onChange={(e) => setSettingsForm((p) => ({ ...p, shortDescription: e.target.value }))}
-                className="px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-2xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-right"
-              />
-            </div>
-
-            {/* Full Desc */}
-            <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold text-gray-700 dark:text-gray-300">توضیحات کامل</label>
-              <textarea
-                rows={5}
-                value={settingsForm.description}
-                onChange={(e) => setSettingsForm((p) => ({ ...p, description: e.target.value }))}
-                className="px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-2xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-right leading-relaxed"
-              />
-            </div>
-
-            <div className="flex justify-end border-t border-gray-100 dark:border-white/5 pt-4">
-              <button
-                type="submit"
-                className="px-6 py-3.5 bg-primary text-white text-xs font-bold rounded-2xl shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform cursor-pointer"
-              >
-                ذخیره تغییرات تنظیمات
+              <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3 text-xs font-black text-white shadow-lg shadow-primary/20 transition-transform hover:scale-[1.02]">
+                <Check className="w-4 h-4" />
+                ذخیره همه تغییرات
               </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-[260px_minmax(0,1fr)]">
+              <aside className="h-fit rounded-2xl border border-gray-100 dark:border-white/5 bg-gray-50/60 dark:bg-white/[0.03] p-2 xl:sticky xl:top-24">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-1">
+                  {settingsSections.map((section) => {
+                    const Icon = section.icon;
+                    const isActive = activeSettingsSection === section.id;
+                    return (
+                      <button
+                        key={section.id}
+                        type="button"
+                        onClick={() => setActiveSettingsSection(section.id)}
+                        className={cn(
+                          "flex items-center justify-start gap-2 rounded-xl px-3 py-2.5 text-[10px] font-black transition-all",
+                          isActive
+                            ? "bg-primary text-white shadow-md shadow-primary/15"
+                            : "text-gray-500 hover:bg-white dark:hover:bg-white/5 dark:text-gray-400"
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {section.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </aside>
+
+              <div className="min-w-0 space-y-6">
+                {activeSettingsSection === "card" && (
+                  <section className="space-y-5">
+                    {renderSettingsHeader("اطلاعات اولیه کارت دوره", "این اطلاعات در لیست دوره‌ها و کارت کوچک دوره نمایش داده می‌شود.")}
+
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-bold text-gray-700 dark:text-gray-300">نام دوره <span className="text-red-500">*</span></label>
+                        <input
+                          type="text"
+                          placeholder="مثال: استایل‌دهی با CSS"
+                          value={settingsForm.title}
+                          onChange={(e) => handleSettingsTitleChange(e.target.value)}
+                          className={settingsInputClass}
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-bold text-gray-700 dark:text-gray-300">شناسه (Slug) دوره</label>
+                        <input
+                          type="text"
+                          placeholder="css-styling"
+                          value={settingsForm.slug}
+                          onChange={(e) => setSettingsForm((prev) => ({ ...prev, slug: e.target.value }))}
+                          className={`${settingsInputClass} text-left`}
+                          dir="ltr"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-bold text-gray-700 dark:text-gray-300">دسته‌بندی اصلی</label>
+                        <CustomSelect
+                          value={settingsForm.category}
+                          onChange={(value) => setSettingsForm((prev) => ({ ...prev, category: value as CourseCategory }))}
+                          options={[
+                            { value: "Frontend", label: "Frontend (فرانت‌اند)" },
+                            { value: "Backend", label: "Backend (بک‌اند)" },
+                            { value: "DevOps", label: "DevOps (دواپس)" },
+                            { value: "Mobile", label: "Mobile (موبایل)" },
+                            { value: "UI/UX", label: "UI/UX (رابط کاربری)" },
+                          ]}
+                          size="sm"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-bold text-gray-700 dark:text-gray-300">سطح آموزشی دوره</label>
+                        <CustomSelect
+                          value={settingsForm.level}
+                          onChange={(value) => setSettingsForm((prev) => ({ ...prev, level: value as CourseLevel }))}
+                          options={[
+                            { value: "elementary", label: "مقدماتی" },
+                            { value: "intermediate", label: "متوسط" },
+                            { value: "advanced", label: "پیشرفته" },
+                          ]}
+                          size="sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs font-bold text-gray-700 dark:text-gray-300">وضعیت قیمت دوره</label>
+                      <div className="grid grid-cols-2 gap-4">
+                        {[
+                          { id: "free", label: "رایگان" },
+                          { id: "paid", label: "نقدی (پولی)" },
+                        ].map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => setSettingsForm((prev) => ({ ...prev, pricingType: item.id as "free" | "paid" }))}
+                            className={cn(
+                              "rounded-xl border p-3 text-xs font-black transition-all",
+                              settingsForm.pricingType === item.id
+                                ? "border-primary bg-primary/10 text-primary"
+                                : "border-gray-200/60 bg-gray-50 text-gray-600 hover:border-primary/20 dark:border-white/5 dark:bg-white/5 dark:text-gray-400"
+                            )}
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-4 md:flex-row">
+                      <div className="flex flex-1 flex-col gap-2">
+                        <label className="text-xs font-bold text-gray-700 dark:text-gray-300">مدت زمان دوره <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            placeholder="18"
+                            value={settingsForm.duration}
+                            onChange={(e) => handleSettingsDurationChange(e.target.value)}
+                            className={`${settingsInputClass} w-full pl-14 text-left`}
+                            dir="ltr"
+                          />
+                          <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">ساعت</span>
+                        </div>
+                      </div>
+
+                      {settingsForm.pricingType === "paid" && (
+                        <div className="flex flex-1 flex-col gap-2">
+                          <label className="text-xs font-bold text-gray-700 dark:text-gray-300">قیمت دوره (به تومان) <span className="text-red-500">*</span></label>
+                          <div className="relative flex items-center" dir="ltr">
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              placeholder="1450000"
+                              value={settingsForm.price === 0 ? "" : String(settingsForm.price)}
+                              onChange={(e) => handleSettingsPriceChange(e.target.value)}
+                              className={`${settingsInputClass} w-full !pr-24 !text-left`}
+                              dir="ltr"
+                            />
+                            <span className="absolute right-4 text-xs font-bold text-gray-400">تومان</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col gap-3">
+                      <label className="text-xs font-bold text-gray-700 dark:text-gray-300">تصویر کاور دوره</label>
+                      <div className="group relative overflow-hidden rounded-2xl border-2 border-dashed border-gray-200/60 bg-gray-50/50 p-2.5 text-center transition-colors hover:border-primary/50 dark:border-white/5 dark:bg-white/5">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleSettingsMediaUpload("cover", e.target.files?.[0])}
+                          className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0"
+                        />
+                        <div className="relative min-h-[128px] overflow-hidden rounded-[1.15rem]">
+                          {settingsForm.cover ? (
+                            <>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={settingsForm.cover} alt="کاور دوره" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.01]" />
+                              <div className="absolute inset-0 bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/40 group-hover:opacity-100" />
+                              <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-all duration-300 group-hover:opacity-100">
+                                <div className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-4 py-2 text-xs font-black text-white backdrop-blur-md">
+                                  <UploadCloud className="h-4 w-4" />
+                                  تغییر کاور
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="flex min-h-[128px] flex-col items-center justify-center px-4 text-center">
+                              <UploadCloud className="mb-1.5 h-8 w-8 text-gray-400" />
+                              <p className="mb-1 text-[10px] font-black text-gray-700 dark:text-gray-300">انتخاب یا رها کردن تصویر کاور</p>
+                              <p className="text-[9px] font-bold text-gray-400">PNG, JPG حداکثر ۵ مگابایت (اندازه 16:9)</p>
+                            </div>
+                          )}
+                        </div>
+                        {settingsForm.cover && (
+                          <p className="mt-2 text-[10px] font-bold text-emerald-500">
+                            تصویر فعلی ذخیره شده است و با hover قابل تعویض است.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </section>
+                )}
+
+                {activeSettingsSection === "hero" && (
+                  <section className="space-y-5">
+                    {renderSettingsHeader("هیرو و معرفی دوره", "این جزئیات در ابتدای صفحه اختصاصی دوره قرار دارند و نرخ تبدیل دانشجو را می‌سازند.")}
+
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs font-bold text-gray-700 dark:text-gray-300">عنوان اصلی هیرو <span className="text-red-500">*</span></label>
+                      <input
+                        type="text"
+                        placeholder="مثال: متخصص React و Next.js"
+                        value={settingsForm.heroTitle}
+                        onChange={(e) => setSettingsForm((prev) => ({ ...prev, heroTitle: e.target.value }))}
+                        className={settingsInputClass}
+                      />
+                    </div>
+
+                    <div className="space-y-4 rounded-2xl border border-gray-100 bg-gray-50/50 p-4 dark:border-white/5 dark:bg-white/5">
+                      <span className="block text-xs font-black text-gray-900 dark:text-white">کلمات ویژه عنوان (Special Words)</span>
+
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div className="flex flex-col gap-2">
+                          <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400">کلمات سبز (Highlight)</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              placeholder="کلمه"
+                              value={settingsNewHighlightWord}
+                              onChange={(e) => setSettingsNewHighlightWord(e.target.value)}
+                              className="w-full rounded-xl border border-gray-200/60 bg-white px-3 py-2 text-right text-[10px] font-bold transition-all focus:border-primary focus:outline-none dark:border-white/5 dark:bg-white/5"
+                            />
+                            <button type="button" onClick={() => addSettingsSpecialWord("highlighted")} className="rounded-xl border border-primary/20 bg-primary/10 p-2 text-primary transition-all hover:bg-primary/20">
+                              <Plus className="h-4 w-4" />
+                            </button>
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {settingsForm.specialWords.highlighted.map((word) => (
+                              <span key={word} className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[9px] font-black text-emerald-500">
+                                {word}
+                                <button type="button" onClick={() => removeSettingsSpecialWord("highlighted", word)}>
+                                  <X className="h-3 w-3 text-red-500" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                          <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400">کلمات دارای خط زیرین (Underline)</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              placeholder="کلمه"
+                              value={settingsNewUnderlineWord}
+                              onChange={(e) => setSettingsNewUnderlineWord(e.target.value)}
+                              className="w-full rounded-xl border border-gray-200/60 bg-white px-3 py-2 text-right text-[10px] font-bold transition-all focus:border-primary focus:outline-none dark:border-white/5 dark:bg-white/5"
+                            />
+                            <button type="button" onClick={() => addSettingsSpecialWord("underlined")} className="rounded-xl border border-primary/20 bg-primary/10 p-2 text-primary transition-all hover:bg-primary/20">
+                              <Plus className="h-4 w-4" />
+                            </button>
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {settingsForm.specialWords.underlined.map((word) => (
+                              <span key={word} className="inline-flex items-center gap-1 rounded-lg border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-[9px] font-black text-blue-500">
+                                {word}
+                                <button type="button" onClick={() => removeSettingsSpecialWord("underlined", word)}>
+                                  <X className="h-3 w-3 text-red-500" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400">انتخاب رنگ هایلایت کلمات</label>
+                        <div className="flex flex-wrap gap-3">
+                          {[
+                            { name: "سبز برند", val: "green", className: "bg-primary" },
+                            { name: "سفید", val: "white", className: "bg-white border border-gray-200" },
+                            { name: "زرد طلایی", val: "yellow", className: "bg-amber-500" },
+                            { name: "آبی ملایم", val: "blue", className: "bg-blue-500" },
+                          ].map((color) => (
+                            <button
+                              type="button"
+                              key={color.val}
+                              onClick={() => setSettingsForm((prev) => ({ ...prev, specialWords: { ...prev.specialWords, color: color.val } }))}
+                              className={cn(
+                                "flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[10px] font-bold transition-all",
+                                settingsForm.specialWords.color === color.val
+                                  ? "border-primary bg-primary/10 text-primary"
+                                  : "border-transparent bg-white text-gray-500 hover:border-gray-200 dark:bg-white/5"
+                              )}
+                            >
+                              <span className={`h-3.5 w-3.5 rounded-full ${color.className}`} />
+                              {color.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs font-bold text-gray-700 dark:text-gray-300">توضیح کوتاه هیرو <span className="text-red-500">*</span></label>
+                      <textarea
+                        rows={3}
+                        placeholder="توضیح کوتاهی که در هیرو بالای صفحه قرار می‌گیرد..."
+                        value={settingsForm.shortDescription}
+                        onChange={(e) => setSettingsForm((prev) => ({ ...prev, shortDescription: e.target.value }))}
+                        className={`${settingsInputClass} leading-relaxed`}
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-3">
+                      <label className="text-xs font-bold text-gray-700 dark:text-gray-300">ویدیوی معرفی دوره</label>
+                      <div className="group relative overflow-hidden rounded-2xl border-2 border-dashed border-gray-200/60 bg-gray-50/50 p-3 text-center transition-colors hover:border-primary/50 dark:border-white/5 dark:bg-white/5">
+                        <input
+                          type="file"
+                          accept="video/*"
+                          onChange={(e) => handleSettingsMediaUpload("introVideo", e.target.files?.[0])}
+                          className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0"
+                        />
+                        {settingsForm.introVideo ? (
+                          <video controls src={settingsForm.introVideo} className="h-44 w-full rounded-[1.15rem] bg-black object-cover" />
+                        ) : (
+                          <div className="flex min-h-[110px] flex-col items-center justify-center gap-1.5">
+                            <UploadCloud className="h-8 w-8 text-gray-400" />
+                            <p className="text-[11px] font-black text-gray-700 dark:text-gray-300">انتخاب یا رها کردن ویدیوی پیش‌نمایش</p>
+                            <p className="text-[9px] font-bold text-gray-400">MP4, MKV حداکثر ۵۰ مگابایت</p>
+                          </div>
+                        )}
+                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/35 group-hover:opacity-100">
+                          <div className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-4 py-2 text-xs font-black text-white backdrop-blur-md">
+                            <UploadCloud className="h-4 w-4" />
+                            تغییر ویدیو
+                          </div>
+                        </div>
+                      </div>
+                      {settingsForm.introVideo && (
+                        <p className="text-[10px] font-bold text-emerald-500">ویدیوی معرفی ثبت شده است و با hover قابل تعویض است.</p>
+                      )}
+                    </div>
+                  </section>
+                )}
+
+                {activeSettingsSection === "details" && (
+                  <section className="space-y-5">
+                    {renderSettingsHeader("محتوای عمیق صفحه دوره", "در این مرحله ویژگی‌های متمایز، توضیحات درباره دوره و سوالات متداول را تعریف کنید.")}
+
+                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+                      <div className="space-y-4 rounded-2xl border border-gray-200/70 bg-gradient-to-b from-gray-50/50 to-gray-50/20 p-4 shadow-[0_10px_30px_-20px_rgba(0,0,0,0.5)] dark:border-white/10 dark:from-white/[0.07] dark:to-white/[0.03] md:p-5 xl:col-span-7">
+                        <span className="block border-b border-gray-200/70 pb-3 text-sm font-black text-gray-900 dark:border-white/10 dark:text-white">۱. بخش درباره این دوره</span>
+                        <div className="flex flex-col gap-2.5">
+                          <label className="text-xs font-bold text-gray-600 dark:text-gray-300">توضیحات درباره دوره (پاراگراف‌ها) <span className="text-red-500">*</span></label>
+                          <HighlightableTextareaWithBadges
+                            rows={5}
+                            placeholder="متن کامل درباره دوره، اهداف و شبیه‌سازی بازار کار..."
+                            value={settingsForm.aboutDescription}
+                            onChange={(value) => setSettingsForm((prev) => ({ ...prev, aboutDescription: value }))}
+                            highlights={settingsForm.aboutHighlights}
+                            onAddHighlight={(value) => {
+                              const normalizedValue = value.trim();
+                              if (!normalizedValue || settingsForm.aboutHighlights.includes(normalizedValue)) return;
+                              setSettingsForm((prev) => ({
+                                ...prev,
+                                aboutHighlights: [...prev.aboutHighlights, normalizedValue],
+                              }));
+                            }}
+                            onRemoveHighlight={removeSettingsHighlight}
+                            manualValue={settingsNewHighlight}
+                            onManualValueChange={setSettingsNewHighlight}
+                            onManualAdd={addSettingsHighlight}
+                            textareaClassName="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 text-right text-xs font-medium leading-7 transition-all focus:border-primary focus:outline-none dark:border-white/10 dark:bg-[#1a1c23]"
+                            inputClassName="w-full rounded-xl border border-gray-200/70 bg-white px-4 py-2.5 text-right text-[11px] font-bold transition-all focus:border-primary focus:outline-none dark:border-white/5 dark:bg-[#1a1c23]"
+                            addButtonClassName="inline-flex h-10 items-center justify-center gap-1 rounded-xl border border-primary/20 bg-primary/10 px-4 text-primary transition-all hover:bg-primary/20"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-4 rounded-2xl border border-gray-200/70 bg-gradient-to-b from-gray-50/50 to-gray-50/20 p-4 shadow-[0_10px_30px_-20px_rgba(0,0,0,0.5)] dark:border-white/10 dark:from-white/[0.07] dark:to-white/[0.03] md:p-5 xl:col-span-5">
+                        <span className="block border-b border-gray-200/70 pb-3 text-sm font-black text-gray-900 dark:border-white/10 dark:text-white">۲. ویژگی‌های متمایز دوره</span>
+                        <input
+                          type="text"
+                          placeholder="عنوان ویژگی (مثال: پشتیبانی اختصاصی تلگرام)"
+                          value={settingsFeatureDraft.title}
+                          onChange={(e) => setSettingsFeatureDraft((prev) => ({ ...prev, title: e.target.value }))}
+                          className="w-full rounded-xl border border-gray-200/70 bg-white px-4 py-2.5 text-right text-xs font-bold transition-all focus:border-primary focus:outline-none dark:border-white/10 dark:bg-[#1a1c23]"
+                        />
+                        <div className="grid grid-cols-1 gap-3">
+                          <CustomSelect
+                            label="انتخاب آیکون"
+                            value={settingsFeatureDraft.icon}
+                            onChange={(value) => setSettingsFeatureDraft((prev) => ({ ...prev, icon: value }))}
+                            options={FEATURE_ICON_OPTIONS.map(({ value, label }) => ({ value, label }))}
+                            size="sm"
+                            renderValue={(option) => (
+                              <span className="inline-flex items-center gap-2">
+                                <span className="material-symbols-outlined text-[18px] text-emerald-400">{FEATURE_ICON_OPTIONS.find((item) => item.value === option?.value)?.icon || "help"}</span>
+                                <span className="truncate font-bold">{option?.label || "انتخاب کنید..."}</span>
+                              </span>
+                            )}
+                            renderOption={(option, selected) => {
+                              const icon = FEATURE_ICON_OPTIONS.find((item) => item.value === option.value)?.icon || "help";
+                              return (
+                                <span className="flex w-full items-center justify-between gap-3">
+                                  <span className="inline-flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[18px] text-emerald-400">{icon}</span>
+                                    <span className="font-bold text-sm">{option.label}</span>
+                                  </span>
+                                  {selected ? <span className="material-symbols-outlined text-[16px]">check</span> : null}
+                                </span>
+                              );
+                            }}
+                          />
+                        </div>
+                        <button type="button" onClick={addOrUpdateSettingsFeature} className="flex w-full items-center justify-center gap-1 rounded-xl border border-primary/20 bg-primary/10 py-2 text-[10px] font-black text-primary transition-all hover:bg-primary/20">
+                          <Plus className="h-4 w-4" />
+                          {settingsEditingFeatureId ? "ویرایش و ذخیره ویژگی" : "افزودن ویژگی جدید"}
+                        </button>
+
+                        <div className="mt-2 max-h-[240px] space-y-2.5 overflow-y-auto pr-1">
+                          {settingsForm.features.map((feature) => (
+                            <div key={feature.id} className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-white p-2.5 text-[10px] font-bold dark:border-white/5 dark:bg-[#1a1c23]">
+                              <div className="flex items-center gap-2">
+                                <span className="material-symbols-outlined flex-shrink-0 text-base text-primary">{feature.icon}</span>
+                                <span>{feature.title}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <button type="button" onClick={() => editSettingsFeature(feature)} className="inline-flex size-8 items-center justify-center rounded-lg text-blue-500 hover:bg-gray-100 dark:hover:bg-white/5">
+                                  <span className="material-symbols-outlined text-[16px]">edit</span>
+                                </button>
+                                <button type="button" onClick={() => deleteSettingsFeature(feature.id)} className="inline-flex size-8 items-center justify-center rounded-lg text-red-500 hover:bg-gray-100 dark:hover:bg-white/5">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="overflow-hidden rounded-2xl border border-gray-200/70 bg-white dark:border-white/10 dark:bg-[#1c1e26]/80">
+                      <div className="flex items-center justify-between border-b border-gray-200/70 px-5 py-4 dark:border-white/10">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                            <HelpCircle className="h-4 w-4" />
+                          </span>
+                          <span className="text-base font-black text-gray-900 dark:text-white">۳. سوالات متداول</span>
+                        </div>
+                      </div>
+                      <div className="space-y-4 p-5">
+                        <button type="button" onClick={addSettingsFaq} className="flex w-full items-center justify-center gap-1 rounded-xl border border-primary/20 bg-primary/15 py-3 text-xs font-black text-primary transition-all hover:bg-primary/20">
+                          <Plus className="h-4 w-4" />
+                          افزودن سوال جدید
+                        </button>
+                        <div className="max-h-[300px] space-y-3 overflow-y-auto pr-1">
+                        {settingsForm.faqs.map((faq) => {
+                          const isOpen = settingsOpenFaqId === faq.id;
+                          return (
+                            <div key={faq.id} className="rounded-[2rem] border border-gray-200/90 bg-gray-50/70 transition-all dark:border-white/10 dark:bg-white/[0.03]">
+                              <div className="flex w-full items-center justify-between gap-3 px-6 py-5 text-right">
+                                {isOpen ? (
+                                  <input
+                                    autoFocus={faq.question.length === 0}
+                                    value={faq.question}
+                                    onChange={(e) => updateSettingsFaq(faq.id, { question: e.target.value })}
+                                    placeholder="سوال را همینجا بنویسید"
+                                    className="w-full bg-transparent text-sm font-bold text-gray-900 dark:text-white focus:outline-none"
+                                  />
+                                ) : (
+                                  <button type="button" onClick={() => setSettingsOpenFaqId(faq.id)} className="truncate text-right text-sm font-bold text-gray-900 dark:text-white">
+                                    {faq.question || "سوال بدون عنوان"}
+                                  </button>
+                                )}
+                                <div className="flex shrink-0 items-center gap-1.5">
+                                  <button type="button" onClick={() => deleteSettingsFaq(faq.id)} className="inline-flex size-9 items-center justify-center rounded-full bg-gray-100 text-red-500 transition-colors hover:bg-red-50 dark:bg-white/10 dark:hover:bg-red-500/10">
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button type="button" onClick={() => setSettingsOpenFaqId(isOpen ? null : faq.id)} className="inline-flex size-9 items-center justify-center rounded-full bg-gray-100 text-gray-500 dark:bg-white/10">
+                                    <ChevronDown className={`h-5 w-5 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                                  </button>
+                                </div>
+                              </div>
+                              {isOpen && (
+                                <div className="space-y-3 border-t border-gray-200/70 px-6 pb-5 pt-4 dark:border-white/10">
+                                  <textarea
+                                    value={faq.answer}
+                                    onChange={(e) => updateSettingsFaq(faq.id, { answer: e.target.value })}
+                                    placeholder="پاسخ را پایین بنویسید"
+                                    rows={4}
+                                    className={`${settingsInputClass} leading-7`}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                )}
+
+                {activeSettingsSection === "basic" && (
+                  <section className="space-y-6">
+                    {renderSettingsHeader("اطلاعات اصلی دوره", "نام، شناسه، دسته‌بندی، قیمت، کاور و توضیحات پایه دوره را ویرایش کنید.")}
+                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-bold text-gray-700 dark:text-gray-300">نام دوره</label>
+                        <input value={settingsForm.title} onChange={(e) => setSettingsForm((p) => ({ ...p, title: e.target.value }))} className={settingsInputClass} />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-bold text-gray-700 dark:text-gray-300">شناسه دوره / اسلاگ</label>
+                        <input value={settingsForm.slug} dir="ltr" onChange={(e) => setSettingsForm((p) => ({ ...p, slug: e.target.value }))} className={`${settingsInputClass} text-left`} />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-bold text-gray-700 dark:text-gray-300">دسته‌بندی اصلی</label>
+                        <select value={settingsForm.category} onChange={(e) => setSettingsForm((p) => ({ ...p, category: e.target.value as CourseCategory }))} className={settingsInputClass}>
+                          <option value="Frontend">فرانت‌اند</option>
+                          <option value="Backend">بک‌اند</option>
+                          <option value="DevOps">دواپس</option>
+                          <option value="Mobile">موبایل</option>
+                          <option value="UI/UX">رابط کاربری</option>
+                        </select>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-bold text-gray-700 dark:text-gray-300">سطح آموزشی دوره</label>
+                        <select value={settingsForm.level} onChange={(e) => setSettingsForm((p) => ({ ...p, level: e.target.value as CourseLevel }))} className={settingsInputClass}>
+                          <option value="elementary">مقدماتی</option>
+                          <option value="intermediate">متوسط</option>
+                          <option value="advanced">پیشرفته</option>
+                        </select>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-bold text-gray-700 dark:text-gray-300">نوع قیمت‌گذاری</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { id: "free", label: "رایگان" },
+                            { id: "paid", label: "نقدی" },
+                          ].map((item) => (
+                            <button key={item.id} type="button" onClick={() => setSettingsForm((p) => ({ ...p, pricingType: item.id as "free" | "paid" }))} className={cn("rounded-2xl border px-4 py-3 text-xs font-black transition-all", settingsForm.pricingType === item.id ? "border-primary bg-primary/10 text-primary" : "border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/5 text-gray-500")}>
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-bold text-gray-700 dark:text-gray-300">مدت زمان دوره</label>
+                        <input value={settingsForm.duration} onChange={(e) => setSettingsForm((p) => ({ ...p, duration: e.target.value }))} className={settingsInputClass} />
+                      </div>
+                      {settingsForm.pricingType === "paid" && (
+                        <>
+                          <div className="flex flex-col gap-2">
+                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">قیمت اصلی</label>
+                            <input type="number" value={settingsForm.price} dir="ltr" onChange={(e) => setSettingsForm((p) => ({ ...p, price: Number(e.target.value) }))} className={`${settingsInputClass} text-left`} />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">قیمت با تخفیف</label>
+                            <input type="number" value={settingsForm.discountPrice || ""} dir="ltr" onChange={(e) => setSettingsForm((p) => ({ ...p, discountPrice: Number(e.target.value) || 0 }))} className={`${settingsInputClass} text-left`} />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+                      <div className="space-y-5">
+                        <div className="flex flex-col gap-2">
+                          <label className="text-xs font-bold text-gray-700 dark:text-gray-300">توضیح کوتاه</label>
+                          <textarea rows={3} value={settingsForm.shortDescription} onChange={(e) => setSettingsForm((p) => ({ ...p, shortDescription: e.target.value }))} className={settingsInputClass} />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <label className="text-xs font-bold text-gray-700 dark:text-gray-300">توضیحات کامل</label>
+                          <textarea rows={6} value={settingsForm.description} onChange={(e) => setSettingsForm((p) => ({ ...p, description: e.target.value }))} className={`${settingsInputClass} leading-7`} />
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">تصویر کاور دوره</label>
+                        <div className="group relative overflow-hidden rounded-2xl border border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/5">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleSettingsMediaUpload("cover", e.target.files?.[0])}
+                            className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0"
+                          />
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={settingsForm.cover || course.cover} alt={settingsForm.title} className="h-44 w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" />
+                          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/35 group-hover:opacity-100">
+                            <div className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-4 py-2 text-xs font-black text-white backdrop-blur-md">
+                              <UploadCloud className="w-4 h-4" />
+                              تغییر کاور
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                )}
+
+                {activeSettingsSection === "intro" && (
+                  <section className="space-y-6">
+                    {renderSettingsHeader("معرفی و هویت دوره", "عنوان معرفی، کلمات ویژه، متن بازاریابی و ویدیوی معرفی را مدیریت کنید.")}
+                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                      <div className="flex flex-col gap-2 md:col-span-2">
+                        <label className="text-xs font-bold text-gray-700 dark:text-gray-300">عنوان اصلی معرفی دوره</label>
+                        <input value={settingsForm.heroTitle} onChange={(e) => setSettingsForm((p) => ({ ...p, heroTitle: e.target.value }))} className={settingsInputClass} />
+                      </div>
+                      <div className="space-y-3">
+                        {renderTextList("tags", "تگ‌ها و Badge های معرفی", "تگ جدید")}
+                      </div>
+                      <div className="space-y-3">
+                        <label className="text-xs font-black text-gray-800 dark:text-gray-200">رنگ کلمات ویژه</label>
+                        <select value={settingsForm.specialWords.color} onChange={(e) => setSettingsForm((p) => ({ ...p, specialWords: { ...p.specialWords, color: e.target.value } }))} className={settingsInputClass}>
+                          <option value="green">سبز</option>
+                          <option value="blue">آبی</option>
+                          <option value="yellow">زرد</option>
+                          <option value="pink">صورتی</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                      {(["highlighted", "underlined"] as const).map((field) => (
+                        <div key={field} className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-black text-gray-800 dark:text-gray-200">{field === "highlighted" ? "کلمات ویژه عنوان" : "کلمات خط‌دار عنوان"}</label>
+                            <button type="button" onClick={() => addSpecialWord(field)} className="rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-[10px] font-black text-primary">افزودن</button>
+                          </div>
+                          {settingsForm.specialWords[field].map((word, index) => (
+                            <div key={`${field}-${index}`} className="flex items-center gap-2 rounded-2xl border border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.03] p-2">
+                              <input value={word} onChange={(e) => updateSpecialWord(field, index, e.target.value)} className="flex-1 bg-transparent px-2 py-2 text-xs font-bold text-gray-900 dark:text-white focus:outline-none" />
+                              <button type="button" onClick={() => removeSpecialWord(field, index)} className="size-8 rounded-xl border border-red-200 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500 inline-flex items-center justify-center"><Trash2 className="w-3.5 h-3.5" /></button>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs font-bold text-gray-700 dark:text-gray-300">توضیح کوتاه معرفی دوره</label>
+                      <textarea rows={4} value={settingsForm.introText} onChange={(e) => setSettingsForm((p) => ({ ...p, introText: e.target.value }))} className={`${settingsInputClass} leading-7`} />
+                    </div>
+                    <div className="rounded-2xl border border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.03] p-4">
+                      <label className="mb-3 block text-xs font-bold text-gray-700 dark:text-gray-300">ویدیوی معرفی دوره</label>
+                      <div className="group relative overflow-hidden rounded-2xl border border-dashed border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5">
+                        <input
+                          type="file"
+                          accept="video/*"
+                          className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0"
+                          onChange={(e) => handleSettingsMediaUpload("introVideo", e.target.files?.[0])}
+                        />
+                        {settingsForm.introVideo ? (
+                          <video controls src={settingsForm.introVideo} className="h-72 w-full bg-black object-cover" />
+                        ) : (
+                          <div className="flex min-h-[180px] items-center justify-center px-4 py-8 text-xs font-black text-primary">
+                            <div className="flex flex-col items-center gap-2 text-center">
+                              <Video className="h-6 w-6" />
+                              <span>آپلود یا جایگزینی ویدیوی معرفی</span>
+                            </div>
+                          </div>
+                        )}
+                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/35 group-hover:opacity-100">
+                          <div className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-4 py-2 text-xs font-black text-white backdrop-blur-md">
+                            <UploadCloud className="h-4 w-4" />
+                            تغییر ویدیو
+                          </div>
+                        </div>
+                      </div>
+                      {settingsForm.introVideo && (
+                        <p className="mt-3 text-[10px] font-bold text-emerald-500">ویدیوی معرفی ثبت شده است و با hover قابل تعویض است.</p>
+                      )}
+                    </div>
+                  </section>
+                )}
+
+                {activeSettingsSection === "page" && (
+                  <section className="space-y-6">
+                    {renderSettingsHeader("محتوای صفحه دوره", "متن‌های قابل نمایش در صفحه عمومی دوره و مزیت‌های اصلی را تنظیم کنید.")}
+                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-bold text-gray-700 dark:text-gray-300">عنوان درباره این دوره</label>
+                        <input value={settingsForm.aboutTitle} onChange={(e) => setSettingsForm((p) => ({ ...p, aboutTitle: e.target.value }))} className={settingsInputClass} />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-bold text-gray-700 dark:text-gray-300">توضیحات قابل نمایش عمومی</label>
+                        <input value={settingsForm.publicDescription} onChange={(e) => setSettingsForm((p) => ({ ...p, publicDescription: e.target.value }))} className={settingsInputClass} />
+                      </div>
+                      <div className="flex flex-col gap-2 md:col-span-2">
+                        <label className="text-xs font-bold text-gray-700 dark:text-gray-300">درباره این دوره</label>
+                        <textarea rows={6} value={settingsForm.aboutDescription} onChange={(e) => setSettingsForm((p) => ({ ...p, aboutDescription: e.target.value }))} className={`${settingsInputClass} leading-7`} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                      {renderTextList("aboutHighlights", "نکات ویژه صفحه دوره", "نکته جدید")}
+                      {renderTextList("benefits", "مزیت‌های دوره", "مزیت جدید")}
+                      {renderTextList("badges", "Badge های دوره", "Badge جدید")}
+                    </div>
+                  </section>
+                )}
+
+                {activeSettingsSection === "features" && (
+                  <section className="space-y-6">
+                    {renderSettingsHeader("ویژگی‌ها و مزیت‌ها", "ویژگی‌های قابل نمایش دوره را اضافه، ویرایش، حذف یا مرتب کنید.")}
+                    <div className="flex justify-end">
+                      <button type="button" onClick={addFeatureItem} className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-3 text-xs font-black text-white"><Plus className="w-4 h-4" />افزودن ویژگی جدید</button>
+                    </div>
+                    {settingsForm.features.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-gray-200 dark:border-white/10 bg-gray-50/40 dark:bg-white/[0.03] px-4 py-10 text-center text-xs font-bold text-gray-400">هنوز ویژگی‌ای ثبت نشده است.</div>
+                    ) : (
+                      <div className="space-y-3">
+                        {settingsForm.features.map((feature, index) => (
+                          <div key={feature.id} className="rounded-2xl border border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.03] p-4">
+                            <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+                              <input value={feature.title} onChange={(e) => updateFeatureItem(index, { title: e.target.value })} placeholder="عنوان ویژگی" className={settingsInputClass} />
+                              <input value={feature.icon} onChange={(e) => updateFeatureItem(index, { icon: e.target.value })} placeholder="آیکون" className={settingsInputClass} />
+                              <input value={feature.color} onChange={(e) => updateFeatureItem(index, { color: e.target.value })} placeholder="رنگ" className={settingsInputClass} />
+                              <div className="flex gap-2">
+                                <button type="button" onClick={() => moveFeatureItem(index, "up")} disabled={index === 0} className="size-11 rounded-xl border border-gray-200 dark:border-white/10 text-gray-400 disabled:opacity-30 inline-flex items-center justify-center"><ArrowUp className="w-4 h-4" /></button>
+                                <button type="button" onClick={() => moveFeatureItem(index, "down")} disabled={index === settingsForm.features.length - 1} className="size-11 rounded-xl border border-gray-200 dark:border-white/10 text-gray-400 disabled:opacity-30 inline-flex items-center justify-center"><ArrowDown className="w-4 h-4" /></button>
+                                <button type="button" onClick={() => removeFeatureItem(index)} className="size-11 rounded-xl border border-red-200 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500 inline-flex items-center justify-center"><Trash2 className="w-4 h-4" /></button>
+                              </div>
+                              <textarea value={feature.description || ""} onChange={(e) => updateFeatureItem(index, { description: e.target.value })} placeholder="توضیح ویژگی" rows={2} className={`${settingsInputClass} md:col-span-4`} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                )}
+
+                {activeSettingsSection === "faq" && (
+                  <section className="space-y-6">
+                    {renderSettingsHeader("سوالات متداول", "سوال و پاسخ‌های صفحه دوره را به شکل آکاردئونی مدیریت کنید.")}
+                    <div className="flex justify-end">
+                      <button type="button" onClick={addFaqItem} className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-3 text-xs font-black text-white"><Plus className="w-4 h-4" />افزودن سوال جدید</button>
+                    </div>
+                    {settingsForm.faqs.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-gray-200 dark:border-white/10 bg-gray-50/40 dark:bg-white/[0.03] px-4 py-10 text-center text-xs font-bold text-gray-400">هنوز سوالی ثبت نشده است.</div>
+                    ) : (
+                      <div className="space-y-3">
+                        {settingsForm.faqs.map((faq, index) => (
+                          <details key={faq.id} className="rounded-2xl border border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.03] p-4" open={index === 0}>
+                            <summary className="cursor-pointer text-xs font-black text-gray-900 dark:text-white">{faq.question || "سوال بدون عنوان"}</summary>
+                            <div className="mt-4 grid grid-cols-1 gap-3">
+                              <input value={faq.question} onChange={(e) => updateFaqItem(index, { question: e.target.value })} placeholder="سوال" className={settingsInputClass} />
+                              <textarea value={faq.answer} onChange={(e) => updateFaqItem(index, { answer: e.target.value })} placeholder="پاسخ" rows={4} className={`${settingsInputClass} leading-7`} />
+                              <div className="flex justify-end gap-2">
+                                <button type="button" onClick={() => moveFaqItem(index, "up")} disabled={index === 0} className="size-9 rounded-xl border border-gray-200 dark:border-white/10 text-gray-400 disabled:opacity-30 inline-flex items-center justify-center"><ArrowUp className="w-4 h-4" /></button>
+                                <button type="button" onClick={() => moveFaqItem(index, "down")} disabled={index === settingsForm.faqs.length - 1} className="size-9 rounded-xl border border-gray-200 dark:border-white/10 text-gray-400 disabled:opacity-30 inline-flex items-center justify-center"><ArrowDown className="w-4 h-4" /></button>
+                                <button type="button" onClick={() => removeFaqItem(index)} className="size-9 rounded-xl border border-red-200 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500 inline-flex items-center justify-center"><Trash2 className="w-4 h-4" /></button>
+                              </div>
+                            </div>
+                          </details>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                )}
+
+                {activeSettingsSection === "content" && (
+                  <section className="space-y-6">
+                    {renderSettingsHeader("فصل‌ها، جلسات و ویدیوها", "محتوای آموزشی با ابزار کامل مدیریت فصل و جلسه در تب محتوای دوره ویرایش می‌شود.")}
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                      <div className="rounded-2xl border border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.03] p-5">
+                        <p className="text-2xl font-black text-gray-900 dark:text-white">{course.chapters.length.toLocaleString("fa-IR")}</p>
+                        <p className="mt-1 text-[11px] font-bold text-gray-400">فصل ثبت‌شده</p>
+                      </div>
+                      <div className="rounded-2xl border border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.03] p-5">
+                        <p className="text-2xl font-black text-gray-900 dark:text-white">{lessonsCount.toLocaleString("fa-IR")}</p>
+                        <p className="mt-1 text-[11px] font-bold text-gray-400">جلسه آموزشی</p>
+                      </div>
+                      <div className="rounded-2xl border border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.03] p-5">
+                        <p className="text-2xl font-black text-gray-900 dark:text-white">{course.chapters.flatMap((ch) => ch.lessons).filter((les) => les.isFree).length.toLocaleString("fa-IR")}</p>
+                        <p className="mt-1 text-[11px] font-bold text-gray-400">جلسه پیش‌نمایش رایگان</p>
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-primary/15 bg-primary/5 p-5">
+                      <p className="text-xs font-bold leading-7 text-gray-700 dark:text-gray-300">
+                        برای افزودن، حذف، آپلود ویدیو، ضمیمه، توضیح جلسه و مرتب‌سازی فصل‌ها از مدیریت محتوای دوره استفاده کنید. همان ابزار داخل این صفحه فعال است و داده‌ها جداگانه حفظ می‌شوند.
+                      </p>
+                      <button type="button" onClick={() => setActiveTab("content")} className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-3 text-xs font-black text-white">
+                        رفتن به مدیریت فصل‌ها و جلسات
+                        <ArrowRight className="w-4 h-4 rotate-180" />
+                      </button>
+                    </div>
+                  </section>
+                )}
+
+                {activeSettingsSection === "lists" && (
+                  <section className="space-y-6">
+                    {renderSettingsHeader("پیش‌نیازها، مخاطبین و خروجی‌ها", "لیست‌های آموزشی اصلی دوره را مدیریت کنید.")}
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                      {renderTextList("prerequisites", "پیش‌نیازهای دوره", "پیش‌نیاز جدید")}
+                      {renderTextList("targetAudience", "مخاطبین هدف دوره", "مخاطب جدید")}
+                      {renderTextList("objectives", "خروجی‌های یادگیری", "خروجی جدید")}
+                    </div>
+                  </section>
+                )}
+
+                {activeSettingsSection === "publish" && (
+                  <section className="space-y-6">
+                    {renderSettingsHeader("تنظیمات انتشار و نمایش", "وضعیت انتشار، نمایش عمومی و نیاز به بررسی ادمین را کنترل کنید.")}
+                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-bold text-gray-700 dark:text-gray-300">وضعیت دوره</label>
+                        <select value={settingsForm.status} onChange={(e) => setSettingsForm((p) => ({ ...p, status: e.target.value as CourseStatus }))} className={settingsInputClass}>
+                          <option value="published">منتشر شده</option>
+                          <option value="draft">پیش‌نویس</option>
+                          <option value="pending">در انتظار بررسی</option>
+                          <option value="inactive">غیرفعال</option>
+                        </select>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-bold text-gray-700 dark:text-gray-300">وضعیت نمایش عمومی</label>
+                        <select value={settingsForm.visibility} onChange={(e) => setSettingsForm((p) => ({ ...p, visibility: e.target.value as SettingsForm["visibility"] }))} className={settingsInputClass}>
+                          <option value="public">عمومی</option>
+                          <option value="unlisted">فقط با لینک</option>
+                          <option value="private">خصوصی</option>
+                        </select>
+                      </div>
+                      <label className="flex items-center justify-between gap-4 rounded-2xl border border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.03] p-4 md:col-span-2">
+                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300">بعد از تغییرات مهم، دوره نیازمند بررسی ادمین باشد</span>
+                        <input type="checkbox" checked={settingsForm.needsReviewAfterChanges} onChange={(e) => setSettingsForm((p) => ({ ...p, needsReviewAfterChanges: e.target.checked }))} className="h-5 w-5 accent-primary" />
+                      </label>
+                    </div>
+                    <div className="max-w-[360px]">
+                      <CourseCard
+                        title={settingsForm.title}
+                        instructor="مدرس اسپاتی‌کد"
+                        image={settingsForm.cover || course.cover}
+                        hours={settingsForm.duration || "۰"}
+                        price={settingsForm.pricingType === "free" ? "رایگان" : settingsForm.discountPrice || settingsForm.price}
+                        disableViewNavigation
+                      />
+                    </div>
+                  </section>
+                )}
+              </div>
             </div>
           </form>
         )}
@@ -1125,7 +2370,7 @@ export default function CourseDetailsPage() {
                   <label className="text-xs font-bold text-gray-700 dark:text-gray-300">نوع محتوا</label>
                   <select
                     value={newLessonData.type}
-                    onChange={(e) => setNewLessonData((p) => ({ ...p, type: e.target.value as any }))}
+                    onChange={(e) => setNewLessonData((p) => ({ ...p, type: e.target.value as Lesson["type"] }))}
                     className="px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-right cursor-pointer"
                   >
                     <option value="video">ویدیو آموزشی</option>

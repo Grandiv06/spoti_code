@@ -29,6 +29,15 @@ import CourseCard from "@/app/components/CourseCard";
 import CourseHero from "@/app/components/CourseHero";
 import CourseFAQ from "@/app/components/CourseFAQ";
 import CustomSelect from "@/components/ui/CustomSelect";
+import HighlightableTextareaWithBadges from "@/components/ui/HighlightableTextareaWithBadges";
+
+const FEATURE_ICON_OPTIONS = [
+  { value: "all_inclusive", label: "بینهایت / مادام‌العمر", icon: "all_inclusive" },
+  { value: "workspace_premium", label: "مدرک تحصیلی", icon: "workspace_premium" },
+  { value: "forum", label: "پشتیبانی / تالار", icon: "forum" },
+  { value: "video_library", label: "ویدیوی کلاسی", icon: "video_library" },
+  { value: "architecture", label: "پروژه‌محور", icon: "architecture" },
+] as const;
 
 export default function CreateCourseWizardPage() {
   const router = useRouter();
@@ -51,7 +60,6 @@ export default function CreateCourseWizardPage() {
   // Unified Wizard State
   const [formData, setFormData] = useState({
     title: "",
-    slug: "",
     category: "Frontend",
     level: "intermediate",
     language: "فارسی",
@@ -109,6 +117,7 @@ export default function CreateCourseWizardPage() {
   // Upload Progress Simulators
   const [coverProgress, setCoverProgress] = useState(0);
   const [coverFile, setCoverFile] = useState<File | null>(null);
+  const coverObjectUrlRef = React.useRef<string | null>(null);
   const [videoProgress, setVideoProgress] = useState(0);
   const [videoFile, setVideoFile] = useState<File | null>(null);
 
@@ -119,7 +128,6 @@ export default function CreateCourseWizardPage() {
   // Custom Feature Editor Input
   const [featTitle, setFeatTitle] = useState("");
   const [featIcon, setFeatIcon] = useState("all_inclusive");
-  const [featColor, setFeatColor] = useState("primary");
   const [editingFeatId, setEditingFeatId] = useState<string | null>(null);
 
   // Custom Chapter Editor Input
@@ -168,17 +176,11 @@ export default function CreateCourseWizardPage() {
   const [newHighlightWord, setNewHighlightWord] = useState("");
   const [newUnderlineWord, setNewUnderlineWord] = useState("");
 
-  // Auto generate slug from title
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setFormData((prev) => ({
       ...prev,
       title: val,
-      slug: val
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-zA-Z0-9آ-ی\s]/g, "")
-        .replace(/\s+/g, "-"),
     }));
   };
 
@@ -220,17 +222,22 @@ export default function CreateCourseWizardPage() {
   const handleCoverUploadSimulate = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (coverObjectUrlRef.current) {
+        URL.revokeObjectURL(coverObjectUrlRef.current);
+        coverObjectUrlRef.current = null;
+      }
       setCoverFile(file);
+      const previewUrl = URL.createObjectURL(file);
+      coverObjectUrlRef.current = previewUrl;
+      setFormData((prev) => ({
+        ...prev,
+        cover: previewUrl,
+      }));
       setCoverProgress(10);
       const interval = setInterval(() => {
         setCoverProgress((prev) => {
           if (prev >= 100) {
             clearInterval(interval);
-            // mock cover image conversion
-            setFormData((prevData) => ({
-              ...prevData,
-              cover: "https://images.unsplash.com/photo-1516116211223-5c359a36298a?q=80&w=600&auto=format&fit=crop",
-            }));
             return 100;
           }
           return prev + 15;
@@ -238,6 +245,15 @@ export default function CreateCourseWizardPage() {
       }, 80);
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (coverObjectUrlRef.current) {
+        URL.revokeObjectURL(coverObjectUrlRef.current);
+        coverObjectUrlRef.current = null;
+      }
+    };
+  }, []);
 
   const handleVideoUploadSimulate = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -267,7 +283,7 @@ export default function CreateCourseWizardPage() {
     if (editingFeatId) {
       setFormData(prev => ({
         ...prev,
-        features: prev.features.map(f => f.id === editingFeatId ? { ...f, title: featTitle, icon: featIcon, color: featColor } : f)
+        features: prev.features.map(f => f.id === editingFeatId ? { ...f, title: featTitle, icon: featIcon } : f)
       }));
       setEditingFeatId(null);
     } else {
@@ -275,7 +291,7 @@ export default function CreateCourseWizardPage() {
         id: `feat-${Math.random().toString(36).substr(2, 9)}`,
         title: featTitle,
         icon: featIcon,
-        color: featColor
+        color: "primary"
       };
       setFormData(prev => ({ ...prev, features: [...prev.features, newFeat] }));
     }
@@ -289,7 +305,6 @@ export default function CreateCourseWizardPage() {
   const editFeature = (feat: any) => {
     setFeatTitle(feat.title);
     setFeatIcon(feat.icon);
-    setFeatColor(feat.color);
     setEditingFeatId(feat.id);
   };
 
@@ -746,7 +761,6 @@ export default function CreateCourseWizardPage() {
     // Construct partial course object
     const finalCoursePayload = {
       title: formData.title,
-      slug: formData.slug,
       cover: formData.cover || "https://images.unsplash.com/photo-1516116211223-5c359a36298a?q=80&w=600&auto=format&fit=crop",
       introVideo: formData.introVideo || undefined,
       status: status,
@@ -879,7 +893,7 @@ export default function CreateCourseWizardPage() {
             
             {/* STEP 1: INITIAL CARD DETAILS */}
             {step === 1 && (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div>
                   <h2 className="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
                     <span className="w-2 h-6 bg-primary rounded-full" />
@@ -890,10 +904,10 @@ export default function CreateCourseWizardPage() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   
                   {/* Title */}
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2.5 sm:col-span-2">
                     <label className="text-xs font-bold text-gray-700 dark:text-gray-300">نام دوره <span className="text-red-500">*</span></label>
                     <input
                       type="text"
@@ -905,21 +919,23 @@ export default function CreateCourseWizardPage() {
                     {errors.title && <span className="text-[10px] text-red-500 font-bold">{errors.title}</span>}
                   </div>
 
-                  {/* Slug */}
-                  <div className="flex flex-col gap-2">
-                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300">شناسه (Slug) دوره</label>
-                    <input
-                      type="text"
-                      placeholder="css-styling"
-                      value={formData.slug}
-                      onChange={(e) => setFormData((p) => ({ ...p, slug: e.target.value }))}
-                      className="px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-left"
-                      dir="ltr"
+                  {/* Level */}
+                  <div className="flex flex-col gap-2.5">
+                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300">سطح آموزشی دوره</label>
+                    <CustomSelect
+                      value={formData.level}
+                      onChange={(value) => setFormData((p) => ({ ...p, level: value }))}
+                      options={[
+                        { value: "elementary", label: "مقدماتی" },
+                        { value: "intermediate", label: "متوسط" },
+                        { value: "advanced", label: "پیشرفته" },
+                      ]}
+                      size="sm"
                     />
                   </div>
 
                   {/* Category */}
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2.5">
                     <label className="text-xs font-bold text-gray-700 dark:text-gray-300">دسته‌بندی اصلی</label>
                     <CustomSelect
                       value={formData.category}
@@ -935,25 +951,10 @@ export default function CreateCourseWizardPage() {
                     />
                   </div>
 
-                  {/* Level */}
-                  <div className="flex flex-col gap-2">
-                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300">سطح آموزشی دوره</label>
-                    <CustomSelect
-                      value={formData.level}
-                      onChange={(value) => setFormData((p) => ({ ...p, level: value }))}
-                      options={[
-                        { value: "elementary", label: "مقدماتی" },
-                        { value: "intermediate", label: "متوسط" },
-                        { value: "advanced", label: "پیشرفته" },
-                      ]}
-                      size="sm"
-                    />
-                  </div>
-
                 </div>
 
                 {/* Free / Paid Toggle */}
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2.5">
                   <label className="text-xs font-bold text-gray-700 dark:text-gray-300">وضعیت قیمت دوره</label>
                   <div className="grid grid-cols-2 gap-4">
                     <button
@@ -984,8 +985,8 @@ export default function CreateCourseWizardPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="flex flex-col gap-2.5">
                     <label className="text-xs font-bold text-gray-700 dark:text-gray-300">مدت زمان دوره <span className="text-red-500">*</span></label>
                     <div className="relative">
                       <input
@@ -1005,7 +1006,7 @@ export default function CreateCourseWizardPage() {
                   </div>
 
                   {formData.isPaid === "paid" && (
-                    <div className="flex flex-col gap-2 animate-in slide-in-from-top-4 duration-300">
+                    <div className="flex flex-col gap-2.5 animate-in slide-in-from-top-4 duration-300">
                       <label className="text-xs font-bold text-gray-700 dark:text-gray-300">قیمت دوره (به تومان) <span className="text-red-500">*</span></label>
                       <div className="relative flex items-center">
                         <input
@@ -1026,9 +1027,9 @@ export default function CreateCourseWizardPage() {
                 </div>
 
                 {/* Cover Image Upload (Mock) */}
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-3.5">
                   <label className="text-xs font-bold text-gray-700 dark:text-gray-300">تصویر کاور دوره</label>
-                  <div className="relative border-2 border-dashed border-gray-200/60 dark:border-white/5 rounded-2xl p-4 flex flex-col items-center justify-center bg-gray-50/50 dark:bg-white/5 min-h-[130px] text-center hover:border-primary/50 transition-colors">
+                  <div className="relative border-2 border-dashed border-gray-200/60 dark:border-white/5 rounded-2xl p-5 flex flex-col items-center justify-center bg-gray-50/50 dark:bg-white/5 min-h-[170px] text-center hover:border-primary/50 transition-colors">
                     <input
                       type="file"
                       accept="image/*"
@@ -1072,6 +1073,10 @@ export default function CreateCourseWizardPage() {
                             e.stopPropagation();
                             setCoverProgress(0);
                             setCoverFile(null);
+                            if (coverObjectUrlRef.current) {
+                              URL.revokeObjectURL(coverObjectUrlRef.current);
+                              coverObjectUrlRef.current = null;
+                            }
                             setFormData((p) => ({ ...p, cover: "" }));
                           }}
                           className="absolute top-2 left-2 p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors z-30 cursor-pointer"
@@ -1297,46 +1302,30 @@ export default function CreateCourseWizardPage() {
                   
                   <div className="flex flex-col gap-2.5">
                     <label className="text-xs font-bold text-gray-600 dark:text-gray-300">توضیحات درباره دوره (پاراگراف‌ها) <span className="text-red-500">*</span></label>
-                    <textarea
+                    <HighlightableTextareaWithBadges
                       rows={5}
                       placeholder="متن کامل درباره دوره، اهداف و شبیه‌سازی بازار کار..."
                       value={formData.aboutDescription}
-                      onChange={(e) => setFormData(p => ({ ...p, aboutDescription: e.target.value }))}
-                      className={`px-4 py-3.5 bg-white dark:bg-[#1a1c23] border ${errors.aboutDescription ? "border-red-500" : "border-gray-200/70 dark:border-white/10"} rounded-2xl text-xs font-medium focus:border-primary focus:outline-none transition-all text-right leading-7`}
+                      onChange={(value) => setFormData(p => ({ ...p, aboutDescription: value }))}
+                      highlights={formData.aboutHighlights}
+                      onAddHighlight={(value) => {
+                        const normalizedValue = value.trim();
+                        if (!normalizedValue || formData.aboutHighlights.includes(normalizedValue)) return;
+                        setFormData((prev) => ({
+                          ...prev,
+                          aboutHighlights: [...prev.aboutHighlights, normalizedValue],
+                        }));
+                      }}
+                      onRemoveHighlight={(item) => openDeleteConfirm("حذف عبارت هایلایت", "آیا مطمئن هستید که می‌خواهید این عبارت حذف شود؟", () => removeHighlightItem(item))}
+                      manualValue={newHighlight}
+                      onManualValueChange={setNewHighlight}
+                      onManualAdd={addHighlightItem}
+                      error={errors.aboutDescription}
+                      textareaClassName={`px-4 py-3.5 bg-white dark:bg-[#1a1c23] border ${errors.aboutDescription ? "border-red-500" : "border-gray-200/70 dark:border-white/10"} rounded-2xl text-xs font-medium focus:border-primary focus:outline-none transition-all text-right leading-7`}
+                      inputClassName="w-full px-4 py-2.5 bg-white dark:bg-[#1a1c23] border border-gray-200/70 dark:border-white/5 rounded-xl text-[11px] font-bold focus:border-primary focus:outline-none transition-all text-right"
+                      addButtonClassName="h-10 px-4 sm:px-3 bg-primary/10 text-primary border border-primary/20 rounded-xl hover:bg-primary/20 transition-all cursor-pointer inline-flex items-center justify-center gap-1"
+                      removeButtonClassName="cursor-pointer"
                     />
-                    {errors.aboutDescription && <span className="text-[10px] text-red-500 font-bold">{errors.aboutDescription}</span>}
-                  </div>
-
-                  {/* Highlights (badges inside text) */}
-                  <div className="flex flex-col gap-3 p-4 rounded-2xl bg-white/80 dark:bg-[#171a22] border border-gray-200/70 dark:border-white/10">
-                    <label className="text-xs font-bold text-gray-600 dark:text-gray-300">عبارت‌های هایلایت شده داخل متن (Badge)</label>
-                    <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-center">
-                      <input
-                        type="text"
-                        placeholder="مثال: طرز تفکر مهندسی"
-                        value={newHighlight}
-                        onChange={(e) => setNewHighlight(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-white dark:bg-[#1a1c23] border border-gray-200/70 dark:border-white/5 rounded-xl text-[11px] font-bold focus:border-primary focus:outline-none transition-all text-right"
-                      />
-                      <button
-                        type="button"
-                        onClick={addHighlightItem}
-                        className="h-10 px-4 sm:px-3 bg-primary/10 text-primary border border-primary/20 rounded-xl hover:bg-primary/20 transition-all cursor-pointer inline-flex items-center justify-center gap-1"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span className="text-[10px] font-black sm:hidden">افزودن</span>
-                      </button>
-                    </div>
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      {formData.aboutHighlights.map((item, idx) => (
-                        <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-500 text-[10px] font-black rounded-xl border border-emerald-500/20">
-                          {item}
-                          <button type="button" onClick={() => openDeleteConfirm("حذف عبارت هایلایت", "آیا مطمئن هستید که می‌خواهید این عبارت حذف شود؟", () => removeHighlightItem(item))} className="cursor-pointer">
-                            <X className="w-3.5 h-3.5 text-red-500" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
                   </div>
                 </div>
 
@@ -1357,38 +1346,33 @@ export default function CreateCourseWizardPage() {
                       />
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {/* Icon options */}
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400">انتخاب آیکون</label>
-                        <select
-                          value={featIcon}
-                          onChange={(e) => setFeatIcon(e.target.value)}
-                          className="px-3 py-2.5 bg-white dark:bg-[#1a1c23] border border-gray-200/70 dark:border-white/10 rounded-xl text-[10px] font-bold text-right cursor-pointer"
-                        >
-                          <option value="all_inclusive">بینهایت (مادام‌العمر)</option>
-                          <option value="workspace_premium">مدرک تحصیلی</option>
-                          <option value="forum">پشتیبانی / تالار</option>
-                          <option value="video_library">ویدیو کلاسی</option>
-                          <option value="architecture">پروژه‌محور</option>
-                        </select>
-                      </div>
-
-                      {/* Color options */}
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400">رنگ آیکون</label>
-                        <select
-                          value={featColor}
-                          onChange={(e) => setFeatColor(e.target.value)}
-                          className="px-3 py-2.5 bg-white dark:bg-[#1a1c23] border border-gray-200/70 dark:border-white/10 rounded-xl text-[10px] font-bold text-right cursor-pointer"
-                        >
-                          <option value="primary">سبز برند</option>
-                          <option value="blue-500">آبی اقیانوسی</option>
-                          <option value="purple-500">بنفش رویال</option>
-                          <option value="amber-500">طلایی امتیاز</option>
-                          <option value="red-500">قرمز هشدار</option>
-                        </select>
-                      </div>
+                    <div className="grid grid-cols-1 gap-3">
+                      <CustomSelect
+                        label="انتخاب آیکون"
+                        value={featIcon}
+                        onChange={setFeatIcon}
+                        options={FEATURE_ICON_OPTIONS.map(({ value, label }) => ({ value, label }))}
+                        size="sm"
+                        className="space-y-1.5"
+                        renderValue={(option) => (
+                          <span className="inline-flex items-center gap-2">
+                            <span className="material-symbols-outlined text-[18px] text-emerald-400">{FEATURE_ICON_OPTIONS.find((item) => item.value === option?.value)?.icon || "help"}</span>
+                            <span className="truncate font-bold">{option?.label || "انتخاب کنید..."}</span>
+                          </span>
+                        )}
+                        renderOption={(option, selected) => {
+                          const icon = FEATURE_ICON_OPTIONS.find((item) => item.value === option.value)?.icon || "help";
+                          return (
+                            <span className="flex w-full items-center justify-between gap-3">
+                              <span className="inline-flex items-center gap-2">
+                                <span className="material-symbols-outlined text-[18px] text-emerald-400">{icon}</span>
+                                <span className="font-bold text-sm">{option.label}</span>
+                              </span>
+                              {selected ? <span className="material-symbols-outlined text-[16px]">check</span> : null}
+                            </span>
+                          );
+                        }}
+                      />
                     </div>
 
                     <button
@@ -1403,18 +1387,18 @@ export default function CreateCourseWizardPage() {
 
                   <div className="space-y-2.5 max-h-[240px] overflow-y-auto mt-2 pr-1">
                     {formData.features.map((feat) => (
-                      <div key={feat.id} className="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#1a1c23] border border-gray-100 dark:border-white/5 text-[10px] font-bold">
+                      <div key={feat.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-white dark:bg-[#1a1c23] border border-gray-100 dark:border-white/5 text-[10px] font-bold">
                         <div className="flex items-center gap-2">
                           <span className={`material-symbols-outlined text-base flex-shrink-0 text-${feat.color === 'primary' ? 'primary' : feat.color}`}>
                             {feat.icon}
                           </span>
                           <span>{feat.title}</span>
                         </div>
-                        <div className="flex gap-1.5">
-                          <button type="button" onClick={() => editFeature(feat)} className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 rounded text-blue-500">
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button type="button" onClick={() => editFeature(feat)} className="inline-flex size-8 items-center justify-center rounded-lg text-blue-500 hover:bg-gray-100 dark:hover:bg-white/5">
                             <span className="material-symbols-outlined text-[16px]">edit</span>
                           </button>
-                          <button type="button" onClick={() => openDeleteConfirm("حذف ویژگی", "آیا مطمئن هستید که می‌خواهید این ویژگی حذف شود؟", () => deleteFeature(feat.id))} className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 rounded text-red-500">
+                          <button type="button" onClick={() => openDeleteConfirm("حذف ویژگی", "آیا مطمئن هستید که می‌خواهید این ویژگی حذف شود؟", () => deleteFeature(feat.id))} className="inline-flex size-8 items-center justify-center rounded-lg text-red-500 hover:bg-gray-100 dark:hover:bg-white/5">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>

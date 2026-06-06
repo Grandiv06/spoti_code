@@ -21,6 +21,8 @@ interface CustomSelectProps {
   icon?: React.ReactNode;
   variant?: "default" | "primary";
   size?: "sm" | "md";
+  renderOption?: (option: Option, selected: boolean) => React.ReactNode;
+  renderValue?: (option?: Option) => React.ReactNode;
 }
 
 export default function CustomSelect({
@@ -33,7 +35,9 @@ export default function CustomSelect({
   error,
   icon,
   variant = "default",
-  size = "md"
+  size = "md",
+  renderOption,
+  renderValue
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -88,7 +92,7 @@ export default function CustomSelect({
               </span>
             )}
             <span className={cn("truncate", !selectedOption && variant === "default" && "text-gray-400 font-medium")}>
-              {selectedOption ? selectedOption.label : placeholder}
+              {renderValue ? renderValue(selectedOption) : (selectedOption ? selectedOption.label : placeholder)}
             </span>
           </div>
           <ChevronDown 
@@ -131,7 +135,9 @@ export default function CustomSelect({
                           : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5"
                       )}
                     >
-                      <span className="font-bold text-sm">{option.label}</span>
+                      {renderOption ? renderOption(option, isSelected) : (
+                        <span className="font-bold text-sm">{option.label}</span>
+                      )}
                       {isSelected && (
                         <motion.div
                           initial={{ scale: 0 }}
