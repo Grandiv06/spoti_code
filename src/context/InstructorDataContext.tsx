@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState } from "react";
 
 // --- TYPES ---
 export interface Lesson {
@@ -171,15 +171,28 @@ export interface InstructorProfile {
   name: string;
   specialty: string;
   displayName: string;
+  headline: string;
+  location: string;
   email: string;
   phone: string;
   bio: string;
+  fullBiography: string;
+  teachingStyle: string;
+  professionalBackground: string;
   avatar: string;
+  coverImage: string;
+  yearsOfExperience: string;
+  skills: string[];
   socials: {
     linkedin?: string;
     github?: string;
     telegram?: string;
     website?: string;
+  };
+  publicVisibility: {
+    email: boolean;
+    phone: boolean;
+    socials: boolean;
   };
 }
 
@@ -208,7 +221,18 @@ interface InstructorDataContextType {
   updateLesson: (courseId: string, chapterId: string, lessonId: string, updates: Partial<Lesson>) => void;
   deleteLesson: (courseId: string, chapterId: string, lessonId: string) => void;
   replyToReview: (courseId: string, reviewId: string, text: string) => void;
-  replyToQuestion: (questionId: string, text: string, attachments?: any[]) => void;
+  replyToQuestion: (
+    questionId: string,
+    text: string,
+    attachments?: {
+      id: string;
+      name: string;
+      size: number;
+      type: string;
+      previewUrl?: string;
+      caption?: string;
+    }[]
+  ) => void;
   requestPayout: (amount: number, shaba: string) => boolean;
   updateProfile: (profile: InstructorProfile) => void;
 }
@@ -233,15 +257,31 @@ const initialProfile: InstructorProfile = {
   name: "اصغر رضایی",
   displayName: "استاد رضایی",
   specialty: "مدرس ارشد فرانت‌اند و فریم‌ورک‌های جاوااسکریپت",
+  headline: "معمار فرانت‌اند و مدرس پروژه‌محور",
+  location: "تهران، ایران",
   email: "a.rezaei@spoticode.com",
   phone: "۰۹۱۲۳۴۵۶۷۸۹",
   bio: "بیش از ۱۰ سال سابقه توسعه نرم‌افزار در شرکت‌های بزرگ داخلی و خارجی، عاشق تدریس جاوااسکریپت، ری‌اکت و لبه‌های تکنولوژی وب.",
+  fullBiography:
+    "من روی آموزش پروژه‌محور و انتقال تجربه واقعی بازار کار تمرکز دارم. هدفم این است که دانشجو فقط syntax یاد نگیرد، بلکه بتواند معماری، تصمیم‌گیری فنی و اجرای محصول واقعی را هم مدیریت کند.",
+  teachingStyle:
+    "دقیق، مرحله‌ای و همراه با مثال‌های واقعی. هر مفهوم با تمرین و سناریوی پروژه‌ای جمع‌بندی می‌شود.",
+  professionalBackground:
+    "سابقه همکاری با تیم‌های محصول، استارتاپ‌ها و پروژه‌های سازمانی در حوزه فرانت‌اند، معماری رابط کاربری و performance.",
   avatar: "",
+  coverImage: "",
+  yearsOfExperience: "۱۰+ سال",
+  skills: ["JavaScript", "React", "Next.js", "TypeScript", "Tailwind CSS"],
   socials: {
     linkedin: "linkedin.com/in/arezaei",
     github: "github.com/arezaei",
     telegram: "t.me/arezaei_dev",
     website: "rezaei.dev",
+  },
+  publicVisibility: {
+    email: true,
+    phone: true,
+    socials: true,
   },
 };
 
@@ -538,62 +578,36 @@ const initialPayouts: PayoutRequest[] = [
 // --- PROVIDER IMPLEMENTATION ---
 const InstructorDataContext = createContext<InstructorDataContextType | undefined>(undefined);
 
+function readStoredValue<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  const raw = localStorage.getItem(key);
+  if (!raw) return fallback;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
 export function InstructorDataProvider({ children }: { children: React.ReactNode }) {
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [questions, setQuestions] = useState<StudentQuestion[]>([]);
-  const [transactions, setTransactions] = useState<SaleTransaction[]>([]);
-  const [payouts, setPayouts] = useState<PayoutRequest[]>([]);
-  const [profile, setProfile] = useState<InstructorProfile>(initialProfile);
+  const [courses, setCourses] = useState<Course[]>(() => {
+    const stored = readStoredValue<Course[]>("spoticode_inst_courses", initialCourses);
+    return stored.map(normalizeCourseRecord);
+  });
+  const [questions, setQuestions] = useState<StudentQuestion[]>(() =>
+    readStoredValue<StudentQuestion[]>("spoticode_inst_questions", initialQuestions)
+  );
+  const [transactions] = useState<SaleTransaction[]>(() =>
+    readStoredValue<SaleTransaction[]>("spoticode_inst_transactions", initialTransactions)
+  );
+  const [payouts, setPayouts] = useState<PayoutRequest[]>(() =>
+    readStoredValue<PayoutRequest[]>("spoticode_inst_payouts", initialPayouts)
+  );
+  const [profile, setProfile] = useState<InstructorProfile>(() =>
+    readStoredValue<InstructorProfile>("spoticode_inst_profile", initialProfile)
+  );
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // LocalStorage sync on mount
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const storedCourses = localStorage.getItem("spoticode_inst_courses");
-      const storedQuestions = localStorage.getItem("spoticode_inst_questions");
-      const storedTransactions = localStorage.getItem("spoticode_inst_transactions");
-      const storedPayouts = localStorage.getItem("spoticode_inst_payouts");
-      const storedProfile = localStorage.getItem("spoticode_inst_profile");
-
-      if (storedCourses) {
-        const parsed = JSON.parse(storedCourses) as Course[];
-        const normalized = parsed.map(normalizeCourseRecord);
-        setCourses(normalized);
-        localStorage.setItem("spoticode_inst_courses", JSON.stringify(normalized));
-      }
-      else {
-        setCourses(initialCourses);
-        localStorage.setItem("spoticode_inst_courses", JSON.stringify(initialCourses));
-      }
-
-      if (storedQuestions) setQuestions(JSON.parse(storedQuestions));
-      else {
-        setQuestions(initialQuestions);
-        localStorage.setItem("spoticode_inst_questions", JSON.stringify(initialQuestions));
-      }
-
-      if (storedTransactions) setTransactions(JSON.parse(storedTransactions));
-      else {
-        setTransactions(initialTransactions);
-        localStorage.setItem("spoticode_inst_transactions", JSON.stringify(initialTransactions));
-      }
-
-      if (storedPayouts) setPayouts(JSON.parse(storedPayouts));
-      else {
-        setPayouts(initialPayouts);
-        localStorage.setItem("spoticode_inst_payouts", JSON.stringify(initialPayouts));
-      }
-
-      if (storedProfile) setProfile(JSON.parse(storedProfile));
-      else {
-        setProfile(initialProfile);
-        localStorage.setItem("spoticode_inst_profile", JSON.stringify(initialProfile));
-      }
-
-      setIsLoading(false);
-    }
-  }, []);
+  const isLoading = false;
 
   // Sync helpers
   const syncCourses = (data: Course[]) => {
@@ -604,11 +618,6 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
   const syncQuestions = (data: StudentQuestion[]) => {
     setQuestions(data);
     localStorage.setItem("spoticode_inst_questions", JSON.stringify(data));
-  };
-
-  const syncTransactions = (data: SaleTransaction[]) => {
-    setTransactions(data);
-    localStorage.setItem("spoticode_inst_transactions", JSON.stringify(data));
   };
 
   const syncPayouts = (data: PayoutRequest[]) => {
@@ -861,7 +870,18 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
   };
 
   // Questions replies
-  const replyToQuestion = (questionId: string, text: string, attachments?: any[]) => {
+  const replyToQuestion = (
+    questionId: string,
+    text: string,
+    attachments?: {
+      id: string;
+      name: string;
+      size: number;
+      type: string;
+      previewUrl?: string;
+      caption?: string;
+    }[]
+  ) => {
     const updated = questions.map((q) => {
       if (q.id === questionId) {
         return {

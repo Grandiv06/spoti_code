@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { apiPost } from "@/lib/api";
+import { useCart } from "@/context/CartContext";
 
 type CourseOrderPayload = {
   id: string;
@@ -15,6 +15,7 @@ export default function AddToCartButton({ course }: { course: CourseOrderPayload
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { addToCart } = useCart();
 
   const handleRegister = async () => {
     if (isSubmitting || isSuccess) return;
@@ -22,7 +23,13 @@ export default function AddToCartButton({ course }: { course: CourseOrderPayload
     setIsSubmitting(true);
     setErrorMessage(null);
     try {
-      await apiPost("/api/orders", { courseId: course.id });
+      addToCart({
+        id: course.id,
+        title: course.title,
+        price: course.price,
+        image: course.image,
+        instructor: course.instructor,
+      });
       setIsSuccess(true);
     } catch {
       setErrorMessage("ثبت‌نام انجام نشد. لطفاً دوباره تلاش کنید.");

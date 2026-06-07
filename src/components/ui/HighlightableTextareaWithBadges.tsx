@@ -55,7 +55,6 @@ export default function HighlightableTextareaWithBadges({
   textareaClassName = "",
   inputClassName = "",
   addButtonClassName = "",
-  removeButtonClassName = "",
 }: HighlightableTextareaWithBadgesProps) {
   const fieldId = useId();
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -188,7 +187,7 @@ export default function HighlightableTextareaWithBadges({
                 onClick={handleHighlightClick}
                 className="rounded-lg bg-emerald-500/10 px-2.5 py-1 text-[10px] font-black text-emerald-400 transition-colors hover:bg-emerald-500/20"
               >
-                هایلایت
+                Highlight
               </button>
             </div>
           </div>
@@ -243,15 +242,15 @@ export default function HighlightableTextareaWithBadges({
         </div>
         <div className="flex flex-wrap gap-2 pt-1">
           {highlights.map((item) => (
-            <span
+            <button
               key={item}
+              type="button"
+              onClick={() => onRemoveHighlight(item)}
               className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-[10px] font-black text-emerald-500"
             >
               {item}
-              <button type="button" onClick={() => onRemoveHighlight(item)} className={removeButtonClassName}>
-                <X className="h-3.5 w-3.5 text-red-500" />
-              </button>
-            </span>
+              <X className="h-3.5 w-3.5 text-red-500" />
+            </button>
           ))}
         </div>
       </div>

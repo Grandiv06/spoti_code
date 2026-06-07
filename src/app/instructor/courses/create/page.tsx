@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   DndContext,
@@ -73,6 +73,44 @@ type ChapterModel = {
   title: string;
   subtitle: string;
   lessons: LessonModel[];
+};
+
+type FeatureModel = {
+  id: string;
+  title: string;
+  icon: string;
+  color: string;
+};
+
+type FAQModel = {
+  id: string;
+  question: string;
+  answer: string;
+};
+
+type WizardFormData = {
+  title: string;
+  category: string;
+  level: string;
+  language: string;
+  duration: string;
+  price: number;
+  isPaid: "free" | "paid";
+  cover: string;
+  introVideo: string;
+  shortDescription: string;
+  heroTitle: string;
+  specialWords: {
+    highlighted: string[];
+    underlined: string[];
+    color: string;
+  };
+  aboutTitle: string;
+  aboutDescription: string;
+  aboutHighlights: string[];
+  features: FeatureModel[];
+  chapters: ChapterModel[];
+  faqs: FAQModel[];
 };
 
 type LessonRowActions = {
@@ -421,7 +459,7 @@ export default function CreateCourseWizardPage() {
   });
 
   // Unified Wizard State
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<WizardFormData>({
     title: "",
     category: "Frontend",
     level: "intermediate",
@@ -475,7 +513,7 @@ export default function CreateCourseWizardPage() {
     if (!formData.heroTitle && formData.title) {
       setFormData(prev => ({ ...prev, heroTitle: prev.title }));
     }
-  }, [formData.title]);
+  }, [formData.heroTitle, formData.title]);
 
   // Upload Progress Simulators
   const [coverProgress, setCoverProgress] = useState(0);
@@ -536,6 +574,7 @@ export default function CreateCourseWizardPage() {
   const [draggedFaqId, setDraggedFaqId] = useState<string | null>(null);
   const [dragOverFaqId, setDragOverFaqId] = useState<string | null>(null);
   const [lessonFilesError, setLessonFilesError] = useState("");
+  const lastLessonHoverRef = useRef<{ activeId: string; overId: string } | null>(null);
 
   const renderHighlightedText = (text: string, highlights: string[]) => {
     if (!text) return null;
@@ -691,7 +730,7 @@ export default function CreateCourseWizardPage() {
     setFormData(prev => ({ ...prev, features: prev.features.filter(f => f.id !== id) }));
   };
 
-  const editFeature = (feat: any) => {
+  const editFeature = (feat: { id: string; title: string; icon: string }) => {
     setFeatTitle(feat.title);
     setFeatIcon(feat.icon);
     setEditingFeatId(feat.id);
@@ -709,7 +748,7 @@ export default function CreateCourseWizardPage() {
       setEditingChapId(null);
     } else {
       const chapNumber = String(formData.chapters.length + 1).padStart(2, '0');
-      const newChap = {
+      const newChap: ChapterModel = {
         id: `chap-${Math.random().toString(36).substr(2, 9)}`,
         title: chapTitle,
         subtitle: chapSubtitle,
@@ -726,7 +765,7 @@ export default function CreateCourseWizardPage() {
     setFormData(prev => ({ ...prev, chapters: prev.chapters.filter(c => c.id !== id) }));
   };
 
-  const editChapter = (chap: any) => {
+  const editChapter = (chap: { id: string; title: string; subtitle: string }) => {
     setChapTitle(chap.title);
     setChapSubtitle(chap.subtitle);
     setEditingChapId(chap.id);
@@ -734,7 +773,7 @@ export default function CreateCourseWizardPage() {
 
   const addChapterInline = () => {
     const chapNumber = String(formData.chapters.length + 1).padStart(2, "0");
-    const newChap = {
+    const newChap: ChapterModel = {
       id: `chap-${Math.random().toString(36).substr(2, 9)}`,
       title: "سرفصل جدید",
       subtitle: "",
@@ -746,7 +785,7 @@ export default function CreateCourseWizardPage() {
   };
 
   const addLessonInline = (chapId: string) => {
-    const newLes = {
+    const newLes: LessonModel = {
       id: `les-${Math.random().toString(36).substr(2, 9)}`,
       title: "جلسه جدید",
       duration: "15:00",
@@ -853,39 +892,45 @@ export default function CreateCourseWizardPage() {
   const handleLessonDragStart = ({ active }: DragStartEvent) => {
     setActiveLessonId(String(active.id));
     setLessonDropTargetId(null);
+    lastLessonHoverRef.current = null;
   };
 
   const handleLessonDragOver = ({ over }: DragOverEvent) => {
-    if (!over) return;
-    setLessonDropTargetId(String(over.id));
+    if (!over || !activeLessonId) return;
+    const overId = String(over.id);
+    const activeId = String(activeLessonId);
+    setLessonDropTargetId(overId);
+
+    if (overId === activeId) return;
+    const signature = `${activeId}:${overId}`;
+    if (lastLessonHoverRef.current && `${lastLessonHoverRef.current.activeId}:${lastLessonHoverRef.current.overId}` === signature) {
+      return;
+    }
+    lastLessonHoverRef.current = { activeId, overId };
+
+    const activeLocation = getLessonLocation(activeId);
+    if (!activeLocation) return;
+
+    if (isChapterDropZone(overId)) {
+      reorderLessons(activeLocation.chapterId, activeId, overId);
+      return;
+    }
+
+    const overLocation = getLessonLocation(overId);
+    if (!overLocation) return;
+    reorderLessons(activeLocation.chapterId, activeId, overLocation.chapterId, overId);
   };
 
   const handleLessonDragEnd = ({ active, over }: DragEndEvent) => {
-    if (over) {
-      const activeLessonId = String(active.id);
-      const overId = String(over.id);
-      if (activeLessonId !== overId) {
-        const activeLocation = getLessonLocation(activeLessonId);
-        if (activeLocation) {
-          if (isChapterDropZone(overId)) {
-            reorderLessons(activeLocation.chapterId, activeLessonId, overId);
-          } else {
-            const overLocation = getLessonLocation(overId);
-            if (overLocation) {
-              reorderLessons(activeLocation.chapterId, activeLessonId, overLocation.chapterId, overId);
-            }
-          }
-        }
-      }
-    }
-
     setActiveLessonId(null);
     setLessonDropTargetId(null);
+    lastLessonHoverRef.current = null;
   };
 
   const handleLessonDragCancel = () => {
     setActiveLessonId(null);
     setLessonDropTargetId(null);
+    lastLessonHoverRef.current = null;
   };
 
   // Lesson actions
@@ -895,27 +940,35 @@ export default function CreateCourseWizardPage() {
     if (editingLesId) {
       setFormData(prev => ({
         ...prev,
-        chapters: prev.chapters.map(c => ({
+        chapters: prev.chapters.map((c): ChapterModel => ({
           ...c,
-          lessons: c.lessons.map(l =>
+          lessons: c.lessons.map((l): LessonModel =>
             l.id === editingLesId
-              ? { ...l, title: lesTitle, duration: lesDuration, type: lesType, access: formData.isPaid === "free" ? "free" : lesAccess }
+              ? {
+                  ...l,
+                  title: lesTitle,
+                  duration: lesDuration,
+                  type: lesType,
+                  access: (formData.isPaid === "free" ? "free" : lesAccess) as "free" | "locked",
+                }
               : l
           )
         }))
       }));
       setEditingLesId(null);
     } else {
-      const newLes = {
+      const newLes: LessonModel = {
         id: `les-${Math.random().toString(36).substr(2, 9)}`,
         title: lesTitle,
         duration: lesDuration,
         type: lesType,
-        access: formData.isPaid === "free" ? "free" : lesAccess
+        access: (formData.isPaid === "free" ? "free" : lesAccess) as "free" | "locked"
       };
       setFormData(prev => ({
         ...prev,
-        chapters: prev.chapters.map(c => c.id === selectedChapIdForLesson ? { ...c, lessons: [...c.lessons, newLes] } : c)
+        chapters: prev.chapters.map((c): ChapterModel =>
+          c.id === selectedChapIdForLesson ? { ...c, lessons: [...c.lessons, newLes as LessonModel] } : c
+        )
       }));
     }
     setLesTitle("");
@@ -969,7 +1022,7 @@ export default function CreateCourseWizardPage() {
     });
   };
 
-  const editLesson = (chapId: string, les: any) => {
+  const editLesson = (chapId: string, les: LessonModel) => {
     setSelectedChapIdForLesson(chapId);
     setLesTitle(les.title);
     setLesDuration(les.duration);

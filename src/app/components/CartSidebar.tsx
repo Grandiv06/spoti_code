@@ -1,11 +1,13 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useCart } from "../../context/CartContext";
 import { useEffect, useRef } from "react";
 
 export default function CartSidebar() {
   const { cart, isCartOpen, removeFromCart, toggleCart } = useCart();
+  const router = useRouter();
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   // Prevent body scroll when cart is open
@@ -157,7 +159,11 @@ export default function CartSidebar() {
                 </span>
               </div>
             </div>
-            <button className="w-full py-4 bg-primary text-white text-lg font-black rounded-2xl shadow-[0_0_20px_rgba(34,197,94,0.4)] hover:shadow-[0_0_30px_rgba(34,197,94,0.6)] hover:-translate-y-1 transition-all flex items-center justify-center gap-2 group cursor-pointer">
+            <button
+              type="button"
+              onClick={() => router.push("/checkout")}
+              className="w-full py-4 bg-primary text-white text-lg font-black rounded-2xl shadow-[0_0_20px_rgba(34,197,94,0.4)] hover:shadow-[0_0_30px_rgba(34,197,94,0.6)] hover:-translate-y-1 transition-all flex items-center justify-center gap-2 group cursor-pointer"
+            >
               تکمیل خرید
               <span className="material-symbols-outlined group-hover:-translate-x-1 transition-transform">
                 arrow_back

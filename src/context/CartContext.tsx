@@ -18,6 +18,7 @@ interface CartContextType {
   clearCart: () => void;
   toggleCart: () => void;
   setCartOpen: (open: boolean) => void;
+  getTotalPrice: () => number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -26,15 +27,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<Course[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  // Load cart from localStorage on mount
   useEffect(() => {
     const savedCart = localStorage.getItem("spoticode-cart");
-    if (savedCart) {
-      try {
-        setCart(JSON.parse(savedCart));
-      } catch (e) {
-        console.error("Failed to parse cart from local storage", e);
-      }
+    if (!savedCart) return;
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCart(JSON.parse(savedCart) as Course[]);
+    } catch {
+      // Ignore malformed persisted cart data.
     }
   }, []);
 
@@ -70,6 +70,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setIsCartOpen(open);
   };
 
+  const getTotalPrice = () =>
+    cart.reduce((total, item) => {
+      const price = Number(item.price.replace(/,/g, ""));
+      return total + (Number.isFinite(price) ? price : 0);
+    }, 0);
+
   return (
     <CartContext.Provider
       value={{
@@ -80,6 +86,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         clearCart,
         toggleCart,
         setCartOpen,
+        getTotalPrice,
       }}
     >
       {children}
