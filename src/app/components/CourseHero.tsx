@@ -1,7 +1,6 @@
 "use client";
 
-import Image from "next/image";
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import VideoControls from "./VideoControls";
 
 // ویدیوی تستی برای جلسه اول دوره
@@ -58,6 +57,8 @@ export default function CourseHero({
   missingVideoMessage = "ویدیوی این بخش هنوز در دسترس نیست.",
 }: CourseHeroProps) {
   const [isVideoExpanded, setIsVideoExpanded] = useState(false);
+  const [showControls, setShowControls] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
   
   // Use introVideo if provided, otherwise fallback to test video
   const activeVideoUrl = introVideo || (disableFallbackVideo ? "" : TEST_VIDEO_URL);
@@ -66,25 +67,60 @@ export default function CourseHero({
   
   const gridRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const hideTimerRef = useRef<number | null>(null);
+
+  const clearHideTimer = useCallback(() => {
+    if (hideTimerRef.current !== null) {
+      window.clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleHideControls = useCallback(() => {
+    clearHideTimer();
+    if (!isPlaying) {
+      setShowControls(true);
+      return;
+    }
+    hideTimerRef.current = window.setTimeout(() => {
+      setShowControls(false);
+    }, 2800);
+  }, [clearHideTimer, isPlaying]);
+
+  const revealControls = useCallback(() => {
+    setShowControls(true);
+    scheduleHideControls();
+  }, [scheduleHideControls]);
+
+  useEffect(() => clearHideTimer, [clearHideTimer]);
 
   // Sync videoUrl when introVideo prop changes
   useEffect(() => {
-    setVideoUrl(introVideo || (disableFallbackVideo ? "" : TEST_VIDEO_URL));
-    setVideoError(false);
+    const frame = window.setTimeout(() => {
+      setVideoUrl(introVideo || (disableFallbackVideo ? "" : TEST_VIDEO_URL));
+      setVideoError(false);
+    }, 0);
+    return () => window.clearTimeout(frame);
   }, [introVideo, disableFallbackVideo]);
 
   useEffect(() => {
     if (!playTrigger) return;
     if (!introVideo && disableFallbackVideo) return;
-    setIsVideoExpanded(true);
-    setVideoError(false);
-    setVideoUrl(introVideo || (disableFallbackVideo ? "" : TEST_VIDEO_URL));
-    const frame = window.requestAnimationFrame(() => {
+    const frame = window.setTimeout(() => {
+      setIsVideoExpanded(true);
+      setVideoError(false);
+      setVideoUrl(introVideo || (disableFallbackVideo ? "" : TEST_VIDEO_URL));
+      setShowControls(true);
+    }, 0);
+    const raf = window.requestAnimationFrame(() => {
       videoRef.current?.play().catch(() => {
         // Browsers can block autoplay with sound; keep the video loaded so the user can start it.
       });
     });
-    return () => window.cancelAnimationFrame(frame);
+    return () => {
+      window.clearTimeout(frame);
+      window.cancelAnimationFrame(raf);
+    };
   }, [playTrigger, introVideo, disableFallbackVideo]);
 
   const handleVideoError = () => {
@@ -103,6 +139,7 @@ export default function CourseHero({
       });
     } else {
       videoRef.current?.pause();
+      setShowControls(true);
     }
     setIsVideoExpanded((prev) => !prev);
   };
@@ -256,6 +293,22 @@ export default function CourseHero({
               ? "rounded-4xl m-0 aspect-video"
               : "rounded-4xl lg:rounded-l-none lg:rounded-r-4xl m-2 lg:m-0 lg:ml-2"
           }`}
+          onMouseMove={revealControls}
+          onMouseEnter={revealControls}
+          onTouchStart={() => {
+            setShowControls((prev) => !prev);
+          }}
+          onClick={() => {
+            if (isVideoExpanded && isPlaying) {
+              setShowControls((prev) => !prev);
+            }
+          }}
+          onMouseLeave={() => {
+            if (isPlaying) {
+              clearHideTimer();
+              setShowControls(false);
+            }
+          }}
         >
           {/* Thumbnail - hidden when video is playing (or always visible on error) */}
           <div
@@ -306,18 +359,35 @@ export default function CourseHero({
 
           {/* Custom controls - only when expanded */}
           {isVideoExpanded && !videoError && videoUrl && (
-            <div className="absolute bottom-0 right-0 left-0 z-20 p-4">
+            <div
+              className={`absolute bottom-0 right-0 left-0 z-20 p-4 transition-all duration-300 ease-out ${
+                showControls ? "opacity-100 pointer-events-auto translate-y-0" : "opacity-0 pointer-events-none translate-y-2"
+              }`}
+            >
               <VideoControls
                 videoRef={videoRef}
                 videoUrl={videoUrl}
                 title={isPreviewActive ? "در حال پخش" : "پیش‌نمایش ویدیوی معرفی"}
                 subtitle={isPreviewActive ? activeVideoTitle || title : title}
+                onPlaybackChange={(playing) => {
+                  setIsPlaying(playing);
+                  if (playing) {
+                    revealControls();
+                  } else {
+                    clearHideTimer();
+                    setShowControls(true);
+                  }
+                }}
               />
             </div>
           )}
 
           {isPreviewActive && (
-            <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between gap-3">
+            <div
+              className={`absolute top-4 left-20 right-4 z-20 flex items-center justify-between gap-3 transition-all duration-300 ease-out ${
+                showControls ? "opacity-100 pointer-events-auto translate-y-0" : "opacity-0 pointer-events-none -translate-y-1"
+              }`}
+            >
               <div className="inline-flex max-w-[70%] items-center gap-2 rounded-2xl bg-black/45 backdrop-blur-md px-3 py-2 border border-white/10 text-white shadow-lg">
                 <span className="material-symbols-outlined text-lg text-primary">play_circle</span>
                 <div className="min-w-0 text-right">
@@ -343,8 +413,10 @@ export default function CourseHero({
 
           {/* Play button / Close when expanded - pointer-events-none so controls below are clickable */}
           <div
-            className={`absolute z-20 pointer-events-none ${
+            className={`absolute z-20 pointer-events-none transition-all duration-300 ease-out ${
               isVideoExpanded ? "top-4 left-4" : "inset-0 flex items-center justify-center"
+            } ${
+              showControls ? "opacity-100" : isPlaying ? "opacity-0" : "opacity-100"
             }`}
           >
             <button
@@ -377,7 +449,11 @@ export default function CourseHero({
 
           {/* Video info overlay - only when collapsed */}
           {!isVideoExpanded && (
-            <div className="absolute bottom-8 right-8 left-8 z-20">
+            <div
+              className={`absolute bottom-8 right-8 left-8 z-20 transition-all duration-300 ease-out ${
+                showControls ? "opacity-100 pointer-events-auto translate-y-0" : "opacity-0 pointer-events-none translate-y-2"
+              }`}
+            >
               <div className="bg-black/40 backdrop-blur-md rounded-3xl p-5 border border-white/10 flex items-center justify-between text-white shadow-lg">
                 <div className="flex flex-col text-right">
                   <span className="text-xs text-white/70 mb-1">

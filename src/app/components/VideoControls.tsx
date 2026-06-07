@@ -14,6 +14,7 @@ interface VideoControlsProps {
   videoUrl: string;
   title?: string;
   subtitle?: string;
+  onPlaybackChange?: (isPlaying: boolean) => void;
 }
 
 export default function VideoControls({
@@ -21,6 +22,7 @@ export default function VideoControls({
   videoUrl,
   title = "جلسه اول رایگان",
   subtitle = "آشنایی با اکوسیستم React",
+  onPlaybackChange,
 }: VideoControlsProps) {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -35,9 +37,18 @@ export default function VideoControls({
 
     const handleTimeUpdate = () => setCurrentTime(v.currentTime);
     const handleLoadedMetadata = () => setDuration(v.duration);
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
-    const handleEnded = () => setIsPlaying(false);
+    const handlePlay = () => {
+      setIsPlaying(true);
+      onPlaybackChange?.(true);
+    };
+    const handlePause = () => {
+      setIsPlaying(false);
+      onPlaybackChange?.(false);
+    };
+    const handleEnded = () => {
+      setIsPlaying(false);
+      onPlaybackChange?.(false);
+    };
 
     v.addEventListener("timeupdate", handleTimeUpdate);
     v.addEventListener("loadedmetadata", handleLoadedMetadata);
@@ -54,7 +65,7 @@ export default function VideoControls({
       v.removeEventListener("pause", handlePause);
       v.removeEventListener("ended", handleEnded);
     };
-  }, [videoRef]);
+  }, [videoRef, onPlaybackChange]);
 
   const togglePlay = () => {
     const v = videoRef.current;
