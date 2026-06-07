@@ -1,358 +1,323 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useMemo } from "react";
 import {
-  UserRound,
-  Mail,
-  Phone,
-  Briefcase,
-  BookOpen,
-  Linkedin,
+  BadgeCheck,
+  Clock3,
   Github,
-  Send,
   Globe,
-  Camera,
-  CheckCircle2,
-  Trash2
+  Linkedin,
+  Mail,
+  MessageCircle,
+  Phone,
+  School,
+  SquareArrowOutUpRight,
+  Users,
 } from "lucide-react";
-import { useInstructorData, InstructorProfile } from "@/context/InstructorDataContext";
+import { useInstructorData } from "@/context/InstructorDataContext";
+
+const inputFallbackAvatar = "/images/inst1.jpg";
 
 export default function InstructorProfilePage() {
-  const { profile, updateProfile } = useInstructorData();
+  const { profile, courses } = useInstructorData();
+  const skills = profile.skills ?? [];
+  const fullBiography = profile.fullBiography ?? "";
+  const teachingStyle = profile.teachingStyle ?? "";
+  const professionalBackground = profile.professionalBackground ?? "";
 
-  // Form State
-  const [formData, setFormData] = useState<InstructorProfile>({
-    name: "",
-    displayName: "",
-    specialty: "",
-    email: "",
-    phone: "",
-    bio: "",
-    avatar: "",
-    socials: {
-      linkedin: "",
-      github: "",
-      telegram: "",
-      website: "",
-    },
-  });
+  const stats = useMemo(() => {
+    const publishedCourses = courses.filter((course) => course.status === "published").length;
+    const totalStudents = courses.reduce((sum, course) => sum + Number(course.studentsCount ?? 0), 0);
+    const activeCourses = courses.filter((course) => course.status !== "inactive").length;
 
-  // Simulated image upload state
-  const [avatarProgress, setAvatarProgress] = useState(0);
+    return { publishedCourses, totalStudents, activeCourses };
+  }, [courses]);
 
-  // Sync state with context on mount/load
-  useEffect(() => {
-    if (profile) {
-      setFormData({
-        ...profile,
-        socials: {
-          linkedin: profile.socials?.linkedin || "",
-          github: profile.socials?.github || "",
-          telegram: profile.socials?.telegram || "",
-          website: profile.socials?.website || "",
-        },
-      });
-    }
-  }, [profile]);
+  const socialLinks = [
+    profile.socials?.linkedin
+      ? { href: profile.socials.linkedin, label: "لینکدین", icon: <Linkedin className="h-4 w-4" /> }
+      : null,
+    profile.socials?.github
+      ? { href: profile.socials.github, label: "گیت‌هاب", icon: <Github className="h-4 w-4" /> }
+      : null,
+    profile.socials?.telegram
+      ? { href: profile.socials.telegram, label: "تلگرام", icon: <MessageCircle className="h-4 w-4" /> }
+      : null,
+    profile.socials?.website
+      ? { href: profile.socials.website, label: "وب‌سایت شخصی", icon: <Globe className="h-4 w-4" /> }
+      : null,
+    profile.email
+      ? { href: `mailto:${profile.email}`, label: "ایمیل", icon: <Mail className="h-4 w-4" /> }
+      : null,
+    profile.phone
+      ? { href: `tel:${profile.phone}`, label: "شماره تماس", icon: <Phone className="h-4 w-4" /> }
+      : null,
+  ].filter(Boolean) as Array<{ href: string; label: string; icon: React.ReactNode }>;
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSocialChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      socials: {
-        ...prev.socials,
-        [name]: value,
-      },
-    }));
-  };
-
-  // Mock Avatar Upload
-  const handleAvatarChangeSimulate = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setAvatarProgress(10);
-      const interval = setInterval(() => {
-        setAvatarProgress((prev) => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            // set high-end mock avatar image
-            setFormData((prevData) => ({
-              ...prevData,
-              avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=150&auto=format&fit=crop",
-            }));
-            return 100;
-          }
-          return prev + 30;
-        });
-      }, 100);
-    }
-  };
-
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateProfile(formData);
-  };
+  const aboutSections = [
+    fullBiography ? { title: "بیوگرافی کامل", text: fullBiography } : null,
+    teachingStyle ? { title: "سبک تدریس", text: teachingStyle } : null,
+    professionalBackground ? { title: "پیشینه حرفه‌ای", text: professionalBackground } : null,
+  ].filter(Boolean) as Array<{ title: string; text: string }>;
 
   return (
-    <div className="max-w-[1000px] mx-auto pb-20 animate-in fade-in duration-500 text-right" dir="rtl">
-      
-      {/* 1. Header Banner */}
-      <div className="relative w-full rounded-[2.5rem] overflow-hidden bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-xl mb-8">
-        <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-primary/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/4 pointer-events-none" />
-
-        <div className="relative z-10 px-8 py-8 md:px-12 flex flex-col sm:flex-row items-center gap-6">
-          <div className="relative w-12 h-12 rounded-2xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary shrink-0">
-            <UserRound className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-xl font-black text-gray-900 dark:text-white mb-1 font-black">پروفایل کاربری مدرس</h1>
-            <p className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold">
-              مشخصات عمومی، تخصصی، بیوگرافی و آدرس شبکه‌های اجتماعی خود را بروزرسانی کنید.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Profile Customization Form */}
-      <form onSubmit={handleSave} className="space-y-6">
-        
-        {/* Step-Block A: Avatar and base information */}
-        <div className="rounded-3xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md p-6 md:p-8 space-y-6">
-          <h3 className="text-xs font-black text-gray-900 dark:text-white border-b border-gray-100 dark:border-white/5 pb-3">تصویر پروفایل و معرفی</h3>
-          
-          <div className="flex flex-col sm:flex-row items-center gap-6">
-            
-            {/* Avatar Preview & File Input */}
-            <div className="relative group shrink-0">
-              <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-primary/20 dark:border-primary/40 bg-primary/5 flex items-center justify-center">
-                {formData.avatar ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={formData.avatar} alt="پروفایل" className="w-full h-full object-cover" />
-                ) : (
-                  <UserRound className="w-12 h-12 text-primary" />
-                )}
-              </div>
-              
-              {/* Overlay Upload Button */}
-              <label className="absolute bottom-1 left-1 p-2 rounded-full bg-primary text-white hover:bg-primary-hover shadow-lg cursor-pointer transition-transform hover:scale-110">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarChangeSimulate}
-                  className="hidden"
-                />
-                <Camera className="w-4 h-4" />
-              </label>
-
-              {avatarProgress > 0 && avatarProgress < 100 && (
-                <div className="absolute inset-0 rounded-full bg-black/60 flex items-center justify-center text-white text-[10px] font-black z-25">
-                  {avatarProgress}٪
-                </div>
-              )}
-            </div>
-
-            <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Full Name */}
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-gray-700 dark:text-gray-300">نام و نام خانوادگی</label>
-                <input
-                  type="text"
-                  required
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className="px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-2xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-right"
-                />
-              </div>
-
-              {/* Display Name */}
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-gray-700 dark:text-gray-300">عنوان نمایشی (لقب)</label>
-                <input
-                  type="text"
-                  required
-                  name="displayName"
-                  value={formData.displayName}
-                  onChange={handleInputChange}
-                  className="px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-2xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-right"
-                />
-              </div>
-
-              {/* Specialty */}
-              <div className="flex flex-col gap-2 sm:col-span-2">
-                <label className="text-xs font-bold text-gray-700 dark:text-gray-300">تخصص / حوزه فعالیت اصلی</label>
-                <input
-                  type="text"
-                  required
-                  name="specialty"
-                  value={formData.specialty}
-                  onChange={handleInputChange}
-                  className="px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-2xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-right"
-                />
-              </div>
-
+    <div dir="rtl" className="min-h-screen bg-background-dark text-text-dark">
+      <div className="mesh-bg" />
+      <main className="mx-auto max-w-[1440px] px-4 py-8 md:px-8 lg:px-12 lg:py-12">
+        <div className="mb-6 flex items-center justify-between gap-3 rounded-[1.75rem] border border-white/10 bg-white/5 px-5 py-4 backdrop-blur-xl">
+          <div className="flex items-center gap-3 text-gray-300">
+            <span className="inline-flex size-9 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <BadgeCheck className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-sm font-black text-white">پروفایل مدرس</p>
+              <p className="text-xs text-gray-400">نمایش دقیق همان اطلاعات عمومی صفحه مدرس</p>
             </div>
           </div>
-        </div>
 
-        {/* Step-Block B: Professional Bio */}
-        <div className="rounded-3xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md p-6 md:p-8 space-y-4">
-          <h3 className="text-xs font-black text-gray-900 dark:text-white border-b border-gray-100 dark:border-white/5 pb-3">درباره مدرس (بیوگرافی کامل)</h3>
-          
-          <div className="flex flex-col gap-2">
-            <textarea
-              name="bio"
-              rows={5}
-              value={formData.bio}
-              onChange={handleInputChange}
-              placeholder="رزومه، سوابق کاری، دستاوردها و روش تدریس خود را در ۲ الی ۳ پاراگراف بنویسید..."
-              className="px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-2xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-right leading-relaxed"
-            />
-          </div>
-        </div>
-
-        {/* Step-Block C: Contact Details */}
-        <div className="rounded-3xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md p-6 md:p-8 space-y-6">
-          <h3 className="text-xs font-black text-gray-900 dark:text-white border-b border-gray-100 dark:border-white/5 pb-3">اطلاعات تماس</h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            
-            {/* Email */}
-            <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5 justify-end">
-                <span>ایمیل رسمی</span>
-                <Mail className="w-4 h-4 text-gray-400" />
-              </label>
-              <input
-                type="email"
-                required
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                className="px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-2xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-left"
-                dir="ltr"
-              />
-            </div>
-
-            {/* Mobile Phone */}
-            <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5 justify-end">
-                <span>شماره تماس</span>
-                <Phone className="w-4 h-4 text-gray-400" />
-              </label>
-              <input
-                type="tel"
-                required
-                name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
-                className="px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-2xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-left"
-                dir="ltr"
-              />
-            </div>
-
-          </div>
-        </div>
-
-        {/* Step-Block D: Social Profiles */}
-        <div className="rounded-3xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md p-6 md:p-8 space-y-6">
-          <h3 className="text-xs font-black text-gray-900 dark:text-white border-b border-gray-100 dark:border-white/5 pb-3">آدرس شبکه‌های اجتماعی</h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            
-            {/* LinkedIn */}
-            <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5 justify-end">
-                <span>پروفایل لینکدین</span>
-                <Linkedin className="w-4 h-4 text-gray-400" />
-              </label>
-              <input
-                type="text"
-                name="linkedin"
-                value={formData.socials?.linkedin}
-                onChange={handleSocialChange}
-                placeholder="linkedin.com/in/username"
-                className="px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-2xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-left"
-                dir="ltr"
-              />
-            </div>
-
-            {/* GitHub */}
-            <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5 justify-end">
-                <span>اکانت گیت‌هاب</span>
-                <Github className="w-4 h-4 text-gray-400" />
-              </label>
-              <input
-                type="text"
-                name="github"
-                value={formData.socials?.github}
-                onChange={handleSocialChange}
-                placeholder="github.com/username"
-                className="px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-2xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-left"
-                dir="ltr"
-              />
-            </div>
-
-            {/* Telegram */}
-            <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5 justify-end">
-                <span>کانال یا اکانت تلگرام</span>
-                <Send className="w-4 h-4 text-gray-400 -rotate-45" />
-              </label>
-              <input
-                type="text"
-                name="telegram"
-                value={formData.socials?.telegram}
-                onChange={handleSocialChange}
-                placeholder="t.me/username"
-                className="px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-2xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-left"
-                dir="ltr"
-              />
-            </div>
-
-            {/* Portfolio Website */}
-            <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5 justify-end">
-                <span>وب‌سایت شخصی (پورتفولیو)</span>
-                <Globe className="w-4 h-4 text-gray-400" />
-              </label>
-              <input
-                type="text"
-                name="website"
-                value={formData.socials?.website}
-                onChange={handleSocialChange}
-                placeholder="yoursite.com"
-                className="px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-2xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-left"
-                dir="ltr"
-              />
-            </div>
-
-          </div>
-        </div>
-
-        {/* Submit */}
-        <div className="flex justify-end pt-4">
-          <button
-            type="submit"
-            className="px-6 py-3.5 bg-primary text-white text-xs font-bold rounded-2xl shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform cursor-pointer"
+          <Link
+            href="/instructor/profile/edit"
+            className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-gray-200 transition-colors hover:border-primary/30 hover:text-primary"
           >
-            ذخیره تغییرات پروفایل
-          </button>
+            ویرایش پروفایل
+          </Link>
         </div>
 
-      </form>
+        <section className="overflow-hidden rounded-[2.75rem] border border-white/10 bg-[#10131a] shadow-[0_28px_90px_-28px_rgba(0,0,0,0.68)]">
+          <div className="relative overflow-hidden px-6 py-8 md:px-10 md:py-12 lg:px-14 lg:py-14">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.14),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(16,185,129,0.08),_transparent_30%),linear-gradient(180deg,_rgba(255,255,255,0.02),_transparent_40%)] opacity-100" />
+            <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
 
+            <div className="relative grid grid-cols-1 gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+              <div className="flex justify-center lg:justify-start">
+                <div className="relative">
+                  <div className="absolute -inset-5 rounded-[2.6rem] bg-primary/20 blur-3xl" />
+                  <div className="absolute -inset-1 rounded-[2.3rem] border border-primary/20 opacity-80" />
+                  <div className="relative h-72 w-72 overflow-hidden rounded-[2.3rem] border border-white/10 bg-white/[0.05] shadow-[0_24px_70px_-24px_rgba(34,197,94,0.55)] md:h-[24rem] md:w-[24rem]">
+                    <Image
+                      src={profile.avatar || inputFallbackAvatar}
+                      alt={profile.displayName || profile.name || "استاد"}
+                      fill
+                      className="object-cover"
+                      priority
+                    />
+                  </div>
+                  <div className="absolute -bottom-4 right-6 rounded-full border border-white/10 bg-[#0e1117]/95 px-4 py-2 text-[11px] font-black text-primary shadow-xl backdrop-blur">
+                    مدرس اسپاتی‌کد
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-6 text-center lg:text-right">
+                <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-xs font-black text-primary">
+                  <BadgeCheck className="h-4 w-4" />
+                  پروفایل رسمی مدرس
+                </div>
+
+                <div className="space-y-3">
+                  <h1 className="text-3xl font-black leading-tight text-white md:text-5xl">
+                    {profile.displayName || profile.name || "پروفایل مدرس"}
+                  </h1>
+                  <p className="text-lg font-bold text-gray-300 md:text-2xl">
+                    {profile.headline || profile.specialty}
+                  </p>
+                </div>
+
+                <p className="mx-auto max-w-3xl text-sm leading-8 text-gray-400 md:text-base lg:mx-0">
+                  {fullBiography || profile.bio || "این مدرس هنوز معرفی کوتاه ثبت نکرده است."}
+                </p>
+
+                {socialLinks.length > 0 && (
+                  <div className="mx-auto grid max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2 lg:mx-0">
+                    {socialLinks.slice(0, 4).map((item) => (
+                      <SocialLink key={item.href} href={item.href} label={item.label} icon={item.icon} />
+                    ))}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <HeroStat
+                    icon={<Clock3 className="h-4 w-4" />}
+                    label="سال تجربه"
+                    value={profile.yearsOfExperience || "۱۰+"}
+                    description="سال فعالیت آموزشی"
+                  />
+                  <HeroStat
+                    icon={<School className="h-4 w-4" />}
+                    label="دوره‌ها"
+                    value={stats.publishedCourses.toLocaleString("fa-IR")}
+                    description="دوره فعال"
+                  />
+                  <HeroStat
+                    icon={<Users className="h-4 w-4" />}
+                    label="دانشجوها"
+                    value={stats.totalStudents.toLocaleString("fa-IR")}
+                    description="نفر"
+                  />
+                  <HeroStat
+                    icon={<BadgeCheck className="h-4 w-4" />}
+                    label="وضعیت"
+                    value="تایید شده"
+                    description="مدرس اسپاتی‌کد"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div className="mt-8 space-y-8">
+          {(aboutSections.length > 0 || skills.length > 0) && (
+            <section className="glass-panel rounded-[2.25rem] border border-white/10 bg-white/[0.03] p-6 shadow-[0_18px_60px_-34px_rgba(0,0,0,0.7)] md:p-8">
+              <SectionHeader
+                title="درباره استاد و مهارت‌ها"
+                description="نگاهی کامل‌تر به مسیر حرفه‌ای، شیوه انتقال تجربه و تخصص‌های اصلی"
+              />
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+                <div className="space-y-5">
+                  {aboutSections.map((section) => (
+                    <InfoCard key={section.title} title={section.title} text={section.text} />
+                  ))}
+                </div>
+
+                <div className="flex h-full flex-col rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-5 md:p-6">
+                  <h3 className="mb-3 text-sm font-black text-white">مهارت‌ها و تخصص‌ها</h3>
+                  <p className="mb-5 text-xs leading-6 text-gray-400">
+                    فناوری‌ها و حوزه‌هایی که این استاد به‌صورت تخصصی روی آن‌ها کار کرده است
+                  </p>
+                  <div className="flex min-h-[10rem] flex-wrap content-start gap-3">
+                    {skills.length > 0 ? (
+                      skills.map((skill) => (
+                        <span
+                          key={skill}
+                          className="group inline-flex items-center rounded-full border border-primary/15 bg-gradient-to-b from-primary/12 to-primary/8 px-4 py-2.5 text-sm font-bold text-primary shadow-[0_10px_30px_-18px_rgba(34,197,94,0.6)] transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/15"
+                        >
+                          {skill}
+                        </span>
+                      ))
+                    ) : (
+                      <div className="flex w-full items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.03] px-4 py-3 text-center text-xs font-bold text-gray-500">
+                        مهارتی برای نمایش ثبت نشده است.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          <section className="glass-panel rounded-[2.25rem] border border-white/10 bg-white/[0.03] p-6 shadow-[0_18px_60px_-34px_rgba(0,0,0,0.7)] md:p-8">
+            <SectionHeader
+              title="دوره‌های این استاد"
+              description="همه دوره‌هایی که توسط این استاد منتشر یا تدریس شده‌اند"
+            />
+            {courses.length > 0 ? (
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {courses.map((course) => (
+                  <div key={course.id} className="h-full rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-4">
+                    <div className="mb-4 aspect-[16/10] overflow-hidden rounded-[1.35rem] border border-white/10 bg-white/5">
+                      <Image
+                        src={course.cover}
+                        alt={course.title}
+                        width={640}
+                        height={400}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <h3 className="text-base font-black text-white">{course.title}</h3>
+                      <p className="text-sm leading-7 text-gray-400">{course.shortDescription}</p>
+                      <div className="flex items-center justify-between text-xs text-gray-400">
+                        <span>{course.level}</span>
+                        <span>{course.studentsCount.toLocaleString("fa-IR")} دانشجو</span>
+                      </div>
+                      <Link
+                        href={`/courses/${course.slug}`}
+                        className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:text-emerald-300"
+                      >
+                        مشاهده دوره
+                        <SquareArrowOutUpRight className="h-4 w-4" />
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="w-full rounded-2xl border border-dashed border-white/10 bg-white/[0.03] px-4 py-3 text-center text-xs font-bold text-gray-500">
+                هنوز دوره‌ای برای نمایش ثبت نشده است.
+              </div>
+            )}
+          </section>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function SocialLink({
+  href,
+  label,
+  icon,
+}: {
+  href: string;
+  label: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-gray-200 transition-colors hover:border-primary/30 hover:text-primary"
+    >
+      <span className="flex items-center gap-3">
+        <span className="text-primary">{icon}</span>
+        {label}
+      </span>
+      <SquareArrowOutUpRight className="h-4 w-4" />
+    </a>
+  );
+}
+
+function HeroStat({
+  icon,
+  label,
+  value,
+  description,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.04] p-4 text-right shadow-[0_18px_40px_-26px_rgba(0,0,0,0.45)]">
+      <div className="mb-3 flex items-center gap-2 text-primary">
+        {icon}
+        <span className="text-[11px] font-black">{label}</span>
+      </div>
+      <p className="text-2xl font-black text-white">{value}</p>
+      <p className="mt-1 text-xs font-bold text-gray-400">{description}</p>
+    </div>
+  );
+}
+
+function SectionHeader({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="mb-6 space-y-2">
+      <h2 className="text-xl font-black text-white md:text-2xl">{title}</h2>
+      <p className="text-sm leading-7 text-gray-400">{description}</p>
+    </div>
+  );
+}
+
+function InfoCard({ title, text }: { title: string; text: string }) {
+  return (
+    <div className="h-full rounded-2xl border border-white/10 bg-white/[0.03] p-6 md:p-7">
+      <h3 className="mb-3 text-sm font-black text-primary">{title}</h3>
+      <p className="text-sm leading-8 text-gray-300">{text}</p>
     </div>
   );
 }
