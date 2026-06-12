@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { InputOTP } from "@/components/ui/input-otp";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
@@ -73,27 +73,31 @@ export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const requestedReturnUrl = searchParams.get("returnUrl");
+  const lastAutoSubmitCodeRef = useRef("");
 
-  const completeLogin = (
-    user: {
-      id: string;
-      phone: string;
-      displayName: string;
-      role: AppRole;
+  const completeLogin = useCallback(
+    (
+      user: {
+        id: string;
+        phone: string;
+        displayName: string;
+        role: AppRole;
+      },
+      token?: string
+    ) => {
+      login(user, token);
+
+      const fallbackPath =
+        user.role === "admin"
+          ? "/admin"
+          : user.role === "instructor"
+            ? "/instructor/dashboard"
+            : "/panel";
+
+      router.push(requestedReturnUrl || fallbackPath);
     },
-    token?: string
-  ) => {
-    login(user, token);
-
-    const fallbackPath =
-      user.role === "admin"
-        ? "/admin"
-        : user.role === "instructor"
-          ? "/instructor/dashboard"
-          : "/panel";
-
-    router.push(requestedReturnUrl || fallbackPath);
-  };
+    [login, requestedReturnUrl, router]
+  );
 
   useEffect(() => {
     document.documentElement.classList.remove("auth-route-transitioning");
@@ -141,7 +145,7 @@ export default function LoginForm() {
     setPhoneInput(normalized);
   };
 
-  const verifyOtpAndLogin = async () => {
+  const verifyOtpAndLogin = useCallback(async () => {
     if (otpSubmitting || loginMutation.isPending) return;
     setError("");
     if (otp.length !== 6) return;
@@ -202,7 +206,21 @@ export default function LoginForm() {
     } finally {
       setOtpSubmitting(false);
     }
-  };
+  }, [completeLogin, loginMutation, otp, otpSubmitting, phone]);
+
+  useEffect(() => {
+    if (step !== "otp" || otpExpiresIn <= 0 || otp.length !== 6) {
+      lastAutoSubmitCodeRef.current = "";
+      return;
+    }
+
+    if (lastAutoSubmitCodeRef.current === otp || otpSubmitting || loginMutation.isPending) {
+      return;
+    }
+
+    lastAutoSubmitCodeRef.current = otp;
+    void verifyOtpAndLogin();
+  }, [loginMutation.isPending, otp, otpExpiresIn, otpSubmitting, step, verifyOtpAndLogin]);
 
   const handleOtpSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -282,13 +300,6 @@ export default function LoginForm() {
                 setError("");
                 const normalized = normalizeDigits(v).replace(/[^0-9]/g, "").slice(0, 6);
                 setOtp(normalized);
-                if (normalized.length === 6) {
-                  if (otpExpiresIn > 0) {
-                    setTimeout(() => {
-                      verifyOtpAndLogin();
-                    }, 0);
-                  }
-                }
               }}
               placeholder="•"
               textAlign="left"

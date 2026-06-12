@@ -1,7 +1,7 @@
  "use client";
 
 import { useEffect, useState } from "react";
-import { apiGet } from "@/lib/api";
+import { apiGetNoMock } from "@/lib/api";
 
 type DashboardOverviewResponse = {
   data?: {
@@ -23,7 +23,7 @@ export default function PanelDashboard() {
     const fetchOverview = async () => {
       try {
         const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-        const result = await apiGet<"/api/dashboard/overview", DashboardOverviewResponse>(
+        const result = await apiGetNoMock<DashboardOverviewResponse>(
           "/api/dashboard/overview",
           token ? { Authorization: `Bearer ${token}` } : undefined
         );
