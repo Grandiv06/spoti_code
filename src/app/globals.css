@@ -180,6 +180,12 @@
   }
 }
 
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 @keyframes float-border-glow {
   0%, 100% {
     box-shadow: 0 0 0 4px rgb(34 197 94 / 0.3), 0 0 12px rgb(34 197 94 / 0.15);

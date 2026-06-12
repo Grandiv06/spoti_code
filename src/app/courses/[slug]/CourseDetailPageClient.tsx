@@ -6,6 +6,7 @@ import AddToCartButton from "../../components/AddToCartButton";
 import CourseFAQ from "../../components/CourseFAQ";
 import CourseReviews from "../../components/CourseReviews";
 import CourseDetailClient from "../[id]/CourseDetailClient";
+import { SkeletonBox } from "@/components/ui/Skeleton";
 import {
   findPublicInstructorByName,
   getPublicInstructorById,
@@ -195,44 +196,62 @@ export default function CourseDetailPageClient({ slug }: { slug: string }) {
       <div className="min-h-screen bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark transition-colors duration-300 relative overflow-x-hidden">
         <main className="max-w-[1440px] mx-auto px-4 md:px-12 py-12 relative z-10">
           <section className="glass-panel rounded-[2rem] md:rounded-4xl p-2 mb-16 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1),0_10px_20px_-5px_rgba(0,0,0,0.04)] overflow-hidden">
-            <div className="rounded-[1.75rem] md:rounded-4xl overflow-hidden bg-[#1f2726] dark:bg-[#1f2726] p-4 md:p-5">
-              <div className="relative overflow-hidden rounded-[2rem] md:rounded-[2.5rem] min-h-[420px] md:min-h-[560px] bg-[linear-gradient(180deg,rgba(120,145,144,0.78),rgba(35,43,42,0.92))] border border-white/5">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_40%,rgba(255,255,255,0.08),transparent_30%),radial-gradient(circle_at_15%_85%,rgba(34,197,94,0.08),transparent_18%)]" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-[78%] h-[72%] rounded-[1.75rem] md:rounded-[2rem] bg-[#0e1315]/90 border border-black/30 shadow-[0_25px_70px_-20px_rgba(0,0,0,0.7)] overflow-hidden">
-                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_25%)]" />
-                    <div className="absolute inset-0 px-6 py-5 md:px-8 md:py-6">
-                      <div className="h-3 w-20 rounded-full bg-white/10 mb-4" />
-                      <div className="h-2 w-full rounded-full bg-white/5 mb-2" />
-                      <div className="h-[72%] rounded-[1.25rem] bg-[linear-gradient(180deg,rgba(17,24,39,0.95),rgba(2,6,23,0.98))] border border-white/5 relative overflow-hidden">
-                        <div className="absolute inset-y-4 left-4 w-[18%] rounded-2xl bg-white/[0.03]" />
-                        <div className="absolute inset-x-[28%] top-[18%] h-2 w-[34%] rounded-full bg-emerald-500/70" />
-                        <div className="absolute inset-x-[28%] top-[30%] h-2 w-[42%] rounded-full bg-cyan-400/60" />
-                        <div className="absolute inset-x-[28%] top-[42%] h-2 w-[30%] rounded-full bg-amber-400/60" />
-                        <div className="absolute inset-x-[28%] top-[54%] h-2 w-[36%] rounded-full bg-sky-400/60" />
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(255,255,255,0.07),transparent_25%)]" />
+            <div className="rounded-[1.75rem] md:rounded-4xl overflow-hidden bg-[#1c1f24] dark:bg-[#1c1f24] p-4 md:p-5">
+              <div className="relative overflow-hidden rounded-[2rem] md:rounded-[2.5rem] min-h-[420px] md:min-h-[560px] border border-white/5 bg-[#1c1f24]" dir="ltr">
+                <div className="absolute inset-0 grid grid-cols-1 lg:grid-cols-[1fr_0.95fr]">
+                  <div className="relative p-4 md:p-6 lg:p-8">
+                    <div className="relative h-full rounded-[1.75rem] md:rounded-[2rem] overflow-hidden bg-[#1b1e23] border border-white/10">
+                      <div className="absolute inset-[6%_9%_18%_10%] rounded-[1.5rem] bg-[#0d1117] border border-black/30 shadow-[0_24px_60px_-30px_rgba(0,0,0,0.8)]" />
+                      <div className="absolute inset-[5.5%_8.5%_17.5%_9.5%] rounded-[1.5rem] overflow-hidden border border-white/5 bg-[#0f1319]">
+                        <div className="absolute inset-y-4 left-4 w-[19%] rounded-2xl bg-white/[0.03]" />
+                        <div className="absolute inset-x-[27%] top-[16%] h-2 w-[38%] rounded-full bg-white/18" />
+                        <div className="absolute inset-x-[27%] top-[30%] h-2 w-[28%] rounded-full bg-white/10" />
+                        <div className="absolute inset-x-[27%] top-[44%] h-2 w-[34%] rounded-full bg-white/14" />
+                        <div className="absolute inset-x-[27%] top-[58%] h-2 w-[30%] rounded-full bg-white/10" />
+                      </div>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="size-24 md:size-28 rounded-full bg-white/95 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.35)] flex items-center justify-center">
+                          <div className="size-0 border-y-[14px] md:border-y-[16px] border-y-transparent border-l-[20px] md:border-l-[22px] border-l-primary ml-1" />
+                        </div>
+                      </div>
+                      <div className="absolute inset-x-5 bottom-5 md:inset-x-6 md:bottom-6">
+                        <div className="rounded-[1.5rem] bg-black/50 backdrop-blur-md border border-white/10 px-4 md:px-5 py-4 md:py-5 flex items-center justify-between gap-4">
+                          <SkeletonBox className="h-10 w-20 md:w-24 shrink-0" rounded="rounded-2xl" />
+                          <div className="min-w-0 flex-1 text-right space-y-2">
+                            <SkeletonBox className="h-4 w-24 md:w-28 mr-auto" />
+                            <SkeletonBox className="h-5 w-36 md:w-44 mr-auto" />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="absolute z-10 size-24 md:size-28 rounded-full bg-white/95 backdrop-blur-sm border border-white/40 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.45)] flex items-center justify-center">
-                    <div className="size-0 border-y-[14px] md:border-y-[16px] border-y-transparent border-l-[20px] md:border-l-[22px] border-l-primary ml-1" />
-                  </div>
-                </div>
-
-                <div className="absolute inset-x-4 md:inset-x-6 bottom-4 md:bottom-6">
-                  <div className="rounded-[1.5rem] md:rounded-[1.75rem] bg-black/38 backdrop-blur-md border border-white/8 px-5 md:px-6 py-4 md:py-5 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3 md:gap-4 min-w-0">
-                      <div className="h-10 md:h-11 min-w-20 px-4 rounded-2xl bg-white/20 text-white flex items-center justify-center text-sm md:text-base font-bold">
-                        05:34
+                  <div className="relative p-5 md:p-8 lg:p-12 xl:p-16 flex flex-col justify-center bg-[#1c1f24]/60">
+                    <div className="relative z-10 flex items-center justify-end gap-3 mb-6 md:mb-8">
+                      <SkeletonBox className="h-10 w-20 md:w-24" rounded="rounded-2xl" />
+                      <SkeletonBox className="h-10 w-16 md:w-20" rounded="rounded-2xl" />
+                    </div>
+                    <div className="relative z-10 space-y-4 md:space-y-5 mb-8 md:mb-10">
+                      <SkeletonBox className="h-12 md:h-16 w-full ml-auto" rounded="rounded-[1.5rem]" />
+                      <SkeletonBox className="h-12 md:h-16 w-11/12 ml-auto" rounded="rounded-[1.5rem]" />
+                    </div>
+                    <SkeletonBox className="relative z-10 h-px w-full bg-white/10 mb-8 md:mb-10" rounded="rounded-full" />
+                    <div className="relative z-10 flex items-center justify-end gap-6 md:gap-10">
+                      <div className="flex items-center gap-3 md:gap-4">
+                        <SkeletonBox className="size-12 md:size-14 shrink-0" rounded="rounded-2xl" />
+                        <div className="space-y-2 text-right">
+                          <SkeletonBox className="h-4 w-16 md:w-20 ml-auto" />
+                          <SkeletonBox className="h-5 w-10 md:w-12 ml-auto" />
+                        </div>
                       </div>
-                      <div className="hidden sm:block h-9 w-px bg-white/10" />
-                      <div className="space-y-1 min-w-0">
-                        <div className="h-4 w-28 rounded-full bg-white/20" />
-                        <div className="h-5 w-40 md:w-56 rounded-full bg-white/25" />
+                      <div className="flex items-center gap-3 md:gap-4">
+                        <SkeletonBox className="size-12 md:size-14 shrink-0" rounded="rounded-2xl" />
+                        <div className="space-y-2 text-right">
+                          <SkeletonBox className="h-4 w-16 md:w-20 ml-auto" />
+                          <SkeletonBox className="h-5 w-16 md:w-20 ml-auto" />
+                        </div>
                       </div>
                     </div>
-                    <div className="hidden sm:block h-10 w-24 rounded-[1.1rem] bg-white/10 border border-white/10" />
                   </div>
                 </div>
               </div>

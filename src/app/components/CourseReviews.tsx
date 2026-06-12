@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useState, useEffect } from "react";
 import { CreateCommentDto } from "@/api/models/CreateCommentDto";
 import { apiPostNoMock, apiGetNoMock } from "@/lib/api";
+import { SkeletonBox } from "@/components/ui/Skeleton";
 
 export interface Review {
   id: string;
@@ -93,6 +94,50 @@ const normalizeCommentsResponse = (response: { data?: unknown } | unknown) => {
 
   return { items, total };
 };
+
+function CommentsSkeleton() {
+  return (
+    <div className="space-y-4 md:space-y-6" dir="rtl" aria-hidden="true">
+      <div className="glass-panel rounded-[2rem] md:rounded-4xl px-6 md:px-8 py-5 md:py-6 flex flex-col sm:flex-row items-center justify-between gap-4 mb-2">
+        <div className="flex items-center gap-3 md:gap-4 w-full sm:w-auto justify-center sm:justify-start">
+          <SkeletonBox className="size-10 md:size-12 shrink-0" rounded="rounded-xl md:rounded-2xl" />
+          <div className="space-y-2 text-center sm:text-right">
+            <SkeletonBox className="h-6 w-36 md:w-44 mx-auto sm:mx-0" />
+            <SkeletonBox className="h-3 w-20 md:w-24 mx-auto sm:mx-0" />
+          </div>
+        </div>
+        <SkeletonBox className="h-10 w-full sm:w-28 md:w-36" rounded="rounded-xl md:rounded-2xl" />
+      </div>
+
+      <div className="space-y-4 md:space-y-6">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div
+            key={index}
+            className="glass-panel rounded-[2rem] md:rounded-4xl p-5 md:p-6 lg:p-8"
+          >
+            <div className="flex flex-col sm:flex-row gap-4 md:gap-6">
+              <div className="flex items-center gap-3 md:gap-4 shrink-0 border-b sm:border-b-0 border-gray-100 dark:border-gray-800 pb-4 sm:pb-0">
+                <div className="flex items-center gap-3 md:gap-4 shrink-0 w-full sm:w-auto">
+                  <SkeletonBox className="size-12 md:size-16 shrink-0" rounded="rounded-xl md:rounded-2xl" />
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <SkeletonBox className="h-5 w-32 md:w-40" />
+                    <SkeletonBox className="h-3 w-20 md:w-24" />
+                  </div>
+                </div>
+              </div>
+              <div className="flex-1 space-y-3 md:space-y-4">
+                <SkeletonBox className="h-4 w-full" />
+                <SkeletonBox className="h-4 w-11/12" />
+                <SkeletonBox className="h-4 w-3/4" />
+                <SkeletonBox className="h-3 w-24 ml-auto" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function CourseReviews({
   courseId,
@@ -343,9 +388,7 @@ export default function CourseReviews({
 
       <div className="space-y-4 md:space-y-6">
         {isLoadingReviews ? (
-          <div className="glass-panel rounded-[2rem] md:rounded-4xl p-6 text-center text-sm font-bold text-gray-500 dark:text-gray-400">
-            در حال دریافت نظرات...
-          </div>
+          <CommentsSkeleton />
         ) : liveReviews.length === 0 ? (
           <div className="glass-panel rounded-[2rem] md:rounded-4xl p-6 text-center text-sm font-bold text-gray-500 dark:text-gray-400">
             هنوز نظری برای این دوره ثبت نشده است.
