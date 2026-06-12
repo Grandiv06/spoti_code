@@ -224,29 +224,6 @@ export default function CustomVideoPlayer({ src, poster, title }: CustomVideoPla
         </button>
       </div>
 
-      {/* Settings Menu */}
-      {showSettings && (
-        <div 
-          className="absolute bottom-20 left-4 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 z-30 text-white min-w-[150px] shadow-2xl animate-slide-in-from-right"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="text-xs font-bold text-gray-400 mb-2 px-2">سرعت پخش</div>
-          {[0.5, 0.75, 1, 1.25, 1.5, 2].map(speed => (
-            <button
-              key={speed}
-              onClick={() => changeSpeed(speed)}
-              className={cn(
-                "w-full text-right px-3 py-2 rounded-xl text-sm font-medium hover:bg-white/10 transition-colors flex items-center justify-between cursor-pointer",
-                playbackRate === speed ? "text-primary" : "text-white"
-              )}
-            >
-              <span>{speed === 1 ? 'عادی' : speed + 'x'}</span>
-              {playbackRate === speed && <span className="material-symbols-outlined text-[16px]">check</span>}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* Bottom Controls Bar */}
       <div
         className={cn(
@@ -328,13 +305,37 @@ export default function CustomVideoPlayer({ src, poster, title }: CustomVideoPla
             
             <div className="w-px h-5 bg-white/20 mx-1"></div>
 
-            <button 
-              onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); }} 
-              className={cn("hover:text-primary transition-colors flex items-center justify-center cursor-pointer", showSettings && "text-primary animate-spin")}
-              title="تنظیمات"
-            >
-              <span className="material-symbols-outlined text-2xl">settings</span>
-            </button>
+            <div className="relative">
+              <button 
+                onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); }} 
+                className={cn("hover:text-primary transition-colors flex items-center justify-center cursor-pointer", showSettings && "text-primary animate-spin")}
+                title="تنظیمات"
+              >
+                <span className="material-symbols-outlined text-2xl">settings</span>
+              </button>
+
+              {showSettings && (
+                <div 
+                  className="absolute bottom-full right-0 mb-6 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 z-30 text-white min-w-[150px] shadow-2xl animate-slide-in-from-right origin-bottom-right"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="text-xs font-bold text-gray-400 mb-2 px-2">سرعت پخش</div>
+                  {[0.5, 0.75, 1, 1.25, 1.5, 2].map(speed => (
+                    <button
+                      key={speed}
+                      onClick={() => changeSpeed(speed)}
+                      className={cn(
+                        "w-full text-right px-3 py-2 rounded-xl text-sm font-medium hover:bg-white/10 transition-colors flex items-center justify-between cursor-pointer",
+                        playbackRate === speed ? "text-primary" : "text-white"
+                      )}
+                    >
+                      <span>{speed === 1 ? 'عادی' : speed + 'x'}</span>
+                      {playbackRate === speed && <span className="material-symbols-outlined text-[16px]">check</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             
             <button onClick={toggleFullscreen} className="hover:text-primary transition-colors flex items-center justify-center ml-1 cursor-pointer">
               <span className="material-symbols-outlined text-2xl">

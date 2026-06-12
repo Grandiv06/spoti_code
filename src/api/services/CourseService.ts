@@ -48,6 +48,57 @@ export class CourseService {
         });
     }
     /**
+     * @param slug
+     * @param category
+     * @param discountCode
+     * @param page
+     * @param limit
+     * @returns any
+     * @throws ApiError
+     */
+    public static courseControllerFindAllPublicCoursesBySlug(
+        slug: string,
+        category?: 'frontend' | 'backend' | 'ai' | 'base' | 'mobile' | 'devops',
+        discountCode?: string,
+        page?: number,
+        limit?: number,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/courses/public/by-slug/{slug}',
+            path: {
+                'slug': slug,
+            },
+            query: {
+                'category': category,
+                'discountCode': discountCode,
+                'page': page,
+                'limit': limit,
+            },
+        });
+    }
+    /**
+     * @param slug
+     * @param discountCode
+     * @returns CourseEntity
+     * @throws ApiError
+     */
+    public static courseControllerFindOnePublicCourseBySlug(
+        slug: string,
+        discountCode?: string,
+    ): CancelablePromise<CourseEntity> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/courses/public/slug/{slug}',
+            path: {
+                'slug': slug,
+            },
+            query: {
+                'discountCode': discountCode,
+            },
+        });
+    }
+    /**
      * @param id
      * @param discountCode
      * @returns CourseEntity

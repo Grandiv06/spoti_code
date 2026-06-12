@@ -257,6 +257,7 @@ export default async function PublicInstructorProfilePage({
                 {courses.map((course) => (
                   <div key={course.id} className="h-full">
                     <CourseCard
+                      id={course.id}
                       title={course.title}
                       instructor={instructor.fullName}
                       instructorImg={instructor.avatar}

@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type UpsertProfileDto = {
+export type InstructorProfileUpdateDto = {
     location?: string;
     githubLink?: string;
     linkedinLink?: string;

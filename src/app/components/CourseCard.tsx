@@ -6,6 +6,7 @@ import type { MouseEvent } from "react";
 
 export interface CourseCardProps {
   id?: string;
+  slug?: string;
   title: string;
   instructor: string;
   instructorImg?: string;
@@ -21,7 +22,8 @@ export interface CourseCardProps {
 }
 
 export default function CourseCard({
-  id = "preview",
+  id,
+  slug,
   title,
   instructor,
   instructorImg = "/images/inst1.jpg",
@@ -127,7 +129,7 @@ export default function CourseCard({
             )}
           </span>
           <Link
-            href={viewHref || `/courses/${id}`}
+            href={viewHref || (slug ? `/courses/${slug}` : id ? `/courses/${id}` : "#")}
             onClick={(e) => {
               onViewClick?.(e);
               if (disableViewNavigation) e.preventDefault();

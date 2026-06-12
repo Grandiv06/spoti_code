@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import AuthTransitionLink from "@/app/components/AuthTransitionLink";
+import Link from "next/link";
 import { useRegisterByPhoneMutation } from "@/hooks/api/useAuthMutations";
 import { useRouter } from "next/navigation";
 
@@ -141,12 +141,12 @@ export default function RegisterForm() {
         <div>
           <p className="text-gray-500 dark:text-gray-400 font-medium text-sm">
             قبلاً ثبت‌نام کرده‌اید؟{" "}
-            <AuthTransitionLink
+            <Link
               href="/login"
               className="text-[#00c853] dark:text-green-400 font-black mr-1"
             >
               ورود
-            </AuthTransitionLink>
+            </Link>
           </p>
         </div>
       </div>

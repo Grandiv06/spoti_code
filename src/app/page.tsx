@@ -5,10 +5,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import TestimonialSlider from "./components/TestimonialSlider";
 import PremiumStats from "./components/PremiumStats";
-import { apiGet } from "@/lib/api";
+import { apiGetNoMock } from "@/lib/api";
 
 type LandingCourse = {
   id: string;
+  slug: string;
   title: string;
   instructor: string;
   instructorImg: string;
@@ -17,6 +18,33 @@ type LandingCourse = {
   students: string;
   price: string;
 };
+
+const getCourseList = (payload: unknown): unknown[] => {
+  if (Array.isArray(payload)) return payload;
+
+  if (payload && typeof payload === "object") {
+    const row = payload as { data?: unknown; items?: unknown; results?: unknown };
+    if (Array.isArray(row.data)) return row.data;
+    if (Array.isArray(row.items)) return row.items;
+    if (Array.isArray(row.results)) return row.results;
+
+    const nestedData = row.data as { items?: unknown; data?: unknown } | undefined;
+    if (nestedData && typeof nestedData === "object") {
+      if (Array.isArray(nestedData.items)) return nestedData.items;
+      if (Array.isArray(nestedData.data)) return nestedData.data;
+    }
+  }
+
+  return [];
+};
+
+const formatCourseNumber = (value: unknown, fallback = 0) => {
+  const numericValue = Number(value ?? fallback);
+  return Number.isFinite(numericValue) ? numericValue : fallback;
+};
+
+const getObjectValue = (value: unknown) =>
+  value && typeof value === "object" ? (value as Record<string, unknown>) : undefined;
 
 function CourseCardSkeleton() {
   return (
@@ -70,24 +98,34 @@ export default function Home() {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const res = await apiGet<{ data?: unknown }>("/api/courses/public");
-        const rawList = Array.isArray(res?.data)
-          ? res.data
-          : Array.isArray((res?.data as { items?: unknown[] } | undefined)?.items)
-            ? ((res?.data as { items?: unknown[] }).items as unknown[])
-            : [];
+        const res = await apiGetNoMock<unknown>("/api/courses/public");
+        const rawList = getCourseList(res);
 
         const mapped = rawList.slice(0, 6).map((item, index) => {
           const row = (item ?? {}) as Record<string, unknown>;
+          const instructor = getObjectValue(row.instructor);
+          const studentsCount = formatCourseNumber(
+            row.studentsCount ?? row.students ?? row.enrolledCount
+          );
+          const durationHours = formatCourseNumber(
+            row.durationHours ?? row.hours ?? row.duration ?? row.length
+          );
+          const price = formatCourseNumber(row.price ?? row.amount ?? row.finalPrice);
+
           return {
             id: String(row.id ?? row.slug ?? `course-${index + 1}`),
+            slug: String(row.slug ?? row.id ?? `course-${index + 1}`),
             title: String(row.title ?? row.name ?? "دوره بدون عنوان"),
-            instructor: String(row.instructorName ?? row.teacherName ?? "مدرس اسپاتی‌کد"),
-            instructorImg: String(row.instructorAvatar ?? "/images/inst1.jpg"),
-            image: String(row.cover ?? row.thumbnail ?? "/images/js-green.png"),
-            hours: String(row.durationHours ?? row.hours ?? "۰"),
-            students: Number(row.studentsCount ?? row.students ?? 0).toLocaleString("fa-IR"),
-            price: Number(row.price ?? 0).toLocaleString("fa-IR"),
+            instructor: String(
+              row.instructorName ?? row.teacherName ?? instructor?.name ?? "مدرس اسپاتی‌کد"
+            ),
+            instructorImg: String(
+              row.instructorAvatar ?? row.teacherAvatar ?? instructor?.avatar ?? "/images/inst1.jpg"
+            ),
+            image: String(row.cover ?? row.thumbnail ?? row.image ?? "/images/js-green.png"),
+            hours: durationHours.toLocaleString("fa-IR"),
+            students: studentsCount.toLocaleString("fa-IR"),
+            price: price.toLocaleString("fa-IR"),
           };
         });
 
@@ -319,7 +357,7 @@ export default function Home() {
                         </span>
                       </span>
                       <Link
-                        href={`/courses/${course.id}`}
+                        href={`/courses/${course.slug}`}
                         className="flex-1 bg-gray-50 dark:bg-white/5 hover:bg-primary hover:text-background-dark text-gray-900 dark:text-white rounded-2xl py-2.5 font-bold transition-all flex items-center justify-center gap-2 group/btn"
                       >
                         مشاهده

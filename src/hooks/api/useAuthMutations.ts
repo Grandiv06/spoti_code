@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
-import { apiPost } from "@/lib/api";
+import { apiPost, apiPostNoMock } from "@/lib/api";
 
 const REGISTER_PATH = "/api/auth/register-by-phone";
 const LOGIN_PATH = "/api/auth/verify-phone";
@@ -30,7 +30,7 @@ export function useLoginByPhoneMutation() {
   return useMutation({
     mutationFn: (payload: LoginPayload) => {
       const normalizedOtp = payload.otp ?? payload.code;
-      return apiPost(
+      return apiPostNoMock(
         normalizedOtp ? LOGIN_PATH : SEND_OTP_PATH,
         normalizedOtp
           ? {

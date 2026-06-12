@@ -2,7 +2,7 @@ import type { paths } from "@/types/openapi";
 import { getMockApiResponse } from "./mock-api";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "https://spoticode.runflare.run";
+  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "https://spoticode.vercel.app";
 
 const USE_MOCK_API = process.env.NEXT_PUBLIC_USE_MOCK_API === "true";
 
@@ -15,6 +15,7 @@ type PathWithMethod<M extends HttpMethod> = {
 interface ApiRequestOptions {
   headers?: HeadersInit;
   body?: unknown;
+  useMock?: boolean;
 }
 
 export async function apiRequest<T>(
@@ -22,7 +23,9 @@ export async function apiRequest<T>(
   path: string,
   options: ApiRequestOptions = {}
 ): Promise<T> {
-  const mockResponse = getMockApiResponse<T>({ method, path, body: options.body });
+  const mockResponse = options.useMock === false
+    ? undefined
+    : getMockApiResponse<T>({ method, path, body: options.body });
 
   if (USE_MOCK_API && mockResponse !== undefined) {
     return mockResponse;
@@ -63,6 +66,14 @@ export function apiGet(path: string, headers?: HeadersInit) {
   return apiRequest("get", path, { headers });
 }
 
+export function apiGetNoMock<T = unknown>(path: string, headers?: HeadersInit) {
+  return apiRequest<T>("get", path, { headers, useMock: false });
+}
+
 export function apiPost<T>(path: string, body?: unknown, headers?: HeadersInit) {
   return apiRequest<T>("post", path, { body, headers });
+}
+
+export function apiPostNoMock<T = unknown>(path: string, body?: unknown, headers?: HeadersInit) {
+  return apiRequest<T>("post", path, { body, headers, useMock: false });
 }

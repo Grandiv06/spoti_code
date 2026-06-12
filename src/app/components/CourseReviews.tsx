@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { apiPost, apiRequest } from "@/lib/api";
+import { useCallback, useState, useEffect } from "react";
+import { CreateCommentDto } from "@/api/models/CreateCommentDto";
+import { apiPostNoMock, apiGetNoMock } from "@/lib/api";
 
 export interface Review {
   id: string;
@@ -54,6 +55,45 @@ interface CourseReviewsProps {
   totalReviews?: number | string;
 }
 
+const COMMENTS_PAGE = 1;
+const COMMENTS_LIMIT = 10;
+
+const getCommentsPath = (courseId: string) =>
+  `/api/comments/course/${encodeURIComponent(courseId)}?page=${COMMENTS_PAGE}&limit=${COMMENTS_LIMIT}`;
+
+const normalizeCommentsResponse = (response: { data?: unknown } | unknown) => {
+  const data = response && typeof response === "object"
+    ? (response as { data?: unknown }).data
+    : undefined;
+  const root = (data ?? response) as
+    | unknown[]
+    | {
+        data?: unknown;
+        items?: unknown[];
+        total?: number;
+        meta?: { total?: number };
+      };
+  const nestedData = !Array.isArray(root) && root?.data ? root.data : undefined;
+  const source = (nestedData ?? root) as
+    | unknown[]
+    | { items?: unknown[]; total?: number; meta?: { total?: number } };
+
+  const items = Array.isArray(source)
+    ? source
+    : Array.isArray(source?.items)
+      ? source.items
+      : [];
+
+  const total =
+    typeof (source as { total?: unknown })?.total === "number"
+      ? (source as { total: number }).total
+      : typeof (source as { meta?: { total?: unknown } })?.meta?.total === "number"
+        ? (source as { meta: { total: number } }).meta.total
+        : items.length;
+
+  return { items, total };
+};
+
 export default function CourseReviews({
   courseId,
   reviews = MOCK_REVIEWS,
@@ -68,55 +108,41 @@ export default function CourseReviews({
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const fetchCourseComments = useCallback(async () => {
+    const res = await apiGetNoMock<{ data?: unknown }>(getCommentsPath(courseId));
+    const { items, total } = normalizeCommentsResponse(res);
+
+    const mapped: Review[] = items.map((item, idx) => {
+      const row = (item ?? {}) as Record<string, unknown>;
+      const user = (row.user ?? row.author ?? {}) as Record<string, unknown>;
+      const createdAtRaw = String(row.createdAt ?? row.date ?? "");
+      const createdAtLabel =
+        createdAtRaw && !Number.isNaN(Date.parse(createdAtRaw))
+          ? new Date(createdAtRaw).toLocaleDateString("fa-IR")
+          : "تازه";
+
+      return {
+        id: String(row.id ?? `comment-${idx + 1}`),
+        author: String(
+          user.fullName ?? user.name ?? row.authorName ?? "کاربر اسپاتی‌کد"
+        ),
+        role: String(user.role ?? row.role ?? "دانشجو"),
+        avatar: String(user.avatar ?? row.avatar ?? "/images/student1.jpg"),
+        comment: String(row.content ?? row.comment ?? ""),
+        date: createdAtLabel,
+        userId: typeof user.id === "string" ? user.id : undefined,
+      };
+    });
+
+    setLiveReviews(mapped);
+    setLiveTotalReviews(total);
+  }, [courseId]);
+
   useEffect(() => {
     const fetchComments = async () => {
       setIsLoadingReviews(true);
       try {
-        const res = await apiRequest<{ data?: unknown }>(
-          "get",
-          `/api/comments/course/${encodeURIComponent(courseId)}`
-        );
-        const root = (res?.data ?? res) as
-          | unknown[]
-          | { items?: unknown[]; total?: number; meta?: { total?: number } };
-
-        const list = Array.isArray(root)
-          ? root
-          : Array.isArray(root?.items)
-            ? root.items
-            : [];
-
-        const mapped: Review[] = list.map((item, idx) => {
-          const row = (item ?? {}) as Record<string, unknown>;
-          const user = (row.user ?? row.author ?? {}) as Record<string, unknown>;
-          const createdAtRaw = String(row.createdAt ?? row.date ?? "");
-          const createdAtLabel =
-            createdAtRaw && !Number.isNaN(Date.parse(createdAtRaw))
-              ? new Date(createdAtRaw).toLocaleDateString("fa-IR")
-              : "تازه";
-
-          return {
-            id: String(row.id ?? `comment-${idx + 1}`),
-            author: String(
-              user.fullName ?? user.name ?? row.authorName ?? "کاربر اسپاتی‌کد"
-            ),
-            role: String(user.role ?? row.role ?? "دانشجو"),
-            avatar: String(user.avatar ?? row.avatar ?? "/images/student1.jpg"),
-            comment: String(row.content ?? row.comment ?? ""),
-            date: createdAtLabel,
-            userId: typeof user.id === "string" ? user.id : undefined,
-          };
-        });
-
-        const totalFromApi =
-          typeof (root as { total?: unknown })?.total === "number"
-            ? (root as { total: number }).total
-            : typeof (root as { meta?: { total?: unknown } })?.meta?.total === "number"
-              ? (root as { meta: { total: number } }).meta.total
-              : mapped.length;
-
-        setLiveReviews(mapped);
-        setLiveTotalReviews(totalFromApi);
+        await fetchCourseComments();
       } catch {
         setLiveReviews(reviews);
         setLiveTotalReviews(totalReviews);
@@ -126,7 +152,7 @@ export default function CourseReviews({
     };
 
     fetchComments();
-  }, [courseId, reviews, totalReviews]);
+  }, [fetchCourseComments, reviews, totalReviews]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,31 +160,18 @@ export default function CourseReviews({
 
     setIsSubmitting(true);
     try {
-      await apiPost("/api/comments", {
+      const requestBody: CreateCommentDto = {
         content: formData.comment.trim(),
-        commentableType: "course",
+        commentableType: CreateCommentDto.commentableType.COURSE,
         commentableId: courseId,
-        rating,
-      });
+      };
 
-      setLiveReviews((prev) => [
-        {
-          id: `local-${Date.now()}`,
-          author: "شما",
-          role: "دانشجو",
-          avatar: "/images/student1.jpg",
-          comment: formData.comment.trim(),
-          date: "همین الان",
-        },
-        ...prev,
-      ]);
-      setLiveTotalReviews((prev) =>
-        typeof prev === "number"
-          ? prev + 1
-          : Number.isFinite(Number(prev))
-            ? Number(prev) + 1
-            : 1
-      );
+      if (rating > 0) {
+        requestBody.rating = rating;
+      }
+
+      await apiPostNoMock("/api/comments", requestBody);
+      await fetchCourseComments();
     } catch {
       // Keep modal open to allow retry on API failure.
       return;

@@ -3,10 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { apiGet } from "@/lib/api";
+import { apiGetNoMock } from "@/lib/api";
 
 type CourseItem = {
   id: string;
+  slug: string;
   category: string;
   categoryLabel: string;
   title: string;
@@ -66,6 +67,25 @@ function CourseCardSkeleton() {
   );
 }
 
+const getCourseList = (payload: unknown): unknown[] => {
+  if (Array.isArray(payload)) return payload;
+
+  if (payload && typeof payload === "object") {
+    const row = payload as { data?: unknown; items?: unknown; results?: unknown };
+    if (Array.isArray(row.data)) return row.data;
+    if (Array.isArray(row.items)) return row.items;
+    if (Array.isArray(row.results)) return row.results;
+
+    const nestedData = row.data as { items?: unknown; data?: unknown } | undefined;
+    if (nestedData && typeof nestedData === "object") {
+      if (Array.isArray(nestedData.items)) return nestedData.items;
+      if (Array.isArray(nestedData.data)) return nestedData.data;
+    }
+  }
+
+  return [];
+};
+
 export default function CoursesPage() {
   const [activeFilter, setActiveFilter] = useState("all");
   const [allCourses, setAllCourses] = useState<CourseItem[]>([]);
@@ -74,14 +94,8 @@ export default function CoursesPage() {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const res = await apiGet<"/api/courses/public", { data?: unknown }>(
-          "/api/courses/public"
-        );
-        const rawList = Array.isArray(res?.data)
-          ? res.data
-          : Array.isArray((res?.data as { items?: unknown[] } | undefined)?.items)
-            ? ((res?.data as { items?: unknown[] }).items as unknown[])
-            : [];
+        const res = await apiGetNoMock<unknown>("/api/courses/public");
+        const rawList = getCourseList(res);
 
         const mapped = rawList.map((item, index) => {
           const row = (item ?? {}) as Record<string, unknown>;
@@ -92,6 +106,7 @@ export default function CoursesPage() {
 
           return {
             id: String(row.id ?? row.slug ?? `course-${index + 1}`),
+            slug: String(row.slug ?? row.id ?? `course-${index + 1}`),
             category: rawCategory.toLowerCase(),
             categoryLabel: String(
               row.categoryTitle ?? row.categoryName ?? row.category ?? "سایر"
@@ -311,7 +326,7 @@ export default function CoursesPage() {
                         </span>
                       </span>
                       <Link
-                        href={`/courses/${course.id}`}
+                        href={`/courses/${course.slug}`}
                         className="flex-1 bg-gray-50 dark:bg-white/5 hover:bg-primary hover:text-background-dark text-gray-900 dark:text-white rounded-2xl py-2.5 font-bold transition-all flex items-center justify-center gap-2 group/btn"
                       >
                         مشاهده
