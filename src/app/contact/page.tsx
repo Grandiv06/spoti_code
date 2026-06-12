@@ -2,13 +2,23 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { apiPostNoMock } from "@/lib/api";
+
+const normalizePhoneNumber = (value: string) => {
+  const digits = value.replace(/[^\d]/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("98")) return `+${digits}`;
+  if (digits.startsWith("0")) return `+98${digits.slice(1)}`;
+  return `+${digits}`;
+};
 
 export default function ContactPage() {
   const [formState, setFormState] = useState({
-    name: "",
+    fullName: "",
     email: "",
+    phoneNumber: "",
     subject: "",
-    message: "",
+    content: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -16,10 +26,19 @@ export default function ContactPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setIsSubmitting(false);
-    setIsSubmitted(true);
-    setFormState({ name: "", email: "", subject: "", message: "" });
+    try {
+      await apiPostNoMock("/api/contact-us", {
+        fullName: formState.fullName.trim(),
+        email: formState.email.trim(),
+        phoneNumber: normalizePhoneNumber(formState.phoneNumber),
+        subject: formState.subject,
+        content: formState.content.trim(),
+      });
+      setIsSubmitted(true);
+      setFormState({ fullName: "", email: "", phoneNumber: "", subject: "", content: "" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (
@@ -133,17 +152,17 @@ export default function ContactPage() {
                     <div className="grid sm:grid-cols-2 gap-6">
                       <div className="flex flex-col gap-2">
                         <label
-                          htmlFor="name"
+                          htmlFor="fullName"
                           className="text-sm font-bold text-gray-700 dark:text-gray-300"
                         >
                           نام و نام خانوادگی
                         </label>
                         <input
-                          id="name"
-                          name="name"
+                          id="fullName"
+                          name="fullName"
                           type="text"
                           required
-                          value={formState.name}
+                          value={formState.fullName}
                           onChange={handleChange}
                           placeholder="علی محمدی"
                           className="w-full px-5 py-4 rounded-2xl bg-white/60 dark:bg-white/5 border border-gray-200 dark:border-gray-700 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400"
@@ -170,6 +189,24 @@ export default function ContactPage() {
                     </div>
                     <div className="flex flex-col gap-2">
                       <label
+                        htmlFor="phoneNumber"
+                        className="text-sm font-bold text-gray-700 dark:text-gray-300"
+                      >
+                        شماره موبایل
+                      </label>
+                      <input
+                        id="phoneNumber"
+                        name="phoneNumber"
+                        type="tel"
+                        required
+                        value={formState.phoneNumber}
+                        onChange={handleChange}
+                        placeholder="۰۹۱۲۱۲۳۴۵۶۷"
+                        className="w-full px-5 py-4 rounded-2xl bg-white/60 dark:bg-white/5 border border-gray-200 dark:border-gray-700 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label
                         htmlFor="subject"
                         className="text-sm font-bold text-gray-700 dark:text-gray-300"
                       >
@@ -184,7 +221,7 @@ export default function ContactPage() {
                         className="w-full px-5 py-4 rounded-2xl bg-white/60 dark:bg-white/5 border border-gray-200 dark:border-gray-700 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-gray-900 dark:text-white"
                       >
                         <option value="">انتخاب کنید</option>
-                        <option value="course">سوال درباره دوره‌ها</option>
+                        <option value="courses">سوال درباره دوره‌ها</option>
                         <option value="support">پشتیبانی فنی</option>
                         <option value="partnership">همکاری و مشارکت</option>
                         <option value="other">سایر</option>
@@ -192,16 +229,16 @@ export default function ContactPage() {
                     </div>
                     <div className="flex flex-col gap-2">
                       <label
-                        htmlFor="message"
+                        htmlFor="content"
                         className="text-sm font-bold text-gray-700 dark:text-gray-300"
                       >
                         پیام شما
                       </label>
                       <textarea
-                        id="message"
-                        name="message"
+                        id="content"
+                        name="content"
                         required
-                        value={formState.message}
+                        value={formState.content}
                         onChange={handleChange}
                         placeholder="پیام خود را اینجا بنویسید..."
                         rows={5}
