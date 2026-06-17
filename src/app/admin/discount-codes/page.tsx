@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Activity, BadgePercent, CheckCircle2, Clock3, Pencil, Plus, Search, TicketPercent, ToggleLeft, ToggleRight, Trash2, X } from "lucide-react";
+import { apiGetNoMock, apiPostNoMock } from "@/lib/api";
+import { normalizeAdminDiscountsResponse } from "@/lib/admin-discounts";
 
 type DiscountType = "percentage" | "fixed";
 type ScopeType = "all" | "specific";
@@ -128,6 +130,41 @@ export default function AdminDiscountCodesPage() {
   const [editForm, setEditForm] = useState<DiscountFormState>(emptyForm);
   const [editErrors, setEditErrors] = useState<Record<string, string>>({});
   const [editCourseQuery, setEditCourseQuery] = useState("");
+  const [isLoadingDiscounts, setIsLoadingDiscounts] = useState(true);
+  const [isCreatingDiscount, setIsCreatingDiscount] = useState(false);
+  const [createNotice, setCreateNotice] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  useEffect(() => {
+    const fetchDiscounts = async () => {
+      try {
+        const response = await apiGetNoMock<unknown>("/api/admin-dashboard/discounts?limit=100");
+        const mapped = normalizeAdminDiscountsResponse(response).map((item) => ({
+          id: item.id,
+          title: item.title,
+          code: item.code,
+          discountType: item.discountType,
+          discountValue: item.discountValue,
+          scope: item.scope,
+          selectedCourseIds: item.selectedCourseIds,
+          startAt: item.startAt,
+          endAt: item.endAt,
+          usageLimit: item.usageLimit,
+          usagePerUser: item.usagePerUser,
+          applyType: item.applyType,
+          isEnabled: item.isEnabled,
+          usedCount: item.usedCount,
+        }));
+
+        setDiscounts(mapped.length > 0 ? mapped : initialDiscounts);
+      } catch {
+        setDiscounts(initialDiscounts);
+      } finally {
+        setIsLoadingDiscounts(false);
+      }
+    };
+
+    fetchDiscounts();
+  }, []);
 
   const filteredCourses = useMemo(() => {
     const q = courseQuery.trim();
@@ -211,33 +248,58 @@ export default function AdminDiscountCodesPage() {
     }));
   };
 
-  const submitCreate = (e: React.FormEvent) => {
+  const submitCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     const nextErrors = validate(form);
     setErrors(nextErrors);
+    setCreateNotice(null);
     if (Object.keys(nextErrors).length) return;
 
-    const created: DiscountCodeItem = {
-      id: `d-${Date.now()}`,
-      title: form.title.trim() || "بدون عنوان",
-      code: form.code.trim().toUpperCase(),
-      discountType: form.discountType,
-      discountValue: Number(form.discountValue),
-      scope: form.scope,
-      selectedCourseIds: form.scope === "all" ? [] : form.selectedCourseIds,
-      startAt: form.startAt,
-      endAt: form.endAt,
-      usageLimit: form.usageLimit.trim(),
-      usagePerUser: form.usagePerUser.trim(),
-      applyType: form.applyType,
-      isEnabled: form.isEnabled,
-      usedCount: 0,
-    };
+    const payload = {
+      code: form.code.trim().toUpperCase() || undefined,
+      type: form.discountType === "percentage" ? "percent" : "fixed",
+      value: Number(form.discountValue),
+      startsAt: form.startAt || undefined,
+      expiresAt: form.endAt || undefined,
+      isActive: form.isEnabled,
+      globalUsageLimit: form.usageLimit.trim() ? Number(form.usageLimit) : undefined,
+      perUserUsageLimit: form.usagePerUser.trim() ? Number(form.usagePerUser) : undefined,
+    } as const;
 
-    setDiscounts((p) => [created, ...p]);
-    setForm(emptyForm());
-    setCourseQuery("");
-    setErrors({});
+    setIsCreatingDiscount(true);
+    try {
+      await apiPostNoMock("/api/discounts/admin", payload);
+
+      const created: DiscountCodeItem = {
+        id: `d-${Date.now()}`,
+        title: form.title.trim() || form.code.trim().toUpperCase() || "بدون عنوان",
+        code: form.code.trim().toUpperCase(),
+        discountType: form.discountType,
+        discountValue: Number(form.discountValue),
+        scope: form.scope,
+        selectedCourseIds: form.scope === "all" ? [] : form.selectedCourseIds,
+        startAt: form.startAt,
+        endAt: form.endAt,
+        usageLimit: form.usageLimit.trim(),
+        usagePerUser: form.usagePerUser.trim(),
+        applyType: form.applyType,
+        isEnabled: form.isEnabled,
+        usedCount: 0,
+      };
+
+      setDiscounts((p) => [created, ...p]);
+      setForm(emptyForm());
+      setCourseQuery("");
+      setErrors({});
+      setCreateNotice({ type: "success", message: "کد تخفیف با موفقیت در سرور ثبت شد." });
+    } catch (error) {
+      setCreateNotice({
+        type: "error",
+        message: error instanceof Error ? error.message : "ثبت کد تخفیف در سرور انجام نشد.",
+      });
+    } finally {
+      setIsCreatingDiscount(false);
+    }
   };
 
   const openEdit = (item: DiscountCodeItem) => {
@@ -364,6 +426,18 @@ export default function AdminDiscountCodesPage() {
           <h2 className="text-lg font-black text-gray-900 dark:text-white">ساخت کد تخفیف جدید</h2>
         </div>
 
+        {createNotice ? (
+          <div
+            className={`mb-4 rounded-2xl border px-4 py-3 text-xs font-bold ${
+              createNotice.type === "success"
+                ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
+                : "border-rose-500/20 bg-rose-500/10 text-rose-400"
+            }`}
+          >
+            {createNotice.message}
+          </div>
+        ) : null}
+
         <form onSubmit={submitCreate} className="space-y-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="عنوان تخفیف">
@@ -456,8 +530,12 @@ export default function AdminDiscountCodesPage() {
               </button>
             </div>
 
-            <button type="submit" className="h-11 px-6 rounded-xl bg-primary hover:bg-primary-hover text-white text-sm font-black shadow-lg shadow-primary/20">
-              ساخت کد تخفیف
+            <button
+              type="submit"
+              disabled={isCreatingDiscount}
+              className="h-11 px-6 rounded-xl bg-primary hover:bg-primary-hover disabled:opacity-70 disabled:cursor-not-allowed text-white text-sm font-black shadow-lg shadow-primary/20"
+            >
+              {isCreatingDiscount ? "در حال ثبت..." : "ساخت کد تخفیف"}
             </button>
           </div>
         </form>
@@ -468,7 +546,11 @@ export default function AdminDiscountCodesPage() {
           <h2 className="text-lg font-black text-gray-900 dark:text-white">لیست کدهای تخفیف</h2>
         </div>
 
-        {discounts.length === 0 ? (
+        {isLoadingDiscounts ? (
+          <div className="rounded-2xl border border-dashed border-gray-300 dark:border-white/15 p-10 text-center">
+            <p className="text-sm font-bold text-gray-500 dark:text-gray-300">در حال دریافت کدهای تخفیف از سرور...</p>
+          </div>
+        ) : discounts.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-gray-300 dark:border-white/15 p-10 text-center">
             <p className="text-sm font-bold text-gray-500 dark:text-gray-300 mb-4">هنوز کد تخفیفی ساخته نشده است</p>
             <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="h-10 px-4 rounded-xl bg-primary text-white text-xs font-bold inline-flex items-center gap-2">
