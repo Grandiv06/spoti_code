@@ -68,7 +68,8 @@ export default function UsersTable({
             {users.map((user) => (
               <tr
                 key={user.id}
-                className="hover:bg-gray-50/30 dark:hover:bg-white/[0.02] transition-colors duration-200"
+                onClick={() => onShowDetails(user)}
+                className="hover:bg-gray-50/30 dark:hover:bg-white/[0.02] transition-colors duration-200 cursor-pointer"
               >
                 {/* ID Column */}
                 <td className="py-4 px-6">
@@ -138,14 +139,20 @@ export default function UsersTable({
                 <td className="py-4 px-6 text-center">
                   <div className="flex items-center justify-center gap-2">
                     <button
-                      onClick={() => onShowDetails(user)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onShowDetails(user);
+                      }}
                       className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-gray-100 hover:border-gray-200 dark:border-white/5 dark:hover:border-white/10 bg-gray-50 dark:bg-black/10 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-xs font-bold transition-all"
                     >
                       <Eye className="w-3.5 h-3.5" />
                       <span>نمایش</span>
                     </button>
                     <button
-                      onClick={() => onEditUser(user)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditUser(user);
+                      }}
                       className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-primary/20 hover:border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary text-xs font-bold transition-all"
                     >
                       <Edit3 className="w-3.5 h-3.5" />

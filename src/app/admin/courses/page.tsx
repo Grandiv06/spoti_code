@@ -15,6 +15,8 @@ import CoursesFilters from "./_components/CoursesFilters";
 import CoursesTable from "./_components/CoursesTable";
 import CreateCourseWizard from "./_components/CreateCourseWizard";
 import EditCourseModal from "./_components/EditCourseModal";
+import { apiGetNoMock } from "@/lib/api";
+import { normalizeAdminCoursesResponse } from "@/lib/admin-courses";
 
 interface Toast {
   id: string;
@@ -25,23 +27,37 @@ interface Toast {
 export default function AdminCoursesPage() {
   const router = useRouter();
 
-  // Central Courses State with localStorage persistence
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoadingCourses, setIsLoadingCourses] = useState(true);
 
   useEffect(() => {
-    const saved = localStorage.getItem("spoticode_admin_courses");
-    if (saved) {
+    const fetchCourses = async () => {
       try {
-        setCourses(JSON.parse(saved));
-      } catch (e) {
-        setCourses(initialCoursesData);
+        const response = await apiGetNoMock<unknown>("/api/admin-dashboard/courses?limit=100");
+        const normalizedCourses = normalizeAdminCoursesResponse(response);
+
+        setCourses(normalizedCourses);
+        localStorage.setItem("spoticode_admin_courses", JSON.stringify(normalizedCourses));
+      } catch {
+        const saved = localStorage.getItem("spoticode_admin_courses");
+        if (saved) {
+          try {
+            setCourses(JSON.parse(saved));
+          } catch {
+            setCourses(initialCoursesData);
+          }
+        } else {
+          setCourses(initialCoursesData);
+        }
+        showToast("دریافت دوره‌ها از سرور انجام نشد. داده ذخیره‌شده نمایش داده شد.", "error");
+      } finally {
+        setIsLoaded(true);
+        setIsLoadingCourses(false);
       }
-    } else {
-      setCourses(initialCoursesData);
-      localStorage.setItem("spoticode_admin_courses", JSON.stringify(initialCoursesData));
-    }
-    setIsLoaded(true);
+    };
+
+    fetchCourses();
   }, []);
 
   useEffect(() => {
@@ -202,14 +218,21 @@ export default function AdminCoursesPage() {
 
       {/* Main Table (takes full width) */}
       <div className="w-full">
-        <CoursesTable
-          courses={filteredAndSortedCourses}
-          onShowDetails={handleShowDetails}
-          onEditCourse={handleEditCourse}
-          onDeleteCourse={handleDeleteCourse}
-          onShowStats={handleShowStats}
-          onClearFilters={handleClearFilters}
-        />
+        {isLoadingCourses ? (
+          <div className="rounded-3xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md p-10 text-center">
+            <div className="mx-auto mb-4 h-10 w-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+            <p className="text-xs font-black text-gray-500 dark:text-gray-400">در حال دریافت دوره‌ها از سرور...</p>
+          </div>
+        ) : (
+          <CoursesTable
+            courses={filteredAndSortedCourses}
+            onShowDetails={handleShowDetails}
+            onEditCourse={handleEditCourse}
+            onDeleteCourse={handleDeleteCourse}
+            onShowStats={handleShowStats}
+            onClearFilters={handleClearFilters}
+          />
+        )}
       </div>
 
       {/* Stepper Modal: Create Course */}

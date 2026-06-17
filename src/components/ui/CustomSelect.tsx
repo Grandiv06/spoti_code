@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useLayoutEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { ChevronDown, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
 interface Option {
@@ -42,7 +41,6 @@ export default function CustomSelect({
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [menuRect, setMenuRect] = useState<{ top: number; left: number; width: number } | null>(null);
 
   // Close when clicking outside
   useEffect(() => {
@@ -54,16 +52,6 @@ export default function CustomSelect({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  useLayoutEffect(() => {
-    if (!isOpen || !containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    setMenuRect({
-      top: rect.bottom + 8,
-      left: rect.left,
-      width: rect.width,
-    });
-  }, [isOpen]);
 
   const selectedOption = options.find((opt) => opt.value === value);
 
@@ -118,17 +106,16 @@ export default function CustomSelect({
         </button>
 
         <AnimatePresence>
-          {isOpen && menuRect && typeof document !== "undefined" && createPortal(
+          {isOpen && (
             <motion.div
               initial={{ opacity: 0, y: -10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
               className={cn(
-                "fixed z-[999] p-2 rounded-2xl overflow-hidden shadow-2xl",
+                "absolute top-full mt-2 left-0 right-0 z-[999] p-2 rounded-2xl overflow-hidden shadow-2xl",
                 "bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/10 backdrop-blur-xl"
               )}
-              style={{ top: menuRect.top, left: menuRect.left, width: menuRect.width }}
             >
               <div className="max-h-[280px] overflow-y-auto custom-scrollbar space-y-1">
                 {options.map((option) => {
@@ -164,8 +151,7 @@ export default function CustomSelect({
                   );
                 })}
               </div>
-            </motion.div>,
-            document.body
+            </motion.div>
           )}
         </AnimatePresence>
       </div>

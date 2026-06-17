@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { 
   Search, 
-  Filter, 
   ChevronLeft, 
   Clock, 
   Tag, 
@@ -14,7 +13,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-import { useRouter } from "next/navigation";
 import { useTicketsQuery } from "@/hooks/api/useTicketsQuery";
 
 const tabs = [
@@ -39,7 +37,6 @@ const priorityMap = {
 };
 
 export default function TicketList({ onNewTicket }: { onNewTicket: () => void }) {
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const { data: tickets = [] } = useTicketsQuery();
@@ -134,7 +131,7 @@ export default function TicketList({ onNewTicket }: { onNewTicket: () => void })
 
                 <div className="mt-8 lg:mt-0 flex items-center gap-4 lg:pr-8">
                    <button 
-                    onClick={() => router.push(`/panel/support/${ticket.id}`)}
+                    onClick={() => window.location.assign(`/panel/support/${ticket.id}`)}
                     className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm font-black text-gray-700 dark:text-gray-200 hover:bg-primary hover:text-white hover:border-primary transition-all active:scale-95 shadow-sm"
                   >
                     <span>مشاهده جزئیات</span>

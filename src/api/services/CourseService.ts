@@ -23,7 +23,12 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class CourseService {
     /**
+     * @param search
+     * @param slug
      * @param category
+     * @param difficulty
+     * @param priceType
+     * @param teacherId
      * @param discountCode
      * @param page
      * @param limit
@@ -31,7 +36,12 @@ export class CourseService {
      * @throws ApiError
      */
     public static courseControllerFindAllPublicCourses(
+        search?: string,
+        slug?: string,
         category?: 'frontend' | 'backend' | 'ai' | 'base' | 'mobile' | 'devops',
+        difficulty?: 'beginner' | 'intermediate' | 'advanced',
+        priceType?: 'free' | 'cash',
+        teacherId?: string,
         discountCode?: string,
         page?: number,
         limit?: number,
@@ -40,37 +50,12 @@ export class CourseService {
             method: 'GET',
             url: '/api/courses/public',
             query: {
-                'category': category,
-                'discountCode': discountCode,
-                'page': page,
-                'limit': limit,
-            },
-        });
-    }
-    /**
-     * @param slug
-     * @param category
-     * @param discountCode
-     * @param page
-     * @param limit
-     * @returns any
-     * @throws ApiError
-     */
-    public static courseControllerFindAllPublicCoursesBySlug(
-        slug: string,
-        category?: 'frontend' | 'backend' | 'ai' | 'base' | 'mobile' | 'devops',
-        discountCode?: string,
-        page?: number,
-        limit?: number,
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/api/courses/public/by-slug/{slug}',
-            path: {
+                'search': search,
                 'slug': slug,
-            },
-            query: {
                 'category': category,
+                'difficulty': difficulty,
+                'priceType': priceType,
+                'teacherId': teacherId,
                 'discountCode': discountCode,
                 'page': page,
                 'limit': limit,
@@ -80,12 +65,16 @@ export class CourseService {
     /**
      * @param slug
      * @param discountCode
+     * @param inclueSteps
+     * @param inclueLessons
      * @returns CourseEntity
      * @throws ApiError
      */
     public static courseControllerFindOnePublicCourseBySlug(
         slug: string,
         discountCode?: string,
+        inclueSteps?: boolean,
+        inclueLessons?: boolean,
     ): CancelablePromise<CourseEntity> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -95,18 +84,24 @@ export class CourseService {
             },
             query: {
                 'discountCode': discountCode,
+                'inclueSteps': inclueSteps,
+                'inclueLessons': inclueLessons,
             },
         });
     }
     /**
      * @param id
      * @param discountCode
+     * @param inclueSteps
+     * @param inclueLessons
      * @returns CourseEntity
      * @throws ApiError
      */
     public static courseControllerFindOnePublicCourse(
         id: string,
         discountCode?: string,
+        inclueSteps?: boolean,
+        inclueLessons?: boolean,
     ): CancelablePromise<CourseEntity> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -116,22 +111,29 @@ export class CourseService {
             },
             query: {
                 'discountCode': discountCode,
+                'inclueSteps': inclueSteps,
+                'inclueLessons': inclueLessons,
             },
         });
     }
     /**
      * @param courseId
+     * @param inclueLessons
      * @returns CourseStepEntity
      * @throws ApiError
      */
     public static courseControllerFindCourseSteps(
         courseId: string,
+        inclueLessons?: boolean,
     ): CancelablePromise<Array<CourseStepEntity>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/courses/{courseId}/steps',
             path: {
                 'courseId': courseId,
+            },
+            query: {
+                'inclueLessons': inclueLessons,
             },
         });
     }
@@ -184,7 +186,28 @@ export class CourseService {
         });
     }
     /**
+     * @param id
+     * @returns any
+     * @throws ApiError
+     */
+    public static courseControllerCompleteLesson(
+        id: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/courses/lessons/{id}/complete',
+            path: {
+                'id': id,
+            },
+        });
+    }
+    /**
+     * @param search
+     * @param slug
      * @param category
+     * @param difficulty
+     * @param priceType
+     * @param teacherId
      * @param discountCode
      * @param page
      * @param limit
@@ -192,7 +215,12 @@ export class CourseService {
      * @throws ApiError
      */
     public static courseControllerFindAllAdminCourses(
+        search?: string,
+        slug?: string,
         category?: 'frontend' | 'backend' | 'ai' | 'base' | 'mobile' | 'devops',
+        difficulty?: 'beginner' | 'intermediate' | 'advanced',
+        priceType?: 'free' | 'cash',
+        teacherId?: string,
         discountCode?: string,
         page?: number,
         limit?: number,
@@ -201,7 +229,12 @@ export class CourseService {
             method: 'GET',
             url: '/api/courses/admin',
             query: {
+                'search': search,
+                'slug': slug,
                 'category': category,
+                'difficulty': difficulty,
+                'priceType': priceType,
+                'teacherId': teacherId,
                 'discountCode': discountCode,
                 'page': page,
                 'limit': limit,
@@ -226,12 +259,16 @@ export class CourseService {
     /**
      * @param id
      * @param discountCode
+     * @param inclueSteps
+     * @param inclueLessons
      * @returns CourseEntity
      * @throws ApiError
      */
     public static courseControllerFindOneAdminCourse(
         id: string,
         discountCode?: string,
+        inclueSteps?: boolean,
+        inclueLessons?: boolean,
     ): CancelablePromise<CourseEntity> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -241,6 +278,8 @@ export class CourseService {
             },
             query: {
                 'discountCode': discountCode,
+                'inclueSteps': inclueSteps,
+                'inclueLessons': inclueLessons,
             },
         });
     }

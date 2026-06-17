@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight, ChevronLeft } from "lucide-react";
-import { apiGet } from "@/lib/api";
 
 export const testimonials = [
   {
@@ -12,57 +11,27 @@ export const testimonials = [
     name: "سهراب امینی",
     role: "توسعه‌دهنده React",
     image: "/images/student1.jpg",
-    content: "پروژه‌های عملی این آکادمی باعث شد ترس من از کدنویسی بریزه و الان در یک شرکت معتبر مشغولم."
+    content: "پروژه‌های عملی این آکادمی باعث شد ترس من از کدنویسی بریزه و الان در یک شرکت معتبر مشغولم.",
   },
   {
     id: 2,
     name: "سارا رضایی",
     role: "توسعه‌دهنده موبایل",
     image: "/images/student2.jpg",
-    content: "بهترین تصمیمی که برای آینده‌ام گرفتم شرکت در دوره موبایل بود. منتورها واقعاً دلسوزانه کمک می‌کنند."
+    content: "بهترین تصمیمی که برای آینده‌ام گرفتم شرکت در دوره موبایل بود. منتورها واقعاً دلسوزانه کمک می‌کنند.",
   },
   {
     id: 3,
     name: "نیما حسینی",
     role: "متخصص دیتاساینس",
     image: "/images/student3.jpg",
-    content: "محتوای آموزشی بسیار به‌روز و با کیفیت هست. پشتیبانی ۲۴ ساعته واقعاً یک مزیت بزرگه."
-  }
+    content: "محتوای آموزشی بسیار به‌روز و با کیفیت هست. پشتیبانی ۲۴ ساعته واقعاً یک مزیت بزرگه.",
+  },
 ];
 
 export default function TestimonialSlider() {
-  const [items, setItems] = useState(testimonials);
+  const [items] = useState(testimonials);
   const [activeIndex, setActiveIndex] = useState(1);
-
-  useEffect(() => {
-    const fetchSurveys = async () => {
-      try {
-        const res = await apiGet<{ data?: unknown }>("/api/surveys");
-        const rawList = Array.isArray(res?.data)
-          ? res.data
-          : Array.isArray((res?.data as { items?: unknown[] } | undefined)?.items)
-            ? ((res?.data as { items?: unknown[] }).items as unknown[])
-            : [];
-
-        const mapped = rawList.slice(0, 10).map((row, idx) => {
-          const item = (row ?? {}) as Record<string, unknown>;
-          return {
-            id: Number(item.id ?? idx + 1),
-            name: String(item.fullName ?? item.name ?? "دانشجو"),
-            role: String(item.role ?? item.title ?? "دانشجو"),
-            image: String(item.avatar ?? "/images/student1.jpg"),
-            content: String(item.comment ?? item.message ?? ""),
-          };
-        }).filter((x) => x.content.trim().length > 0);
-
-        if (mapped.length > 0) {
-          setItems(mapped);
-          setActiveIndex(0);
-        }
-      } catch {}
-    };
-    fetchSurveys();
-  }, []);
 
   const handleNext = () => {
     setActiveIndex((prev) => (prev === 0 ? items.length - 1 : prev - 1));
@@ -75,10 +44,10 @@ export default function TestimonialSlider() {
   const getPosition = (index: number) => {
     const total = items.length;
     let diff = index - activeIndex;
-    
+
     if (diff < -1) diff += total;
     if (diff > 1) diff -= total;
-    
+
     return diff;
   };
 
@@ -91,145 +60,142 @@ export default function TestimonialSlider() {
         </p>
 
         <div className="relative mt-8">
-          {/* Wrapper برای همترازی فلش‌ها با مرکز کارت‌ها */}
           <div className="relative">
-            {/* Navigation Arrows - وسط چین باکس‌های نظرات - پنهان در موبایل */}
             <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 hidden md:flex justify-between z-20 pointer-events-none md:-mx-20 lg:-mx-28">
-            <button 
-              type="button"
-              onClick={handlePrev}
-              className="w-12 h-12 md:w-14 md:h-14 bg-white dark:bg-surface-dark rounded-full shadow-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center text-gray-500 hover:text-primary hover:scale-110 transition-all duration-300 cursor-pointer pointer-events-auto z-20 ml-2 mr-6 md:mr-10"
-              aria-label="قبلی"
-            >
-              <ChevronRight className="w-6 h-6 md:w-8 md:h-8" />
-            </button>
-            
-            <button 
-              type="button" 
-              onClick={handleNext}
-              className="w-12 h-12 md:w-14 md:h-14 bg-white dark:bg-surface-dark rounded-full shadow-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center text-gray-500 hover:text-primary hover:scale-110 transition-all duration-300 cursor-pointer pointer-events-auto z-20 mr-2 ml-6 md:ml-10"
-              aria-label="بعدی"
-            >
-              <ChevronLeft className="w-6 h-6 md:w-8 md:h-8" />
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={handlePrev}
+                className="w-12 h-12 md:w-14 md:h-14 bg-white dark:bg-surface-dark rounded-full shadow-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center text-gray-500 hover:text-primary hover:scale-110 transition-all duration-300 cursor-pointer pointer-events-auto z-20 ml-2 mr-6 md:mr-10"
+                aria-label="قبلی"
+              >
+                <ChevronRight className="w-6 h-6 md:w-8 md:h-8" />
+              </button>
 
-          {/* موبایل - فقط کارت فعال با fade */}
-          <div className="md:hidden">
-            {items.map((t, index) => {
-              if (index !== activeIndex) return null;
-              return (
-                <div key={`${t.id}-${activeIndex}`} className="flex flex-col items-center animate-in fade-in duration-500">
-                  <Link href="/social" className="w-full block p-10 pb-16 rounded-4xl relative bg-primary text-white hover:shadow-[0_20px_40px_-15px_rgba(34,197,94,0.4)] transition-shadow group cursor-pointer mb-8">
-                    <div className="relative w-24 h-24 mx-auto">
-                      <Image alt="Student" className="rounded-full border-4 border-white shadow-lg object-cover transform-gpu group-hover:scale-105 transition-transform duration-300" src={t.image} fill />
+              <button
+                type="button"
+                onClick={handleNext}
+                className="w-12 h-12 md:w-14 md:h-14 bg-white dark:bg-surface-dark rounded-full shadow-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center text-gray-500 hover:text-primary hover:scale-110 transition-all duration-300 cursor-pointer pointer-events-auto z-20 mr-2 ml-6 md:ml-10"
+                aria-label="بعدی"
+              >
+                <ChevronLeft className="w-6 h-6 md:w-8 md:h-8" />
+              </button>
+            </div>
+
+            <div className="md:hidden">
+              {items.map((t, index) => {
+                if (index !== activeIndex) return null;
+
+                return (
+                  <div key={`${t.id}-${activeIndex}`} className="flex flex-col items-center animate-in fade-in duration-500">
+                    <Link href="/social" className="w-full block p-10 pb-16 rounded-4xl relative bg-primary text-white hover:shadow-[0_20px_40px_-15px_rgba(34,197,94,0.4)] transition-shadow group cursor-pointer mb-8">
+                      <div className="relative w-24 h-24 mx-auto">
+                        <Image alt="Student" className="rounded-full border-4 border-white shadow-lg object-cover transform-gpu group-hover:scale-105 transition-transform duration-300" src={t.image} fill />
+                      </div>
+                      <p className="leading-loose font-normal mt-6 text-white/90">&quot;{t.content}&quot;</p>
+                      <h4 className="font-black text-2xl mt-6 group-hover:text-background-dark transition-colors">{t.name}</h4>
+                      <span className="bg-white/20 px-4 py-1 rounded-full text-xs font-bold mt-2 inline-block group-hover:bg-background-dark/10 transition-colors">{t.role}</span>
+                      <div className="absolute top-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="material-symbols-outlined text-white/70">open_in_new</span>
+                      </div>
+                    </Link>
+
+                    <div className="flex items-center justify-center gap-6">
+                      <button
+                        type="button"
+                        onClick={handleNext}
+                        className="w-12 h-12 bg-white dark:bg-surface-dark rounded-full shadow border border-gray-100 dark:border-gray-800 flex items-center justify-center text-gray-500 hover:text-primary hover:scale-110 transition-all duration-300 cursor-pointer"
+                        aria-label="بعدی"
+                      >
+                        <ChevronRight className="w-6 h-6" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handlePrev}
+                        className="w-12 h-12 bg-white dark:bg-surface-dark rounded-full shadow border border-gray-100 dark:border-gray-800 flex items-center justify-center text-gray-500 hover:text-primary hover:scale-110 transition-all duration-300 cursor-pointer"
+                        aria-label="قبلی"
+                      >
+                        <ChevronLeft className="w-6 h-6" />
+                      </button>
                     </div>
-                    <p className="leading-loose font-normal mt-6 text-white/90">&quot;{t.content}&quot;</p>
-                    <h4 className="font-black text-2xl mt-6 group-hover:text-background-dark transition-colors">{t.name}</h4>
-                    <span className="bg-white/20 px-4 py-1 rounded-full text-xs font-bold mt-2 inline-block group-hover:bg-background-dark/10 transition-colors">{t.role}</span>
-                    <div className="absolute top-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="material-symbols-outlined text-white/70">open_in_new</span>
-                    </div>
-                  </Link>
-
-                  {/* Navigation Arrows برای موبایل زیر کامنت */}
-                  <div className="flex items-center justify-center gap-6">
-                    <button 
-                      type="button" 
-                      onClick={handleNext}
-                      className="w-12 h-12 bg-white dark:bg-surface-dark rounded-full shadow border border-gray-100 dark:border-gray-800 flex items-center justify-center text-gray-500 hover:text-primary hover:scale-110 transition-all duration-300 cursor-pointer"
-                      aria-label="بعدی"
-                    >
-                      <ChevronRight className="w-6 h-6 " />
-                    </button>
-
-                    <button 
-                      type="button"
-                      onClick={handlePrev}
-                      className="w-12 h-12 bg-white dark:bg-surface-dark rounded-full shadow border border-gray-100 dark:border-gray-800 flex items-center justify-center text-gray-500 hover:text-primary hover:scale-110 transition-all duration-300 cursor-pointer"
-                      aria-label="قبلی"
-                    >
-                      <ChevronLeft className="w-6 h-6 " />
-                    </button>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
 
-            {/* دسکتاپ - انیمیشن اسلاید نرم با scale و fade (dir=ltr برای محاسبه صحیح translateX) */}
-          <div className="hidden md:flex gap-10 relative min-h-[420px] items-center overflow-hidden pt-20 pb-4" dir="ltr">
-            {items.map((t, index) => {
-              const position = getPosition(index);
-              const isCenter = position === 0;
-              const isLeft = position === -1;
-              const isRight = position === 1;
-              if (!isCenter && !isLeft && !isRight) return null;
+            <div className="hidden md:flex gap-10 relative min-h-[420px] items-center overflow-hidden pt-20 pb-4" dir="ltr">
+              {items.map((t, index) => {
+                const position = getPosition(index);
+                const isCenter = position === 0;
+                const isLeft = position === -1;
+                const isRight = position === 1;
+                if (!isCenter && !isLeft && !isRight) return null;
 
-              const slotIndex = position + 1;
-              const translateX = `calc(${slotIndex - index} * (100% + 2.5rem))`;
-              const scale = isCenter ? 1.03 : 0.97;
-              const opacity = isCenter ? 1 : 0.8;
-              const zIndex = isCenter ? 20 : 10;
+                const slotIndex = position + 1;
+                const translateX = `calc(${slotIndex - index} * (100% + 2.5rem))`;
+                const scale = isCenter ? 1.03 : 0.97;
+                const opacity = isCenter ? 1 : 0.8;
+                const zIndex = isCenter ? 20 : 10;
 
-              return (
-                <div
-                  key={t.id}
-                  className="flex-1 min-w-0 flex justify-center origin-center"
-                  style={{
-                    transform: `translateX(${translateX}) scale(${scale})`,
-                    opacity,
-                    zIndex,
-                    transition: "transform 1s cubic-bezier(0.16, 1, 0.3, 1), opacity 1s cubic-bezier(0.16, 1, 0.3, 1)",
-                  }}
-                >
-                  <Link
-                    href="/social"
-                    className={`block w-full max-w-md rounded-4xl p-10 relative overflow-visible group cursor-pointer transition-all duration-300
-                      ${isCenter 
-                        ? "bg-primary/0 text-white hover:shadow-[0_30px_60px_-15px_rgba(34,197,94,0.4)]" 
-                        : "bg-white dark:bg-surface-dark shadow-xl mt-8 hover:shadow-2xl hover:-translate-y-2"
-                      }`}
-                    dir="rtl"
+                return (
+                  <div
+                    key={t.id}
+                    className="flex-1 min-w-0 flex justify-center origin-center"
+                    style={{
+                      transform: `translateX(${translateX}) scale(${scale})`,
+                      opacity,
+                      zIndex,
+                      transition: "transform 1s cubic-bezier(0.16, 1, 0.3, 1), opacity 1s cubic-bezier(0.16, 1, 0.3, 1)",
+                    }}
                   >
-                    {/* بکگراند سبز فقط برای کارت وسط */}
-                    {isCenter && (
-                      <div className="absolute inset-0 rounded-4xl bg-primary shadow-lg shadow-primary/20 -z-10 transition-transform duration-300 group-hover:scale-[1.02]" aria-hidden />
-                    )}
-                    <div className={`absolute left-1/2 -translate-x-1/2 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
-                        ${isCenter ? "w-24 h-24 -top-12 z-20 group-hover:-top-14" : "w-20 h-20 -top-10 group-hover:-top-12"}
-                      `}
+                    <Link
+                      href="/social"
+                      className={`block w-full max-w-md rounded-4xl p-10 relative overflow-visible group cursor-pointer transition-all duration-300
+                        ${
+                          isCenter
+                            ? "bg-primary/0 text-white hover:shadow-[0_30px_60px_-15px_rgba(34,197,94,0.4)]"
+                            : "bg-white dark:bg-surface-dark shadow-xl mt-8 hover:shadow-2xl hover:-translate-y-2"
+                        }`}
+                      dir="rtl"
                     >
-                      <Image
-                        alt={t.name}
-                        className={`rounded-full shadow-lg object-cover transform-gpu transition-all duration-300
-                          ${isCenter ? "border-4 border-white group-hover:scale-110" : "border-4 border-white dark:border-gray-800 group-hover:scale-110"}
+                      {isCenter && (
+                        <div className="absolute inset-0 rounded-4xl bg-primary shadow-lg shadow-primary/20 -z-10 transition-transform duration-300 group-hover:scale-[1.02]" aria-hidden />
+                      )}
+                      <div
+                        className={`absolute left-1/2 -translate-x-1/2 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
+                          ${isCenter ? "w-24 h-24 -top-12 z-20 group-hover:-top-14" : "w-20 h-20 -top-10 group-hover:-top-12"}
                         `}
-                        src={t.image}
-                        fill
-                      />
-                    </div>
-                    <div className="absolute top-6 left-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-30">
-                      <span className={`material-symbols-outlined ${isCenter ? "text-white/80" : "text-gray-400"}`}>open_in_new</span>
-                    </div>
-                    <p className={`text-base md:text-lg leading-loose font-normal transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${isCenter ? "mt-8 text-white/90" : "mt-6 text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200"}`}>
-                      &quot;{t.content}&quot;
-                    </p>
-                    <h4 className={`transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${isCenter ? "font-black text-2xl mt-6 group-hover:text-background-dark" : "font-bold text-xl mt-6 group-hover:text-primary"}`}>{t.name}</h4>
-                    {isCenter ? (
-                      <span className="bg-white/20 px-4 py-1 rounded-full text-xs font-bold mt-2 inline-block transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:bg-background-dark/10">
-                        {t.role}
-                      </span>
-                    ) : (
-                      <span className="text-primary text-sm font-bold block mt-0 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]">
-                        {t.role}
-                      </span>
-                    )}
-                  </Link>
-                </div>
-              );
-            })}
-          </div>
+                      >
+                        <Image
+                          alt={t.name}
+                          className={`rounded-full shadow-lg object-cover transform-gpu transition-all duration-300
+                            ${isCenter ? "border-4 border-white group-hover:scale-110" : "border-4 border-white dark:border-gray-800 group-hover:scale-110"}
+                          `}
+                          src={t.image}
+                          fill
+                        />
+                      </div>
+                      <div className="absolute top-6 left-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-30">
+                        <span className={`material-symbols-outlined ${isCenter ? "text-white/80" : "text-gray-400"}`}>open_in_new</span>
+                      </div>
+                      <p className={`text-base md:text-lg leading-loose font-normal transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${isCenter ? "mt-8 text-white/90" : "mt-6 text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200"}`}>
+                        &quot;{t.content}&quot;
+                      </p>
+                      <h4 className={`transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${isCenter ? "font-black text-2xl mt-6 group-hover:text-background-dark" : "font-bold text-xl mt-6 group-hover:text-primary"}`}>{t.name}</h4>
+                      {isCenter ? (
+                        <span className="bg-white/20 px-4 py-1 rounded-full text-xs font-bold mt-2 inline-block transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:bg-background-dark/10">
+                          {t.role}
+                        </span>
+                      ) : (
+                        <span className="text-primary text-sm font-bold block mt-0 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]">
+                          {t.role}
+                        </span>
+                      )}
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>

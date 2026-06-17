@@ -18,14 +18,17 @@ import { apiRequest } from "@/lib/api";
 
 interface TicketDetailsClientProps {
   ticket: Ticket | undefined;
+  onBack?: () => void;
 }
 
-export default function TicketDetailsClient({ ticket }: TicketDetailsClientProps) {
+export default function TicketDetailsClient({ ticket, onBack }: TicketDetailsClientProps) {
   const router = useRouter();
   const [messages, setMessages] = useState(ticket?.messages ?? []);
+  const handleBack = onBack ?? (() => router.push("/panel/support"));
 
   useEffect(() => {
     if (!ticket?.id) return;
+    const fallbackMessages = ticket?.messages ?? [];
 
     const fetchMessages = async () => {
       try {
@@ -63,12 +66,12 @@ export default function TicketDetailsClient({ ticket }: TicketDetailsClientProps
 
         setMessages(mapped);
       } catch {
-        setMessages(ticket?.messages ?? []);
+        setMessages(fallbackMessages);
       }
     };
 
     fetchMessages();
-  }, [ticket?.id]);
+  }, [ticket?.id, ticket?.messages]);
 
   if (!ticket) {
     return (
@@ -81,7 +84,7 @@ export default function TicketDetailsClient({ ticket }: TicketDetailsClientProps
           متاسفانه تیکتی با این شناسه یافت نشد یا ممکن است دسترسی شما به آن محدود شده باشد.
         </p>
         <button 
-          onClick={() => router.push("/panel/support")}
+          onClick={handleBack}
           className="flex items-center gap-2 px-8 py-3.5 bg-primary hover:bg-primary-hover text-white rounded-2xl font-black shadow-xl shadow-primary/25 transition-all active:scale-95"
         >
           <ArrowRight className="w-5 h-5 rotate-180" />
@@ -110,7 +113,7 @@ export default function TicketDetailsClient({ ticket }: TicketDetailsClientProps
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
         <div className="space-y-4">
           <button 
-            onClick={() => router.push("/panel/support")}
+            onClick={handleBack}
             className="flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-all font-bold group"
           >
             <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />

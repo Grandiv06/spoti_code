@@ -1,14 +1,15 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Users, UserPlus, CheckCircle2 } from "lucide-react";
-import { User, initialUsersData } from "./_components/types";
+import { CheckCircle2, UserPlus, Users } from "lucide-react";
+import { User } from "./_components/types";
 import UsersStats from "./_components/UsersStats";
 import UsersFilters from "./_components/UsersFilters";
 import UsersTable from "./_components/UsersTable";
 import EditUserModal from "./_components/EditUserModal";
 import AddUserModal from "./_components/AddUserModal";
+import { useAdminUsersQuery } from "@/hooks/api/useAdminUsersQuery";
 
 interface Toast {
   id: string;
@@ -16,64 +17,140 @@ interface Toast {
   type: "success" | "error" | "info";
 }
 
+function UsersPageSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <div className="relative w-full rounded-[2.5rem] overflow-hidden bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-xl mb-8">
+        <div className="relative z-10 px-8 py-10 md:px-12 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex flex-col md:flex-row items-center gap-6">
+            <div className="w-16 h-16 rounded-2xl bg-gray-200 dark:bg-white/10" />
+            <div className="text-center md:text-right space-y-3">
+              <div className="h-8 w-56 rounded-full bg-gray-200 dark:bg-white/10" />
+              <div className="h-4 w-80 max-w-full rounded-full bg-gray-200 dark:bg-white/10" />
+            </div>
+          </div>
+          <div className="h-12 w-36 rounded-2xl bg-gray-200 dark:bg-white/10" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div
+            key={index}
+            className="bg-white dark:bg-[#1c1e26] p-4 rounded-3xl border border-gray-100 dark:border-white/5 shadow-sm"
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <div className="h-3 w-20 rounded-full bg-gray-200 dark:bg-white/10" />
+              <div className="h-9 w-9 rounded-2xl bg-gray-200 dark:bg-white/10" />
+            </div>
+            <div className="h-7 w-14 rounded-full bg-gray-200 dark:bg-white/10" />
+            <div className="mt-2 h-3 w-24 rounded-full bg-gray-200 dark:bg-white/10" />
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-white dark:bg-[#1c1e26] rounded-3xl border border-gray-100 dark:border-white/5 p-4 md:p-6 shadow-sm">
+        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+          <div className="h-12 w-full md:flex-1 rounded-2xl bg-gray-200 dark:bg-white/10" />
+          <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+            <div className="h-12 w-32 rounded-2xl bg-gray-200 dark:bg-white/10" />
+            <div className="h-12 w-32 rounded-2xl bg-gray-200 dark:bg-white/10" />
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-[#1c1e26] rounded-3xl border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto w-full">
+          <div className="min-w-[1100px]">
+            <div className="grid grid-cols-8 gap-4 px-6 py-4 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-black/10">
+              {Array.from({ length: 8 }).map((_, index) => (
+                <div key={index} className="h-3 rounded-full bg-gray-200 dark:bg-white/10" />
+              ))}
+            </div>
+            {Array.from({ length: 6 }).map((_, row) => (
+              <div
+                key={row}
+                className="grid grid-cols-8 gap-4 px-6 py-5 border-b border-gray-100 dark:border-white/5"
+              >
+                {Array.from({ length: 8 }).map((__, col) => (
+                  <div key={col} className="h-5 rounded-full bg-gray-100 dark:bg-white/5" />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function UsersErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <p className="text-sm font-black">بارگذاری لیست کاربران انجام نشد.</p>
+          <p className="mt-2 text-xs leading-relaxed opacity-90">{message}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-red-600 px-4 py-3 text-xs font-bold text-white transition-colors hover:bg-red-700"
+        >
+          <CheckCircle2 className="w-4 h-4" />
+          تلاش مجدد
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminUsersPage() {
   const router = useRouter();
-  
-  // Central State for Users with localStorage persistence
   const [users, setUsers] = useState<User[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  useEffect(() => {
-    const saved = localStorage.getItem("spoticode_admin_users");
-    if (saved) {
-      try {
-        setUsers(JSON.parse(saved));
-      } catch (e) {
-        setUsers(initialUsersData);
-      }
-    } else {
-      setUsers(initialUsersData);
-      localStorage.setItem("spoticode_admin_users", JSON.stringify(initialUsersData));
-    }
-    setIsLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    if (isLoaded) {
-      localStorage.setItem("spoticode_admin_users", JSON.stringify(users));
-    }
-  }, [users, isLoaded]);
-
-  // Filters State
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [planFilter, setPlanFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
-
-  // Modals Open/Close and Selected Items
   const [selectedEditUser, setSelectedEditUser] = useState<User | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-
-  // Toast System State
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery.trim());
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [searchQuery]);
+
+  const { data, isPending, isError, error, refetch } = useAdminUsersQuery({
+    search: debouncedSearchQuery || undefined,
+    page: 1,
+    limit: 500,
+  });
+
+  useEffect(() => {
+    if (data?.users) {
+      setUsers(data.users);
+    }
+  }, [data?.users]);
 
   const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
     const id = Math.random().toString(36).substr(2, 9);
     setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => {
+    window.setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 4000);
   };
 
-  // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
     return searchQuery !== "" || statusFilter !== "all" || planFilter !== "all";
   }, [searchQuery, statusFilter, planFilter]);
 
-  // Clear Filters Handler
   const handleClearFilters = () => {
     setSearchQuery("");
     setStatusFilter("all");
@@ -82,33 +159,17 @@ export default function AdminUsersPage() {
     showToast("فیلترها با موفقیت پاک شدند.", "info");
   };
 
-  // Filter and Sort Logic
   const filteredAndSortedUsers = useMemo(() => {
     let result = [...users];
 
-    // 1. Search Query Filter
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      result = result.filter(
-        (u) =>
-          u.name.toLowerCase().includes(q) ||
-          u.phone.includes(q) ||
-          u.id.toLowerCase().includes(q) ||
-          u.email.toLowerCase().includes(q)
-      );
-    }
-
-    // 2. Status Filter
     if (statusFilter !== "all") {
       result = result.filter((u) => u.status === statusFilter);
     }
 
-    // 3. Plan Filter
     if (planFilter !== "all") {
       result = result.filter((u) => u.plan === planFilter);
     }
 
-    // 4. Sorting
     result.sort((a, b) => {
       if (sortBy === "highest_ltv") {
         return b.ltv - a.ltv;
@@ -116,18 +177,16 @@ export default function AdminUsersPage() {
       if (sortBy === "highest_courses") {
         return b.courses - a.courses;
       }
-      // default or 'newest'
-      const idA = parseInt(a.id.replace("USR-", "")) || 0;
-      const idB = parseInt(b.id.replace("USR-", "")) || 0;
-      return idB - idA; // higher ID is newer
+      const idA = Number(String(a.id).replace(/\D/g, "")) || 0;
+      const idB = Number(String(b.id).replace(/\D/g, "")) || 0;
+      return idB - idA;
     });
 
     return result;
-  }, [users, searchQuery, statusFilter, planFilter, sortBy]);
+  }, [users, statusFilter, planFilter, sortBy]);
 
-  // Handle Operations
   const handleShowDetails = (user: User) => {
-    router.push(`/admin/users/${user.id}`);
+    router.push(`/admin/users/detail?id=${encodeURIComponent(user.id)}`);
   };
 
   const handleEditUser = (user: User) => {
@@ -142,12 +201,11 @@ export default function AdminUsersPage() {
   };
 
   const handleAddUser = (newUser: User) => {
-    // Generate next unique user ID
     const numericIds = users
-      .map((u) => parseInt(u.id.replace("USR-", "")))
-      .filter((n) => !isNaN(n));
+      .map((u) => Number(String(u.id).replace(/\D/g, "")))
+      .filter((n) => Number.isFinite(n));
     const nextId = numericIds.length > 0 ? Math.max(...numericIds) + 1 : 1000;
-    
+
     const preparedUser = {
       ...newUser,
       id: `USR-${nextId}`,
@@ -158,12 +216,11 @@ export default function AdminUsersPage() {
     showToast(`کاربر جدید «${preparedUser.name}» با موفقیت به پلتفرم اضافه شد.`, "success");
   };
 
+  const isLoading = isPending && users.length === 0;
+
   return (
     <div className="max-w-[1400px] mx-auto px-2 md:px-4 pb-20 animate-in fade-in duration-700" dir="rtl">
-      
-      {/* Premium Header Card */}
       <div className="relative w-full rounded-[2.5rem] overflow-hidden bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-xl mb-8">
-        {/* Glow Circles */}
         <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-primary/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/4 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[200px] h-[200px] bg-emerald-500/10 rounded-full blur-[60px] translate-y-1/2 -translate-x-1/4 pointer-events-none" />
 
@@ -175,7 +232,7 @@ export default function AdminUsersPage() {
                 <Users className="w-8 h-8" />
               </div>
             </div>
-            
+
             <div className="text-center md:text-right">
               <h1 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-2">مدیریت کاربران</h1>
               <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 font-medium">
@@ -194,49 +251,58 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
-      {/* Dynamic Stats Cards */}
-      <UsersStats users={users} />
+      {isError ? (
+        <div className="mb-8">
+          <UsersErrorState
+            message={error?.message || "لطفاً اتصال شبکه و سطح دسترسی کاربر را بررسی کنید."}
+            onRetry={() => void refetch()}
+          />
+        </div>
+      ) : null}
 
-      {/* Filters Section */}
-      <UsersFilters
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
-        planFilter={planFilter}
-        setPlanFilter={setPlanFilter}
-        sortBy={sortBy}
-        setSortBy={setSortBy}
-        onClearFilters={handleClearFilters}
-        isFiltersExpanded={isFiltersExpanded}
-        setIsFiltersExpanded={setIsFiltersExpanded}
-        hasActiveFilters={hasActiveFilters}
-      />
+      {isLoading ? (
+        <UsersPageSkeleton />
+      ) : (
+        <>
+          <UsersStats users={users} />
 
-      {/* Users Data Table */}
-      <UsersTable
-        users={filteredAndSortedUsers}
-        onShowDetails={handleShowDetails}
-        onEditUser={handleEditUser}
-        onClearFilters={handleClearFilters}
-      />
+          <UsersFilters
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+            planFilter={planFilter}
+            setPlanFilter={setPlanFilter}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            onClearFilters={handleClearFilters}
+            isFiltersExpanded={isFiltersExpanded}
+            setIsFiltersExpanded={setIsFiltersExpanded}
+            hasActiveFilters={hasActiveFilters}
+          />
 
-      {/* Modal: Edit User */}
-      <EditUserModal
-        user={selectedEditUser}
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        onSave={handleSaveUser}
-      />
+          <UsersTable
+            users={filteredAndSortedUsers}
+            onShowDetails={handleShowDetails}
+            onEditUser={handleEditUser}
+            onClearFilters={handleClearFilters}
+          />
 
-      {/* Modal: Add User */}
-      <AddUserModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onAdd={handleAddUser}
-      />
+          <EditUserModal
+            user={selectedEditUser}
+            isOpen={isEditModalOpen}
+            onClose={() => setIsEditModalOpen(false)}
+            onSave={handleSaveUser}
+          />
 
-      {/* Custom Toast Notifications Overlay */}
+          <AddUserModal
+            isOpen={isAddModalOpen}
+            onClose={() => setIsAddModalOpen(false)}
+            onAdd={handleAddUser}
+          />
+        </>
+      )}
+
       <div className="fixed bottom-6 left-6 z-50 flex flex-col gap-3 max-w-sm w-full" dir="rtl">
         {toasts.map((t) => (
           <div
@@ -245,8 +311,8 @@ export default function AdminUsersPage() {
               t.type === "success"
                 ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
                 : t.type === "error"
-                ? "bg-red-500/10 border-red-500/20 text-red-400"
-                : "bg-blue-500/10 border-blue-500/20 text-blue-400"
+                  ? "bg-red-500/10 border-red-500/20 text-red-400"
+                  : "bg-blue-500/10 border-blue-500/20 text-blue-400"
             }`}
           >
             <CheckCircle2 className="w-5 h-5 shrink-0" />
@@ -254,7 +320,6 @@ export default function AdminUsersPage() {
           </div>
         ))}
       </div>
-
     </div>
   );
 }

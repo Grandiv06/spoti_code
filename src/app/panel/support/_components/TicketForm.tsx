@@ -2,9 +2,8 @@
 
 import React, { useState } from "react";
 import { Send, AlertCircle, Paperclip, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
 import CustomSelect from "@/components/ui/CustomSelect";
-import { apiPost } from "@/lib/api";
+import { apiPostNoMock } from "@/lib/api";
 
 export default function TicketForm({ onBack }: { onBack: () => void }) {
   const [loading, setLoading] = useState(false);
@@ -15,17 +14,18 @@ export default function TicketForm({ onBack }: { onBack: () => void }) {
   const [error, setError] = useState("");
 
   const categoryOptions = [
-    { label: "دوره های آموزشی", value: "courses" },
-    { label: "مالی و پرداخت", value: "payment" },
-    { label: "حساب کاربری", value: "account" },
     { label: "مشکلات فنی", value: "technical" },
+    { label: "پرداخت", value: "billing" },
+    { label: "حساب کاربری", value: "account" },
+    { label: "درخواست ویژگی", value: "featureRequest" },
+    { label: "گزارش باگ", value: "bugReport" },
     { label: "سایر موارد", value: "other" },
   ];
 
   const priorityOptions = [
-    { label: "عادی", value: "normal" },
-    { label: "مهم", value: "high" },
-    { label: "فوری", value: "urgent" },
+    { label: "کم", value: "low" },
+    { label: "متوسط", value: "medium" },
+    { label: "زیاد", value: "high" },
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,13 +34,16 @@ export default function TicketForm({ onBack }: { onBack: () => void }) {
     setLoading(true);
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-      await apiPost(
+      await apiPostNoMock(
         "/api/tickets/my",
         {
-          title,
+          subject: title.trim(),
           description,
           category,
-          priority,
+          urgency: priority,
+          tags: [],
+          attachmentFileIds: [],
+          firstMessage: description,
         },
         token ? { Authorization: `Bearer ${token}` } : undefined
       );

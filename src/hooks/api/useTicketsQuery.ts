@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { apiGet } from "@/lib/api";
+import { apiGetNoMock } from "@/lib/api";
 import { Ticket } from "@/app/panel/support/data";
 
 export const ticketQueryKey = ["tickets"] as const;
@@ -11,7 +11,7 @@ export function useTicketsQuery() {
     queryKey: ticketQueryKey,
     queryFn: async () => {
       const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-      const result = await apiGet<{ data?: unknown }>(
+      const result = await apiGetNoMock<{ data?: unknown }>(
         "/api/dashboard/my-tickets",
         token ? { Authorization: `Bearer ${token}` } : undefined
       );

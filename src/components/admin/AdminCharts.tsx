@@ -17,7 +17,7 @@ import {
 
 type Point = { label: string; value: number };
 
-export function MiniAreaChart({ data }: { data: Point[] }) {
+export function MiniAreaChart({ data, trendLabel }: { data: Point[]; trendLabel?: string }) {
   const chartConfig = {
     revenue: { label: "درآمد", color: "#22c55e" },
   };
@@ -26,41 +26,47 @@ export function MiniAreaChart({ data }: { data: Point[] }) {
     <div className="rounded-3xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-[#1c1e26] p-4 md:px-3 md:py-5">
       <div className="mb-3 flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
         <span>روند ۱۲ ماهه درآمد (میلیون)</span>
-        <span className="font-semibold text-primary dark:text-primary">+28.6%</span>
+        <span className="font-semibold text-primary dark:text-primary">{trendLabel ?? "—"}</span>
       </div>
-      <ChartContainer config={chartConfig} className="h-[230px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 10, right: 8, left: 8, bottom: 6 }}>
-            <defs>
-              <linearGradient id="admin-area-gradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.4} />
-                <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-white/5 dark:stroke-white/5" />
-            <XAxis
-              dataKey="label"
-              tickLine={false}
-              axisLine={false}
-              interval={0}
-              tickMargin={12}
-              tick={{ fill: "#9ca3af", fontSize: 11 }}
-            />
-            <Tooltip content={<ChartTooltipContent formatter={(value) => `${value}M`} />} />
-            <Area
-              type="monotone"
-              dataKey="value"
-              name="درآمد"
-              stroke="#22c55e"
-              strokeWidth={3}
-              fill="url(#admin-area-gradient)"
-              isAnimationActive
-              animationDuration={1200}
-              animationEasing="ease-out"
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </ChartContainer>
+      {data.length > 0 ? (
+        <ChartContainer config={chartConfig} className="h-[230px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data} margin={{ top: 10, right: 8, left: 8, bottom: 6 }}>
+              <defs>
+                <linearGradient id="admin-area-gradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#22c55e" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-white/5 dark:stroke-white/5" />
+              <XAxis
+                dataKey="label"
+                tickLine={false}
+                axisLine={false}
+                interval={0}
+                tickMargin={12}
+                tick={{ fill: "#9ca3af", fontSize: 11 }}
+              />
+              <Tooltip content={<ChartTooltipContent formatter={(value) => `${value}M`} />} />
+              <Area
+                type="monotone"
+                dataKey="value"
+                name="درآمد"
+                stroke="#22c55e"
+                strokeWidth={3}
+                fill="url(#admin-area-gradient)"
+                isAnimationActive
+                animationDuration={1200}
+                animationEasing="ease-out"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </ChartContainer>
+      ) : (
+        <div className="flex h-[230px] items-center justify-center rounded-3xl border border-dashed border-gray-200 text-sm text-gray-400 dark:border-white/10">
+          داده‌ای برای نمایش وجود ندارد
+        </div>
+      )}
     </div>
   );
 }
@@ -71,22 +77,28 @@ export function HorizontalBars({ data }: { data: Point[] }) {
   return (
     <div className="rounded-3xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-[#1c1e26] p-4 md:p-6">
       <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-5">فروش به تفکیک دسته</h3>
-      <div className="mx-auto w-full max-w-[520px] space-y-5">
-        {data.map((item) => (
-          <div key={item.label}>
-            <div className="mb-2 flex items-center justify-between text-sm text-gray-600 dark:text-gray-300">
-              <span>{item.label}</span>
-              <span className="font-semibold">{item.value}</span>
+      {data.length > 0 ? (
+        <div className="mx-auto w-full max-w-[520px] space-y-5">
+          {data.map((item) => (
+            <div key={item.label}>
+              <div className="mb-2 flex items-center justify-between text-sm text-gray-600 dark:text-gray-300">
+                <span>{item.label}</span>
+                <span className="font-semibold">{item.value}</span>
+              </div>
+              <div className="h-3.5 w-full rounded-full bg-gray-100 dark:bg-gray-800">
+                <div
+                  className="h-3.5 rounded-full bg-gradient-to-r from-primary to-primary-hover"
+                  style={{ width: `${(item.value / max) * 100}%` }}
+                />
+              </div>
             </div>
-            <div className="h-3.5 w-full rounded-full bg-gray-100 dark:bg-gray-800">
-              <div
-                className="h-3.5 rounded-full bg-gradient-to-r from-primary to-primary-hover"
-                style={{ width: `${(item.value / max) * 100}%` }}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex h-[180px] items-center justify-center rounded-3xl border border-dashed border-gray-200 text-sm text-gray-400 dark:border-white/10">
+          داده‌ای برای نمایش وجود ندارد
+        </div>
+      )}
     </div>
   );
 }
@@ -112,39 +124,45 @@ export function DonutChannels({
           </div>
         </div>
       </div>
-      <div className="flex min-h-[200px] items-center gap-4">
-        <ChartContainer config={chartConfig} className="h-36 w-36 shrink-0">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Tooltip content={<ChartTooltipContent formatter={(value) => `${value}%`} />} />
-              <Pie
-                data={data}
-                dataKey="value"
-                nameKey="label"
-                innerRadius={42}
-                outerRadius={64}
-                strokeWidth={0}
-                isAnimationActive
-                animationDuration={1200}
-                animationEasing="ease-out"
-              >
-                {data.map((entry) => (
-                  <Cell key={entry.label} fill={entry.color} />
-                ))}
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-        </ChartContainer>
-        <div className="space-y-2 text-sm">
-          {data.map((item) => (
-            <div key={item.label} className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
-              <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-              <span>{item.label}</span>
-              <span className="font-semibold">{item.value}%</span>
-            </div>
-          ))}
+      {data.length > 0 ? (
+        <div className="flex min-h-[200px] items-center gap-4">
+          <ChartContainer config={chartConfig} className="h-36 w-36 shrink-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Tooltip content={<ChartTooltipContent formatter={(value) => `${value}%`} />} />
+                <Pie
+                  data={data}
+                  dataKey="value"
+                  nameKey="label"
+                  innerRadius={42}
+                  outerRadius={64}
+                  strokeWidth={0}
+                  isAnimationActive
+                  animationDuration={1200}
+                  animationEasing="ease-out"
+                >
+                  {data.map((entry) => (
+                    <Cell key={entry.label} fill={entry.color} />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartContainer>
+          <div className="space-y-2 text-sm">
+            {data.map((item) => (
+              <div key={item.label} className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                <span>{item.label}</span>
+                <span className="font-semibold">{item.value}%</span>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="flex min-h-[200px] items-center justify-center rounded-3xl border border-dashed border-gray-200 text-sm text-gray-400 dark:border-white/10">
+          داده‌ای برای نمایش وجود ندارد
+        </div>
+      )}
     </div>
   );
 }

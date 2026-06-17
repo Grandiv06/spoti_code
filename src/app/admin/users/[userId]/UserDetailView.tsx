@@ -25,10 +25,11 @@ import {
   Video,
   Settings
 } from "lucide-react";
-import { User, initialUsersData, PurchasedCourse, UserTransaction, UserTicket } from "../_components/types";
+import { User, PurchasedCourse, UserTransaction, UserTicket } from "../_components/types";
 import { UserStatusBadge, UserPlanBadge, UserRoleBadge } from "../_components/Badges";
 import { toPersianDigits, formatPrice, formatPhone, formatPersianDate } from "../_components/utils";
 import EditUserModal from "../_components/EditUserModal";
+import { useAdminUserQuery } from "@/hooks/api/useAdminUserQuery";
 
 interface Toast {
   id: string;
@@ -692,10 +693,7 @@ export function UserAdminNotesTab({ notes, onSaveNotes }: UserAdminNotesTabProps
 // ----------------------------------------------------
 export default function UserDetailView({ userId }: UserDetailViewProps) {
   const router = useRouter();
-
-  const [users, setUsers] = useState<User[]>([]);
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
 
   // Tab State
   const [activeTab, setActiveTab] = useState<"overview" | "courses" | "transactions" | "tickets" | "activity" | "notes">("overview");
@@ -705,6 +703,7 @@ export default function UserDetailView({ userId }: UserDetailViewProps) {
 
   // Toast State
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const { data, isPending, isError, error, refetch } = useAdminUserQuery(userId);
 
   const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
     const id = Math.random().toString(36).substr(2, 9);
@@ -715,31 +714,13 @@ export default function UserDetailView({ userId }: UserDetailViewProps) {
   };
 
   useEffect(() => {
-    const saved = localStorage.getItem("spoticode_admin_users");
-    let loadedUsers = initialUsersData;
-    if (saved) {
-      try {
-        loadedUsers = JSON.parse(saved);
-      } catch (e) {
-        loadedUsers = initialUsersData;
-      }
-    } else {
-      localStorage.setItem("spoticode_admin_users", JSON.stringify(initialUsersData));
+    if (data) {
+      setUser(data);
     }
-    setUsers(loadedUsers);
-
-    const found = loadedUsers.find((u) => u.id === userId);
-    if (found) {
-      setUser(found);
-    }
-    setLoading(false);
-  }, [userId]);
+  }, [data]);
 
   const handleSaveUser = (updatedUser: User) => {
-    const updatedList = users.map((u) => (u.id === updatedUser.id ? updatedUser : u));
-    setUsers(updatedList);
     setUser(updatedUser);
-    localStorage.setItem("spoticode_admin_users", JSON.stringify(updatedList));
     setIsEditModalOpen(false);
     showToast(`مشخصات کاربر «${updatedUser.name}» با موفقیت ویرایش شد.`, "success");
   };
@@ -753,11 +734,40 @@ export default function UserDetailView({ userId }: UserDetailViewProps) {
     { id: "notes", label: "یادداشت ادمین", icon: FileText }
   ];
 
-  if (loading) {
+  if (isPending && !user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4" dir="rtl">
         <div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
         <span className="text-xs text-gray-500 dark:text-gray-400 font-bold font-sans">در حال بارگذاری اطلاعات کاربر...</span>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="max-w-md mx-auto my-20 p-8 bg-white dark:bg-[#1c1e26] rounded-[2.5rem] border border-gray-100 dark:border-white/5 text-center shadow-xl animate-in fade-in duration-500" dir="rtl">
+        <div className="w-20 h-20 mx-auto rounded-3xl bg-red-500/10 flex items-center justify-center mb-6">
+          <Inbox className="w-10 h-10 text-red-500" />
+        </div>
+        <h2 className="text-xl font-black text-gray-900 dark:text-white mb-3 font-sans">کاربر مورد نظر پیدا نشد</h2>
+        <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-8 font-sans">
+          {error?.message || "داده‌های کاربر از سرور دریافت نشد. لطفاً دوباره تلاش کنید."}
+        </p>
+        <div className="flex flex-col gap-3">
+          <button
+            onClick={() => void refetch()}
+            className="w-full flex items-center justify-center gap-2 py-3.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-2xl transition-all shadow-md shadow-primary/20 hover:scale-[1.02]"
+          >
+            <span>تلاش مجدد</span>
+          </button>
+          <button
+            onClick={() => router.push("/admin/users")}
+            className="w-full flex items-center justify-center gap-2 py-3.5 bg-gray-100 dark:bg-black/25 text-gray-700 dark:text-gray-200 text-xs font-bold rounded-2xl transition-all"
+          >
+            <ChevronRight className="w-4 h-4" />
+            <span>بازگشت به لیست کاربران</span>
+          </button>
+        </div>
       </div>
     );
   }

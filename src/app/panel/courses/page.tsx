@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { apiGet } from "@/lib/api";
+import { apiGetNoMock } from "@/lib/api";
 
 type PanelCourse = {
   id: string;
@@ -23,7 +23,7 @@ export default function PanelCourses() {
     const fetchCourses = async () => {
       try {
         const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-        const result = await apiGet<"/api/dashboard/my-courses", MyCoursesResponse>(
+        const result = await apiGetNoMock<MyCoursesResponse>(
           "/api/dashboard/my-courses",
           token ? { Authorization: `Bearer ${token}` } : undefined
         );

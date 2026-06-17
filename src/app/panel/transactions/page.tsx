@@ -6,7 +6,7 @@ import TransactionStats from "./_components/TransactionStats";
 import TransactionFilters from "./_components/TransactionFilters";
 import TransactionTable from "./_components/TransactionTable";
 import { Transaction } from "./data";
-import { apiGet } from "@/lib/api";
+import { apiGetNoMock } from "@/lib/api";
 
 type TransactionsResponse = {
   data?: unknown;
@@ -34,7 +34,7 @@ export default function PanelTransactionsPage() {
     const fetchTransactions = async () => {
       try {
         const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-        const result = await apiGet<"/api/dashboard/my-transactions", TransactionsResponse>(
+        const result = await apiGetNoMock<TransactionsResponse>(
           "/api/dashboard/my-transactions",
           token ? { Authorization: `Bearer ${token}` } : undefined
         );

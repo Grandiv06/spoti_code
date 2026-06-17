@@ -105,6 +105,62 @@ export class AdminDashboardService {
         });
     }
     /**
+     * @param page
+     * @param limit
+     * @returns any
+     * @throws ApiError
+     */
+    public static adminDashboardControllerFindDiscounts(
+        page?: number,
+        limit?: number,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/admin-dashboard/discounts',
+            query: {
+                'page': page,
+                'limit': limit,
+            },
+        });
+    }
+    /**
+     * @param status
+     * @param category
+     * @param urgency
+     * @param assignedToId
+     * @param search
+     * @param myAssignedOnly
+     * @param page
+     * @param limit
+     * @returns any
+     * @throws ApiError
+     */
+    public static adminDashboardControllerFindTickets(
+        status?: 'open' | 'underReview' | 'answered' | 'closed',
+        category?: 'technical' | 'billing' | 'account' | 'featureRequest' | 'bugReport' | 'other',
+        urgency?: 'high' | 'medium' | 'low',
+        assignedToId?: string,
+        search?: string,
+        myAssignedOnly?: boolean,
+        page?: number,
+        limit?: number,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/admin-dashboard/tickets',
+            query: {
+                'status': status,
+                'category': category,
+                'urgency': urgency,
+                'assignedToId': assignedToId,
+                'search': search,
+                'myAssignedOnly': myAssignedOnly,
+                'page': page,
+                'limit': limit,
+            },
+        });
+    }
+    /**
      * @param courseId
      * @returns any
      * @throws ApiError

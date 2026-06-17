@@ -5,19 +5,20 @@ import { apiGetNoMock } from "@/lib/api";
 
 type DashboardOverviewResponse = {
   data?: {
-    activeCourses?: number;
-    activeCoursesCount?: number;
-    learningHours?: number;
-    totalLearningHours?: number;
-    completedCourses?: number;
-    completedCoursesCount?: number;
+    enrolledCoursesCount?: number;
+    myCommentsCount?: number;
+    acceptedCommentsCount?: number;
+    waitingCommentsCount?: number;
+    hasActiveOrder?: boolean;
   };
 };
 
 export default function PanelDashboard() {
-  const [activeCourses, setActiveCourses] = useState(0);
-  const [learningHours, setLearningHours] = useState(0);
-  const [completedCourses, setCompletedCourses] = useState(0);
+  const [enrolledCoursesCount, setEnrolledCoursesCount] = useState(0);
+  const [myCommentsCount, setMyCommentsCount] = useState(0);
+  const [acceptedCommentsCount, setAcceptedCommentsCount] = useState(0);
+  const [waitingCommentsCount, setWaitingCommentsCount] = useState(0);
+  const [hasActiveOrder, setHasActiveOrder] = useState(false);
 
   useEffect(() => {
     const fetchOverview = async () => {
@@ -29,13 +30,17 @@ export default function PanelDashboard() {
         );
 
         const payload = result?.data ?? {};
-        setActiveCourses(payload.activeCourses ?? payload.activeCoursesCount ?? 0);
-        setLearningHours(payload.learningHours ?? payload.totalLearningHours ?? 0);
-        setCompletedCourses(payload.completedCourses ?? payload.completedCoursesCount ?? 0);
+        setEnrolledCoursesCount(payload.enrolledCoursesCount ?? 0);
+        setMyCommentsCount(payload.myCommentsCount ?? 0);
+        setAcceptedCommentsCount(payload.acceptedCommentsCount ?? 0);
+        setWaitingCommentsCount(payload.waitingCommentsCount ?? 0);
+        setHasActiveOrder(Boolean(payload.hasActiveOrder));
       } catch {
-        setActiveCourses(0);
-        setLearningHours(0);
-        setCompletedCourses(0);
+        setEnrolledCoursesCount(0);
+        setMyCommentsCount(0);
+        setAcceptedCommentsCount(0);
+        setWaitingCommentsCount(0);
+        setHasActiveOrder(false);
       }
     };
 
@@ -56,34 +61,56 @@ export default function PanelDashboard() {
         <div className="absolute top-0 left-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
         <div className="bg-white dark:bg-[#1c1e26] p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-blue-500">
             <span className="material-symbols-outlined text-2xl">school</span>
           </div>
           <div>
-            <p className="text-sm font-bold text-gray-500 dark:text-gray-400">دوره‌های فعال</p>
-            <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">{activeCourses}</p>
+            <p className="text-sm font-bold text-gray-500 dark:text-gray-400">دوره‌های ثبت‌نامی</p>
+            <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">{enrolledCoursesCount}</p>
           </div>
         </div>
 
         <div className="bg-white dark:bg-[#1c1e26] p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex items-center gap-4">
-           <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center text-amber-500">
-            <span className="material-symbols-outlined text-2xl">timer</span>
+          <div className="w-12 h-12 rounded-2xl bg-violet-50 dark:bg-violet-500/10 flex items-center justify-center text-violet-500">
+            <span className="material-symbols-outlined text-2xl">comment</span>
           </div>
           <div>
-            <p className="text-sm font-bold text-gray-500 dark:text-gray-400">ساعت آموزش</p>
-            <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">{learningHours}</p>
+            <p className="text-sm font-bold text-gray-500 dark:text-gray-400">کامنت‌های من</p>
+            <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">{myCommentsCount}</p>
           </div>
         </div>
 
         <div className="bg-white dark:bg-[#1c1e26] p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex items-center gap-4">
-           <div className="w-12 h-12 rounded-2xl bg-green-50 dark:bg-green-500/10 flex items-center justify-center text-green-500">
-            <span className="material-symbols-outlined text-2xl">check_circle</span>
+          <div className="w-12 h-12 rounded-2xl bg-green-50 dark:bg-green-500/10 flex items-center justify-center text-green-500">
+            <span className="material-symbols-outlined text-2xl">task_alt</span>
           </div>
           <div>
-            <p className="text-sm font-bold text-gray-500 dark:text-gray-400">تکمیل شده</p>
-            <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">{completedCourses}</p>
+            <p className="text-sm font-bold text-gray-500 dark:text-gray-400">کامنت‌های تاییدشده</p>
+            <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">{acceptedCommentsCount}</p>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-[#1c1e26] p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center text-amber-500">
+            <span className="material-symbols-outlined text-2xl">hourglass_empty</span>
+          </div>
+          <div>
+            <p className="text-sm font-bold text-gray-500 dark:text-gray-400">در انتظار بررسی</p>
+            <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">{waitingCommentsCount}</p>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-[#1c1e26] p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex items-center gap-4">
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${hasActiveOrder ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500" : "bg-gray-50 dark:bg-gray-500/10 text-gray-400"}`}>
+            <span className="material-symbols-outlined text-2xl">
+              {hasActiveOrder ? "shopping_cart_checkout" : "shopping_cart_off"}
+            </span>
+          </div>
+          <div>
+            <p className="text-sm font-bold text-gray-500 dark:text-gray-400">سفارش فعال</p>
+            <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">{hasActiveOrder ? "دارد" : "ندارد"}</p>
           </div>
         </div>
       </div>
