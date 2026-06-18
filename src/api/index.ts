@@ -110,6 +110,7 @@ export type { UpdateTeacherDto } from './models/UpdateTeacherDto';
 export type { UpdateTicketAdminNoteDto } from './models/UpdateTicketAdminNoteDto';
 export { UpdateTicketStatusDto } from './models/UpdateTicketStatusDto';
 export type { UpdateUserDto } from './models/UpdateUserDto';
+export type { UpdateUserInternalNoteDto } from './models/UpdateUserInternalNoteDto';
 export type { UpsertProfileDto } from './models/UpsertProfileDto';
 export type { User } from './models/User';
 export type { UserAchievementEntity } from './models/UserAchievementEntity';

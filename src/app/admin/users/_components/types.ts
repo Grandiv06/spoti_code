@@ -19,6 +19,14 @@ export interface UserTicket {
   date: string;
 }
 
+export interface UserActivity {
+  id: string;
+  title: string;
+  description: string;
+  timestamp: string;
+  kind: "login" | "payment" | "lesson" | "ticket" | "profile" | "order" | "other";
+}
+
 export interface User {
   id: string;
   name: string;

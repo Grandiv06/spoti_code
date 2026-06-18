@@ -24,8 +24,6 @@ export default function InstructorProfilePage() {
   const { profile, courses } = useInstructorData();
   const skills = profile.skills ?? [];
   const fullBiography = profile.fullBiography ?? "";
-  const teachingStyle = profile.teachingStyle ?? "";
-  const professionalBackground = profile.professionalBackground ?? "";
 
   const stats = useMemo(() => {
     const publishedCourses = courses.filter((course) => course.status === "published").length;
@@ -58,8 +56,6 @@ export default function InstructorProfilePage() {
 
   const aboutSections = [
     fullBiography ? { title: "بیوگرافی کامل", text: fullBiography } : null,
-    teachingStyle ? { title: "سبک تدریس", text: teachingStyle } : null,
-    professionalBackground ? { title: "پیشینه حرفه‌ای", text: professionalBackground } : null,
   ].filter(Boolean) as Array<{ title: string; text: string }>;
 
   return (

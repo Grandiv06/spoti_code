@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { ShoppingCart, Download, Search, SlidersHorizontal, CheckCircle2, X, Hash, Calendar, User, BookOpen, Wallet, Clock3, BadgeCheck, Receipt } from "lucide-react";
 import { StatusPill } from "@/components/admin/AdminCharts";
 import { recentOrders } from "@/components/admin/admin-data";
+import { apiGetNoMock } from "@/lib/api";
+import { normalizeAdminOrdersResponse, type AdminOrderItem } from "@/lib/admin-orders";
 
 interface Toast {
   id: string;
@@ -12,14 +14,32 @@ interface Toast {
 }
 
 export default function AdminOrdersPage() {
-  type OrderItem = (typeof recentOrders)[number];
+  type OrderItem = AdminOrderItem;
 
+  const [orders, setOrders] = useState<OrderItem[]>(recentOrders);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<OrderItem | null>(null);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const response = await apiGetNoMock<unknown>("/api/admin-dashboard/orders?limit=100");
+        const mapped = normalizeAdminOrdersResponse(response);
+        setOrders(mapped.length > 0 ? mapped : recentOrders);
+      } catch {
+        setOrders(recentOrders);
+      } finally {
+        setIsLoadingOrders(false);
+      }
+    };
+
+    fetchOrders();
+  }, []);
 
   const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
     const id = Math.random().toString(36).slice(2, 11);
@@ -41,7 +61,7 @@ export default function AdminOrdersPage() {
   };
 
   const filteredOrders = useMemo(() => {
-    let result = [...recentOrders];
+    let result = [...orders];
 
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
@@ -67,21 +87,21 @@ export default function AdminOrdersPage() {
     });
 
     return result;
-  }, [searchQuery, statusFilter, sortBy]);
+  }, [orders, searchQuery, statusFilter, sortBy]);
 
   const stats = useMemo(() => {
-    const paid = recentOrders.filter((o) => o.status === "پرداخت شده");
-    const pending = recentOrders.filter((o) => o.status === "در انتظار");
-    const canceled = recentOrders.filter((o) => o.status === "لغو شده");
+    const paid = orders.filter((o) => o.status === "پرداخت شده");
+    const pending = orders.filter((o) => o.status === "در انتظار");
+    const canceled = orders.filter((o) => o.status === "لغو شده");
     const totalAmount = paid.reduce((sum, o) => sum + Number(o.amount.replace(/,/g, "")), 0);
     return {
-      total: recentOrders.length,
+      total: orders.length,
       paid: paid.length,
       pending: pending.length,
       canceled: canceled.length,
       totalAmount,
     };
-  }, []);
+  }, [orders]);
 
   return (
     <div className="max-w-[1400px] mx-auto px-2 md:px-4 pb-20 animate-in fade-in duration-700" dir="rtl">
@@ -175,6 +195,12 @@ export default function AdminOrdersPage() {
       </div>
 
       <div className="overflow-x-auto rounded-3xl border border-gray-100 dark:border-white/5 bg-white dark:bg-[#1c1e26] shadow-md p-4 md:p-6">
+        {isLoadingOrders ? (
+          <div className="py-16 text-center">
+            <div className="mx-auto mb-4 h-10 w-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+            <p className="text-xs font-black text-gray-500 dark:text-gray-400">در حال دریافت لیست از سرور...</p>
+          </div>
+        ) : (
         <table className="w-full border-collapse text-[12px] font-bold min-w-[880px]">
           <thead>
             <tr className="border-b border-gray-100 dark:border-white/5 text-gray-400 text-right">
@@ -212,6 +238,7 @@ export default function AdminOrdersPage() {
             ))}
           </tbody>
         </table>
+        )}
       </div>
 
       <div className="fixed bottom-6 left-6 z-50 flex flex-col gap-3 max-w-sm w-full" dir="rtl">

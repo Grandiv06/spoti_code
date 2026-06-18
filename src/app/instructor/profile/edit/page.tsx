@@ -151,7 +151,7 @@ export default function InstructorProfileEditPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <section className="space-y-6 rounded-[2.25rem] border border-white/10 bg-[#10131a] p-5 md:p-8">
+          <section className="space-y-5 rounded-[2.25rem] border border-white/10 bg-[#10131a] p-5 md:p-6">
             <CardTitle title="اطلاعات اصلی" description="نام نمایشی، عنوان تخصصی و معرفی کوتاه" />
 
             <Field label="نام نمایشی استاد">
@@ -167,7 +167,7 @@ export default function InstructorProfileEditPage() {
               <textarea
                 value={form.fullBiography}
                 onChange={(e) => setForm((prev) => ({ ...prev, fullBiography: e.target.value }))}
-                rows={12}
+                rows={9}
                 className="w-full rounded-[1.5rem] border border-white/10 bg-white/5 px-4 py-4 text-right text-sm leading-8 text-white outline-none transition-all placeholder:text-gray-500 focus:border-primary/40 focus:ring-2 focus:ring-primary/10 resize-y"
                 placeholder="بیوگرافی کامل و طولانی مدرس را اینجا بنویسید..."
               />

@@ -28,27 +28,27 @@ export class OrderService {
         });
     }
     /**
-     * @param status
-     * @param courseId
      * @param page
      * @param limit
+     * @param status
+     * @param courseId
      * @returns any
      * @throws ApiError
      */
     public static orderControllerFindMyOrders(
-        status?: 'pending' | 'redirected' | 'expired' | 'paid' | 'failed' | 'canceled',
-        courseId?: string,
         page?: number,
         limit?: number,
+        status?: 'pending' | 'redirected' | 'expired' | 'paid' | 'failed' | 'canceled',
+        courseId?: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/orders/my',
             query: {
-                'status': status,
-                'courseId': courseId,
                 'page': page,
                 'limit': limit,
+                'status': status,
+                'courseId': courseId,
             },
         });
     }

@@ -12,9 +12,7 @@ import {
   getPublicInstructorById,
   getPublicInstructorBySlug,
 } from "@/lib/public-instructors";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "https://spoticode.vercel.app";
+import { API_BASE_URL } from "@/lib/api-config";
 
 type CourseRecord = Record<string, unknown>;
 

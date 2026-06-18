@@ -20,7 +20,7 @@ export type OpenAPIConfig = {
 };
 
 export const OpenAPI: OpenAPIConfig = {
-    BASE: process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || 'https://spoticode.vercel.app',
+    BASE: 'https://spoticode.vercel.app',
     VERSION: '1.0.0',
     WITH_CREDENTIALS: false,
     CREDENTIALS: 'include',

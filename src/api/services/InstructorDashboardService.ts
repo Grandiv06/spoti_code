@@ -17,102 +17,102 @@ export class InstructorDashboardService {
         });
     }
     /**
-     * @param search
-     * @param category
      * @param page
      * @param limit
+     * @param search
+     * @param category
      * @returns any
      * @throws ApiError
      */
     public static instructorDashboardControllerFindMyCourses(
-        search?: string,
-        category?: 'frontend' | 'backend' | 'ai' | 'base' | 'mobile' | 'devops',
         page?: number,
         limit?: number,
+        search?: string,
+        category?: 'frontend' | 'backend' | 'ai' | 'base' | 'mobile' | 'devops',
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/instructor-dashboard/my-courses',
             query: {
-                'search': search,
-                'category': category,
                 'page': page,
                 'limit': limit,
+                'search': search,
+                'category': category,
             },
         });
     }
     /**
+     * @param page
+     * @param limit
      * @param courseId
      * @param lessonId
      * @param status
-     * @param page
-     * @param limit
      * @returns any
      * @throws ApiError
      */
     public static instructorDashboardControllerFindMyQas(
+        page?: number,
+        limit?: number,
         courseId?: string,
         lessonId?: string,
         status?: 'questioned' | 'waiting' | 'answered',
-        page?: number,
-        limit?: number,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/instructor-dashboard/my-qas',
             query: {
+                'page': page,
+                'limit': limit,
                 'courseId': courseId,
                 'lessonId': lessonId,
                 'status': status,
-                'page': page,
-                'limit': limit,
             },
         });
     }
     /**
-     * @param courseId
-     * @param status
      * @param page
      * @param limit
+     * @param courseId
+     * @param status
      * @returns any
      * @throws ApiError
      */
     public static instructorDashboardControllerFindMyComments(
-        courseId?: string,
-        status?: 'rejected' | 'accepted' | 'waiting',
         page?: number,
         limit?: number,
+        courseId?: string,
+        status?: 'rejected' | 'accepted' | 'waiting',
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/instructor-dashboard/my-comments',
             query: {
-                'courseId': courseId,
-                'status': status,
                 'page': page,
                 'limit': limit,
+                'courseId': courseId,
+                'status': status,
             },
         });
     }
     /**
-     * @param courseId
      * @param page
      * @param limit
+     * @param courseId
      * @returns any
      * @throws ApiError
      */
     public static instructorDashboardControllerFindMyIncome(
-        courseId?: string,
         page?: number,
         limit?: number,
+        courseId?: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/instructor-dashboard/my-income',
             query: {
-                'courseId': courseId,
                 'page': page,
                 'limit': limit,
+                'courseId': courseId,
             },
         });
     }
@@ -134,19 +134,19 @@ export class InstructorDashboardService {
     }
     /**
      * @param courseId
-     * @param search
-     * @param category
      * @param page
      * @param limit
+     * @param search
+     * @param category
      * @returns any
      * @throws ApiError
      */
     public static instructorDashboardControllerFindMyCourseStudents(
         courseId: string,
-        search?: string,
-        category?: 'frontend' | 'backend' | 'ai' | 'base' | 'mobile' | 'devops',
         page?: number,
         limit?: number,
+        search?: string,
+        category?: 'frontend' | 'backend' | 'ai' | 'base' | 'mobile' | 'devops',
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -155,10 +155,10 @@ export class InstructorDashboardService {
                 'courseId': courseId,
             },
             query: {
-                'search': search,
-                'category': category,
                 'page': page,
                 'limit': limit,
+                'search': search,
+                'category': category,
             },
         });
     }

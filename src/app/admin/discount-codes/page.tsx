@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Activity, BadgePercent, CheckCircle2, Clock3, Pencil, Plus, Search, TicketPercent, ToggleLeft, ToggleRight, Trash2, X } from "lucide-react";
-import { apiGetNoMock, apiPostNoMock } from "@/lib/api";
+import { apiDeleteNoMock, apiGetNoMock, apiPostNoMock, apiPutNoMock } from "@/lib/api";
 import { normalizeAdminDiscountsResponse } from "@/lib/admin-discounts";
 
 type DiscountType = "percentage" | "fixed";
@@ -132,7 +132,10 @@ export default function AdminDiscountCodesPage() {
   const [editCourseQuery, setEditCourseQuery] = useState("");
   const [isLoadingDiscounts, setIsLoadingDiscounts] = useState(true);
   const [isCreatingDiscount, setIsCreatingDiscount] = useState(false);
+  const [isUpdatingDiscount, setIsUpdatingDiscount] = useState(false);
   const [createNotice, setCreateNotice] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [editNotice, setEditNotice] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [actionNotice, setActionNotice] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => {
     const fetchDiscounts = async () => {
@@ -218,6 +221,17 @@ export default function AdminDiscountCodesPage() {
     return nextErrors;
   };
 
+  const buildDiscountPayload = (state: DiscountFormState) => ({
+    code: state.code.trim().toUpperCase() || undefined,
+    type: state.discountType === "percentage" ? "percent" : "fixed",
+    value: Number(state.discountValue),
+    startsAt: state.startAt || undefined,
+    expiresAt: state.endAt || undefined,
+    isActive: state.isEnabled,
+    globalUsageLimit: state.usageLimit.trim() ? Number(state.usageLimit) : undefined,
+    perUserUsageLimit: state.usagePerUser.trim() ? Number(state.usagePerUser) : undefined,
+  });
+
   const makeAutoCode = () => {
     const random = Math.random().toString(36).slice(2, 6).toUpperCase();
     const num = Math.floor(Math.random() * 90 + 10);
@@ -255,20 +269,9 @@ export default function AdminDiscountCodesPage() {
     setCreateNotice(null);
     if (Object.keys(nextErrors).length) return;
 
-    const payload = {
-      code: form.code.trim().toUpperCase() || undefined,
-      type: form.discountType === "percentage" ? "percent" : "fixed",
-      value: Number(form.discountValue),
-      startsAt: form.startAt || undefined,
-      expiresAt: form.endAt || undefined,
-      isActive: form.isEnabled,
-      globalUsageLimit: form.usageLimit.trim() ? Number(form.usageLimit) : undefined,
-      perUserUsageLimit: form.usagePerUser.trim() ? Number(form.usagePerUser) : undefined,
-    } as const;
-
     setIsCreatingDiscount(true);
     try {
-      await apiPostNoMock("/api/discounts/admin", payload);
+      await apiPostNoMock("/api/discounts/admin", buildDiscountPayload(form));
 
       const created: DiscountCodeItem = {
         id: `d-${Date.now()}`,
@@ -322,43 +325,92 @@ export default function AdminDiscountCodesPage() {
     setEditCourseQuery("");
   };
 
-  const submitEdit = (e: React.FormEvent) => {
+  const submitEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editItem) return;
     const nextErrors = validate(editForm);
     setEditErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
 
-    setDiscounts((prev) =>
-      prev.map((d) =>
-        d.id === editItem.id
-          ? {
-              ...d,
-              title: editForm.title.trim() || "بدون عنوان",
-              code: editForm.code.trim().toUpperCase(),
-              discountType: editForm.discountType,
-              discountValue: Number(editForm.discountValue),
-              scope: editForm.scope,
-              selectedCourseIds: editForm.scope === "all" ? [] : editForm.selectedCourseIds,
-              startAt: editForm.startAt,
-              endAt: editForm.endAt,
-              usageLimit: editForm.usageLimit.trim(),
-              usagePerUser: editForm.usagePerUser.trim(),
-              applyType: editForm.applyType,
-              isEnabled: editForm.isEnabled,
-            }
-          : d
-      )
-    );
-    setEditItem(null);
+    setIsUpdatingDiscount(true);
+    setEditNotice(null);
+    try {
+      await apiPutNoMock(`/api/discounts/${encodeURIComponent(editItem.id)}/admin`, buildDiscountPayload(editForm));
+
+      setDiscounts((prev) =>
+        prev.map((d) =>
+          d.id === editItem.id
+            ? {
+                ...d,
+                title: editForm.title.trim() || "بدون عنوان",
+                code: editForm.code.trim().toUpperCase(),
+                discountType: editForm.discountType,
+                discountValue: Number(editForm.discountValue),
+                scope: editForm.scope,
+                selectedCourseIds: editForm.scope === "all" ? [] : editForm.selectedCourseIds,
+                startAt: editForm.startAt,
+                endAt: editForm.endAt,
+                usageLimit: editForm.usageLimit.trim(),
+                usagePerUser: editForm.usagePerUser.trim(),
+                applyType: editForm.applyType,
+                isEnabled: editForm.isEnabled,
+              }
+            : d
+        )
+      );
+      setEditNotice({ type: "success", message: "تغییرات کد تخفیف در سرور ذخیره شد." });
+      setEditItem(null);
+    } catch (error) {
+      setEditNotice({
+        type: "error",
+        message: error instanceof Error ? error.message : "ویرایش کد تخفیف انجام نشد.",
+      });
+    } finally {
+      setIsUpdatingDiscount(false);
+    }
   };
 
-  const toggleActive = (id: string) => {
-    setDiscounts((prev) => prev.map((d) => (d.id === id ? { ...d, isEnabled: !d.isEnabled } : d)));
+  const toggleActive = async (item: DiscountCodeItem) => {
+    const nextEnabled = !item.isEnabled;
+    setActionNotice(null);
+    try {
+      await apiPutNoMock(`/api/discounts/${encodeURIComponent(item.id)}/admin`, {
+        code: item.code,
+        type: item.discountType === "percentage" ? "percent" : "fixed",
+        value: item.discountValue,
+        startsAt: item.startAt || undefined,
+        expiresAt: item.endAt || undefined,
+        isActive: nextEnabled,
+        globalUsageLimit: item.usageLimit.trim() ? Number(item.usageLimit) : undefined,
+        perUserUsageLimit: item.usagePerUser.trim() ? Number(item.usagePerUser) : undefined,
+      });
+
+      setDiscounts((prev) => prev.map((d) => (d.id === item.id ? { ...d, isEnabled: nextEnabled } : d)));
+      setActionNotice({
+        type: "success",
+        message: nextEnabled ? "کد تخفیف فعال شد." : "کد تخفیف غیرفعال شد.",
+      });
+    } catch (error) {
+      setActionNotice({
+        type: "error",
+        message: error instanceof Error ? error.message : "تغییر وضعیت کد تخفیف انجام نشد.",
+      });
+    }
   };
 
-  const removeCode = (id: string) => {
-    setDiscounts((prev) => prev.filter((d) => d.id !== id));
+  const removeCode = async (item: DiscountCodeItem) => {
+    if (!confirm(`آیا از حذف کد تخفیف «${item.title}» اطمینان دارید؟`)) return;
+    setActionNotice(null);
+    try {
+      await apiDeleteNoMock(`/api/discounts/${encodeURIComponent(item.id)}/admin`);
+      setDiscounts((prev) => prev.filter((d) => d.id !== item.id));
+      setActionNotice({ type: "success", message: "کد تخفیف با موفقیت حذف شد." });
+    } catch (error) {
+      setActionNotice({
+        type: "error",
+        message: error instanceof Error ? error.message : "حذف کد تخفیف انجام نشد.",
+      });
+    }
   };
 
   const getStatus = (item: DiscountCodeItem) => {
@@ -435,6 +487,28 @@ export default function AdminDiscountCodesPage() {
             }`}
           >
             {createNotice.message}
+          </div>
+        ) : null}
+        {editNotice ? (
+          <div
+            className={`mb-4 rounded-2xl border px-4 py-3 text-xs font-bold ${
+              editNotice.type === "success"
+                ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
+                : "border-rose-500/20 bg-rose-500/10 text-rose-400"
+            }`}
+          >
+            {editNotice.message}
+          </div>
+        ) : null}
+        {actionNotice ? (
+          <div
+            className={`mb-4 rounded-2xl border px-4 py-3 text-xs font-bold ${
+              actionNotice.type === "success"
+                ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
+                : "border-rose-500/20 bg-rose-500/10 text-rose-400"
+            }`}
+          >
+            {actionNotice.message}
           </div>
         ) : null}
 
@@ -593,10 +667,10 @@ export default function AdminDiscountCodesPage() {
                           <Pencil className="w-3.5 h-3.5" />
                           ویرایش
                         </button>
-                        <button onClick={() => toggleActive(item.id)} className="h-8 px-2 rounded-lg border border-gray-200 dark:border-white/10 text-[11px]">
+                        <button onClick={() => void toggleActive(item)} className="h-8 px-2 rounded-lg border border-gray-200 dark:border-white/10 text-[11px]">
                           {item.isEnabled ? "غیرفعال کردن" : "فعال کردن"}
                         </button>
-                        <button onClick={() => removeCode(item.id)} className="h-8 px-2 rounded-lg border border-rose-500/30 text-rose-300 text-[11px] inline-flex items-center gap-1">
+                        <button onClick={() => void removeCode(item)} className="h-8 px-2 rounded-lg border border-rose-500/30 text-rose-300 text-[11px] inline-flex items-center gap-1">
                           <Trash2 className="w-3.5 h-3.5" />
                           حذف
                         </button>
@@ -702,8 +776,12 @@ export default function AdminDiscountCodesPage() {
                     {editForm.isEnabled ? "فعال" : "غیرفعال"}
                   </button>
                 </div>
-                <button type="submit" className="h-11 px-6 rounded-xl bg-primary hover:bg-primary-hover text-white text-sm font-black">
-                  ذخیره تغییرات
+                <button
+                  type="submit"
+                  disabled={isUpdatingDiscount}
+                  className="h-11 px-6 rounded-xl bg-primary hover:bg-primary-hover disabled:opacity-70 disabled:cursor-not-allowed text-white text-sm font-black"
+                >
+                  {isUpdatingDiscount ? "در حال ذخیره..." : "ذخیره تغییرات"}
                 </button>
               </div>
             </form>

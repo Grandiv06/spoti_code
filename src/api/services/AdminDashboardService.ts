@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { DataHistoryEntity } from '../models/DataHistoryEntity';
+import type { UpdateUserInternalNoteDto } from '../models/UpdateUserInternalNoteDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -46,6 +47,190 @@ export class AdminDashboardService {
                 'page': page,
                 'limit': limit,
             },
+        });
+    }
+    /**
+     * @param userId
+     * @returns any
+     * @throws ApiError
+     */
+    public static adminDashboardControllerGetUserOverview(
+        userId: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/admin-dashboard/users/{userId}/overview',
+            path: {
+                'userId': userId,
+            },
+        });
+    }
+    /**
+     * @param userId
+     * @param search
+     * @param category
+     * @param isPublished true or false
+     * @param page
+     * @param limit
+     * @returns any
+     * @throws ApiError
+     */
+    public static adminDashboardControllerFindUserCourses(
+        userId: string,
+        search?: string,
+        category?: 'frontend' | 'backend' | 'ai' | 'base' | 'mobile' | 'devops',
+        isPublished?: string,
+        page?: number,
+        limit?: number,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/admin-dashboard/users/{userId}/courses',
+            path: {
+                'userId': userId,
+            },
+            query: {
+                'search': search,
+                'category': category,
+                'isPublished': isPublished,
+                'page': page,
+                'limit': limit,
+            },
+        });
+    }
+    /**
+     * @param userId
+     * @param status
+     * @param queryUserId
+     * @param courseId
+     * @param page
+     * @param limit
+     * @returns any
+     * @throws ApiError
+     */
+    public static adminDashboardControllerFindUserTransactions(
+        userId: string,
+        status?: 'pending' | 'redirected' | 'expired' | 'paid' | 'failed' | 'canceled',
+        queryUserId?: string,
+        courseId?: string,
+        page?: number,
+        limit?: number,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/admin-dashboard/users/{userId}/transactions',
+            path: {
+                'userId': userId,
+            },
+            query: {
+                'status': status,
+                'userId': queryUserId,
+                'courseId': courseId,
+                'page': page,
+                'limit': limit,
+            },
+        });
+    }
+    /**
+     * @param userId
+     * @param status
+     * @param category
+     * @param urgency
+     * @param assignedToId
+     * @param search
+     * @param myAssignedOnly
+     * @param page
+     * @param limit
+     * @returns any
+     * @throws ApiError
+     */
+    public static adminDashboardControllerFindUserTickets(
+        userId: string,
+        status?: 'open' | 'underReview' | 'answered' | 'closed',
+        category?: 'technical' | 'billing' | 'account' | 'featureRequest' | 'bugReport' | 'other',
+        urgency?: 'high' | 'medium' | 'low',
+        assignedToId?: string,
+        search?: string,
+        myAssignedOnly?: boolean,
+        page?: number,
+        limit?: number,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/admin-dashboard/users/{userId}/tickets',
+            path: {
+                'userId': userId,
+            },
+            query: {
+                'status': status,
+                'category': category,
+                'urgency': urgency,
+                'assignedToId': assignedToId,
+                'search': search,
+                'myAssignedOnly': myAssignedOnly,
+                'page': page,
+                'limit': limit,
+            },
+        });
+    }
+    /**
+     * @param userId
+     * @param page
+     * @param limit
+     * @returns any
+     * @throws ApiError
+     */
+    public static adminDashboardControllerFindUserActivities(
+        userId: string,
+        page?: number,
+        limit?: number,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/admin-dashboard/users/{userId}/activities',
+            path: {
+                'userId': userId,
+            },
+            query: {
+                'page': page,
+                'limit': limit,
+            },
+        });
+    }
+    /**
+     * @param userId
+     * @returns any
+     * @throws ApiError
+     */
+    public static adminDashboardControllerGetUserInternalNote(
+        userId: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/admin-dashboard/users/{userId}/internal-note',
+            path: {
+                'userId': userId,
+            },
+        });
+    }
+    /**
+     * @param userId
+     * @param requestBody
+     * @returns any
+     * @throws ApiError
+     */
+    public static adminDashboardControllerUpdateUserInternalNote(
+        userId: string,
+        requestBody: UpdateUserInternalNoteDto,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/admin-dashboard/users/{userId}/internal-note',
+            path: {
+                'userId': userId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**

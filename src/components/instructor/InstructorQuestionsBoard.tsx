@@ -153,7 +153,7 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
         })
       );
 
-      replyToQuestion(selectedQuestionId, composerText.trim(), attachments.length ? attachments : undefined);
+      await replyToQuestion(selectedQuestionId, composerText.trim(), attachments.length ? attachments : undefined);
       setComposerText("");
       setPendingAttachments([]);
     } catch (err) {

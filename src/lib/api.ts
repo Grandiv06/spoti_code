@@ -1,10 +1,6 @@
 import type { paths } from "@/types/openapi";
+import { API_BASE_URL, USE_MOCK_API } from "./api-config";
 import { getMockApiResponse } from "./mock-api";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "https://spoticode.vercel.app";
-
-const USE_MOCK_API = process.env.NEXT_PUBLIC_USE_MOCK_API === "true";
 
 type HttpMethod = "get" | "post" | "put" | "patch" | "delete";
 
@@ -76,4 +72,20 @@ export function apiPost<T>(path: string, body?: unknown, headers?: HeadersInit) 
 
 export function apiPostNoMock<T = unknown>(path: string, body?: unknown, headers?: HeadersInit) {
   return apiRequest<T>("post", path, { body, headers, useMock: false });
+}
+
+export function apiPut<T>(path: string, body?: unknown, headers?: HeadersInit) {
+  return apiRequest<T>("put", path, { body, headers });
+}
+
+export function apiPutNoMock<T = unknown>(path: string, body?: unknown, headers?: HeadersInit) {
+  return apiRequest<T>("put", path, { body, headers, useMock: false });
+}
+
+export function apiDelete<T>(path: string, headers?: HeadersInit) {
+  return apiRequest<T>("delete", path, { headers });
+}
+
+export function apiDeleteNoMock<T = unknown>(path: string, headers?: HeadersInit) {
+  return apiRequest<T>("delete", path, { headers, useMock: false });
 }

@@ -24,6 +24,10 @@ function findByKeys(source: unknown, keys: string[]): unknown {
   const normalizedKeys = keys.map(normalizeKey);
   for (const [key, value] of Object.entries(source)) {
     if (normalizedKeys.includes(normalizeKey(key))) return value;
+    if (isRecord(value)) {
+      const nested = findByKeys(value, keys);
+      if (nested !== undefined) return nested;
+    }
   }
   return undefined;
 }

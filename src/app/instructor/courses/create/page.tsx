@@ -44,12 +44,13 @@ import {
   ChevronUp,
   GripVertical
 } from "lucide-react";
-import { useInstructorData } from "@/context/InstructorDataContext";
+import { useInstructorData, type Course } from "@/context/InstructorDataContext";
 import CourseCard from "@/app/components/CourseCard";
 import CourseHero from "@/app/components/CourseHero";
 import CourseFAQ from "@/app/components/CourseFAQ";
 import CustomSelect from "@/components/ui/CustomSelect";
 import HighlightableTextareaWithBadges from "@/components/ui/HighlightableTextareaWithBadges";
+import { CourseService, CreateCourseDto } from "@/api";
 
 const FEATURE_ICON_OPTIONS = [
   { value: "all_inclusive", label: "بینهایت / مادام‌العمر", icon: "all_inclusive" },
@@ -442,8 +443,10 @@ function LessonDragOverlay({ lesson, isPaid }: LessonDragOverlayProps) {
 
 export default function CreateCourseWizardPage() {
   const router = useRouter();
-  const { addCourse, profile } = useInstructorData();
+  const { addCourse, profile, updateCourse, showToast } = useInstructorData();
   const [step, setStep] = useState(1);
+  const [createdCourseId, setCreatedCourseId] = useState<string | null>(null);
+  const [isSavingStep1, setIsSavingStep1] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [warnings, setWarnings] = useState<Record<string, string>>({});
   const [deleteConfirm, setDeleteConfirm] = useState<{
@@ -644,6 +647,91 @@ export default function CreateCourseWizardPage() {
         lessons: chapter.lessons.map((lesson) => ({ ...lesson, access: "free" })),
       })),
     }));
+  };
+
+  const mapCategoryToApi = (category: string): CreateCourseDto.category => {
+    switch (category) {
+      case "Backend":
+        return CreateCourseDto.category.BACKEND;
+      case "DevOps":
+        return CreateCourseDto.category.DEVOPS;
+      case "Mobile":
+        return CreateCourseDto.category.MOBILE;
+      case "UI/UX":
+        return CreateCourseDto.category.BASE;
+      case "Frontend":
+      default:
+        return CreateCourseDto.category.FRONTEND;
+    }
+  };
+
+  const mapLevelToApi = (level: string): CreateCourseDto.difficulty => {
+    switch (level) {
+      case "elementary":
+        return CreateCourseDto.difficulty.BEGINNER;
+      case "advanced":
+        return CreateCourseDto.difficulty.ADVANCED;
+      case "intermediate":
+      default:
+        return CreateCourseDto.difficulty.INTERMEDIATE;
+    }
+  };
+
+  const mapCategoryToLocal = (category?: CreateCourseDto.category) => {
+    switch (category) {
+      case CreateCourseDto.category.BACKEND:
+        return "Backend";
+      case CreateCourseDto.category.DEVOPS:
+        return "DevOps";
+      case CreateCourseDto.category.MOBILE:
+        return "Mobile";
+      case CreateCourseDto.category.BASE:
+        return "UI/UX";
+      case CreateCourseDto.category.AI:
+        return "Frontend";
+      case CreateCourseDto.category.FRONTEND:
+      default:
+        return "Frontend";
+    }
+  };
+
+  const mapLevelToLocal = (difficulty?: CreateCourseDto.difficulty) => {
+    switch (difficulty) {
+      case CreateCourseDto.difficulty.BEGINNER:
+        return "elementary";
+      case CreateCourseDto.difficulty.ADVANCED:
+        return "advanced";
+      case CreateCourseDto.difficulty.INTERMEDIATE:
+      default:
+        return "intermediate";
+    }
+  };
+
+  const buildStep1CoursePayload = (): CreateCourseDto => {
+    const trimmedTitle = formData.title.trim();
+    const slugBase = trimmedTitle
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+    return {
+      title: trimmedTitle,
+      price: formData.isPaid === "free" ? 0 : formData.price,
+      slug: slugBase || `course-${Date.now()}`,
+      category: mapCategoryToApi(formData.category),
+      difficulty: mapLevelToApi(formData.level),
+      time: formData.duration.trim(),
+      mockStudentsCount: 0,
+      priceType: formData.isPaid === "free" ? CreateCourseDto.priceType.FREE : CreateCourseDto.priceType.CASH,
+      thumbnailFileId: undefined,
+    };
+  };
+
+  const extractCourseId = (value: unknown) => {
+    if (!value || typeof value !== "object") return "";
+    const record = value as Record<string, unknown>;
+    const candidate = record.id ?? record.courseId ?? record.slug ?? record._id;
+    return typeof candidate === "string" ? candidate : "";
   };
 
   // Mock uploads
@@ -1292,12 +1380,90 @@ export default function CreateCourseWizardPage() {
   };
 
   // Navigation handlers
-  const handleNext = () => {
-    if (validateStep(step)) {
-      setStep((s) => s + 1);
-      // scroll to top on step transition
-      window.scrollTo({ top: 0, behavior: "smooth" });
+  const persistInitialCourse = async () => {
+    const payload = buildStep1CoursePayload();
+
+    if (createdCourseId) {
+      await CourseService.courseControllerUpdateCourse(createdCourseId, {
+        title: payload.title,
+        price: payload.price,
+        slug: payload.slug,
+        category: payload.category,
+        difficulty: payload.difficulty,
+        time: payload.time,
+        mockStudentsCount: payload.mockStudentsCount,
+        priceType: payload.priceType,
+        thumbnailFileId: payload.thumbnailFileId,
+      });
+
+      updateCourse(createdCourseId, {
+        title: payload.title,
+        slug: payload.slug,
+        category: mapCategoryToLocal(payload.category),
+        level: mapLevelToLocal(payload.difficulty),
+        price: payload.price,
+        description: formData.aboutDescription,
+        shortDescription: formData.shortDescription,
+        publicDescription: formData.shortDescription,
+        introText: formData.shortDescription,
+      });
+
+      showToast("اطلاعات اولیه دوره با موفقیت بروزرسانی شد.", "success");
+      return true;
     }
+
+    const createdCourse = await CourseService.courseControllerCreateCourse(payload);
+    const apiCourseId = extractCourseId(createdCourse);
+    const courseId = addCourse({
+      id: apiCourseId || undefined,
+      title: payload.title,
+      slug: payload.slug,
+      status: "draft",
+      category: mapCategoryToLocal(payload.category),
+      level: mapLevelToLocal(payload.difficulty),
+      language: formData.language,
+      shortDescription: formData.shortDescription,
+      description: formData.aboutDescription,
+      price: payload.price,
+      introText: formData.shortDescription,
+      objectives: formData.aboutHighlights,
+      prerequisites: ["تسلط بر مبانی مرتبط با دوره"],
+      targetAudience: ["علاقه‌مندان به یادگیری عمیق توسعه وب"],
+      heroTitle: formData.heroTitle || payload.title,
+      aboutTitle: formData.aboutTitle,
+      aboutDescription: formData.aboutDescription,
+      aboutHighlights: formData.aboutHighlights,
+      features: formData.features,
+      faqs: formData.faqs,
+      specialWords: formData.specialWords,
+      visibility: "public",
+      cover: formData.cover,
+    });
+
+    setCreatedCourseId(apiCourseId || courseId);
+    showToast("اطلاعات اولیه دوره با موفقیت ثبت شد.", "success");
+    return true;
+  };
+
+  const handleNext = async () => {
+    if (!validateStep(step)) return;
+
+    if (step === 1) {
+      try {
+        setIsSavingStep1(true);
+        const ok = await persistInitialCourse();
+        if (!ok) return;
+      } catch (error) {
+        console.error("Failed to persist initial course", error);
+        showToast("ثبت اطلاعات اولیه دوره انجام نشد. دوباره تلاش کنید.", "error");
+        return;
+      } finally {
+        setIsSavingStep1(false);
+      }
+    }
+
+    setStep((s) => s + 1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleBack = () => {
@@ -1314,29 +1480,28 @@ export default function CreateCourseWizardPage() {
     }
 
     // Map wizard chapters to DB schema chapter/lessons
-    const formattedChapters = formData.chapters.map((chap, idx) => ({
+    const formattedChapters: Course["chapters"] = formData.chapters.map((chap) => ({
       id: chap.id,
       title: chap.title,
       duration: `${chap.lessons.length} جلسه`,
-      lessons: chap.lessons.map(les => ({
+      lessons: chap.lessons.map((les) => ({
         id: les.id,
         title: les.title,
-        type: les.type as any,
+        type: les.type as Course["chapters"][number]["lessons"][number]["type"],
         duration: les.duration,
         isFree: les.access === "free",
         status: "published" as const,
-        sortIndex: chap.lessons.findIndex((lesson) => lesson.id === les.id)
-      }))
+      })),
     }));
 
     // Construct partial course object
-    const finalCoursePayload = {
+    const finalCoursePayload: Partial<Course> = {
       title: formData.title,
       cover: formData.cover || "https://images.unsplash.com/photo-1516116211223-5c359a36298a?q=80&w=600&auto=format&fit=crop",
       introVideo: formData.introVideo || undefined,
       status: status,
-      category: formData.category as any,
-      level: formData.level as any,
+      category: mapCategoryToLocal(mapCategoryToApi(formData.category)),
+      level: mapLevelToLocal(mapLevelToApi(formData.level)),
       language: formData.language,
       shortDescription: formData.shortDescription,
       description: formData.aboutDescription,
@@ -1352,7 +1517,12 @@ export default function CreateCourseWizardPage() {
       specialWords: formData.specialWords
     };
 
-    addCourse(finalCoursePayload as any);
+    if (createdCourseId) {
+      updateCourse(createdCourseId, finalCoursePayload);
+    } else {
+      const newCourseId = addCourse(finalCoursePayload);
+      setCreatedCourseId(newCourseId);
+    }
     router.push("/instructor/courses");
   };
 
@@ -2396,9 +2566,10 @@ export default function CreateCourseWizardPage() {
               <button
                 type="button"
                 onClick={handleNext}
-                className="flex items-center gap-1.5 px-6 py-3.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-2xl transition-all shadow-md shadow-primary/20 hover:scale-[1.02] cursor-pointer select-none"
+                disabled={step === 1 && isSavingStep1}
+                className="flex items-center gap-1.5 px-6 py-3.5 bg-primary hover:bg-primary-hover disabled:bg-primary/60 disabled:hover:scale-100 disabled:cursor-not-allowed text-white text-xs font-bold rounded-2xl transition-all shadow-md shadow-primary/20 hover:scale-[1.02] cursor-pointer select-none"
               >
-                <span>مرحله بعدی</span>
+                <span>{step === 1 && isSavingStep1 ? "در حال ثبت..." : "مرحله بعدی"}</span>
                 <ArrowLeft className="w-4 h-4" />
               </button>
             ) : (

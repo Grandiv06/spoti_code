@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { apiGet, apiRequest } from "@/lib/api";
 
 // --- TYPES ---
 export interface Lesson {
@@ -211,7 +212,7 @@ interface InstructorDataContextType {
   toasts: Toast[];
   isLoading: boolean;
   showToast: (message: string, type?: "success" | "error" | "info") => void;
-  addCourse: (course: Partial<Course>) => void;
+  addCourse: (course: Partial<Course>) => string;
   updateCourse: (courseId: string, updates: Partial<Course>) => void;
   deleteCourse: (courseId: string) => void;
   addChapter: (courseId: string, title: string) => void;
@@ -232,7 +233,7 @@ interface InstructorDataContextType {
       previewUrl?: string;
       caption?: string;
     }[]
-  ) => void;
+  ) => Promise<void>;
   requestPayout: (amount: number, shaba: string) => boolean;
   updateProfile: (profile: InstructorProfile) => void;
 }
@@ -251,6 +252,123 @@ const normalizeCourseRecord = (course: Course): Course => ({
   ...course,
   status: normalizeCourseStatus(course.status),
 });
+
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function normalizeString(value: unknown, fallback = ""): string {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return fallback;
+}
+
+function extractQaArray(value: unknown): unknown[] {
+  const candidates = [value];
+  for (let i = 0; i < candidates.length; i += 1) {
+    const current = candidates[i];
+    if (Array.isArray(current)) return current;
+    if (!isRecord(current)) continue;
+
+    if (Array.isArray(current.data)) return current.data;
+    if (Array.isArray(current.items)) return current.items;
+    if (Array.isArray(current.results)) return current.results;
+    if (Array.isArray(current.list)) return current.list;
+    if (isRecord(current.data)) candidates.push(current.data);
+    if (isRecord(current.items)) candidates.push(current.items);
+    if (isRecord(current.results)) candidates.push(current.results);
+    if (isRecord(current.list)) candidates.push(current.list);
+  }
+  return [];
+}
+
+function formatQaDate(value: unknown): string {
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? value.trim() : new Date(parsed).toLocaleDateString("fa-IR");
+  }
+  return "";
+}
+
+function normalizeQaStatus(value: unknown): StudentQuestion["status"] {
+  const raw = normalizeString(value, "").toLowerCase();
+  if (["answered", "answer", "replied", "resolved", "done"].includes(raw)) return "answered";
+  return "new";
+}
+
+function normalizeQaAttachment(value: unknown): { id: string; name: string; size: number; type: string; previewUrl?: string; caption?: string } | null {
+  if (!isRecord(value)) return null;
+  return {
+    id: normalizeString(value.id ?? value.fileId ?? value._id, `att-${Math.random().toString(36).slice(2, 8)}`),
+    name: normalizeString(value.name ?? value.fileName ?? value.title, "فایل"),
+    size: typeof value.size === "number" ? value.size : Number(value.size ?? 0),
+    type: normalizeString(value.type ?? value.mimeType, "application/octet-stream"),
+    previewUrl: typeof value.previewUrl === "string" ? value.previewUrl : typeof value.url === "string" ? value.url : undefined,
+    caption: typeof value.caption === "string" ? value.caption : undefined,
+  };
+}
+
+function normalizeQaReply(value: unknown) {
+  if (!isRecord(value)) return null;
+  const attachments = extractQaArray(value.attachments ?? value.files ?? value.answerFiles)
+    .map(normalizeQaAttachment)
+    .filter(Boolean) as NonNullable<ReturnType<typeof normalizeQaAttachment>>[];
+
+  return {
+    senderName: normalizeString(value.senderName ?? value.authorName ?? value.name, "مدرس اسپاتی‌کد"),
+    role: normalizeString(value.role ?? value.senderRole, "instructor") === "student" ? ("student" as const) : ("instructor" as const),
+    avatar: typeof value.avatar === "string" ? value.avatar : undefined,
+    text: normalizeString(value.text ?? value.answer ?? value.message),
+    createdAt: formatQaDate(value.createdAt ?? value.date ?? value.timestamp),
+    ...(attachments.length ? { attachments } : {}),
+  };
+}
+
+function normalizeStudentQuestion(raw: unknown, index: number): StudentQuestion {
+  const row = (isRecord(raw) ? raw : {}) as UnknownRecord;
+  const nestedQuestion = isRecord(row.question) ? (row.question as UnknownRecord) : undefined;
+  const source = nestedQuestion ?? row;
+  const replies = extractQaArray(source.replies ?? source.answers ?? source.messages)
+    .map(normalizeQaReply)
+    .filter(Boolean) as StudentQuestion["replies"];
+  const attachments = extractQaArray(source.attachments ?? source.files ?? source.questionFiles)
+    .map(normalizeQaAttachment)
+    .filter(Boolean) as NonNullable<StudentQuestion["attachments"]>;
+
+  return {
+    id: normalizeString(source.id ?? row.id ?? source.qaId ?? source.questionId, `QST-${String(index + 1).padStart(3, "0")}`),
+    studentName: normalizeString(
+      source.studentName ?? source.userName ?? source.fullName ?? source.name ?? row.studentName,
+      "دانشجو"
+    ),
+    avatar: typeof source.avatar === "string" ? source.avatar : undefined,
+    title: normalizeString(source.title ?? source.questionTitle ?? source.subject ?? source.lessonTitle, "سوال بدون عنوان"),
+    text: normalizeString(source.text ?? source.question ?? source.body ?? source.description),
+    description: normalizeString(source.description ?? source.questionDescription ?? source.text ?? source.question),
+    errorText: normalizeString(source.errorText ?? source.error ?? source.log ?? source.stack),
+    courseId: normalizeString(
+      source.courseId ??
+        (isRecord(source.course) ? (source.course as UnknownRecord).id ?? (source.course as UnknownRecord).courseId : undefined),
+      "unknown-course"
+    ),
+    courseTitle: normalizeString(
+      source.courseTitle ??
+        (isRecord(source.course) ? (source.course as UnknownRecord).title ?? (source.course as UnknownRecord).name : undefined),
+      "دوره نامشخص"
+    ),
+    lessonTitle: normalizeString(
+      source.lessonTitle ??
+        (isRecord(source.lesson) ? (source.lesson as UnknownRecord).title : undefined),
+      ""
+    ),
+    createdAt: formatQaDate(source.createdAt ?? source.date ?? source.askedAt),
+    status: normalizeQaStatus(source.status ?? source.answerStatus),
+    replies,
+    ...(attachments.length ? { attachments } : {}),
+  };
+}
 
 // --- INITIAL MOCK DATA ---
 const initialProfile: InstructorProfile = {
@@ -630,6 +748,28 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
     localStorage.setItem("spoticode_inst_profile", JSON.stringify(data));
   };
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadQuestions = async () => {
+      try {
+        const response = await apiGet<unknown>("/api/instructor-dashboard/my-qas");
+        const normalizedQuestions = extractQaArray(response).map(normalizeStudentQuestion);
+        if (!cancelled) {
+          syncQuestions(normalizedQuestions);
+        }
+      } catch {
+        // Keep the cached/local fallback when the API is unavailable.
+      }
+    };
+
+    loadQuestions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Toast notifier
   const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -641,7 +781,7 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
 
   // Course handlers
   const addCourse = (newCourse: Partial<Course>) => {
-    const nextId = `CRS-${Math.floor(100 + Math.random() * 900)}`;
+    const nextId = newCourse.id || `CRS-${Math.floor(100 + Math.random() * 900)}`;
     const prepared: Course = {
       id: nextId,
       title: newCourse.title || "دوره جدید بدون نام",
@@ -688,6 +828,7 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
     const updated = [prepared, ...courses];
     syncCourses(updated);
     showToast(`دوره «${prepared.title}» با موفقیت ایجاد شد.`, "success");
+    return prepared.id;
   };
 
   const updateCourse = (courseId: string, updates: Partial<Course>) => {
@@ -870,7 +1011,7 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
   };
 
   // Questions replies
-  const replyToQuestion = (
+  const replyToQuestion = async (
     questionId: string,
     text: string,
     attachments?: {
@@ -882,6 +1023,28 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
       caption?: string;
     }[]
   ) => {
+    const answerFileIds = attachments?.map((attachment) => attachment.id).filter(Boolean);
+    const response = await apiRequest<unknown>("patch", `/api/qas/${questionId}/answer`, {
+      body: {
+        answer: text,
+        ...(answerFileIds?.length ? { answerFileIds } : {}),
+      },
+    });
+
+    const normalizedResponse = Array.isArray(response)
+      ? response.map((item, index) => normalizeStudentQuestion(item, index))
+      : isRecord(response)
+        ? [normalizeStudentQuestion(response, 0)]
+        : [];
+
+    if (normalizedResponse.length > 0) {
+      const [updatedQuestion] = normalizedResponse;
+      const nextQuestions = questions.map((question) => (question.id === updatedQuestion.id ? updatedQuestion : question));
+      syncQuestions(nextQuestions);
+      showToast("پاسخ شما به سوال دانشجو با موفقیت ثبت شد.", "success");
+      return;
+    }
+
     const updated = questions.map((q) => {
       if (q.id === questionId) {
         return {

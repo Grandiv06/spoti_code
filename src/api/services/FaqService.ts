@@ -11,17 +11,17 @@ import { request as __request } from '../core/request';
 export class FaqService {
     /**
      * @param courseId
-     * @param isPublished
      * @param page
      * @param limit
+     * @param isPublished
      * @returns any
      * @throws ApiError
      */
     public static faqControllerFindPublicByCourse(
         courseId: string,
-        isPublished?: boolean,
         page?: number,
         limit?: number,
+        isPublished?: boolean,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -30,25 +30,25 @@ export class FaqService {
                 'courseId': courseId,
             },
             query: {
-                'isPublished': isPublished,
                 'page': page,
                 'limit': limit,
+                'isPublished': isPublished,
             },
         });
     }
     /**
      * @param courseId
-     * @param isPublished
      * @param page
      * @param limit
+     * @param isPublished
      * @returns any
      * @throws ApiError
      */
     public static faqControllerFindAdminByCourse(
         courseId: string,
-        isPublished?: boolean,
         page?: number,
         limit?: number,
+        isPublished?: boolean,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -57,9 +57,9 @@ export class FaqService {
                 'courseId': courseId,
             },
             query: {
-                'isPublished': isPublished,
                 'page': page,
                 'limit': limit,
+                'isPublished': isPublished,
             },
         });
     }

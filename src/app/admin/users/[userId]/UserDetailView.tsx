@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { 
   ChevronRight, 
@@ -17,19 +17,27 @@ import {
   MessageSquare, 
   FileText,
   Edit3,
-  ChevronLeft,
   ExternalLink,
   Shield,
   Inbox,
   Save,
   Video,
-  Settings
+  Settings,
+  type LucideIcon,
 } from "lucide-react";
-import { User, PurchasedCourse, UserTransaction, UserTicket } from "../_components/types";
+import { User, PurchasedCourse, UserTransaction, UserTicket, UserActivity } from "../_components/types";
 import { UserStatusBadge, UserPlanBadge, UserRoleBadge } from "../_components/Badges";
 import { toPersianDigits, formatPrice, formatPhone, formatPersianDate } from "../_components/utils";
 import EditUserModal from "../_components/EditUserModal";
-import { useAdminUserQuery } from "@/hooks/api/useAdminUserQuery";
+import {
+  useAdminUserActivitiesQuery,
+  useAdminUserCoursesQuery,
+  useAdminUserInternalNoteQuery,
+  useAdminUserOverviewQuery,
+  useAdminUserTicketsQuery,
+  useAdminUserTransactionsQuery,
+  useUpdateAdminUserInternalNoteMutation,
+} from "@/hooks/api/useAdminUserDetailQueries";
 
 interface Toast {
   id: string;
@@ -41,15 +49,16 @@ interface UserDetailViewProps {
   userId: string;
 }
 
+type UserDetailTab = "overview" | "courses" | "transactions" | "tickets" | "activity" | "notes";
+
 // ----------------------------------------------------
 // 1. Overview Tab Component
 // ----------------------------------------------------
 interface UserOverviewTabProps {
   user: User;
-  showToast: (msg: string, type?: "success" | "error" | "info") => void;
 }
 
-export function UserOverviewTab({ user, showToast }: UserOverviewTabProps) {
+export function UserOverviewTab({ user }: UserOverviewTabProps) {
   const getInitials = (name: string) => {
     const parts = name.split(" ");
     if (parts.length >= 2) {
@@ -222,10 +231,11 @@ export function UserOverviewTab({ user, showToast }: UserOverviewTabProps) {
 // ----------------------------------------------------
 interface UserCoursesTabProps {
   courses: PurchasedCourse[];
+  isLoading?: boolean;
   showToast: (msg: string, type?: "success" | "error" | "info") => void;
 }
 
-export function UserCoursesTab({ courses, showToast }: UserCoursesTabProps) {
+export function UserCoursesTab({ courses, isLoading, showToast }: UserCoursesTabProps) {
   return (
     <div className="space-y-4 animate-in fade-in duration-300" dir="rtl">
       <h3 className="text-xs font-black text-gray-400 dark:text-gray-500 flex items-center gap-2">
@@ -234,7 +244,12 @@ export function UserCoursesTab({ courses, showToast }: UserCoursesTabProps) {
       </h3>
 
       <div className="bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 rounded-[2rem] p-6 space-y-4 shadow-sm">
-        {courses.length === 0 ? (
+        {isLoading && courses.length === 0 ? (
+          <div className="text-center py-12 text-gray-400">
+            <div className="w-10 h-10 mx-auto rounded-full border-4 border-primary/20 border-t-primary animate-spin mb-4" />
+            <p className="text-xs font-black text-gray-500 dark:text-gray-400">در حال بارگذاری دوره‌ها...</p>
+          </div>
+        ) : courses.length === 0 ? (
           <div className="text-center py-12 text-gray-400">
             <BookOpen className="w-12 h-12 mx-auto text-gray-300 dark:text-zinc-700 mb-3 animate-bounce" />
             <p className="text-xs font-black text-gray-500 dark:text-gray-400">این کاربر هنوز دوره‌ای خریداری نکرده است.</p>
@@ -305,10 +320,11 @@ export function UserCoursesTab({ courses, showToast }: UserCoursesTabProps) {
 // ----------------------------------------------------
 interface UserTransactionsTabProps {
   transactions: UserTransaction[];
+  isLoading?: boolean;
   showToast: (msg: string, type?: "success" | "error" | "info") => void;
 }
 
-export function UserTransactionsTab({ transactions, showToast }: UserTransactionsTabProps) {
+export function UserTransactionsTab({ transactions, isLoading, showToast }: UserTransactionsTabProps) {
   const [filter, setFilter] = useState<"all" | "موفق" | "ناموفق" | "در انتظار">("all");
 
   const filtered = transactions.filter(t => {
@@ -340,7 +356,7 @@ export function UserTransactionsTab({ transactions, showToast }: UserTransaction
           ].map((btn) => (
             <button
               key={btn.id}
-              onClick={() => setFilter(btn.id as any)}
+              onClick={() => setFilter(btn.id as typeof filter)}
               className={`px-3 py-1.5 rounded-xl transition-all ${
                 (btn.id === filter)
                   ? "bg-primary text-white shadow-sm"
@@ -354,7 +370,12 @@ export function UserTransactionsTab({ transactions, showToast }: UserTransaction
       </div>
 
       <div className="bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 rounded-[2rem] p-6 shadow-sm">
-        {filtered.length === 0 ? (
+        {isLoading && transactions.length === 0 ? (
+          <div className="text-center py-12 text-gray-400 animate-pulse">
+            <div className="w-10 h-10 mx-auto rounded-full border-4 border-primary/20 border-t-primary animate-spin mb-4" />
+            <p className="text-xs font-black text-gray-500 dark:text-gray-400">در حال بارگذاری تراکنش‌ها...</p>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="text-center py-12 text-gray-400 animate-pulse">
             <CreditCard className="w-12 h-12 mx-auto text-gray-300 dark:text-zinc-700 mb-3" />
             <p className="text-xs font-black text-gray-500 dark:text-gray-400">تراکنشی با فیلتر انتخابی ثبت نشده است.</p>
@@ -458,10 +479,11 @@ export function UserTransactionsTab({ transactions, showToast }: UserTransaction
 // ----------------------------------------------------
 interface UserTicketsTabProps {
   tickets: UserTicket[];
+  isLoading?: boolean;
   showToast: (msg: string, type?: "success" | "error" | "info") => void;
 }
 
-export function UserTicketsTab({ tickets, showToast }: UserTicketsTabProps) {
+export function UserTicketsTab({ tickets, isLoading, showToast }: UserTicketsTabProps) {
   const getTicketPriority = (tId: string) => {
     if (tId === "T-1810") return "متوسط";
     return "بالا";
@@ -475,7 +497,12 @@ export function UserTicketsTab({ tickets, showToast }: UserTicketsTabProps) {
       </h3>
 
       <div className="bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 rounded-[2rem] p-6 shadow-sm">
-        {tickets.length === 0 ? (
+        {isLoading && tickets.length === 0 ? (
+          <div className="text-center py-12 text-gray-400">
+            <div className="w-10 h-10 mx-auto rounded-full border-4 border-primary/20 border-t-primary animate-spin mb-4" />
+            <p className="text-xs font-black text-gray-500 dark:text-gray-400">در حال بارگذاری تیکت‌ها...</p>
+          </div>
+        ) : tickets.length === 0 ? (
           <div className="text-center py-12 text-gray-400">
             <MessageSquare className="w-12 h-12 mx-auto text-gray-300 dark:text-zinc-700 mb-3" />
             <p className="text-xs font-black text-gray-500 dark:text-gray-400">این کاربر هیچ تیکتی ثبت نکرده است.</p>
@@ -547,52 +574,23 @@ export function UserTicketsTab({ tickets, showToast }: UserTicketsTabProps) {
 // ----------------------------------------------------
 // 5. Activity Tab Component
 // ----------------------------------------------------
-export function UserActivityTab({ userId }: { userId: string }) {
-  const activities = [
-    {
-      title: "ورود به حساب",
-      desc: "ورود موفق به پنل کاربری از آی‌پی 192.168.1.1 با مرورگر کروم سیستم‌عامل مک",
-      time: "امروز، ۲ ساعت پیش",
-      icon: Clock,
-      color: "text-blue-400 bg-blue-500/10 border-blue-500/20"
-    },
-    {
-      title: "پرداخت موفق",
-      desc: "پرداخت موفق مبلغ ۲,۹۰۰,۰۰۰ تومان بابت خرید دوره «مسترکلاس Next.js»",
-      time: "۱۸ اسفند ۱۴۰۴، ساعت ۱۴:۲۰",
-      icon: CheckCircle,
-      color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
-    },
-    {
-      title: "مشاهده درس",
-      desc: "مشاهده ویدیوی آموزشی «کامپوننت‌های سرور» از فصل اول دوره Next.js",
-      time: "۱۵ اسفند ۱۴۰۴، ساعت ۱۶:۴۵",
-      icon: Video,
-      color: "text-purple-400 bg-purple-500/10 border-purple-500/20"
-    },
-    {
-      title: "ثبت تیکت پشتیبانی",
-      desc: "ثبت تیکت جدید با عنوان «مشکل در اجرای لوکال سورس کد جلسه ۱۲ دوره Next»",
-      time: "۱۰ اسفند ۱۴۰۴، ساعت ۱۱:۰۲",
-      icon: MessageSquare,
-      color: "text-amber-400 bg-amber-500/10 border-amber-500/20"
-    },
-    {
-      title: "تغییر مشخصات حساب",
-      desc: "به‌روزرسانی موفقیت‌آمیز ایمیل و شماره موبایل توسط ادمین در پنل پشتیبانی",
-      time: "۱ اسفند ۱۴۰۴، ساعت ۰۹:۱۵",
-      icon: Settings,
-      color: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20"
-    },
-    {
-      title: "خرید دوره آموزشی",
-      desc: "ثبت سفارش موفق برای دوره «TypeScript پیشرفته»",
-      time: "۱ آذر ۱۴۰۴، ساعت ۱۸:۳۰",
-      icon: ShoppingBag,
-      color: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20"
-    }
-  ];
+const ACTIVITY_ICON_MAP: Record<UserActivity["kind"], { icon: LucideIcon; className: string }> = {
+  login: { icon: Clock, className: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
+  payment: { icon: CheckCircle, className: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
+  lesson: { icon: Video, className: "text-purple-400 bg-purple-500/10 border-purple-500/20" },
+  ticket: { icon: MessageSquare, className: "text-amber-400 bg-amber-500/10 border-amber-500/20" },
+  profile: { icon: Settings, className: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20" },
+  order: { icon: ShoppingBag, className: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20" },
+  other: { icon: Activity, className: "text-slate-400 bg-slate-500/10 border-slate-500/20" },
+};
 
+export function UserActivityTab({
+  activities,
+  isLoading,
+}: {
+  activities: UserActivity[];
+  isLoading?: boolean;
+}) {
   return (
     <div className="space-y-4 animate-in fade-in duration-300" dir="rtl">
       <h3 className="text-xs font-black text-gray-400 dark:text-gray-500 flex items-center gap-2">
@@ -601,27 +599,41 @@ export function UserActivityTab({ userId }: { userId: string }) {
       </h3>
 
       <div className="bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 rounded-[2rem] p-6 shadow-sm">
-        <div className="relative border-r-2 border-gray-100 dark:border-white/5 pr-6 mr-3 space-y-8 py-3">
-          {activities.map((act, index) => {
-            const IconComponent = act.icon;
-            return (
-              <div key={index} className="relative flex flex-col md:flex-row md:items-start gap-4 animate-in fade-in slide-in-from-right duration-350">
-                {/* Timeline Dot Icon */}
-                <div className={`absolute -right-[37px] top-0 w-8 h-8 rounded-xl flex items-center justify-center border ${act.color} z-10 shrink-0`}>
-                  <IconComponent className="w-4 h-4" />
-                </div>
-                
-                <div className="flex-1">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-1.5">
-                    <h4 className="text-xs font-black text-gray-900 dark:text-white font-sans">{act.title}</h4>
-                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500">{toPersianDigits(act.time)}</span>
+        {isLoading && activities.length === 0 ? (
+          <div className="py-12 text-center text-gray-400">
+            <div className="w-10 h-10 mx-auto rounded-full border-4 border-primary/20 border-t-primary animate-spin mb-4" />
+            <p className="text-xs font-bold">در حال بارگذاری فعالیت‌ها...</p>
+          </div>
+        ) : activities.length === 0 ? (
+          <div className="py-12 text-center text-gray-400">
+            <Activity className="w-12 h-12 mx-auto text-gray-300 dark:text-zinc-700 mb-3" />
+            <p className="text-xs font-black text-gray-500 dark:text-gray-400">برای این کاربر فعالیتی ثبت نشده است.</p>
+          </div>
+        ) : (
+          <div className="relative border-r-2 border-gray-100 dark:border-white/5 pr-6 mr-3 space-y-8 py-3">
+            {activities.map((act) => {
+              const activityIcon = ACTIVITY_ICON_MAP[act.kind] ?? ACTIVITY_ICON_MAP.other;
+              const IconComponent = activityIcon.icon;
+              return (
+                <div key={act.id} className="relative flex flex-col md:flex-row md:items-start gap-4 animate-in fade-in slide-in-from-right duration-350">
+                  <div className={`absolute -right-[37px] top-0 w-8 h-8 rounded-xl flex items-center justify-center border ${activityIcon.className} z-10 shrink-0`}>
+                    <IconComponent className="w-4 h-4" />
                   </div>
-                  <p className="text-[11px] leading-relaxed text-gray-500 dark:text-gray-400 font-semibold">{toPersianDigits(act.desc)}</p>
+
+                  <div className="flex-1">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-1.5">
+                      <h4 className="text-xs font-black text-gray-900 dark:text-white font-sans">{act.title}</h4>
+                      <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500">{toPersianDigits(act.timestamp)}</span>
+                    </div>
+                    <p className="text-[11px] leading-relaxed text-gray-500 dark:text-gray-400 font-semibold">
+                      {toPersianDigits(act.description)}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -632,10 +644,12 @@ export function UserActivityTab({ userId }: { userId: string }) {
 // ----------------------------------------------------
 interface UserAdminNotesTabProps {
   notes: string;
+  isLoading?: boolean;
+  isSaving?: boolean;
   onSaveNotes: (updatedNotes: string) => void;
 }
 
-export function UserAdminNotesTab({ notes, onSaveNotes }: UserAdminNotesTabProps) {
+export function UserAdminNotesTab({ notes, isLoading, isSaving, onSaveNotes }: UserAdminNotesTabProps) {
   const [currentNotes, setCurrentNotes] = useState(notes);
 
   useEffect(() => {
@@ -657,9 +671,9 @@ export function UserAdminNotesTab({ notes, onSaveNotes }: UserAdminNotesTabProps
         <div className="flex items-center justify-between mb-2 text-[10px] font-semibold text-gray-400 dark:text-gray-500 pb-3 border-b border-gray-100 dark:border-white/5">
           <div className="flex items-center gap-1.5">
             <Shield className="w-4 h-4 text-red-400" />
-            <span>ثبت شده توسط: <strong className="text-gray-600 dark:text-gray-300">سروش مشایخی (ادمین ارشد)</strong></span>
+            <span>ثبت شده توسط: <strong className="text-gray-600 dark:text-gray-300">ادمین</strong></span>
           </div>
-          <span>آخرین ویرایش: {formatPersianDate("1404/12/28")}</span>
+          <span>آخرین ویرایش: {isLoading ? "در حال دریافت..." : "به‌روز از سرور"}</span>
         </div>
 
         <div className="space-y-4">
@@ -669,22 +683,23 @@ export function UserAdminNotesTab({ notes, onSaveNotes }: UserAdminNotesTabProps
               value={currentNotes}
               onChange={(e) => setCurrentNotes(e.target.value)}
               placeholder="یادداشتی درباره سوابق کاربر، وضعیت پرداختی‌ها، تخفیف‌ها یا تعاملات با ادمین‌ها بنویسید..."
-              className="w-full min-h-[150px] p-4 text-xs font-semibold text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-black/20 border border-gray-100 dark:border-white/5 rounded-2xl focus:outline-none focus:border-primary/30 transition-all font-sans resize-y"
-            />
-          </div>
+                className="w-full min-h-[150px] p-4 text-xs font-semibold text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-black/20 border border-gray-100 dark:border-white/5 rounded-2xl focus:outline-none focus:border-primary/30 transition-all font-sans resize-y"
+              />
+            </div>
 
-          <div className="flex justify-end">
-            <button
-              onClick={handleSave}
-              className="flex items-center gap-1.5 px-5 py-3 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-primary/20 hover:scale-[1.02]"
-            >
-              <Save className="w-4 h-4" />
-              <span>ذخیره یادداشت</span>
-            </button>
+            <div className="flex justify-end">
+              <button
+                onClick={handleSave}
+                disabled={isLoading || isSaving}
+                className="flex items-center gap-1.5 px-5 py-3 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-primary/20 hover:scale-[1.02]"
+              >
+                <Save className="w-4 h-4" />
+                <span>{isSaving ? "در حال ذخیره..." : "ذخیره یادداشت"}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
   );
 }
 
@@ -696,14 +711,20 @@ export default function UserDetailView({ userId }: UserDetailViewProps) {
   const [user, setUser] = useState<User | null>(null);
 
   // Tab State
-  const [activeTab, setActiveTab] = useState<"overview" | "courses" | "transactions" | "tickets" | "activity" | "notes">("overview");
+  const [activeTab, setActiveTab] = useState<UserDetailTab>("overview");
 
   // Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Toast State
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const { data, isPending, isError, error, refetch } = useAdminUserQuery(userId);
+  const overviewQuery = useAdminUserOverviewQuery(userId);
+  const coursesQuery = useAdminUserCoursesQuery(userId, activeTab === "courses");
+  const transactionsQuery = useAdminUserTransactionsQuery(userId, activeTab === "transactions");
+  const ticketsQuery = useAdminUserTicketsQuery(userId, activeTab === "tickets");
+  const activitiesQuery = useAdminUserActivitiesQuery(userId, activeTab === "activity");
+  const internalNoteQuery = useAdminUserInternalNoteQuery(userId, activeTab === "notes");
+  const updateInternalNoteMutation = useUpdateAdminUserInternalNoteMutation(userId);
 
   const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
     const id = Math.random().toString(36).substr(2, 9);
@@ -713,19 +734,41 @@ export default function UserDetailView({ userId }: UserDetailViewProps) {
     }, 4000);
   };
 
-  useEffect(() => {
-    if (data) {
-      setUser(data);
-    }
-  }, [data]);
-
   const handleSaveUser = (updatedUser: User) => {
     setUser(updatedUser);
     setIsEditModalOpen(false);
     showToast(`مشخصات کاربر «${updatedUser.name}» با موفقیت ویرایش شد.`, "success");
+
+    if ((updatedUser.internalNotes || "") !== (user?.internalNotes || "")) {
+      updateInternalNoteMutation.mutate(updatedUser.internalNotes || "", {
+        onError: () => {
+          showToast("همگام‌سازی یادداشت داخلی با سرور ناموفق بود.", "error");
+        },
+      });
+    }
   };
 
-  const tabsList = [
+  const displayUser = user ?? overviewQuery.data ?? null;
+  const currentUser = displayUser as User;
+  const displayedCourses = useMemo(
+    () => coursesQuery.data ?? displayUser?.purchasedCourses ?? [],
+    [coursesQuery.data, displayUser]
+  );
+  const displayedTransactions = useMemo(
+    () => transactionsQuery.data ?? displayUser?.recentTransactions ?? [],
+    [displayUser, transactionsQuery.data]
+  );
+  const displayedTickets = useMemo(
+    () => ticketsQuery.data ?? displayUser?.recentTickets ?? [],
+    [displayUser, ticketsQuery.data]
+  );
+  const displayedActivities = useMemo(() => activitiesQuery.data ?? [], [activitiesQuery.data]);
+  const displayedInternalNote = useMemo(
+    () => internalNoteQuery.data ?? displayUser?.internalNotes ?? "",
+    [displayUser, internalNoteQuery.data]
+  );
+
+  const tabsList: { id: UserDetailTab; label: string; icon: LucideIcon }[] = [
     { id: "overview", label: "مشخصات کلی", icon: UserIcon },
     { id: "courses", label: "دوره‌ها", icon: BookOpen },
     { id: "transactions", label: "تراکنش‌ها", icon: CreditCard },
@@ -734,7 +777,7 @@ export default function UserDetailView({ userId }: UserDetailViewProps) {
     { id: "notes", label: "یادداشت ادمین", icon: FileText }
   ];
 
-  if (isPending && !user) {
+  if (overviewQuery.isPending && !displayUser) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4" dir="rtl">
         <div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
@@ -743,7 +786,7 @@ export default function UserDetailView({ userId }: UserDetailViewProps) {
     );
   }
 
-  if (isError) {
+  if (overviewQuery.isError) {
     return (
       <div className="max-w-md mx-auto my-20 p-8 bg-white dark:bg-[#1c1e26] rounded-[2.5rem] border border-gray-100 dark:border-white/5 text-center shadow-xl animate-in fade-in duration-500" dir="rtl">
         <div className="w-20 h-20 mx-auto rounded-3xl bg-red-500/10 flex items-center justify-center mb-6">
@@ -751,11 +794,11 @@ export default function UserDetailView({ userId }: UserDetailViewProps) {
         </div>
         <h2 className="text-xl font-black text-gray-900 dark:text-white mb-3 font-sans">کاربر مورد نظر پیدا نشد</h2>
         <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-8 font-sans">
-          {error?.message || "داده‌های کاربر از سرور دریافت نشد. لطفاً دوباره تلاش کنید."}
+          {overviewQuery.error?.message || "داده‌های کاربر از سرور دریافت نشد. لطفاً دوباره تلاش کنید."}
         </p>
         <div className="flex flex-col gap-3">
           <button
-            onClick={() => void refetch()}
+            onClick={() => void overviewQuery.refetch()}
             className="w-full flex items-center justify-center gap-2 py-3.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-2xl transition-all shadow-md shadow-primary/20 hover:scale-[1.02]"
           >
             <span>تلاش مجدد</span>
@@ -772,7 +815,7 @@ export default function UserDetailView({ userId }: UserDetailViewProps) {
     );
   }
 
-  if (!user) {
+  if (!displayUser) {
     return (
       <div className="max-w-md mx-auto my-20 p-8 bg-white dark:bg-[#1c1e26] rounded-[2.5rem] border border-gray-100 dark:border-white/5 text-center shadow-xl animate-in fade-in duration-500" dir="rtl">
         <div className="w-20 h-20 mx-auto rounded-3xl bg-red-500/10 flex items-center justify-center mb-6">
@@ -812,9 +855,9 @@ export default function UserDetailView({ userId }: UserDetailViewProps) {
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white font-sans">جزئیات حساب کاربر</h1>
             <span className="font-mono text-xs font-bold text-gray-400 bg-gray-50 dark:bg-black/30 border border-gray-100 dark:border-white/5 px-3 py-1 rounded-xl">
-              {toPersianDigits(user.id)}
+              {toPersianDigits(currentUser.id)}
             </span>
-            <UserStatusBadge status={user.status} />
+            <UserStatusBadge status={currentUser.status} />
           </div>
         </div>
 
@@ -838,7 +881,7 @@ export default function UserDetailView({ userId }: UserDetailViewProps) {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-bold transition-all shrink-0 ${
                   isActive 
                     ? "bg-primary text-white shadow-md shadow-primary/10 scale-[1.02]"
@@ -856,26 +899,36 @@ export default function UserDetailView({ userId }: UserDetailViewProps) {
       {/* Active Tab View Layout Area */}
       <div className="space-y-6">
         {activeTab === "overview" && (
-          <UserOverviewTab user={user} showToast={showToast} />
+          <UserOverviewTab user={currentUser} />
         )}
         {activeTab === "courses" && (
-          <UserCoursesTab courses={user.purchasedCourses} showToast={showToast} />
+          <UserCoursesTab courses={displayedCourses} isLoading={coursesQuery.isPending} showToast={showToast} />
         )}
         {activeTab === "transactions" && (
-          <UserTransactionsTab transactions={user.recentTransactions} showToast={showToast} />
+          <UserTransactionsTab transactions={displayedTransactions} isLoading={transactionsQuery.isPending} showToast={showToast} />
         )}
         {activeTab === "tickets" && (
-          <UserTicketsTab tickets={user.recentTickets} showToast={showToast} />
+          <UserTicketsTab tickets={displayedTickets} isLoading={ticketsQuery.isPending} showToast={showToast} />
         )}
         {activeTab === "activity" && (
-          <UserActivityTab userId={user.id} />
+          <UserActivityTab activities={displayedActivities} isLoading={activitiesQuery.isPending} />
         )}
         {activeTab === "notes" && (
           <UserAdminNotesTab 
-            notes={user.internalNotes || ""} 
+            notes={displayedInternalNote}
+            isLoading={internalNoteQuery.isPending}
+            isSaving={updateInternalNoteMutation.isPending}
             onSaveNotes={(updatedNotes) => {
-              const updatedUser = { ...user, internalNotes: updatedNotes };
-              handleSaveUser(updatedUser);
+              updateInternalNoteMutation.mutate(updatedNotes, {
+                onSuccess: (savedNote) => {
+                  const updatedUser = { ...currentUser, internalNotes: savedNote };
+                  setUser(updatedUser);
+                  showToast("یادداشت داخلی با موفقیت ذخیره شد.", "success");
+                },
+                onError: () => {
+                  showToast("ذخیره یادداشت داخلی ناموفق بود.", "error");
+                },
+              });
             }} 
           />
         )}

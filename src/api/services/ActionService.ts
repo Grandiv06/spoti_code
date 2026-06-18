@@ -24,24 +24,24 @@ export class ActionService {
         });
     }
     /**
-     * @param type
      * @param page
      * @param limit
+     * @param type
      * @returns any
      * @throws ApiError
      */
     public static actionControllerFindMyActions(
-        type?: 'follow' | 'unfollow' | 'like' | 'disslike' | 'bookmark',
         page?: number,
         limit?: number,
+        type?: 'follow' | 'unfollow' | 'like' | 'disslike' | 'bookmark',
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/actions/my',
             query: {
-                'type': type,
                 'page': page,
                 'limit': limit,
+                'type': type,
             },
         });
     }

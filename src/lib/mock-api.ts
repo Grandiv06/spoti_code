@@ -1,3 +1,5 @@
+import { initialUsersData } from "@/app/admin/users/_components/types";
+
 type HttpMethod = "get" | "post" | "put" | "patch" | "delete";
 
 type MockRequest = {
@@ -7,6 +9,71 @@ type MockRequest = {
 };
 
 const now = new Date("2026-06-05T10:30:00.000Z");
+
+const adminUserActivities = [
+  {
+    id: "ACT-1",
+    title: "ورود به حساب",
+    description: "ورود موفق به پنل کاربری از مرورگر کروم",
+    timestamp: "2026-06-05T08:15:00.000Z",
+    kind: "login",
+  },
+  {
+    id: "ACT-2",
+    title: "پرداخت موفق",
+    description: "پرداخت موفق بابت خرید دوره",
+    timestamp: "2026-06-04T17:20:00.000Z",
+    kind: "payment",
+  },
+  {
+    id: "ACT-3",
+    title: "مشاهده درس",
+    description: "مشاهده ویدیوی آموزشی از دوره فعال",
+    timestamp: "2026-06-03T13:45:00.000Z",
+    kind: "lesson",
+  },
+  {
+    id: "ACT-4",
+    title: "ثبت تیکت پشتیبانی",
+    description: "ثبت درخواست پشتیبانی درباره مشکل آموزشی",
+    timestamp: "2026-06-02T11:10:00.000Z",
+    kind: "ticket",
+  },
+];
+
+function findAdminUser(userId: string) {
+  return initialUsersData.find((user) => user.id === userId) ?? initialUsersData[0];
+}
+
+function buildAdminUserOverview(userId: string) {
+  const user = findAdminUser(userId);
+  return {
+    id: userId,
+    userId,
+    fullName: user.name,
+    name: user.name,
+    displayName: user.name,
+    phoneNumber: user.phone,
+    email: user.email,
+    plan: user.plan,
+    status: user.status === "فعال",
+    role: user.role,
+    joinedAt: user.joinedAt,
+    createdAt: user.joinedAt,
+    courses: user.courses,
+    coursesCount: user.courses,
+    purchasesCount: user.purchasesCount,
+    successfulTransactionsCount: user.successfulTransactionsCount,
+    supportTicketsCount: user.supportTicketsCount,
+    lastLogin: user.lastLogin,
+    lastCourseViewed: user.lastCourseViewed,
+    ltv: user.ltv,
+    internalNotes: user.internalNotes,
+    purchasedCourses: user.purchasedCourses,
+    recentTransactions: user.recentTransactions,
+    recentTickets: user.recentTickets,
+  };
+}
 
 const courses = [
   {
@@ -243,6 +310,61 @@ const comments = [
   },
 ];
 
+let instructorComments = [
+  {
+    id: "CMT-101",
+    content: "آموزش Server Actions خیلی مفید بود، مخصوصاً بخش فرم‌ها.",
+    createdAt: "2026-05-16T11:30:00.000Z",
+    rating: 5,
+    courseId: "nextjs",
+    courseTitle: "متخصص React و Next.js",
+    commentableType: "course",
+    commentableId: "nextjs",
+    parentId: "CMT-101",
+    user: {
+      id: "user-41",
+      fullName: "نگار کریمی",
+      avatar: "/images/student1.jpg",
+    },
+  },
+  {
+    id: "CMT-102",
+    content: "پروژه‌ها کاربردی هستند ولی سرعت بعضی بخش‌ها بالاست.",
+    createdAt: "2026-05-18T10:10:00.000Z",
+    rating: 4,
+    courseId: "react",
+    courseTitle: "فریمورک React",
+    commentableType: "course",
+    commentableId: "react",
+    parentId: "CMT-102",
+    user: {
+      id: "user-42",
+      fullName: "علی مرادی",
+      avatar: "/images/student2.jpg",
+    },
+    reply: {
+      content: "ممنون از بازخورد دقیق شما. در نسخه بعدی زمان‌بندی بخش‌ها را متعادل‌تر می‌کنیم.",
+      createdAt: "2026-05-19T08:40:00.000Z",
+    },
+  },
+  {
+    id: "CMT-103",
+    content: "بخش‌های مربوط به معماری خیلی خوب و شفاف بود.",
+    createdAt: "2026-05-21T13:20:00.000Z",
+    rating: 5,
+    courseId: "nextjs",
+    courseTitle: "متخصص React و Next.js",
+    commentableType: "course",
+    commentableId: "nextjs",
+    parentId: "CMT-103",
+    user: {
+      id: "user-43",
+      fullName: "مریم صادقی",
+      avatar: "/images/student3.jpg",
+    },
+  },
+];
+
 const tickets = [
   {
     id: "TIC-8421",
@@ -335,6 +457,61 @@ const transactions = [
   },
 ];
 
+let instructorQuestions = [
+  {
+    id: "QST-001",
+    studentName: "علیرضا رضایی",
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=150&auto=format&fit=crop",
+    title: "خطای Hydration در استفاده از useState و localStorage",
+    text: "سلام استاد وقت بخیر. من در پروژه‌ام مقدار اولیه useState را از localStorage می‌خوانم ولی با خطای Hydration Mismatch مواجه می‌شوم. چطور می‌توانم این مشکل را حل کنم؟",
+    description: "سلام استاد وقت بخیر. من در پروژه‌ام مقدار اولیه useState را از localStorage می‌خوانم ولی با خطای Hydration Mismatch مواجه می‌شوم. چطور می‌توانم این مشکل را حل کنم؟",
+    errorText: "Hydration failed because the initial UI does not match what was rendered on the server.",
+    courseId: "CRS-410",
+    courseTitle: "متخصص React و Next.js",
+    lessonTitle: "فولدر استراکچر جدید و سیستم Routing",
+    createdAt: "1404/02/15",
+    status: "new",
+    replies: [
+      {
+        senderName: "علیرضا رضایی",
+        role: "student",
+        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=150&auto=format&fit=crop",
+        text: "تصویر خطا را هم ضمیمه کردم. مقدار سمت کلاینت با سرور همخوانی ندارد چون در سرور localStorage وجود ندارد.",
+        createdAt: "1404/02/15",
+      },
+    ],
+  },
+  {
+    id: "QST-002",
+    studentName: "سارا احمدی",
+    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=150&auto=format&fit=crop",
+    title: "عدم شناسایی متغیرهای محیطی در Server Actions",
+    text: "سلام خسته نباشید. متغیرهای محیطی که در فایل env.local قرار دادم در داخل Server Actionها لود نمی‌شوند و undefined برمی‌گردانند. علت چیست؟",
+    description: "سلام خسته نباشید. متغیرهای محیطی که در فایل env.local قرار دادم در داخل Server Actionها لود نمی‌شوند و undefined برمی‌گردانند. علت چیست؟",
+    courseId: "CRS-410",
+    courseTitle: "متخصص React و Next.js",
+    lessonTitle: "مفهوم Server Actions در ری‌اکت ۱۹",
+    createdAt: "1404/02/12",
+    status: "answered",
+    replies: [
+      {
+        senderName: "سارا احمدی",
+        role: "student",
+        avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=150&auto=format&fit=crop",
+        text: "متغیرها در کلاینت با پیشوند NEXT_PUBLIC به درستی کار می‌کنند ولی در اکشن‌ها که سمت سرور هستند خیر.",
+        createdAt: "1404/02/12",
+      },
+      {
+        senderName: "اصغر رضایی",
+        role: "instructor",
+        avatar: "",
+        text: "سلام سارا جان. به یاد داشته باش که متغیرهای سرور در Next.js نیازی به پیشوند NEXT_PUBLIC ندارند اما دقت کن که سرور اکشن شما در حین بیلد فراخوانی نشود. همچنین مطمئن شو که اسم فایل دقیقاً .env.local باشد و سرور را بعد از تغییر متغیرها حتماً یکبار ری‌استارت کرده باشی. اگر مشکل حل نشد کدت رو بفرست.",
+        createdAt: "1404/02/13",
+      },
+    ],
+  },
+];
+
 const surveys = [
   {
     id: 1,
@@ -423,12 +600,74 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
     }) as T;
   }
 
+  if (method === "get" && cleanPath === "/api/instructor-dashboard/my-qas") {
+    return json({ data: instructorQuestions }) as T;
+  }
+
   if (method === "get" && cleanPath === "/api/dashboard/my-transactions") {
     return json({ data: transactions }) as T;
   }
 
+  if (method === "get" && cleanPath === "/api/instructor-dashboard/my-comments") {
+    return json({ data: instructorComments }) as T;
+  }
+
   if (method === "get" && cleanPath === "/api/dashboard/my-tickets") {
     return json({ data: tickets }) as T;
+  }
+
+  if (method === "get" && /^\/api\/admin-dashboard\/users\/[^/]+\/overview$/.test(cleanPath)) {
+    const userId = decodeURIComponent(cleanPath.split("/")[4] || "");
+    return json({ data: buildAdminUserOverview(userId) }) as T;
+  }
+
+  if (method === "get" && /^\/api\/admin-dashboard\/users\/[^/]+\/courses$/.test(cleanPath)) {
+    const userId = decodeURIComponent(cleanPath.split("/")[4] || "");
+    const user = findAdminUser(userId);
+    return json({
+      data: user.purchasedCourses.map((course) => ({
+        title: course.name,
+        name: course.name,
+        purchaseDate: course.purchaseDate,
+        status: course.status,
+        progress: course.progress,
+      })),
+    }) as T;
+  }
+
+  if (method === "get" && /^\/api\/admin-dashboard\/users\/[^/]+\/transactions$/.test(cleanPath)) {
+    const userId = decodeURIComponent(cleanPath.split("/")[4] || "");
+    const user = findAdminUser(userId);
+    return json({
+      data: user.recentTransactions.map((transaction) => ({
+        id: transaction.id,
+        amount: transaction.amount,
+        status: transaction.status === "موفق" ? "paid" : transaction.status === "در انتظار" ? "pending" : "failed",
+        createdAt: transaction.date,
+      })),
+    }) as T;
+  }
+
+  if (method === "get" && /^\/api\/admin-dashboard\/users\/[^/]+\/tickets$/.test(cleanPath)) {
+    const userId = decodeURIComponent(cleanPath.split("/")[4] || "");
+    const user = findAdminUser(userId);
+    return json({
+      data: user.recentTickets.map((ticket) => ({
+        id: ticket.id,
+        title: ticket.title,
+        status: ticket.status === "باز" ? "open" : ticket.status === "در حال بررسی" ? "underReview" : "closed",
+        createdAt: ticket.date,
+      })),
+    }) as T;
+  }
+
+  if (method === "get" && /^\/api\/admin-dashboard\/users\/[^/]+\/activities$/.test(cleanPath)) {
+    return json({ data: adminUserActivities }) as T;
+  }
+
+  if (method === "get" && /^\/api\/admin-dashboard\/users\/[^/]+\/internal-note$/.test(cleanPath)) {
+    const userId = decodeURIComponent(cleanPath.split("/")[4] || "");
+    return json({ data: { note: findAdminUser(userId).internalNotes } }) as T;
   }
 
   if (method === "get" && cleanPath === "/api/tickets") {
@@ -511,6 +750,90 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
     }) as T;
   }
 
+  if (method === "post" && cleanPath === "/api/comments/reply/admin") {
+    const requestBody = body && typeof body === "object" ? (body as { content?: string; commentableId?: string; parentId?: string; rating?: number }) : {};
+    const parentId = typeof requestBody.parentId === "string" && requestBody.parentId.trim() ? requestBody.parentId : `CMT-${now.getTime()}`;
+    const content = typeof requestBody.content === "string" ? requestBody.content : "";
+    const updatedComment = instructorComments.find((comment) => comment.id === parentId || comment.parentId === parentId);
+
+    if (updatedComment) {
+      const next = {
+        ...updatedComment,
+        reply: {
+          content,
+          createdAt: now.toISOString(),
+        },
+      };
+      instructorComments = instructorComments.map((comment) => (comment.id === updatedComment.id ? next : comment));
+      return json(next) as T;
+    }
+
+    return json({
+      id: parentId,
+      content,
+      createdAt: now.toISOString(),
+      rating: typeof requestBody.rating === "number" ? requestBody.rating : 5,
+      commentableType: "course",
+      commentableId: requestBody.commentableId ?? "",
+      parentId,
+      reply: {
+        content,
+        createdAt: now.toISOString(),
+      },
+    }) as T;
+  }
+
+  if (method === "patch" && /^\/api\/qas\/[^/]+\/answer$/.test(cleanPath)) {
+    const id = decodeURIComponent(cleanPath.split("/")[3] || "");
+    const requestBody = body && typeof body === "object" ? (body as { answer?: string; answerFileIds?: string[] }) : {};
+    const answer = typeof requestBody.answer === "string" ? requestBody.answer : "";
+    const answerFileIds = Array.isArray(requestBody.answerFileIds) ? requestBody.answerFileIds.filter(Boolean) : [];
+    const existing = instructorQuestions.find((question) => question.id === id);
+
+    if (existing) {
+      const updated = {
+        ...existing,
+        status: "answered" as const,
+        replies: [
+          ...existing.replies,
+          {
+            senderName: "اصغر رضایی",
+            role: "instructor" as const,
+            avatar: "",
+            text: answer,
+            createdAt: now.toISOString(),
+            ...(answerFileIds.length
+              ? {
+                  attachments: answerFileIds.map((fileId) => ({
+                    id: fileId,
+                    name: fileId,
+                    size: 0,
+                    type: "application/octet-stream",
+                  })),
+                }
+              : {}),
+          },
+        ],
+      };
+      instructorQuestions = instructorQuestions.map((question) => (question.id === id ? updated : question));
+      return json(updated) as T;
+    }
+
+    return json({
+      id,
+      status: "answered",
+      replies: [
+        {
+          senderName: "اصغر رضایی",
+          role: "instructor",
+          avatar: "",
+          text: answer,
+          createdAt: now.toISOString(),
+        },
+      ],
+    }) as T;
+  }
+
   if (method === "post" && cleanPath === "/api/tickets/my") {
     return json({
       data: {
@@ -539,6 +862,17 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
       data: {
         ...profile,
         ...(body && typeof body === "object" ? body : {}),
+        updatedAt: now.toISOString(),
+      },
+    }) as T;
+  }
+
+  if (method === "patch" && /^\/api\/admin-dashboard\/users\/[^/]+\/internal-note$/.test(cleanPath)) {
+    const userId = decodeURIComponent(cleanPath.split("/")[4] || "");
+    return json({
+      data: {
+        userId,
+        note: (body && typeof body === "object" ? (body as { note?: string }).note : "") ?? "",
         updatedAt: now.toISOString(),
       },
     }) as T;

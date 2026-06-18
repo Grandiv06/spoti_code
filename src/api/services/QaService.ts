@@ -25,58 +25,58 @@ export class QaService {
         });
     }
     /**
+     * @param page
+     * @param limit
      * @param courseId
      * @param lessonId
      * @param status
-     * @param page
-     * @param limit
      * @returns any
      * @throws ApiError
      */
     public static qaControllerFindMy(
+        page?: number,
+        limit?: number,
         courseId?: string,
         lessonId?: string,
         status?: 'questioned' | 'waiting' | 'answered',
-        page?: number,
-        limit?: number,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/qas/my',
             query: {
+                'page': page,
+                'limit': limit,
                 'courseId': courseId,
                 'lessonId': lessonId,
                 'status': status,
-                'page': page,
-                'limit': limit,
             },
         });
     }
     /**
+     * @param page
+     * @param limit
      * @param courseId
      * @param lessonId
      * @param status
-     * @param page
-     * @param limit
      * @returns any
      * @throws ApiError
      */
     public static qaControllerFindForInstructor(
+        page?: number,
+        limit?: number,
         courseId?: string,
         lessonId?: string,
         status?: 'questioned' | 'waiting' | 'answered',
-        page?: number,
-        limit?: number,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/qas/instructor',
             query: {
+                'page': page,
+                'limit': limit,
                 'courseId': courseId,
                 'lessonId': lessonId,
                 'status': status,
-                'page': page,
-                'limit': limit,
             },
         });
     }

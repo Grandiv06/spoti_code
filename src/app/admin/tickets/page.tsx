@@ -3,25 +3,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Headset, Search, MessageSquare, Clock3, CheckCircle2, AlertTriangle, Send, Paperclip } from "lucide-react";
 import { mockTickets, Ticket } from "@/app/panel/support/data";
+import { apiGetNoMock } from "@/lib/api";
+import { normalizeAdminTicketsResponse } from "@/lib/admin-tickets";
 import { cn } from "@/lib/utils";
 
-const STORAGE_KEY = "spoticode_support_tickets";
-
 export default function AdminTicketsPage() {
-  const [tickets, setTickets] = useState<Ticket[]>(() => {
-    if (typeof window === "undefined") return mockTickets;
-    const saved = window.localStorage.getItem(STORAGE_KEY);
-    if (!saved) {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(mockTickets));
-      return mockTickets;
-    }
-    try {
-      return JSON.parse(saved);
-    } catch {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(mockTickets));
-      return mockTickets;
-    }
-  });
+  const [tickets, setTickets] = useState<Ticket[]>(mockTickets);
+  const [isLoadingTickets, setIsLoadingTickets] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
@@ -29,8 +17,20 @@ export default function AdminTicketsPage() {
   const [replyText, setReplyText] = useState("");
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tickets));
-  }, [tickets]);
+    const fetchTickets = async () => {
+      try {
+        const response = await apiGetNoMock<unknown>("/api/admin-dashboard/tickets?limit=100");
+        const mapped = normalizeAdminTicketsResponse(response);
+        setTickets(mapped.length > 0 ? mapped : mockTickets);
+      } catch {
+        setTickets(mockTickets);
+      } finally {
+        setIsLoadingTickets(false);
+      }
+    };
+
+    fetchTickets();
+  }, []);
 
   const stats = useMemo(() => {
     const total = tickets.length;
@@ -190,7 +190,12 @@ export default function AdminTicketsPage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
         <div className="xl:col-span-8">
-          {selectedTicket ? (
+          {isLoadingTickets ? (
+            <div className="rounded-3xl border border-gray-100 dark:border-white/5 bg-white dark:bg-[#1c1e26] p-10 text-center text-gray-400 font-bold">
+              <div className="mx-auto mb-4 h-10 w-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+              <p className="text-xs font-black text-gray-500 dark:text-gray-400">در حال دریافت تیکت‌ها از سرور...</p>
+            </div>
+          ) : selectedTicket ? (
             <div className="rounded-[2.5rem] border border-gray-100 dark:border-white/5 bg-white dark:bg-[#1c1e26] p-8 shadow-xl shadow-gray-200/40 dark:shadow-none">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div>

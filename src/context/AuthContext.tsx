@@ -2,6 +2,9 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { OpenAPI } from "@/api";
+import { API_BASE_URL } from "@/lib/api-config";
+
+OpenAPI.BASE = API_BASE_URL;
 
 const AUTH_STORAGE_KEY = "spoticode-auth";
 const ACCESS_TOKEN_KEY = "accessToken";
