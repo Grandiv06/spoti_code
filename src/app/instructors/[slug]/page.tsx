@@ -13,7 +13,6 @@ import {
   Mail,
   MessageCircle,
   School,
-  Star,
   Users,
 } from "lucide-react";
 import {
@@ -197,28 +196,17 @@ export default async function PublicInstructorProfilePage({
         </section>
 
         <div className="mt-8 space-y-8">
-          {(instructor.fullBiography ||
-            instructor.teachingStyle ||
-            instructor.professionalBackground ||
-            instructor.skills.length > 0) && (
+          {(instructor.fullBiography || instructor.skills.length > 0) && (
             <section className="glass-panel rounded-[2.25rem] border border-white/10 bg-white/[0.03] p-6 shadow-[0_18px_60px_-34px_rgba(0,0,0,0.7)] md:p-8">
               <SectionHeader
                 title="درباره استاد و مهارت‌ها"
-                description="نگاهی کامل‌تر به مسیر حرفه‌ای، شیوه انتقال تجربه و تخصص‌های اصلی"
+                description="نگاهی کامل‌تر به مسیر حرفه‌ای و تخصص‌های اصلی"
               />
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.15fr_0.85fr]">
                 <div className="space-y-5">
                   {instructor.fullBiography && (
                     <InfoCard title="بیوگرافی کامل" text={instructor.fullBiography} />
                   )}
-                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                    {instructor.teachingStyle && (
-                      <InfoCard title="سبک تدریس" text={instructor.teachingStyle} />
-                    )}
-                    {instructor.professionalBackground && (
-                      <InfoCard title="پیشینه حرفه‌ای" text={instructor.professionalBackground} />
-                    )}
-                  </div>
                 </div>
 
                 <div className="flex h-full flex-col rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-5 md:p-6">
@@ -380,41 +368,6 @@ export default async function PublicInstructorProfilePage({
             </section>
           )}
 
-          {instructor.reviews && instructor.reviews.length > 0 && (
-            <section className="glass-panel rounded-[2.25rem] border border-white/10 bg-white/[0.03] p-6 shadow-[0_18px_60px_-34px_rgba(0,0,0,0.7)] md:p-8">
-              <SectionHeader
-                title="نظرات دانشجویان"
-                description="بازخورد هنرجویانی که تجربه آموزش با این استاد را داشته‌اند"
-              />
-              <div className="grid grid-cols-1 gap-4">
-                {instructor.reviews.map((review) => (
-                  <div
-                    key={`${review.studentName}-${review.date}`}
-                    className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-5 transition-all hover:border-primary/20 hover:bg-white/[0.05]"
-                  >
-                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                      <div>
-                        <h3 className="text-base font-black text-white">{review.studentName}</h3>
-                        <p className="mt-1 text-sm font-bold text-primary">{review.relatedCourse}</p>
-                      </div>
-                      <div className="text-right">
-                        <div className="flex items-center gap-1 text-primary">
-                          {Array.from({ length: 5 }).map((_, index) => (
-                            <Star
-                              key={index}
-                              className={`h-4 w-4 ${index < review.rating ? "fill-primary" : "text-white/15"}`}
-                            />
-                          ))}
-                        </div>
-                        <p className="mt-1 text-xs font-bold text-gray-400">{review.date}</p>
-                      </div>
-                    </div>
-                    <p className="mt-4 text-sm leading-7 text-gray-300">{review.reviewText}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
         </div>
       </main>
     </div>

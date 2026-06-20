@@ -188,6 +188,18 @@ export const PUBLIC_INSTRUCTOR_COURSES: PublicInstructorCourse[] = [
     instructorSlug: "amirreza-rezaei",
   },
   {
+    id: "amiriar-developing",
+    title: "دوره ی برنامه نویسی با امیریار",
+    image: "/images/course3.jpg",
+    level: "مقدماتی",
+    duration: "۱۵۰ ساعت",
+    studentsCount: 2,
+    rating: 4.5,
+    price: 69696969,
+    discountPrice: 69696969,
+    instructorSlug: "amir-bozorg",
+  },
+  {
     id: "typescript",
     title: "تایپ‌اسکریپت پیشرفته",
     image: "/images/course2.jpg",
@@ -430,7 +442,63 @@ export const PUBLIC_INSTRUCTORS: PublicInstructor[] = [
       phone: false,
     },
   },
+  {
+    id: "81bf99e7-3d0c-4457-9764-cd1d964a5eac",
+    slug: "amir-bozorg",
+    fullName: "استاد امیر بزرگ",
+    displayTitle: "مدرس برنامه‌نویسی و توسعه نرم‌افزار",
+    mainExpertise: "برنامه‌نویسی، الگوریتم، پروژه‌محور",
+    shortBio: "من امیرم، برنامه‌نویسم و سال‌ها تجربه تدریس و منتورینگ در مسیر ورود به بازار کار دارم.",
+    fullBiography:
+      "استاد امیر بزرگ بیش از یک دهه در آموزش برنامه‌نویسی فعالیت دارد. تمرکز او بر آموزش عملی، حل مسئله و ساخت پروژه‌های واقعی است تا هنرجویان بتوانند با اعتمادبه‌نفس وارد تیم‌های توسعه شوند.",
+    teachingStyle:
+      "سبک تدریس پروژه‌محور و گام‌به‌گام است؛ هر مفهوم با مثال واقعی و تمرین عملی جمع‌بندی می‌شود.",
+    professionalBackground:
+      "سابقه همکاری با تیم‌های استارتاپی و آموزشگاه‌های برنامه‌نویسی در حوزه وب و مبانی نرم‌افزار.",
+    verified: true,
+    avatar: "/images/inst1.jpg",
+    coverImage: "/images/hero_image.jpg",
+    yearsOfExperience: 8,
+    skills: ["JavaScript", "Python", "Algorithms", "Data Structures", "Git", "Problem Solving"],
+    experiences: [
+      {
+        type: "teaching",
+        title: "مدرس برنامه‌نویسی",
+        organization: "اسپاتی‌کد",
+        startDate: "۱۴۰۰",
+        endDate: "اکنون",
+        description: "طراحی و تدریس دوره‌های پروژه‌محور برای ورود هنرجویان به بازار کار.",
+      },
+      {
+        type: "work",
+        title: "Senior Software Developer",
+        organization: "استارتاپ فناوری",
+        startDate: "۱۳۹۶",
+        endDate: "۱۴۰۰",
+        description: "توسعه سامانه‌های وب و منتورینگ تیم‌های جوان.",
+      },
+    ],
+    reviews: [
+      {
+        studentName: "سارا احمدی",
+        rating: 5,
+        reviewText: "توضیحات استاد امیر بسیار روان و کاربردی بود. پروژه‌های دوره واقعاً کمک کرد.",
+        relatedCourse: "دوره ی برنامه نویسی با امیریار",
+        date: "خرداد ۱۴۰۵",
+      },
+    ],
+    socials: {
+      telegram: "https://t.me/amir_bozorg_dev",
+      github: "https://github.com/amir-bozorg",
+    },
+    publicVisibility: {
+      email: false,
+      phone: false,
+    },
+  },
 ];
+
+export const MOCK_API_TEACHER_ID = "81bf99e7-3d0c-4457-9764-cd1d964a5eac";
 
 function normalizeName(value: string) {
   return value.trim().replace(/\s+/g, " ");
