@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { usePanelSidebar } from "@/context/PanelSidebarContext";
-import { useSocial } from "@/context/SocialContext";
+import { fetchMyProfile } from "@/lib/panel-profile";
 import { cn } from "@/lib/utils";
 import { User, LogOut, X, ChevronRight, ChevronLeft } from "lucide-react";
 
@@ -27,6 +27,36 @@ export default function PanelSidebar() {
   const { user, logout } = useAuth();
   const { isMobileOpen, setMobileOpen, isCollapsed, setIsCollapsed, toggleCollapsed } = usePanelSidebar();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [profileName, setProfileName] = useState("");
+
+  useEffect(() => {
+    if (!user) {
+      setProfileName("");
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadProfileName = async () => {
+      try {
+        const profile = await fetchMyProfile();
+        if (!cancelled && profile.displayName?.trim()) {
+          setProfileName(profile.displayName.trim());
+        }
+      } catch {
+        if (!cancelled) setProfileName("");
+      }
+    };
+
+    void loadProfileName();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  const sidebarDisplayName = profileName || user?.displayName || "کاربر مهمان";
+  const sidebarPhone = user?.phone?.trim() || "";
 
   useEffect(() => {
     try {
@@ -120,10 +150,13 @@ export default function PanelSidebar() {
 
           {/* User Profile Card */}
           <div className={cn("mb-4 transition-all duration-300 flex justify-center", isCollapsed ? "px-0" : "px-4")}>
-            <div className={cn(
-              "rounded-2xl bg-white dark:bg-white/10 border border-gray-200 dark:border-white/5 transition-all duration-300 flex items-center justify-center overflow-hidden",
-              isCollapsed ? "w-14 h-14 p-0" : "w-full p-4"
-            )}>
+            <div
+              className={cn(
+                "rounded-2xl bg-white dark:bg-white/10 border border-gray-200 dark:border-white/5 transition-all duration-300 flex items-center justify-center overflow-hidden",
+                isCollapsed ? "w-14 h-14 p-0" : "w-full p-4"
+              )}
+              title={isCollapsed ? `${sidebarDisplayName}${sidebarPhone ? ` • ${sidebarPhone}` : ""}` : undefined}
+            >
               <div className={cn(
                 "flex items-center w-full",
                 isCollapsed ? "justify-center" : "flex-row-reverse gap-3"
@@ -139,13 +172,15 @@ export default function PanelSidebar() {
                   )}
                 </div>
                 {!isCollapsed && (
-                  <div className="flex flex-col items-end min-w-0 flex-1 overflow-hidden transition-all duration-300 opacity-100">
-                    <p className="text-base font-bold text-gray-900 dark:text-white truncate w-full text-right">
-                      {user?.displayName || "کاربر مهمان"}
+                  <div className="flex flex-col items-end min-w-0 flex-1 overflow-hidden transition-all duration-300 opacity-100 gap-0.5">
+                    <p className="text-base font-bold text-gray-900 dark:text-white truncate w-full text-right leading-snug">
+                      {sidebarDisplayName}
                     </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 truncate w-full text-right">
-                      {user?.phone || "۰۹۱۲۳۴۵۶۷۸۹"}
-                    </p>
+                    {sidebarPhone && (
+                      <p dir="ltr" className="text-sm text-gray-600 dark:text-gray-400 truncate w-full text-right leading-snug">
+                        {sidebarPhone}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
