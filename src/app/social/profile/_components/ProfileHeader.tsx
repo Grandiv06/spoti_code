@@ -11,6 +11,7 @@ import {
   Briefcase,
   Sparkles,
   Edit3,
+  Send,
 } from "lucide-react";
 
 interface ProfileHeaderProps {
@@ -26,6 +27,7 @@ interface ProfileHeaderProps {
     socials: {
       github?: string;
       linkedin?: string;
+      telegram?: string;
       website?: string;
     };
   };
@@ -120,6 +122,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isOwnProfile }) => 
                       target="_blank"
                       rel="noopener noreferrer"
                       className="p-2 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all hover:scale-110"
+                      aria-label="گیت‌هاب"
                     >
                       <Github className="w-6 h-6" />
                     </a>
@@ -130,8 +133,20 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isOwnProfile }) => 
                       target="_blank"
                       rel="noopener noreferrer"
                       className="p-2 text-gray-400 hover:text-[#0077b5] transition-all hover:scale-110"
+                      aria-label="لینکدین"
                     >
                       <Linkedin className="w-6 h-6" />
+                    </a>
+                  )}
+                  {user.socials.telegram && (
+                    <a
+                      href={user.socials.telegram}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 text-gray-400 hover:text-sky-500 transition-all hover:scale-110"
+                      aria-label="تلگرام"
+                    >
+                      <Send className="w-6 h-6" />
                     </a>
                   )}
                   {user.socials.website && (
@@ -140,6 +155,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isOwnProfile }) => 
                       target="_blank"
                       rel="noopener noreferrer"
                       className="p-2 text-gray-400 hover:text-green-500 transition-all hover:scale-110"
+                      aria-label="وب‌سایت"
                     >
                       <Globe className="w-6 h-6" />
                     </a>

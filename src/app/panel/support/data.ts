@@ -133,3 +133,87 @@ export const mockTickets: Ticket[] = [
     ],
   },
 ];
+
+const DEFAULT_MOCK_MESSAGES: Message[] = [
+  {
+    id: "mock-user-1",
+    sender: "user",
+    senderName: "کاربر اسپاتی‌کد",
+    text: "سلام، این تیکت را برای پیگیری درخواستم ثبت کرده‌ام. لطفاً بررسی کنید.",
+    timestamp: new Date().toLocaleString("fa-IR"),
+  },
+  {
+    id: "mock-support-1",
+    sender: "support",
+    senderName: "پشتیبانی اسپاتی‌کد",
+    text: "سلام وقت بخیر. تیکت شما دریافت شد و به زودی توسط تیم پشتیبانی بررسی می‌شود.",
+    timestamp: new Date().toLocaleString("fa-IR"),
+  },
+];
+
+export function formatTicketDate(value: unknown): string {
+  if (typeof value !== "string" || !value.trim()) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("fa-IR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+export function buildMockTicketDetails(ticketId: string, partial?: Partial<Ticket>): Ticket {
+  const createdAt = partial?.createdAt ?? formatTicketDate(new Date().toISOString());
+  const updatedAt = partial?.updatedAt ?? createdAt;
+
+  return {
+    id: ticketId,
+    title: partial?.title ?? "تیکت پشتیبانی",
+    status: partial?.status ?? "open",
+    priority: partial?.priority ?? "normal",
+    category: partial?.category ?? "عمومی",
+    createdAt,
+    updatedAt,
+    messages:
+      partial?.messages && partial.messages.length > 0
+        ? partial.messages
+        : DEFAULT_MOCK_MESSAGES.map((message, index) => ({
+            ...message,
+            id: `${ticketId}-mock-${index + 1}`,
+          })),
+    attachments: partial?.attachments ?? [],
+    timeline: partial?.timeline ?? [
+      { id: "t1", title: "تیکت ثبت شد", time: createdAt, icon: "add", status: "completed" },
+      { id: "t2", title: "در انتظار بررسی پشتیبانی", time: updatedAt, icon: "visibility", status: "pending" },
+    ],
+  };
+}
+
+export function readCachedTicket(ticketId: string): Ticket | null {
+  if (typeof window === "undefined" || !ticketId) return null;
+  try {
+    const raw = sessionStorage.getItem(`support-ticket-${ticketId}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<Ticket>;
+    return buildMockTicketDetails(ticketId, parsed);
+  } catch {
+    return null;
+  }
+}
+
+export function cacheTicket(ticket: Ticket) {
+  if (typeof window === "undefined" || !ticket.id) return;
+  sessionStorage.setItem(`support-ticket-${ticket.id}`, JSON.stringify(ticket));
+}
+
+export function resolveTicketById(ticketId: string): Ticket {
+  const fromMock = mockTickets.find((item) => item.id === ticketId);
+  if (fromMock) return fromMock;
+
+  const cached = readCachedTicket(ticketId);
+  if (cached) return cached;
+
+  return buildMockTicketDetails(ticketId);
+}

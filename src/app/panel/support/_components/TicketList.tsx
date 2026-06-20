@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { 
   Search, 
   ChevronLeft, 
@@ -12,8 +13,8 @@ import {
   Inbox
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
 import { useTicketsQuery } from "@/hooks/api/useTicketsQuery";
+import { TicketListSkeleton } from "./TicketSupportSkeleton";
 
 const tabs = [
   { id: "all", label: "همه تیکت‌ها" },
@@ -36,17 +37,114 @@ const priorityMap = {
   urgent: { label: "فوری", class: "text-red-500 bg-red-500/5" },
 };
 
+const PAGE_SIZE = 3;
+
+function TicketPagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+}: {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+
+  const pages = Array.from({ length: totalPages }, (_, index) => index + 1);
+  const canGoPrev = currentPage > 1;
+  const canGoNext = currentPage < totalPages;
+
+  return (
+    <div className="flex justify-center pt-4">
+      <div className="flex items-center gap-2 bg-white dark:bg-[#1c1e26] p-2 rounded-2xl border border-gray-100 dark:border-white/5">
+        <button
+          type="button"
+          aria-label="صفحه قبل"
+          disabled={!canGoPrev}
+          onClick={() => onPageChange(currentPage - 1)}
+          className={cn(
+            "w-10 h-10 flex items-center justify-center rounded-xl transition-all",
+            canGoPrev
+              ? "bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 cursor-pointer"
+              : "bg-gray-50 dark:bg-white/5 text-gray-400 cursor-not-allowed"
+          )}
+        >
+          <ChevronLeft className="w-5 h-5 rotate-180" />
+        </button>
+
+        {pages.map((page) => (
+          <button
+            key={page}
+            type="button"
+            aria-label={`صفحه ${page.toLocaleString("fa-IR")}`}
+            aria-current={currentPage === page ? "page" : undefined}
+            onClick={() => onPageChange(page)}
+            className={cn(
+              "w-10 h-10 flex items-center justify-center rounded-xl font-bold transition-all cursor-pointer",
+              currentPage === page
+                ? "bg-primary text-white shadow-lg shadow-primary/20"
+                : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5"
+            )}
+          >
+            {page.toLocaleString("fa-IR")}
+          </button>
+        ))}
+
+        <button
+          type="button"
+          aria-label="صفحه بعد"
+          disabled={!canGoNext}
+          onClick={() => onPageChange(currentPage + 1)}
+          className={cn(
+            "w-10 h-10 flex items-center justify-center rounded-xl transition-all",
+            canGoNext
+              ? "bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 cursor-pointer"
+              : "bg-gray-50 dark:bg-white/5 text-gray-400 cursor-not-allowed"
+          )}
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function TicketList({ onNewTicket }: { onNewTicket: () => void }) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const { data: tickets = [] } = useTicketsQuery();
+  const [currentPage, setCurrentPage] = useState(1);
+  const { data: tickets = [], isPending } = useTicketsQuery();
 
-  const filteredTickets = tickets.filter(ticket => {
-    const matchesTab = activeTab === "all" || ticket.status === activeTab;
-    const matchesSearch = ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         ticket.id.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesTab && matchesSearch;
-  });
+  const filteredTickets = useMemo(
+    () =>
+      tickets.filter((ticket) => {
+        const matchesTab = activeTab === "all" || ticket.status === activeTab;
+        const matchesSearch =
+          ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          ticket.id.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesTab && matchesSearch;
+      }),
+    [activeTab, searchQuery, tickets]
+  );
+
+  const totalPages = Math.max(1, Math.ceil(filteredTickets.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+
+  const paginatedTickets = useMemo(() => {
+    const start = (safePage - 1) * PAGE_SIZE;
+    return filteredTickets.slice(start, start + PAGE_SIZE);
+  }, [filteredTickets, safePage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, searchQuery]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   return (
     <div className="space-y-8">
@@ -82,10 +180,13 @@ export default function TicketList({ onNewTicket }: { onNewTicket: () => void })
       </div>
 
       {/* List Container */}
+      {isPending ? (
+        <TicketListSkeleton rows={3} />
+      ) : (
       <div className="bg-white dark:bg-[#1c1e26] rounded-[2.5rem] border border-gray-100 dark:border-white/5 shadow-xl shadow-gray-200/40 dark:shadow-none overflow-hidden">
         {filteredTickets.length > 0 ? (
           <div className="divide-y divide-gray-100 dark:divide-white/5">
-            {filteredTickets.map((ticket) => (
+            {paginatedTickets.map((ticket) => (
               <div
                 key={ticket.id}
                 className="group flex flex-col lg:flex-row lg:items-center justify-between p-8 hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-all cursor-pointer relative"
@@ -131,8 +232,11 @@ export default function TicketList({ onNewTicket }: { onNewTicket: () => void })
 
                 <div className="mt-8 lg:mt-0 flex items-center gap-4 lg:pr-8">
                    <button 
-                    onClick={() => window.location.assign(`/panel/support/${ticket.id}`)}
-                    className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm font-black text-gray-700 dark:text-gray-200 hover:bg-primary hover:text-white hover:border-primary transition-all active:scale-95 shadow-sm"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      router.push(`/panel/support/details?ticketId=${encodeURIComponent(ticket.id)}`);
+                    }}
+                    className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm font-black text-gray-700 dark:text-gray-200 hover:bg-primary hover:text-white hover:border-primary transition-all active:scale-95 shadow-sm cursor-pointer"
                   >
                     <span>مشاهده جزئیات</span>
                     <ArrowUpRight className="w-4 h-4" />
@@ -151,21 +255,15 @@ export default function TicketList({ onNewTicket }: { onNewTicket: () => void })
           <SupportEmptyState onNewTicket={onNewTicket} />
         )}
       </div>
+      )}
       
       {/* Pagination Placeholder */}
-      {filteredTickets.length > 0 && (
-        <div className="flex justify-center pt-4">
-           <div className="flex items-center gap-2 bg-white dark:bg-[#1c1e26] p-2 rounded-2xl border border-gray-100 dark:border-white/5">
-              <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 dark:bg-white/5 text-gray-400 cursor-not-allowed">
-                <ChevronLeft className="w-5 h-5 rotate-180" />
-              </button>
-              <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-primary text-white font-bold">۱</button>
-              <button className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-600 dark:text-gray-400 font-bold hover:bg-gray-50 dark:hover:bg-white/5 transition-all">۲</button>
-              <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 transition-all">
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-           </div>
-        </div>
+      {!isPending && filteredTickets.length > 0 && (
+        <TicketPagination
+          currentPage={safePage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
       )}
     </div>
   );

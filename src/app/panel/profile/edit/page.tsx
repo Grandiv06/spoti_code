@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useSocial } from "@/context/SocialContext";
 import { useProfileSettings } from "@/context/ProfileSettingsContext";
-import { apiRequest } from "@/lib/api";
+import { fetchMyProfile, updateMyProfile, validateProfileSocials, type ProfileSocialField } from "@/lib/panel-profile";
 import { cn } from "@/lib/utils";
 import { SocialButton } from "@/components/social/SocialButton";
 import { ArrowRight, User, Camera, X, Plus, Check, ChevronDown } from "lucide-react";
@@ -42,7 +42,9 @@ function ProfileEditContent() {
   const { settings, updateSettings } = useProfileSettings();
   const [skillInput, setSkillInput] = useState("");
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saveError, setSaveError] = useState("");
+  const [socialErrors, setSocialErrors] = useState<Partial<Record<ProfileSocialField, string>>>({});
   const [isMbtiOpen, setIsMbtiOpen] = useState(false);
   const mbtiRef = useRef<HTMLDivElement>(null);
 
@@ -53,10 +55,32 @@ function ProfileEditContent() {
   }, [isAuthenticated, router]);
 
   useEffect(() => {
-    if (authUser?.displayName && !settings.displayName) {
-      updateSettings({ displayName: authUser.displayName });
-    }
-  }, [authUser?.displayName]);
+    if (!isAuthenticated) return;
+
+    let cancelled = false;
+
+    const loadProfile = async () => {
+      setLoading(true);
+      try {
+        const profile = await fetchMyProfile();
+        if (!cancelled && Object.keys(profile).length > 0) {
+          updateSettings(profile);
+        }
+      } catch {
+        if (!cancelled && authUser?.displayName && !settings.displayName) {
+          updateSettings({ displayName: authUser.displayName });
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    void loadProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, authUser?.displayName]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -101,27 +125,20 @@ function ProfileEditContent() {
 
   const handleSaveProfile = async () => {
     setSaveError("");
+    const socialValidationErrors = validateProfileSocials(settings);
+    if (Object.keys(socialValidationErrors).length > 0) {
+      setSocialErrors(socialValidationErrors);
+      setSaveError("لطفاً لینک‌های شبکه‌های اجتماعی را اصلاح کنید.");
+      return;
+    }
+
+    setSocialErrors({});
     setSaving(true);
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-      await apiRequest(
-        "patch",
-        "/api/users/profile",
-        {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-          body: {
-            displayName: settings.displayName,
-            bio: settings.bio,
-            mbti: settings.mbti,
-            skills: settings.skills,
-            githubUrl: settings.githubUrl,
-            linkedinUrl: settings.linkedinUrl,
-            telegramUrl: settings.telegramUrl,
-            websiteUrl: settings.websiteUrl,
-            avatarImage: settings.avatarImage,
-          },
-        }
-      );
+      const savedProfile = await updateMyProfile(settings);
+      if (Object.keys(savedProfile).length > 0) {
+        updateSettings(savedProfile);
+      }
       router.push("/panel/profile");
     } catch {
       setSaveError("ذخیره تغییرات انجام نشد. لطفاً دوباره تلاش کنید.");
@@ -129,6 +146,32 @@ function ProfileEditContent() {
       setSaving(false);
     }
   };
+
+  const updateSocialField = (field: ProfileSocialField, value: string) => {
+    setSocialErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+    updateSettings({ [field]: value });
+  };
+
+  const socialInputClass = (field: ProfileSocialField) =>
+    cn(
+      "w-full px-4 py-3 rounded-xl border bg-white dark:bg-[#14161c] text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all",
+      socialErrors[field]
+        ? "border-red-400 dark:border-red-500/50 focus:border-red-400 focus:ring-red-500/20"
+        : "border-gray-200 dark:border-white/[0.08]"
+    );
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto py-12 flex justify-center">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 pb-12">
@@ -262,10 +305,13 @@ function ProfileEditContent() {
                     id="githubUrl"
                     type="url"
                     value={settings.githubUrl}
-                    onChange={(e) => updateSettings({ githubUrl: e.target.value })}
+                    onChange={(e) => updateSocialField("githubUrl", e.target.value)}
                     placeholder="https://github.com/username"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#14161c] text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                    className={socialInputClass("githubUrl")}
                   />
+                  {socialErrors.githubUrl && (
+                    <p className="mt-2 text-xs font-bold text-red-500">{socialErrors.githubUrl}</p>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="linkedinUrl" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">لینک لینکدین</label>
@@ -273,10 +319,13 @@ function ProfileEditContent() {
                     id="linkedinUrl"
                     type="url"
                     value={settings.linkedinUrl}
-                    onChange={(e) => updateSettings({ linkedinUrl: e.target.value })}
+                    onChange={(e) => updateSocialField("linkedinUrl", e.target.value)}
                     placeholder="https://linkedin.com/in/username"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#14161c] text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                    className={socialInputClass("linkedinUrl")}
                   />
+                  {socialErrors.linkedinUrl && (
+                    <p className="mt-2 text-xs font-bold text-red-500">{socialErrors.linkedinUrl}</p>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="telegramUrl" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">لینک تلگرام</label>
@@ -284,10 +333,13 @@ function ProfileEditContent() {
                     id="telegramUrl"
                     type="url"
                     value={settings.telegramUrl}
-                    onChange={(e) => updateSettings({ telegramUrl: e.target.value })}
+                    onChange={(e) => updateSocialField("telegramUrl", e.target.value)}
                     placeholder="https://t.me/username"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#14161c] text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                    className={socialInputClass("telegramUrl")}
                   />
+                  {socialErrors.telegramUrl && (
+                    <p className="mt-2 text-xs font-bold text-red-500">{socialErrors.telegramUrl}</p>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="websiteUrl" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">وب‌سایت شخصی</label>
@@ -295,10 +347,13 @@ function ProfileEditContent() {
                     id="websiteUrl"
                     type="url"
                     value={settings.websiteUrl}
-                    onChange={(e) => updateSettings({ websiteUrl: e.target.value })}
+                    onChange={(e) => updateSocialField("websiteUrl", e.target.value)}
                     placeholder="https://example.com"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#14161c] text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                    className={socialInputClass("websiteUrl")}
                   />
+                  {socialErrors.websiteUrl && (
+                    <p className="mt-2 text-xs font-bold text-red-500">{socialErrors.websiteUrl}</p>
+                  )}
                 </div>
               </div>
             </div>

@@ -3,9 +3,15 @@
 import React from "react";
 import { MessageSquare, Clock, CheckCircle2, Inbox, LucideIcon } from "lucide-react";
 import { useTicketsQuery } from "@/hooks/api/useTicketsQuery";
+import { TicketStatsSkeleton } from "./TicketSupportSkeleton";
 
 export default function TicketStats() {
-  const { data: tickets = [] } = useTicketsQuery();
+  const { data: tickets = [], isPending } = useTicketsQuery();
+
+  if (isPending) {
+    return <TicketStatsSkeleton />;
+  }
+
   const stats = [
     { label: "کل تیکت‌ها", value: tickets.length.toLocaleString("fa-IR"), icon: Inbox, color: "blue" },
     { label: "تیکت‌های باز", value: tickets.filter((t) => t.status === "open").length.toLocaleString("fa-IR"), icon: MessageSquare, color: "primary" },

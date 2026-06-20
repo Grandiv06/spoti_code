@@ -4,7 +4,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { useSocial } from "@/context/SocialContext";
 import { useProfileSettings } from "@/context/ProfileSettingsContext";
-import { apiGet } from "@/lib/api";
+import { fetchMyProfile, getProfileSocialLinks } from "@/lib/panel-profile";
 import ProfileHeader from "../../social/profile/_components/ProfileHeader";
 import ProfileSidebar from "../../social/profile/_components/ProfileSidebar";
 import ProjectsTabs from "../../social/profile/_components/ProjectsTabs";
@@ -15,22 +15,18 @@ export default function PanelProfilePage() {
   const router = useRouter();
   const { currentUser } = useSocial();
   const { settings } = useProfileSettings();
-  const [apiProfile, setApiProfile] = React.useState<Record<string, unknown> | null>(null);
+  const [apiProfile, setApiProfile] = React.useState<Partial<typeof settings> | null>(null);
 
   React.useEffect(() => {
-    const fetchProfile = async () => {
+    const loadProfile = async () => {
       try {
-        const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-        const result = await apiGet<{ data?: Record<string, unknown> }>(
-          "/api/users/profile",
-          token ? { Authorization: `Bearer ${token}` } : undefined
-        );
-        setApiProfile(result?.data ?? null);
+        const result = await fetchMyProfile();
+        setApiProfile(Object.keys(result).length > 0 ? result : null);
       } catch {
         setApiProfile(null);
       }
     };
-    fetchProfile();
+    void loadProfile();
   }, []);
 
   if (!currentUser) {
@@ -45,27 +41,16 @@ export default function PanelProfilePage() {
   }
 
   // Combine currentUser data with settings
-  const userProfileData = {
-    displayName: settings.displayName || String(apiProfile?.fullName ?? currentUser.displayName),
-    username: String(apiProfile?.userName ?? currentUser.username),
-    description: settings.bio || String(apiProfile?.bio ?? currentUser.bio ?? "عاشق یادگیری تکنولوژی‌های وب و ساخت رابط‌های کاربری مدرن."),
-    bannerUrl: settings.bannerImage || String(apiProfile?.bannerImage ?? ""),
-    avatarUrl: settings.avatarImage || String(apiProfile?.avatar ?? currentUser.avatarUrl),
-    role: String(apiProfile?.roleLabel ?? "Frontend Learner"),
-    mbti: settings.mbti || "INTJ",
-    joinDate: String(apiProfile?.joinDate ?? "۱۴۰۲"),
-    socials: {
-      github: settings.githubUrl || `https://github.com/${currentUser.username}`,
-      linkedin: settings.linkedinUrl || "",
-      website: settings.websiteUrl || "",
-    },
-    stats: {
-      daysActive: 124,
-      reputation: 850,
-      followers: currentUser.followersCount || 0,
-      following: currentUser.followingCount || 0,
-    },
-    skills: settings.skills || [
+  const mergedProfile = {
+    displayName: settings.displayName || apiProfile?.displayName || currentUser.displayName,
+    bio: settings.bio || apiProfile?.bio || currentUser.bio || "عاشق یادگیری تکنولوژی‌های وب و ساخت رابط‌های کاربری مدرن.",
+    avatarImage: settings.avatarImage || apiProfile?.avatarImage || currentUser.avatarUrl,
+    mbti: settings.mbti || apiProfile?.mbti || "INTJ",
+    githubUrl: settings.githubUrl || apiProfile?.githubUrl || "",
+    linkedinUrl: settings.linkedinUrl || apiProfile?.linkedinUrl || "",
+    telegramUrl: settings.telegramUrl || apiProfile?.telegramUrl || "",
+    websiteUrl: settings.websiteUrl || apiProfile?.websiteUrl || "",
+    skills: settings.skills.length > 0 ? settings.skills : apiProfile?.skills || [
       "JavaScript",
       "React",
       "Next.js",
@@ -74,6 +59,27 @@ export default function PanelProfilePage() {
       "Git",
       "Figma",
     ],
+  };
+
+  const socials = getProfileSocialLinks(mergedProfile);
+
+  const userProfileData = {
+    displayName: mergedProfile.displayName,
+    username: currentUser.username,
+    description: mergedProfile.bio,
+    bannerUrl: settings.bannerImage || "",
+    avatarUrl: mergedProfile.avatarImage,
+    role: "Frontend Learner",
+    mbti: mergedProfile.mbti,
+    joinDate: "۱۴۰۲",
+    socials,
+    stats: {
+      daysActive: 124,
+      reputation: 850,
+      followers: currentUser.followersCount || 0,
+      following: currentUser.followingCount || 0,
+    },
+    skills: mergedProfile.skills,
   };
 
   return (

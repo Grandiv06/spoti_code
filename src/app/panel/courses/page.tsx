@@ -1,10 +1,13 @@
- "use client";
+"use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiGetNoMock } from "@/lib/api";
+import PanelCoursesSkeleton from "./PanelCoursesSkeleton";
 
 type PanelCourse = {
+  enrollmentId: string;
   id: string;
   title: string;
   progress: number;
@@ -17,10 +20,13 @@ type MyCoursesResponse = {
 };
 
 export default function PanelCourses() {
+  const router = useRouter();
   const [courses, setCourses] = useState<PanelCourse[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchCourses = async () => {
+      setLoading(true);
       try {
         const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
         const result = await apiGetNoMock<MyCoursesResponse>(
@@ -36,19 +42,47 @@ export default function PanelCourses() {
 
         const mapped = rawList.map((item, index) => {
           const row = (item ?? {}) as Record<string, unknown>;
-          const id = String(row.id ?? row.courseId ?? index + 1);
-          const title = String(row.title ?? row.name ?? "دوره بدون عنوان");
-          const progressRaw = Number(row.progress ?? row.progressPercent ?? row.completionPercent ?? 0);
+          const course =
+            typeof row.course === "object" && row.course
+              ? (row.course as Record<string, unknown>)
+              : row;
+          const progressRecord =
+            typeof row.progress === "object" && row.progress
+              ? (row.progress as Record<string, unknown>)
+              : null;
+          const thumbnailFile =
+            typeof course.thumbnailFile === "object" && course.thumbnailFile
+              ? (course.thumbnailFile as Record<string, unknown>)
+              : null;
+          const teacher =
+            typeof course.teacher === "object" && course.teacher
+              ? (course.teacher as Record<string, unknown>)
+              : null;
+
+          const id = String(course.id ?? row.courseId ?? index + 1);
+          const enrollmentId = String(row.id ?? `${id}-${index}`);
+          const title = String(course.title ?? course.name ?? row.title ?? row.name ?? "دوره بدون عنوان");
+          const progressRaw = Number(
+            progressRecord?.percentage ??
+              row.progressPercent ??
+              row.completionPercent ??
+              (typeof row.progress === "number" ? row.progress : 0)
+          );
           const progress = Number.isFinite(progressRaw) ? Math.max(0, Math.min(100, progressRaw)) : 0;
-          const image = typeof row.image === "string"
-            ? row.image
-            : typeof row.cover === "string"
-              ? row.cover
-              : typeof row.thumbnail === "string"
-                ? row.thumbnail
-                : undefined;
+          const image =
+            typeof thumbnailFile?.url === "string"
+              ? thumbnailFile.url
+              : typeof course.thumbnail === "string"
+                ? course.thumbnail
+                : typeof course.cover === "string"
+                  ? course.cover
+                  : typeof row.image === "string"
+                    ? row.image
+                    : undefined;
           const instructor = String(
-            row.instructorName ??
+            teacher?.fullName ??
+              teacher?.name ??
+              row.instructorName ??
               (typeof row.instructor === "object" && row.instructor
                 ? (row.instructor as Record<string, unknown>).fullName ??
                   (row.instructor as Record<string, unknown>).name
@@ -56,17 +90,23 @@ export default function PanelCourses() {
               "نامشخص"
           );
 
-          return { id, title, progress, image, instructor };
+          return { enrollmentId, id, title, progress, image, instructor };
         });
 
         setCourses(mapped);
       } catch {
         setCourses([]);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchCourses();
   }, []);
+
+  if (loading) {
+    return <PanelCoursesSkeleton />;
+  }
 
   return (
     <div className="space-y-6">
@@ -79,8 +119,17 @@ export default function PanelCourses() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {courses.map((course) => (
           <div
-            key={course.id}
-            className="bg-white dark:bg-[#1c1e26] rounded-3xl p-5 border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow group"
+            key={course.enrollmentId}
+            role="button"
+            tabIndex={0}
+            onClick={() => router.push(`/panel/courses/learn?courseId=${encodeURIComponent(course.id)}`)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                router.push(`/panel/courses/learn?courseId=${encodeURIComponent(course.id)}`);
+              }
+            }}
+            className="bg-white dark:bg-[#1c1e26] rounded-3xl p-5 border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow group cursor-pointer"
           >
             <div className="aspect-video rounded-2xl bg-gray-100 dark:bg-gray-800 relative overflow-hidden mb-4">
               {course.image ? (
@@ -113,8 +162,12 @@ export default function PanelCourses() {
               </div>
             </div>
             
-            <Link href={`/panel/courses/${course.id}/learn`} className="block w-full mt-6 py-3 rounded-xl bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white font-bold hover:bg-primary hover:text-white transition-all cursor-pointer text-center">
-                ادامه یادگیری
+            <Link
+              href={`/panel/courses/learn?courseId=${encodeURIComponent(course.id)}`}
+              onClick={(event) => event.stopPropagation()}
+              className="block w-full mt-6 py-3 rounded-xl bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white font-bold hover:bg-primary hover:text-white transition-all cursor-pointer text-center"
+            >
+              ادامه یادگیری
             </Link>
           </div>
         ))}

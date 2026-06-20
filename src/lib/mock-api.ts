@@ -512,6 +512,21 @@ let instructorQuestions = [
   },
 ];
 
+let studentQuestions = [
+  {
+    id: "QST-STU-001",
+    lessonId: "l1",
+    courseId: "react",
+    question: "خطای Hydration در useState\n\nسلام استاد. مقدار اولیه useState را از localStorage می‌خوانم و Hydration Mismatch می‌گیرم.\n\n--- خطا / لاگ ---\nHydration failed because the initial UI does not match what was rendered on the server.",
+    status: "waiting",
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
+    studentName: "کاربر تست",
+    courseTitle: "مسترکلاس ری‌اکت",
+    lessonTitle: "معرفی دوره و پیش‌نیازها",
+    replies: [],
+  },
+];
+
 const surveys = [
   {
     id: 1,
@@ -549,6 +564,19 @@ const profile = {
   joinDate: "۱۴۰۲",
 };
 
+const myProfile = {
+  occupation: profile.displayName,
+  about: profile.bio,
+  location: profile.location,
+  githubLink: "https://github.com/spoticode_user",
+  linkedinLink: "",
+  mbtiType: "INTJ",
+  personalWebsiteLink: "",
+  contacts: "",
+  skills: "JavaScript, React, Next.js, TypeScript, Tailwind CSS, Git, Figma",
+  image: profile.avatar,
+};
+
 function json<T>(data: T) {
   return structuredClone(data);
 }
@@ -567,6 +595,19 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
 
   if (method === "get" && cleanPath.startsWith("/api/courses/public/")) {
     return json({ data: findCourse(cleanPath) }) as T;
+  }
+
+  if (method === "post" && /^\/api\/courses\/lessons\/[^/]+\/complete$/.test(cleanPath)) {
+    const lessonId = decodeURIComponent(cleanPath.split("/")[4] || "");
+    return json({
+      data: {
+        id: lessonId,
+        isCompleted: true,
+        completed: true,
+        isWatched: true,
+        watched: true,
+      },
+    }) as T;
   }
 
   if (method === "get" && cleanPath === "/api/surveys") {
@@ -602,6 +643,27 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
 
   if (method === "get" && cleanPath === "/api/instructor-dashboard/my-qas") {
     return json({ data: instructorQuestions }) as T;
+  }
+
+  if (method === "get" && cleanPath === "/api/qas/my") {
+    return json({ data: studentQuestions }) as T;
+  }
+
+  if (method === "post" && cleanPath === "/api/qas") {
+    const requestBody = body && typeof body === "object" ? (body as { lessonId?: string; question?: string }) : {};
+    const created = {
+      id: `QST-${now.getTime()}`,
+      lessonId: requestBody.lessonId ?? "",
+      question: requestBody.question ?? "",
+      status: "questioned",
+      createdAt: now.toISOString(),
+      studentName: "کاربر تست",
+      courseTitle: "دوره تست",
+      lessonTitle: "درس فعال",
+      replies: [],
+    };
+    studentQuestions = [created, ...studentQuestions];
+    return json({ data: created }) as T;
   }
 
   if (method === "get" && cleanPath === "/api/dashboard/my-transactions") {
@@ -674,6 +736,12 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
     return json(tickets) as T;
   }
 
+  if (method === "get" && /^\/api\/tickets\/my\/[^/]+$/.test(cleanPath)) {
+    const id = decodeURIComponent(cleanPath.split("/").pop() || "");
+    const ticket = tickets.find((item) => item.id === id) ?? tickets[0];
+    return json({ data: ticket }) as T;
+  }
+
   if (method === "get" && /^\/api\/tickets\/[^/]+$/.test(cleanPath)) {
     const id = decodeURIComponent(cleanPath.split("/").pop() || "");
     return json(tickets.find((ticket) => ticket.id === id) ?? tickets[0]) as T;
@@ -687,6 +755,10 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
 
   if (method === "get" && cleanPath === "/api/users/profile") {
     return json({ data: profile }) as T;
+  }
+
+  if (method === "get" && cleanPath === "/api/profiles/me") {
+    return json({ data: myProfile }) as T;
   }
 
   if (method === "get" && cleanPath === "/api/instructor-dashboard/overview") {
@@ -865,6 +937,14 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
         updatedAt: now.toISOString(),
       },
     }) as T;
+  }
+
+  if (method === "put" && cleanPath === "/api/profiles/me") {
+    Object.assign(
+      myProfile,
+      body && typeof body === "object" ? body : {}
+    );
+    return json({ data: myProfile }) as T;
   }
 
   if (method === "patch" && /^\/api\/admin-dashboard\/users\/[^/]+\/internal-note$/.test(cleanPath)) {

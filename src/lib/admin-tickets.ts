@@ -6,7 +6,7 @@ function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function unwrapResponse(value: unknown): unknown {
+export function unwrapResponse(value: unknown): unknown {
   let current = value;
   for (let i = 0; i < 3; i += 1) {
     if (!isRecord(current) || !("data" in current) || current.data == null) {
@@ -62,8 +62,10 @@ function normalizeStatus(value: unknown): Ticket["status"] {
 
 function normalizePriority(value: unknown): Ticket["priority"] {
   const raw = String(value ?? "").trim().toLowerCase();
-  if (["urgent", "critical", "فوری"].includes(raw)) return "urgent";
-  if (["high", "important", "مهم"].includes(raw)) return "high";
+  if (["urgent", "critical", "فوری", "high"].includes(raw)) {
+    return raw === "high" ? "high" : "urgent";
+  }
+  if (["medium", "normal", "low", "عادی"].includes(raw)) return "normal";
   return "normal";
 }
 
@@ -120,7 +122,7 @@ function mapTimeline(source: unknown): TimelineEvent[] {
   });
 }
 
-function toTicket(source: unknown, index: number): Ticket {
+export function toTicket(source: unknown, index: number): Ticket {
   const row = isRecord(source) ? source : {};
   const status = normalizeStatus(findByKeys(row, ["status", "state", "ticketStatus"]));
   const createdAt = normalizeString(findByKeys(row, ["createdAt", "created", "date", "openedAt"]), "—");

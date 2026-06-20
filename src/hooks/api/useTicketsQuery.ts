@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { apiGetNoMock } from "@/lib/api";
-import { Ticket } from "@/app/panel/support/data";
+import { Ticket, formatTicketDate } from "@/app/panel/support/data";
 
 export const ticketQueryKey = ["tickets"] as const;
 
@@ -43,14 +43,13 @@ export function useTicketsQuery() {
           category: String(row.category ?? "عمومی"),
           status,
           priority,
-          createdAt: String(row.createdAt ?? "-"),
-          updatedAt: String(row.updatedAt ?? row.createdAt ?? "-"),
+          createdAt: formatTicketDate(row.createdAt),
+          updatedAt: formatTicketDate(row.updatedAt ?? row.createdAt),
           messages: [],
           attachments: [],
           timeline: [],
         };
       });
     },
-    placeholderData: [],
   });
 }

@@ -5,6 +5,7 @@ import TransactionHeader from "./_components/TransactionHeader";
 import TransactionStats from "./_components/TransactionStats";
 import TransactionFilters from "./_components/TransactionFilters";
 import TransactionTable from "./_components/TransactionTable";
+import PanelTransactionsSkeleton from "./_components/PanelTransactionsSkeleton";
 import { Transaction } from "./data";
 import { apiGetNoMock } from "@/lib/api";
 
@@ -29,9 +30,11 @@ function mapType(value: unknown): Transaction["type"] {
 
 export default function PanelTransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchTransactions = async () => {
+      setLoading(true);
       try {
         const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
         const result = await apiGetNoMock<TransactionsResponse>(
@@ -69,6 +72,8 @@ export default function PanelTransactionsPage() {
         setTransactions(mapped);
       } catch {
         setTransactions([]);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -83,6 +88,10 @@ export default function PanelTransactionsPage() {
     const latestTransactionAmount = transactions[0]?.amount ?? 0;
     return { totalPayments, successfulTransactions, latestTransactionAmount };
   }, [transactions]);
+
+  if (loading) {
+    return <PanelTransactionsSkeleton />;
+  }
 
   return (
     <div className="max-w-[1400px] mx-auto px-2 md:px-4 pb-20 animate-in fade-in duration-1000" dir="rtl">

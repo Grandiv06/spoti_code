@@ -1,11 +1,29 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import CustomVideoPlayer from "@/components/panel/CustomVideoPlayer";
 import { Clock3, Copy, Download, Loader2, MonitorPlay, Paperclip, SearchCheck, ShieldCheck, UploadCloud, X, Send, FileText, Image as ImageIcon, ArrowRight, MessageSquare, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  completeCourseLesson,
+  fetchCourseLessonById,
+  fetchCourseSteps,
+  fetchPublicCourseById,
+  findFirstUnlockedLessonId,
+  mapStepsToChapters,
+  mergeLessonDetail,
+  readCourseMeta,
+  unwrapApiData,
+} from "@/lib/course-learning";
+import {
+  buildCourseQuestionText,
+  createCourseQuestion,
+  fetchMyCourseQas,
+  type CourseLearningQuestion,
+} from "@/lib/course-qa";
+import CourseLearningSkeleton from "./CourseLearningSkeleton";
 
 type LearningAttachment = { name: string; size: string };
 type LearningLesson = {
@@ -158,44 +176,10 @@ type ComposerBlock =
       content: string;
     };
 
-type LearningQuestion = {
-  id: string;
-  studentName: string;
-  avatar?: string;
-  title: string;
-  text: string;
-  description: string;
-  errorText?: string;
-  attachments?: QuestionAttachment[];
-  courseId: string;
-  courseTitle: string;
-  lessonTitle?: string;
-  createdAt: string;
-  createdAtIso?: string;
-  status: "new" | "answered";
-  replies: {
-    senderName: string;
-    role: "instructor" | "student";
-    text: string;
-    createdAt: string;
-    createdAtIso?: string;
-    attachments?: QuestionAttachment[];
-  }[];
-};
-
-const STORAGE_KEY = "spoticode_inst_questions";
+type LearningQuestion = CourseLearningQuestion;
 const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "pdf", "txt", "log"];
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 const MAX_FILES_COUNT = 4;
-
-const courseMap: Record<string, string> = {
-  html: "CRS-407",
-  css: "CRS-407",
-  javascript: "CRS-398",
-  react: "CRS-410",
-  nextjs: "CRS-410",
-  typescript: "CRS-398",
-};
 
 const toDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
@@ -280,10 +264,21 @@ const detectCodeFromText = (input: string): { isCode: boolean; code: string; lan
 
 export default function CourseLearningClient() {
   const params = useParams();
-  const courseId = params.courseId as string;
-  const courseData = getCourseData(courseId);
-  
-  const [activeLessonId, setActiveLessonId] = useState(courseData.chapters[0].lessons[0].id);
+  const searchParams = useSearchParams();
+  const courseId =
+    searchParams.get("courseId")?.trim() ||
+    (typeof params.courseId === "string" ? params.courseId : "") ||
+    "react";
+  const fallbackCourseData = useMemo(() => getCourseData(courseId), [courseId]);
+
+  const [courseData, setCourseData] = useState<LearningCourseData>(fallbackCourseData);
+  const [courseLoading, setCourseLoading] = useState(true);
+  const [courseLoadError, setCourseLoadError] = useState<string | null>(null);
+  const [activeLessonId, setActiveLessonId] = useState(fallbackCourseData.chapters[0]?.lessons[0]?.id ?? "");
+  const [activeLessonDetail, setActiveLessonDetail] = useState<LearningLesson | null>(null);
+  const [lessonLoading, setLessonLoading] = useState(false);
+  const [completingLesson, setCompletingLesson] = useState(false);
+  const [completeError, setCompleteError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("description");
   const [expandedChapters, setExpandedChapters] = useState<string[]>([courseData.chapters[0].id]);
   const [isCopied, setIsCopied] = useState(false);
@@ -296,6 +291,169 @@ export default function CourseLearningClient() {
   const [fileError, setFileError] = useState("");
   const [formError, setFormError] = useState("");
   const [qaQuestions, setQaQuestions] = useState<LearningQuestion[]>([]);
+  const [qaLoading, setQaLoading] = useState(false);
+  const [qaError, setQaError] = useState<string | null>(null);
+  const [selectedThreadId, setSelectedThreadId] = useState("");
+
+  const loadLessonDetail = useCallback(async (lessonId: string, baseLesson?: LearningLesson) => {
+    if (!lessonId) return;
+    setLessonLoading(true);
+    try {
+      const response = await fetchCourseLessonById(lessonId);
+      const detail = unwrapApiData(response);
+      if (detail && typeof detail === "object") {
+        const merged = mergeLessonDetail(
+          baseLesson ?? {
+            id: lessonId,
+            title: "",
+            duration: "—",
+            isWatched: false,
+            isCompleted: false,
+            isLocked: false,
+            description: "",
+            attachments: [],
+          },
+          detail
+        );
+        setActiveLessonDetail(merged);
+      }
+    } catch {
+      if (baseLesson) setActiveLessonDetail(baseLesson);
+    } finally {
+      setLessonLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadCourse = async () => {
+      setCourseLoading(true);
+      setCourseLoadError(null);
+
+      try {
+        const [stepsResponse, courseResponse] = await Promise.allSettled([
+          fetchCourseSteps(courseId),
+          fetchPublicCourseById(courseId),
+        ]);
+
+        if (!active) return;
+
+        const stepsPayload =
+          stepsResponse.status === "fulfilled" ? unwrapApiData(stepsResponse.value) : null;
+        const coursePayload =
+          courseResponse.status === "fulfilled" ? unwrapApiData(courseResponse.value) : null;
+
+        const chapters = mapStepsToChapters(stepsPayload);
+        const metaSource =
+          coursePayload && typeof coursePayload === "object"
+            ? (coursePayload as Record<string, unknown>)
+            : {};
+        const meta = readCourseMeta(metaSource);
+
+        const nextCourse: LearningCourseData = {
+          id: courseId,
+          title: meta.title || fallbackCourseData.title,
+          instructor: meta.instructor || fallbackCourseData.instructor,
+          progress: meta.progress || fallbackCourseData.progress,
+          playerType: meta.playerType || fallbackCourseData.playerType,
+          chapters: chapters.length > 0 ? chapters : fallbackCourseData.chapters,
+          licenseKey: meta.licenseKey ?? fallbackCourseData.licenseKey,
+          downloadLinks: meta.downloadLinks ?? fallbackCourseData.downloadLinks,
+        };
+
+        setCourseData(nextCourse);
+
+        const firstLessonId =
+          findFirstUnlockedLessonId(nextCourse.chapters) ??
+          nextCourse.chapters[0]?.lessons[0]?.id ??
+          "";
+
+        if (firstLessonId) {
+          setActiveLessonId(firstLessonId);
+          const baseLesson = nextCourse.chapters
+            .flatMap((chapter) => chapter.lessons)
+            .find((lesson) => lesson.id === firstLessonId);
+          await loadLessonDetail(firstLessonId, baseLesson);
+        }
+      } catch {
+        if (!active) return;
+        setCourseData(fallbackCourseData);
+        setCourseLoadError("بارگذاری دوره از سرور انجام نشد. داده‌های نمایشی نمایش داده می‌شود.");
+        const firstLesson = fallbackCourseData.chapters[0]?.lessons[0];
+        if (firstLesson) {
+          setActiveLessonId(firstLesson.id);
+          setActiveLessonDetail(firstLesson);
+        }
+      } finally {
+        if (active) setCourseLoading(false);
+      }
+    };
+
+    loadCourse();
+
+    return () => {
+      active = false;
+    };
+  }, [courseId, fallbackCourseData, loadLessonDetail]);
+
+  const handleLessonSelect = (lesson: LearningLesson) => {
+    if (lesson.isLocked) return;
+    setCompleteError(null);
+    setActiveLessonId(lesson.id);
+    void loadLessonDetail(lesson.id, lesson);
+  };
+
+  const markLessonCompletedInState = useCallback((lessonId: string) => {
+    setCourseData((prev) => {
+      const chapters = prev.chapters.map((chapter) => ({
+        ...chapter,
+        lessons: chapter.lessons.map((lesson) =>
+          lesson.id === lessonId
+            ? { ...lesson, isCompleted: true, isWatched: true }
+            : lesson
+        ),
+      }));
+
+      const totalLessons = chapters.reduce((sum, chapter) => sum + chapter.lessons.length, 0);
+      const completedLessons = chapters.reduce(
+        (sum, chapter) => sum + chapter.lessons.filter((lesson) => lesson.isCompleted).length,
+        0
+      );
+      const progress =
+        totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : prev.progress;
+
+      return { ...prev, chapters, progress };
+    });
+
+    setActiveLessonDetail((prev) =>
+      prev?.id === lessonId ? { ...prev, isCompleted: true, isWatched: true } : prev
+    );
+  }, []);
+
+  const handleCompleteLesson = async () => {
+    if (!activeLessonId || completingLesson) return;
+
+    const lessonFromCourse = courseData.chapters
+      .flatMap((chapter) => chapter.lessons)
+      .find((lesson) => lesson.id === activeLessonId);
+    const isAlreadyCompleted =
+      activeLessonDetail?.id === activeLessonId
+        ? activeLessonDetail.isCompleted
+        : lessonFromCourse?.isCompleted;
+    if (isAlreadyCompleted) return;
+
+    setCompleteError(null);
+    setCompletingLesson(true);
+    try {
+      await completeCourseLesson(activeLessonId);
+      markLessonCompletedInState(activeLessonId);
+    } catch {
+      setCompleteError("ثبت تکمیل درس انجام نشد. لطفاً دوباره تلاش کنید.");
+    } finally {
+      setCompletingLesson(false);
+    }
+  };
 
   // --- Telegram Q&A Chat States & Helpers ---
   type PendingAttachment = {
@@ -306,7 +464,6 @@ export default function CourseLearningClient() {
     caption?: string;
   };
 
-  const [selectedThreadId, setSelectedThreadId] = useState("");
   const [composerBlocks, setComposerBlocks] = useState<ComposerBlock[]>([
     { id: makeBlockId(), type: "text", content: "" },
   ]);
@@ -332,6 +489,43 @@ export default function CourseLearningClient() {
       setTimeout(scrollToBottom, 100);
     }
   }, [selectedThreadId, qaQuestions]);
+
+  const loadCourseQas = useCallback(async (options?: { silent?: boolean; selectQuestionId?: string }) => {
+    if (!options?.silent) {
+      setQaLoading(true);
+    }
+    setQaError(null);
+    try {
+      const questions = await fetchMyCourseQas({
+        courseId,
+        lessonId: activeLessonId || undefined,
+        courseTitle: courseData.title,
+      });
+      setQaQuestions(questions);
+      setSelectedThreadId((current) => {
+        if (
+          options?.selectQuestionId &&
+          questions.some((question) => question.id === options.selectQuestionId)
+        ) {
+          return options.selectQuestionId;
+        }
+        if (current && questions.some((question) => question.id === current)) return current;
+        return questions[0]?.id ?? "";
+      });
+    } catch {
+      setQaQuestions([]);
+      setQaError("بارگذاری پرسش و پاسخ انجام نشد.");
+    } finally {
+      if (!options?.silent) {
+        setQaLoading(false);
+      }
+    }
+  }, [activeLessonId, courseData.title, courseId]);
+
+  useEffect(() => {
+    if (activeTab !== "qa" || courseLoading) return;
+    void loadCourseQas();
+  }, [activeTab, courseLoading, loadCourseQas]);
 
   React.useEffect(() => {
     composerBlocks.forEach((block) => {
@@ -481,63 +675,22 @@ export default function CourseLearningClient() {
 
   const handleSendMessage = async () => {
     if (!composerPayload.trim() && pendingAttachments.length === 0) return;
+    if (!activeLessonId) {
+      alert("ابتدا یک درس را انتخاب کنید.");
+      return;
+    }
+
     setIsSendingMessage(true);
     try {
-      const attachments = await Promise.all(
-        pendingAttachments.map(async (item) => {
-          const isImage = item.file.type.startsWith("image/");
-          const previewUrl = item.previewUrl || (isImage ? await toDataUrl(item.file) : undefined);
-          return {
-            id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-            name: item.file.name,
-            size: item.file.size,
-            type: item.file.type || "application/octet-stream",
-            previewUrl,
-            caption: item.caption || undefined,
-          };
-        })
-      );
-
-      const newReply = {
-        senderName: "کاربر تست",
-        role: "student" as const,
-        text: composerPayload.trim(),
-        createdAt: new Date().toLocaleDateString("fa-IR"),
-        createdAtIso: new Date().toISOString(),
-        attachments: attachments.length ? attachments : undefined,
-      };
-
-      const raw = localStorage.getItem(STORAGE_KEY);
-      const allQuestions: LearningQuestion[] = raw ? JSON.parse(raw) : [];
-      const updated = allQuestions.map((q) => {
-        if (q.id === selectedThreadId) {
-          return {
-            ...q,
-            status: "new" as const,
-            replies: [...q.replies, newReply],
-          };
-        }
-        return q;
+      const created = await createCourseQuestion({
+        lessonId: activeLessonId,
+        question: buildCourseQuestionText({ description: composerPayload.trim() }),
       });
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
 
-      setQaQuestions((prev) =>
-        prev.map((q) => {
-          if (q.id === selectedThreadId) {
-            return {
-              ...q,
-              status: "new" as const,
-              replies: [...q.replies, newReply],
-            };
-          }
-          return q;
-        })
-      );
-
+      await loadCourseQas({ silent: true, selectQuestionId: created.id });
       setComposerBlocks([{ id: makeBlockId(), type: "text", content: "" }]);
       setPendingAttachments([]);
-    } catch (err) {
-      console.error(err);
+    } catch {
       alert("خطا در ارسال پیام. لطفاً دوباره تلاش کنید.");
     } finally {
       setIsSendingMessage(false);
@@ -613,11 +766,23 @@ export default function CourseLearningClient() {
   };
 
   // Find active lesson details
-  let activeLesson = courseData.chapters[0].lessons[0];
+  let activeLesson = courseData.chapters[0]?.lessons[0] ?? {
+    id: "",
+    title: "",
+    duration: "—",
+    isWatched: false,
+    isCompleted: false,
+    isLocked: false,
+    description: "",
+    attachments: [],
+  };
   courseData.chapters.forEach((ch: LearningChapter) => {
     const lesson = ch.lessons.find((l: LearningLesson) => l.id === activeLessonId);
     if (lesson) activeLesson = lesson;
   });
+  if (activeLessonDetail?.id === activeLessonId) {
+    activeLesson = activeLessonDetail;
+  }
 
   const toggleChapter = (chapterId: string) => {
     setExpandedChapters(prev => 
@@ -641,41 +806,6 @@ export default function CourseLearningClient() {
     { id: "comments", label: "نظرات" },
     { id: "qa", label: "پرسش و پاسخ" },
   ];
-
-  React.useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      const allQuestions: LearningQuestion[] = raw ? JSON.parse(raw) : [];
-      let changed = false;
-      const nowMs = Date.now();
-      const normalizedQuestions = allQuestions.map((q, qIndex) => {
-        const questionIso = q.createdAtIso || new Date(nowMs - qIndex * 120000).toISOString();
-        if (!q.createdAtIso) changed = true;
-        const replies = (q.replies || []).map((rep, repIndex) => {
-          if (rep.createdAtIso) return rep;
-          changed = true;
-          return {
-            ...rep,
-            createdAtIso: new Date(nowMs - (qIndex * 120000 + repIndex * 45000 + 15000)).toISOString(),
-          };
-        });
-        return {
-          ...q,
-          createdAtIso: questionIso,
-          replies,
-        };
-      });
-      if (changed) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizedQuestions));
-      }
-      const resolvedCourseId = courseMap[courseId] || "CRS-410";
-      const own = normalizedQuestions.filter((q) => q.courseId === resolvedCourseId);
-      setQaQuestions(own.sort((a, b) => b.id.localeCompare(a.id)));
-    } catch {
-      setQaQuestions([]);
-    }
-  }, [courseId]);
 
   const validateFile = (file: File) => {
     const ext = file.name.split(".").pop()?.toLowerCase() || "";
@@ -724,47 +854,29 @@ export default function CourseLearningClient() {
       setFormError("توضیح مشکل الزامی است.");
       return;
     }
+    if (!activeLessonId) {
+      setFormError("ابتدا یک درس را انتخاب کنید.");
+      return;
+    }
+
     setFormError("");
     setIsSubmittingQuestion(true);
     try {
-      const attachments: QuestionAttachment[] = await Promise.all(
-        selectedFiles.map(async (file) => {
-          const isImage = file.type.startsWith("image/");
-          const previewUrl = isImage ? await toDataUrl(file) : undefined;
-          return {
-            id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-            name: file.name,
-            size: file.size,
-            type: file.type || "application/octet-stream",
-            previewUrl,
-          };
-        })
-      );
+      const created = await createCourseQuestion({
+        lessonId: activeLessonId,
+        question: buildCourseQuestionText({
+          title: questionTitle.trim(),
+          description: questionDescription.trim(),
+          errorText: questionErrorText.trim() || undefined,
+        }),
+      });
 
-      const newQuestion: LearningQuestion = {
-        id: `QST-${Date.now()}`,
-        studentName: "کاربر تست",
-        title: questionTitle.trim(),
-        text: questionDescription.trim(),
-        description: questionDescription.trim(),
-        errorText: questionErrorText.trim() || undefined,
-        attachments: attachments.length ? attachments : undefined,
-        courseId: courseMap[courseId] || "CRS-410",
-        courseTitle: courseData.title,
-        lessonTitle: activeLesson.title,
-        createdAt: new Date().toLocaleDateString("fa-IR"),
-        createdAtIso: new Date().toISOString(),
-        status: "new",
-        replies: [],
-      };
-
-      const raw = localStorage.getItem(STORAGE_KEY);
-      const existing: LearningQuestion[] = raw ? JSON.parse(raw) : [];
-      const updated = [newQuestion, ...existing];
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      setQaQuestions((prev) => [newQuestion, ...prev]);
+      await loadCourseQas({ silent: true, selectQuestionId: created.id });
+      setActiveTab("qa");
       setIsQuestionModalOpen(false);
       resetQuestionForm();
+    } catch {
+      setFormError("ثبت سؤال انجام نشد. لطفاً دوباره تلاش کنید.");
     } finally {
       setIsSubmittingQuestion(false);
     }
@@ -772,6 +884,16 @@ export default function CourseLearningClient() {
 
   return (
     <div className="space-y-6 pb-12">
+      {courseLoadError && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+          {courseLoadError}
+        </div>
+      )}
+
+      {courseLoading ? (
+        <CourseLearningSkeleton />
+      ) : (
+        <>
       {/* Course Header */}
       <div className="bg-white dark:bg-[#1c1e26] rounded-3xl p-5 border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -809,8 +931,13 @@ export default function CourseLearningClient() {
         <div className="lg:col-span-2 xl:col-span-3 space-y-6">
           {courseData.playerType === "internal" ? (
             /* Internal Video Player */
-            <div className="bg-white dark:bg-[#1c1e26] rounded-3xl p-3 border border-gray-100 dark:border-gray-800 shadow-sm">
-              <CustomVideoPlayer 
+            <div className="bg-white dark:bg-[#1c1e26] rounded-3xl p-3 border border-gray-100 dark:border-gray-800 shadow-sm relative">
+              {lessonLoading && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center rounded-3xl bg-white/70 dark:bg-[#1c1e26]/70">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              )}
+              <CustomVideoPlayer
                 key={activeLesson.id}
                 src={activeLesson.videoUrl ?? "#"} 
                 title={activeLesson.title}
@@ -828,17 +955,24 @@ export default function CourseLearningClient() {
                   </button>
                 </div>
 
-                <button className={cn(
+                <button
+                  type="button"
+                  onClick={() => void handleCompleteLesson()}
+                  disabled={activeLesson.isCompleted || completingLesson || !activeLesson.id}
+                  className={cn(
                   "flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer",
                   activeLesson.isCompleted 
                     ? "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400 border border-green-200 dark:border-green-500/30" 
-                    : "bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20"
+                    : "bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20 disabled:opacity-60 disabled:cursor-not-allowed"
                 )}>
                   <span className="material-symbols-outlined text-[20px]">
-                    {activeLesson.isCompleted ? "task_alt" : "check_circle"}
+                    {completingLesson ? "progress_activity" : activeLesson.isCompleted ? "task_alt" : "check_circle"}
                   </span>
-                  {activeLesson.isCompleted ? "تکمیل شده" : "تکمیل این درس"}
+                  {completingLesson ? "در حال ثبت..." : activeLesson.isCompleted ? "تکمیل شده" : "تکمیل این درس"}
                 </button>
+                {completeError && (
+                  <p className="w-full text-sm font-bold text-red-500 text-left">{completeError}</p>
+                )}
               </div>
             </div>
           ) : (
@@ -971,7 +1105,42 @@ export default function CourseLearningClient() {
 
               {activeTab === "qa" && (
                 <div className="space-y-5 animate-in fade-in duration-300">
+                  {qaError && (
+                    <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
+                      {qaError}
+                    </div>
+                  )}
+
+                  {qaQuestions.length > 1 && (
+                    <div className="flex flex-wrap gap-2">
+                      {qaQuestions.map((question) => (
+                        <button
+                          key={question.id}
+                          type="button"
+                          onClick={() => setSelectedThreadId(question.id)}
+                          className={cn(
+                            "rounded-xl px-3 py-2 text-xs font-bold transition-colors cursor-pointer",
+                            selectedThreadId === question.id
+                              ? "bg-primary/10 text-primary"
+                              : "bg-gray-50 text-gray-600 hover:bg-gray-100 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-white/10"
+                          )}
+                        >
+                          {question.title}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                   {(() => {
+                    if (qaLoading) {
+                      return (
+                        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 py-12 text-gray-400 dark:border-gray-700">
+                          <Loader2 className="mb-2 h-10 w-10 animate-spin text-primary" />
+                          <p className="text-sm font-medium">در حال بارگذاری پرسش و پاسخ...</p>
+                        </div>
+                      );
+                    }
+
                     const activeThread = qaQuestions.find((q) => q.id === selectedThreadId) || qaQuestions[0];
                     const hasInstructorReply = activeThread?.replies?.some((rep) => rep.role === "instructor");
                     const messageState: "sent" | "seen" | "replied" = hasInstructorReply
@@ -981,9 +1150,43 @@ export default function CourseLearningClient() {
                       : "sent";
                     if (!activeThread) {
                       return (
-                        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 py-12 text-gray-400 dark:border-gray-700">
-                          <Loader2 className="mb-2 h-10 w-10 animate-spin text-primary" />
-                          <p className="text-sm font-medium">در حال بارگذاری گفتگو...</p>
+                        <div className="flex flex-col rounded-3xl border border-gray-100 bg-white/60 dark:border-white/5 dark:bg-white/5 shadow-sm overflow-hidden min-h-[500px]">
+                          <div className="flex flex-col items-center justify-center px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                            <MessageSquare className="mb-3 h-10 w-10 text-primary" />
+                            <p className="text-sm font-bold text-gray-700 dark:text-gray-200">هنوز سوالی ثبت نشده است</p>
+                            <p className="mt-2 max-w-md text-xs font-medium leading-6">
+                              سوال خود را درباره این درس بنویسید تا استاد دوره پاسخ دهد.
+                            </p>
+                          </div>
+
+                          <div className="border-t border-gray-100 dark:border-gray-800 p-4 bg-white dark:bg-[#1c1e26] shrink-0">
+                            <div className="space-y-3 text-right">
+                              <div className="relative flex items-center gap-3 rounded-2xl border border-gray-200/80 dark:border-white/10 bg-slate-50/50 dark:bg-[#14161c]/40 px-3 py-2 pr-4 focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/10 focus-within:bg-white dark:focus-within:bg-[#14161c] transition-all duration-300 shadow-inner">
+                                <textarea
+                                  value={composerBlocks[0]?.type === "text" ? composerBlocks[0].content : ""}
+                                  onChange={(e) =>
+                                    setComposerBlocks([{ id: makeBlockId(), type: "text", content: e.target.value }])
+                                  }
+                                  placeholder="اولین سوال خود را بنویسید..."
+                                  rows={3}
+                                  className="w-full resize-none bg-transparent px-2 py-2 text-right text-sm font-medium leading-6 text-gray-800 outline-none placeholder-gray-400 dark:text-white dark:placeholder-gray-500"
+                                  dir="rtl"
+                                />
+                                <button
+                                  type="button"
+                                  disabled={!composerPayload.trim() || isSendingMessage || !activeLessonId}
+                                  onClick={() => void handleSendMessage()}
+                                  className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary via-indigo-600 to-indigo-500 text-white hover:opacity-95 shadow-md shadow-primary/25 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shrink-0 cursor-pointer"
+                                >
+                                  {isSendingMessage ? (
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                  ) : (
+                                    <Send className="w-5 h-5 rotate-180" />
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       );
                     }
@@ -1402,7 +1605,7 @@ export default function CourseLearningClient() {
                           return (
                             <div 
                               key={lesson.id}
-                              onClick={() => !lesson.isLocked && setActiveLessonId(lesson.id)}
+                              onClick={() => handleLessonSelect(lesson)}
                               className={cn(
                                 "flex items-start gap-3 p-3 rounded-xl transition-all",
                                 lesson.isLocked ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:bg-white dark:hover:bg-[#1c1e26]",
@@ -1453,6 +1656,9 @@ export default function CourseLearningClient() {
         </div>
 
       </div>
+
+        </>
+      )}
 
       {isQuestionModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
