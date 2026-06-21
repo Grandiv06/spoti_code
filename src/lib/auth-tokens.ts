@@ -126,13 +126,14 @@ export async function refreshAccessToken(): Promise<string | null> {
       const response = await fetch(`${API_BASE_URL}/api/auth/refresh-token`, {
         method: "POST",
         headers,
-        credentials: "include",
         cache: "no-store",
         body: refreshToken ? JSON.stringify({ refreshToken }) : undefined,
       });
 
       if (!response.ok) {
-        notifyAuthSessionExpired();
+        if (response.status === 401 || response.status === 403) {
+          notifyAuthSessionExpired();
+        }
         return null;
       }
 
@@ -147,7 +148,6 @@ export async function refreshAccessToken(): Promise<string | null> {
       setAuthTokens(accessToken, nextRefreshToken ?? refreshToken);
       return accessToken;
     } catch {
-      notifyAuthSessionExpired();
       return null;
     } finally {
       refreshPromise = null;

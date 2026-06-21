@@ -1,7 +1,6 @@
 import axios from "axios";
 import {
   getAccessToken,
-  notifyAuthSessionExpired,
   refreshAccessToken,
   shouldAttemptTokenRefresh,
 } from "@/lib/auth-tokens";
@@ -31,8 +30,6 @@ export function setupApiClient(): void {
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
           return axios(originalRequest);
         }
-
-        notifyAuthSessionExpired();
       }
 
       return Promise.reject(error);

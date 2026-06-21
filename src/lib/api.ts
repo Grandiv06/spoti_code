@@ -58,7 +58,6 @@ export async function apiRequest<T>(
     const response = await fetch(url, {
       method: method.toUpperCase(),
       cache: "no-store",
-      credentials: "include",
       headers: buildRequestHeaders(token, options.headers),
       body: options.body ? JSON.stringify(options.body) : undefined,
     });
