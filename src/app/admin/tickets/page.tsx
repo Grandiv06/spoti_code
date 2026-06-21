@@ -19,7 +19,7 @@ export default function AdminTicketsPage() {
   useEffect(() => {
     const fetchTickets = async () => {
       try {
-        const response = await apiGetNoMock<unknown>("/api/admin-dashboard/tickets?limit=100");
+        const response = await apiGetNoMock<unknown>("/api/admin-dashboard/tickets");
         const mapped = normalizeAdminTicketsResponse(response);
         setTickets(mapped.length > 0 ? mapped : mockTickets);
       } catch {

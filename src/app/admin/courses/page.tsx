@@ -34,7 +34,7 @@ export default function AdminCoursesPage() {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const response = await apiGetNoMock<unknown>("/api/admin-dashboard/courses?limit=100");
+        const response = await apiGetNoMock<unknown>("/api/admin-dashboard/courses");
         const normalizedCourses = normalizeAdminCoursesResponse(response);
 
         setCourses(normalizedCourses);

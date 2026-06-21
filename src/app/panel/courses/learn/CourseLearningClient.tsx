@@ -234,6 +234,28 @@ function buildLessonChatMessages(questions: LearningQuestion[]): LessonChatMessa
   return messages;
 }
 
+function mergeLessonQuestions(
+  local: LearningQuestion[],
+  remote: LearningQuestion[]
+): LearningQuestion[] {
+  const merged = new Map<string, LearningQuestion>();
+
+  for (const question of remote) {
+    merged.set(question.id, question);
+  }
+  for (const question of local) {
+    if (!merged.has(question.id)) {
+      merged.set(question.id, question);
+    }
+  }
+
+  return Array.from(merged.values()).sort(
+    (a, b) =>
+      parseChatTimestamp(a.createdAtIso || a.createdAt) -
+      parseChatTimestamp(b.createdAtIso || b.createdAt)
+  );
+}
+
 const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "pdf", "txt", "log"];
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 const MAX_FILES_COUNT = 4;
@@ -576,6 +598,55 @@ export default function CourseLearningClient() {
     }
   }, [activeLessonId, courseData.title, courseId]);
 
+  const appendQuestionToChat = useCallback(
+    (question: LearningQuestion, fallbackText?: string) => {
+      const now = new Date();
+      const enriched: LearningQuestion = {
+        ...question,
+        id: question.id || `local-${now.getTime()}`,
+        lessonId: question.lessonId || activeLessonId,
+        courseId: question.courseId || courseId,
+        courseTitle: question.courseTitle || courseData.title,
+        text: question.text || question.description || fallbackText || "",
+        description: question.description || question.text || fallbackText || "",
+        title: question.title || fallbackText?.split("\n")[0]?.trim() || question.text || "پیام",
+        createdAtIso: question.createdAtIso || now.toISOString(),
+        createdAt:
+          question.createdAt ||
+          now.toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" }),
+        replies: question.replies ?? [],
+      };
+
+      setQaQuestions((prev) => {
+        if (prev.some((item) => item.id === enriched.id)) {
+          return prev.map((item) => (item.id === enriched.id ? enriched : item));
+        }
+        return [...prev, enriched];
+      });
+
+      requestAnimationFrame(() => {
+        setTimeout(scrollToBottom, 100);
+      });
+    },
+    [activeLessonId, courseData.title, courseId]
+  );
+
+  const syncCourseQasAfterSend = useCallback(async () => {
+    try {
+      const questions = await fetchMyCourseQas({
+        courseId,
+        lessonId: activeLessonId || undefined,
+        courseTitle: courseData.title,
+      });
+      setQaQuestions((prev) => mergeLessonQuestions(prev, questions));
+      requestAnimationFrame(() => {
+        setTimeout(scrollToBottom, 100);
+      });
+    } catch {
+      // Keep optimistic message if refresh fails or lags behind.
+    }
+  }, [activeLessonId, courseData.title, courseId]);
+
   useEffect(() => {
     if (activeTab !== "qa" || courseLoading) return;
     void loadCourseQas();
@@ -735,15 +806,17 @@ export default function CourseLearningClient() {
     }
 
     setIsSendingMessage(true);
+    const messageText = composerPayload.trim();
     try {
       const created = await createCourseQuestion({
         lessonId: activeLessonId,
-        question: buildCourseQuestionText({ description: composerPayload.trim() }),
+        question: buildCourseQuestionText({ description: messageText }),
       });
 
-      await loadCourseQas({ silent: true });
+      appendQuestionToChat(created, messageText);
       setComposerBlocks([{ id: makeBlockId(), type: "text", content: "" }]);
       setPendingAttachments([]);
+      void syncCourseQasAfterSend();
     } catch {
       alert("خطا در ارسال پیام. لطفاً دوباره تلاش کنید.");
     } finally {
@@ -916,16 +989,18 @@ export default function CourseLearningClient() {
     setFormError("");
     setIsSubmittingQuestion(true);
     try {
+      const questionText = buildCourseQuestionText({
+        title: questionTitle.trim(),
+        description: questionDescription.trim(),
+        errorText: questionErrorText.trim() || undefined,
+      });
       const created = await createCourseQuestion({
         lessonId: activeLessonId,
-        question: buildCourseQuestionText({
-          title: questionTitle.trim(),
-          description: questionDescription.trim(),
-          errorText: questionErrorText.trim() || undefined,
-        }),
+        question: questionText,
       });
 
-      await loadCourseQas({ silent: true });
+      appendQuestionToChat(created, questionDescription.trim());
+      void syncCourseQasAfterSend();
       setActiveTab("qa");
       setIsQuestionModalOpen(false);
       resetQuestionForm();

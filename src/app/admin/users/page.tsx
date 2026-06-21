@@ -129,8 +129,6 @@ export default function AdminUsersPage() {
 
   const { data, isPending, isError, error, refetch } = useAdminUsersQuery({
     search: debouncedSearchQuery || undefined,
-    page: 1,
-    limit: 500,
   });
 
   useEffect(() => {

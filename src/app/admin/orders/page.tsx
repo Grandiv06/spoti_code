@@ -28,7 +28,7 @@ export default function AdminOrdersPage() {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const response = await apiGetNoMock<unknown>("/api/admin-dashboard/orders?limit=100");
+        const response = await apiGetNoMock<unknown>("/api/admin-dashboard/orders");
         const mapped = normalizeAdminOrdersResponse(response);
         setOrders(mapped.length > 0 ? mapped : recentOrders);
       } catch {

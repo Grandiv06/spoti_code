@@ -140,7 +140,7 @@ export default function AdminDiscountCodesPage() {
   useEffect(() => {
     const fetchDiscounts = async () => {
       try {
-        const response = await apiGetNoMock<unknown>("/api/admin-dashboard/discounts?limit=100");
+        const response = await apiGetNoMock<unknown>("/api/admin-dashboard/discounts");
         const mapped = normalizeAdminDiscountsResponse(response).map((item) => ({
           id: item.id,
           title: item.title,
