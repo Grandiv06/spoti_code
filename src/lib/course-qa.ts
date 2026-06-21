@@ -1,6 +1,7 @@
 import type { CreateQaDto } from "@/api/models/CreateQaDto";
 import { unwrapResponse } from "@/lib/admin-tickets";
 import { apiGetNoMock, apiPostNoMock } from "@/lib/api";
+import { getAuthHeaders } from "@/lib/auth-tokens";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -219,11 +220,6 @@ export function buildCourseQuestionText(input: {
   ].filter(Boolean);
 
   return parts.join("\n\n");
-}
-
-function getAuthHeaders(): HeadersInit | undefined {
-  const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-  return token ? { Authorization: `Bearer ${token}` } : undefined;
 }
 
 function buildQuery(params: Record<string, string | undefined>): string {

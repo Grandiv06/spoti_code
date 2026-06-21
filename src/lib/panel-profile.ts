@@ -2,11 +2,7 @@ import type { UpsertProfileDto } from "@/api/models/UpsertProfileDto";
 import type { ProfileSettings } from "@/context/ProfileSettingsContext";
 import { unwrapResponse } from "@/lib/admin-tickets";
 import { apiGetNoMock, apiPutNoMock } from "@/lib/api";
-
-function getAuthHeaders(): HeadersInit | undefined {
-  const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-  return token ? { Authorization: `Bearer ${token}` } : undefined;
-}
+import { getAuthHeaders } from "@/lib/auth-tokens";
 
 function parseSkills(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -39,7 +35,7 @@ function pickString(source: Record<string, unknown>, keys: string[]): string {
 }
 
 export function normalizeProfileUrl(value: string): string {
-  const trimmed = value.trim();
+  const trimmed = value.trim().replace(/^\/+/, "");
   if (!trimmed) return "";
   if (/^https?:\/\//i.test(trimmed)) return trimmed;
   return `https://${trimmed}`;
@@ -150,22 +146,27 @@ export function mapProfileResponseToSettings(value: unknown): Partial<ProfileSet
 
 export function buildUpsertProfilePayload(settings: ProfileSettings): UpsertProfileDto {
   const normalized = normalizeProfileSocials(settings);
-  const payload: UpsertProfileDto = {
+
+  const optionalFields: UpsertProfileDto = {
     occupation: settings.displayName.trim() || undefined,
     about: settings.bio.trim() || undefined,
     mbtiType: settings.mbti.trim() || undefined,
     skills: settings.skills.length ? settings.skills.join(", ") : undefined,
-    githubLink: normalized.githubUrl || undefined,
-    linkedinLink: normalized.linkedinUrl || undefined,
-    personalWebsiteLink: normalized.websiteUrl || undefined,
-    contacts: normalized.telegramUrl || undefined,
     location: settings.location.trim() || undefined,
     image: settings.avatarImage?.trim() || undefined,
   };
 
-  return Object.fromEntries(
-    Object.entries(payload).filter(([, value]) => value !== undefined && value !== "")
+  const filteredOptional = Object.fromEntries(
+    Object.entries(optionalFields).filter(([, value]) => value !== undefined && value !== "")
   ) as UpsertProfileDto;
+
+  return {
+    ...filteredOptional,
+    githubLink: normalized.githubUrl,
+    linkedinLink: normalized.linkedinUrl,
+    personalWebsiteLink: normalized.websiteUrl,
+    contacts: normalized.telegramUrl,
+  };
 }
 
 export async function fetchMyProfile(): Promise<Partial<ProfileSettings>> {
@@ -184,9 +185,9 @@ export async function updateMyProfile(settings: ProfileSettings): Promise<Partia
   return {
     ...mapped,
     displayName: normalizedSettings.displayName.trim() || mapped.displayName,
-    githubUrl: normalizedSettings.githubUrl || mapped.githubUrl,
-    linkedinUrl: normalizedSettings.linkedinUrl || mapped.linkedinUrl,
-    telegramUrl: normalizedSettings.telegramUrl || mapped.telegramUrl,
-    websiteUrl: normalizedSettings.websiteUrl || mapped.websiteUrl,
+    githubUrl: normalizedSettings.githubUrl,
+    linkedinUrl: normalizedSettings.linkedinUrl,
+    telegramUrl: normalizedSettings.telegramUrl,
+    websiteUrl: normalizedSettings.websiteUrl,
   };
 }

@@ -6,6 +6,7 @@ import { InputOTP } from "@/components/ui/input-otp";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { apiPostNoMock } from "@/lib/api";
+import { extractTokensFromAuthResponse } from "@/lib/auth-tokens";
 import { useLoginByPhoneMutation } from "@/hooks/api/useAuthMutations";
 
 
@@ -83,9 +84,10 @@ export default function LoginForm() {
         displayName: string;
         role: AppRole;
       },
-      token?: string
+      token?: string,
+      refreshToken?: string
     ) => {
-      login(user, token);
+      login(user, token, refreshToken);
 
       const fallbackPath =
         user.role === "admin"
@@ -184,10 +186,7 @@ export default function LoginForm() {
         };
       };
 
-      const accessToken = result?.accessToken || result?.token || result?.data?.accessToken || result?.data?.token;
-      if (accessToken && typeof window !== "undefined") {
-        localStorage.setItem("accessToken", accessToken);
-      }
+      const { accessToken, refreshToken } = extractTokensFromAuthResponse(result);
 
       const apiUser = result?.data || result?.user;
       const role = resolveAppRole(result, normalizedPhone);
@@ -199,7 +198,7 @@ export default function LoginForm() {
         phone: userPhone,
         displayName,
         role,
-      }, accessToken);
+      }, accessToken, refreshToken);
       return;
     } catch {
       setError("کد تایید نامعتبر است یا ورود انجام نشد.");

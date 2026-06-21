@@ -1,4 +1,9 @@
 import type { paths } from "@/types/openapi";
+import {
+  getAccessToken,
+  refreshAccessToken,
+  shouldAttemptTokenRefresh,
+} from "@/lib/auth-tokens";
 import { API_BASE_URL, USE_MOCK_API } from "./api-config";
 import { getMockApiResponse } from "./mock-api";
 
@@ -12,6 +17,25 @@ interface ApiRequestOptions {
   headers?: HeadersInit;
   body?: unknown;
   useMock?: boolean;
+  _retryAuth?: boolean;
+}
+
+function buildRequestHeaders(token: string | null, extra?: HeadersInit): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  if (extra) {
+    for (const [key, value] of Object.entries(extra as Record<string, string>)) {
+      if (value) headers[key] = String(value);
+    }
+  }
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  return headers;
 }
 
 export async function apiRequest<T>(
@@ -27,21 +51,27 @@ export async function apiRequest<T>(
     return mockResponse;
   }
 
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-
+  const token = getAccessToken();
   const url = `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+
   try {
     const response = await fetch(url, {
       method: method.toUpperCase(),
       cache: "no-store",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(options.headers || {}),
-      },
+      credentials: "include",
+      headers: buildRequestHeaders(token, options.headers),
       body: options.body ? JSON.stringify(options.body) : undefined,
     });
+
+    if (
+      response.status === 401 &&
+      shouldAttemptTokenRefresh(path, Boolean(options._retryAuth))
+    ) {
+      const newToken = await refreshAccessToken();
+      if (newToken) {
+        return apiRequest<T>(method, path, { ...options, _retryAuth: true });
+      }
+    }
 
     if (!response.ok) {
       const message = await response.text();

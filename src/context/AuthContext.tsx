@@ -3,11 +3,19 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { OpenAPI } from "@/api";
 import { API_BASE_URL } from "@/lib/api-config";
+import {
+  ACCESS_TOKEN_KEY,
+  clearAuthTokens,
+  getAccessToken,
+  onAuthSessionExpired,
+  setAuthTokens,
+  syncOpenApiToken,
+} from "@/lib/auth-tokens";
+import { setupApiClient } from "@/lib/setup-api-client";
 
 OpenAPI.BASE = API_BASE_URL;
 
 const AUTH_STORAGE_KEY = "spoticode-auth";
-const ACCESS_TOKEN_KEY = "accessToken";
 
 export type AuthUser = {
   id: string;
@@ -21,7 +29,7 @@ type AuthContextType = {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (user: AuthUser, token?: string) => void;
+  login: (user: AuthUser, token?: string, refreshToken?: string) => void;
   logout: () => void;
 };
 
@@ -65,36 +73,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const stored = loadFromStorage();
-    const storedToken = typeof window !== "undefined" ? localStorage.getItem(ACCESS_TOKEN_KEY) : "";
+    setupApiClient();
+    syncOpenApiToken(getAccessToken());
 
-    OpenAPI.TOKEN = storedToken || "";
+    const stored = loadFromStorage();
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setUser(stored);
     setIsLoading(false);
+
+    return onAuthSessionExpired(() => {
+      setUser(null);
+      saveToStorage(null);
+    });
   }, []);
 
-  const login = useCallback((u: AuthUser, token?: string) => {
+  const login = useCallback((u: AuthUser, token?: string, refreshToken?: string) => {
     setUser(u);
     saveToStorage(u);
 
     if (typeof window !== "undefined") {
-      const nextToken = token || localStorage.getItem(ACCESS_TOKEN_KEY) || "";
+      const nextToken = token || getAccessToken() || "";
       if (nextToken) {
-        localStorage.setItem(ACCESS_TOKEN_KEY, nextToken);
+        setAuthTokens(nextToken, refreshToken);
       }
-      OpenAPI.TOKEN = nextToken;
     }
   }, []);
 
   const logout = useCallback(() => {
     setUser(null);
     saveToStorage(null);
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(ACCESS_TOKEN_KEY);
-    }
-    OpenAPI.TOKEN = "";
+    clearAuthTokens();
   }, []);
 
   return (
@@ -119,3 +128,5 @@ export function useAuth() {
   }
   return ctx;
 }
+
+export { ACCESS_TOKEN_KEY };

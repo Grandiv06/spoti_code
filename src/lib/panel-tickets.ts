@@ -1,11 +1,7 @@
 import { formatTicketDate, Message, Ticket } from "@/app/panel/support/data";
 import { toTicket, unwrapResponse } from "@/lib/admin-tickets";
 import { apiGetNoMock, apiPostNoMock } from "@/lib/api";
-
-function getAuthHeaders(): HeadersInit | undefined {
-  const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-  return token ? { Authorization: `Bearer ${token}` } : undefined;
-}
+import { getAuthHeaders } from "@/lib/auth-tokens";
 
 function beautifyTicketDates(ticket: Ticket): Ticket {
   return {

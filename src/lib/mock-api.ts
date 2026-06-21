@@ -795,9 +795,19 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
       data: {
         id: "mock-user-1",
         accessToken: "mock-access-token",
+        refreshToken: "mock-refresh-token",
         phoneNumber,
         fullName: "کاربر تست",
         roles: [{ name: "USER" }],
+      },
+    }) as T;
+  }
+
+  if (method === "post" && cleanPath === "/api/auth/refresh-token") {
+    return json({
+      data: {
+        accessToken: "mock-access-token-refreshed",
+        refreshToken: "mock-refresh-token",
       },
     }) as T;
   }

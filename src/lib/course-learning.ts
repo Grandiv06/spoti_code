@@ -1,11 +1,7 @@
 import { apiGetNoMock, apiPostNoMock } from "@/lib/api";
+import { getAuthHeaders } from "@/lib/auth-tokens";
 
 type CourseRecord = Record<string, unknown>;
-
-function getAuthHeaders(): HeadersInit | undefined {
-  const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-  return token ? { Authorization: `Bearer ${token}` } : undefined;
-}
 
 export function unwrapApiData<T = unknown>(payload: unknown): T | null {
   if (payload == null) return null;
