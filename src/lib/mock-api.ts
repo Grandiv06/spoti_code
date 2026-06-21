@@ -650,10 +650,11 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
   }
 
   if (method === "post" && cleanPath === "/api/qas") {
-    const requestBody = body && typeof body === "object" ? (body as { lessonId?: string; question?: string }) : {};
+    const requestBody = body && typeof body === "object" ? (body as { lessonId?: string; courseId?: string; question?: string }) : {};
     const created = {
       id: `QST-${now.getTime()}`,
       lessonId: requestBody.lessonId ?? "",
+      courseId: requestBody.courseId ?? "",
       question: requestBody.question ?? "",
       status: "questioned",
       createdAt: now.toISOString(),
