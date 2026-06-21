@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import CustomVideoPlayer from "@/components/panel/CustomVideoPlayer";
-import { Clock3, Copy, Download, Loader2, MonitorPlay, Paperclip, SearchCheck, ShieldCheck, UploadCloud, X, Send, FileText, Image as ImageIcon, ArrowRight, MessageSquare, ChevronLeft } from "lucide-react";
+import { Copy, Download, Loader2, MonitorPlay, Paperclip, SearchCheck, ShieldCheck, UploadCloud, X, Send, FileText, Image as ImageIcon, ArrowRight, MessageSquare, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   completeCourseLesson,
@@ -177,6 +177,63 @@ type ComposerBlock =
     };
 
 type LearningQuestion = CourseLearningQuestion;
+
+type LessonChatMessage = {
+  id: string;
+  role: "student" | "instructor";
+  senderName: string;
+  text: string;
+  showTitle?: string;
+  errorText?: string;
+  attachments?: LearningQuestion["attachments"];
+  createdAt: string;
+  createdAtIso?: string;
+};
+
+function parseChatTimestamp(value?: string): number {
+  if (!value) return 0;
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function buildLessonChatMessages(questions: LearningQuestion[]): LessonChatMessage[] {
+  const sorted = [...questions].sort(
+    (a, b) =>
+      parseChatTimestamp(a.createdAtIso || a.createdAt) -
+      parseChatTimestamp(b.createdAtIso || b.createdAt)
+  );
+
+  const messages: LessonChatMessage[] = [];
+
+  sorted.forEach((thread, index) => {
+    messages.push({
+      id: `${thread.id}-question`,
+      role: "student",
+      senderName: thread.studentName || "شما",
+      text: thread.description || thread.text || thread.title,
+      showTitle: index === 0 ? thread.title : undefined,
+      errorText: thread.errorText,
+      attachments: thread.attachments,
+      createdAt: thread.createdAt,
+      createdAtIso: thread.createdAtIso,
+    });
+
+    thread.replies.forEach((reply, replyIndex) => {
+      messages.push({
+        id: `${thread.id}-reply-${replyIndex}`,
+        role: reply.role,
+        senderName: reply.senderName,
+        text: reply.text,
+        attachments: reply.attachments,
+        createdAt: reply.createdAt,
+        createdAtIso: reply.createdAtIso,
+      });
+    });
+  });
+
+  return messages;
+}
+
 const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "pdf", "txt", "log"];
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 const MAX_FILES_COUNT = 4;
@@ -293,7 +350,20 @@ export default function CourseLearningClient() {
   const [qaQuestions, setQaQuestions] = useState<LearningQuestion[]>([]);
   const [qaLoading, setQaLoading] = useState(false);
   const [qaError, setQaError] = useState<string | null>(null);
-  const [selectedThreadId, setSelectedThreadId] = useState("");
+
+  const lessonChatMessages = useMemo(
+    () => buildLessonChatMessages(qaQuestions),
+    [qaQuestions]
+  );
+
+  const qaMessageState = useMemo(() => {
+    const hasInstructorReply = qaQuestions.some((question) =>
+      question.replies.some((reply) => reply.role === "instructor")
+    );
+    if (hasInstructorReply) return "replied" as const;
+    if (qaQuestions.some((question) => question.replies.length > 0)) return "seen" as const;
+    return "sent" as const;
+  }, [qaQuestions]);
 
   const loadLessonDetail = useCallback(async (lessonId: string, baseLesson?: LearningLesson) => {
     if (!lessonId) return;
@@ -472,25 +542,19 @@ export default function CourseLearningClient() {
   const [imageLightboxUrl, setImageLightboxUrl] = useState("");
   const blockRefs = React.useRef<Record<string, HTMLTextAreaElement | null>>({});
 
-  React.useEffect(() => {
-    if (qaQuestions.length > 0 && !selectedThreadId) {
-      setSelectedThreadId(qaQuestions[0].id);
-    }
-  }, [qaQuestions, selectedThreadId]);
-
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
-  
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   React.useEffect(() => {
-    if (selectedThreadId) {
+    if (activeTab === "qa" && lessonChatMessages.length > 0) {
       setTimeout(scrollToBottom, 100);
     }
-  }, [selectedThreadId, qaQuestions]);
+  }, [activeTab, lessonChatMessages]);
 
-  const loadCourseQas = useCallback(async (options?: { silent?: boolean; selectQuestionId?: string }) => {
+  const loadCourseQas = useCallback(async (options?: { silent?: boolean }) => {
     if (!options?.silent) {
       setQaLoading(true);
     }
@@ -502,16 +566,6 @@ export default function CourseLearningClient() {
         courseTitle: courseData.title,
       });
       setQaQuestions(questions);
-      setSelectedThreadId((current) => {
-        if (
-          options?.selectQuestionId &&
-          questions.some((question) => question.id === options.selectQuestionId)
-        ) {
-          return options.selectQuestionId;
-        }
-        if (current && questions.some((question) => question.id === current)) return current;
-        return questions[0]?.id ?? "";
-      });
     } catch {
       setQaQuestions([]);
       setQaError("بارگذاری پرسش و پاسخ انجام نشد.");
@@ -687,7 +741,7 @@ export default function CourseLearningClient() {
         question: buildCourseQuestionText({ description: composerPayload.trim() }),
       });
 
-      await loadCourseQas({ silent: true, selectQuestionId: created.id });
+      await loadCourseQas({ silent: true });
       setComposerBlocks([{ id: makeBlockId(), type: "text", content: "" }]);
       setPendingAttachments([]);
     } catch {
@@ -871,7 +925,7 @@ export default function CourseLearningClient() {
         }),
       });
 
-      await loadCourseQas({ silent: true, selectQuestionId: created.id });
+      await loadCourseQas({ silent: true });
       setActiveTab("qa");
       setIsQuestionModalOpen(false);
       resetQuestionForm();
@@ -1111,26 +1165,6 @@ export default function CourseLearningClient() {
                     </div>
                   )}
 
-                  {qaQuestions.length > 1 && (
-                    <div className="flex flex-wrap gap-2">
-                      {qaQuestions.map((question) => (
-                        <button
-                          key={question.id}
-                          type="button"
-                          onClick={() => setSelectedThreadId(question.id)}
-                          className={cn(
-                            "rounded-xl px-3 py-2 text-xs font-bold transition-colors cursor-pointer",
-                            selectedThreadId === question.id
-                              ? "bg-primary/10 text-primary"
-                              : "bg-gray-50 text-gray-600 hover:bg-gray-100 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-white/10"
-                          )}
-                        >
-                          {question.title}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
                   {(() => {
                     if (qaLoading) {
                       return (
@@ -1141,14 +1175,7 @@ export default function CourseLearningClient() {
                       );
                     }
 
-                    const activeThread = qaQuestions.find((q) => q.id === selectedThreadId) || qaQuestions[0];
-                    const hasInstructorReply = activeThread?.replies?.some((rep) => rep.role === "instructor");
-                    const messageState: "sent" | "seen" | "replied" = hasInstructorReply
-                      ? "replied"
-                      : (activeThread?.replies?.length || 0) > 0
-                      ? "seen"
-                      : "sent";
-                    if (!activeThread) {
+                    if (qaQuestions.length === 0) {
                       return (
                         <div className="flex flex-col rounded-3xl border border-gray-100 bg-white/60 dark:border-white/5 dark:bg-white/5 shadow-sm overflow-hidden min-h-[500px]">
                           <div className="flex flex-col items-center justify-center px-6 py-12 text-center text-gray-500 dark:text-gray-400">
@@ -1213,127 +1240,82 @@ export default function CourseLearningClient() {
                           <span
                             className={cn(
                               "rounded-lg px-3 py-1 text-[11px] font-black",
-                              messageState === "sent" && "bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-gray-300",
-                              messageState === "seen" && "bg-sky-500/10 text-sky-600 dark:text-sky-300",
-                              messageState === "replied" && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
+                              qaMessageState === "sent" && "bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-gray-300",
+                              qaMessageState === "seen" && "bg-sky-500/10 text-sky-600 dark:text-sky-300",
+                              qaMessageState === "replied" && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
                             )}
                           >
-                            {messageState === "sent" && "ارسال شده"}
-                            {messageState === "seen" && "استاد پیامت رو دید"}
-                            {messageState === "replied" && "استاد پاسخ داد"}
+                            {qaMessageState === "sent" && "ارسال شده"}
+                            {qaMessageState === "seen" && "استاد پیامت رو دید"}
+                            {qaMessageState === "replied" && "استاد پاسخ داد"}
                           </span>
                         </div>
 
                         {/* Messages List Area */}
                         <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-[380px] min-h-[280px] bg-slate-50/30 dark:bg-black/10" dir="rtl">
-                          
-                          {/* Student Initial Post */}
-                          <div className="flex justify-start text-right">
-                            <div className="max-w-[78%] rounded-2xl rounded-tr-sm p-4 bg-[#e6f7ed] dark:bg-[#143c24]/30 border border-[#d1e7dd]/60 dark:border-[#1e5c37]/30 text-[#0f5132] dark:text-[#a3cfbb] shadow-sm animate-in fade-in duration-300">
-                              <h4 className="text-xs font-black text-emerald-700 dark:text-emerald-400 mb-1.5">{activeThread.title}</h4>
-                              
-                              <p className="text-sm font-semibold leading-7 whitespace-pre-wrap text-emerald-950 dark:text-[#a3cfbb]/90">
-                                {activeThread.description || activeThread.text}
-                              </p>
-
-                              {activeThread.errorText && (
-                                <div className="mt-3 rounded-xl overflow-hidden border border-gray-200/60 dark:border-white/10 bg-[#f7f8fb] dark:bg-[#14161c]" dir="ltr">
-                                  <div className="bg-black/5 dark:bg-black/30 px-3 py-1 text-[10px] font-mono text-gray-500 dark:text-gray-400 border-b border-black/5 dark:border-white/5 flex justify-between items-center">
-                                    <span>Error / Log</span>
-                                  </div>
-                                  <pre className="font-mono text-xs p-3 overflow-x-auto text-left leading-relaxed text-gray-700 dark:text-gray-300">
-                                    {activeThread.errorText}
-                                  </pre>
-                                </div>
-                              )}
-
-                              {!!activeThread.attachments?.length && (
-                                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                                  {activeThread.attachments.map((file) => (
-                                    <div key={file.id} className="rounded-xl border border-[#d1e7dd]/50 bg-white/70 dark:border-white/10 dark:bg-white/5 p-2 text-emerald-900 dark:text-emerald-100">
-                                      {file.type.startsWith("image/") && file.previewUrl ? (
-                                        <div className="space-y-2">
-                                          <button 
-                                            type="button" 
-                                            onClick={() => setImageLightboxUrl(file.previewUrl || "")}
-                                            className="w-full relative group overflow-hidden rounded-lg cursor-pointer"
-                                          >
-                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                            <img src={file.previewUrl} alt={file.name} className="h-32 w-full object-cover transition duration-300 group-hover:scale-105" />
-                                          </button>
-                                          {file.caption && (
-                                            <p className="text-xs leading-6 p-1 bg-black/5 dark:bg-white/5 rounded font-medium text-emerald-800 dark:text-emerald-200">
-                                              {file.caption}
-                                            </p>
-                                          )}
-                                        </div>
-                                      ) : (
-                                        <a
-                                          href={file.previewUrl || "#"}
-                                          target="_blank"
-                                          rel="noreferrer"
-                                          className="flex items-center gap-2 p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                                        >
-                                          <FileText className="h-5 w-5 shrink-0 text-emerald-600/70" />
-                                          <div className="min-w-0 flex-1 text-right">
-                                            <p className="truncate text-xs font-black">{file.name}</p>
-                                            <p className="text-[10px] opacity-70">{formatBytes(file.size)}</p>
-                                          </div>
-                                          <Download className="w-4 h-4 shrink-0 text-emerald-600/70" />
-                                        </a>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-
-                              <div className="mt-2 text-left text-[10px] text-emerald-600/75 dark:text-emerald-400/65 font-bold">
-                                <span className="group relative inline-flex items-center gap-1 cursor-default">
-                                  <Clock3 className="h-3 w-3" />
-                                  <span>{formatTimeLabel(activeThread.createdAtIso, activeThread.createdAt)}</span>
-                                  <span className="pointer-events-none absolute -top-7 left-0 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[10px] font-semibold text-white opacity-0 shadow-md transition-opacity group-hover:opacity-100 dark:bg-black">
-                                    {formatDateTooltip(activeThread.createdAtIso, activeThread.createdAt)}
-                                  </span>
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Replies */}
-                          {activeThread.replies.map((rep, idx) => {
-                            const isInstructor = rep.role === "instructor";
+                          {lessonChatMessages.map((message) => {
+                            const isInstructor = message.role === "instructor";
                             return (
                               <div
-                                key={idx}
-                                className={cn("flex animate-in fade-in duration-300", isInstructor ? "justify-end text-right" : "justify-start text-right")}
+                                key={message.id}
+                                className={cn(
+                                  "flex animate-in fade-in duration-300",
+                                  isInstructor ? "justify-end text-right" : "justify-start text-right"
+                                )}
                               >
-                                <div className={cn(
-                                  "max-w-[78%] rounded-2xl p-4 shadow-sm",
-                                  isInstructor 
-                                    ? "bg-[#f8f9fa] dark:bg-[#252833] text-gray-800 dark:text-gray-100 rounded-tl-sm border border-gray-200 dark:border-white/5"
-                                    : "bg-[#e6f7ed] dark:bg-[#143c24]/40 text-[#0f5132] dark:text-[#a3cfbb] border border-[#d1e7dd]/60 dark:border-[#1e5c37]/40 rounded-tr-sm"
-                                )}>
+                                <div
+                                  className={cn(
+                                    "max-w-[78%] rounded-2xl p-4 shadow-sm",
+                                    isInstructor
+                                      ? "bg-[#f8f9fa] dark:bg-[#252833] text-gray-800 dark:text-gray-100 rounded-tl-sm border border-gray-200 dark:border-white/5"
+                                      : "bg-[#e6f7ed] dark:bg-[#143c24]/40 text-[#0f5132] dark:text-[#a3cfbb] border border-[#d1e7dd]/60 dark:border-[#1e5c37]/40 rounded-tr-sm"
+                                  )}
+                                >
                                   <div className="flex items-center gap-1.5 mb-1.5">
                                     {isInstructor && (
                                       <span className="rounded bg-indigo-600 dark:bg-indigo-500 px-1.5 py-0.5 text-[9px] font-black text-white leading-none">
                                         مدرس
                                       </span>
                                     )}
-                                    <p className={cn("text-[10px] font-black", isInstructor ? "text-indigo-600 dark:text-indigo-400" : "text-emerald-700 dark:text-emerald-300")}>
-                                      {rep.senderName}
+                                    <p
+                                      className={cn(
+                                        "text-[10px] font-black",
+                                        isInstructor
+                                          ? "text-indigo-600 dark:text-indigo-400"
+                                          : "text-emerald-700 dark:text-emerald-300"
+                                      )}
+                                    >
+                                      {message.senderName}
                                     </p>
                                   </div>
 
-                                  {renderMessageText(rep.text)}
+                                  {message.showTitle && (
+                                    <h4 className="text-xs font-black text-emerald-700 dark:text-emerald-400 mb-1.5">
+                                      {message.showTitle}
+                                    </h4>
+                                  )}
 
-                                  {!!rep.attachments?.length && (
+                                  {renderMessageText(message.text)}
+
+                                  {message.errorText && (
+                                    <div className="mt-3 rounded-xl overflow-hidden border border-gray-200/60 dark:border-white/10 bg-[#f7f8fb] dark:bg-[#14161c]" dir="ltr">
+                                      <div className="bg-black/5 dark:bg-black/30 px-3 py-1 text-[10px] font-mono text-gray-500 dark:text-gray-400 border-b border-black/5 dark:border-white/5 flex justify-between items-center">
+                                        <span>Error / Log</span>
+                                      </div>
+                                      <pre className="font-mono text-xs p-3 overflow-x-auto text-left leading-relaxed text-gray-700 dark:text-gray-300">
+                                        {message.errorText}
+                                      </pre>
+                                    </div>
+                                  )}
+
+                                  {!!message.attachments?.length && (
                                     <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                                      {rep.attachments.map((file) => (
+                                      {message.attachments.map((file) => (
                                         <div
                                           key={file.id}
                                           className={cn(
                                             "rounded-xl border p-2",
-                                            isInstructor 
+                                            isInstructor
                                               ? "border-gray-100 bg-gray-50 dark:border-white/5 dark:bg-white/5 text-gray-800 dark:text-white"
                                               : "border-[#d1e7dd]/50 bg-white/70 dark:border-white/10 dark:bg-white/5 text-emerald-900 dark:text-emerald-100"
                                           )}
@@ -1349,7 +1331,14 @@ export default function CourseLearningClient() {
                                                 <img src={file.previewUrl} alt={file.name} className="h-32 w-full object-cover transition duration-300 group-hover:scale-105" />
                                               </button>
                                               {file.caption && (
-                                                <p className={cn("text-xs leading-6 p-1 rounded font-medium", isInstructor ? "text-gray-600 dark:text-gray-300 bg-black/5 dark:bg-white/5" : "text-emerald-800 dark:text-[#a3cfbb] bg-black/5")}>
+                                                <p
+                                                  className={cn(
+                                                    "text-xs leading-6 p-1 rounded font-medium",
+                                                    isInstructor
+                                                      ? "text-gray-600 dark:text-gray-300 bg-black/5 dark:bg-white/5"
+                                                      : "text-emerald-800 dark:text-[#a3cfbb] bg-black/5"
+                                                  )}
+                                                >
                                                   {file.caption}
                                                 </p>
                                               )}
@@ -1374,12 +1363,18 @@ export default function CourseLearningClient() {
                                     </div>
                                   )}
 
-                                  <div className={cn("mt-2 text-left text-[10px]", isInstructor ? "text-gray-400" : "text-emerald-600/75 dark:text-emerald-400/65 font-semibold")}>
-                                    <span className="group relative inline-flex items-center gap-1 cursor-default">
-                                      <Clock3 className="h-3 w-3" />
-                                      <span>{formatTimeLabel(rep.createdAtIso, rep.createdAt)}</span>
+                                  <div
+                                    className={cn(
+                                      "mt-2 text-left text-[10px]",
+                                      isInstructor
+                                        ? "text-gray-400"
+                                        : "text-emerald-600/75 dark:text-emerald-400/65 font-semibold"
+                                    )}
+                                  >
+                                    <span className="group relative inline-flex cursor-default">
+                                      <span>{formatTimeLabel(message.createdAtIso, message.createdAt)}</span>
                                       <span className="pointer-events-none absolute -top-7 left-0 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[10px] font-semibold text-white opacity-0 shadow-md transition-opacity group-hover:opacity-100 dark:bg-black">
-                                        {formatDateTooltip(rep.createdAtIso, rep.createdAt)}
+                                        {formatDateTooltip(message.createdAtIso, message.createdAt)}
                                       </span>
                                     </span>
                                   </div>
@@ -1387,7 +1382,7 @@ export default function CourseLearningClient() {
                               </div>
                             );
                           })}
-                          
+
                           <div ref={messagesEndRef} />
                         </div>
 
