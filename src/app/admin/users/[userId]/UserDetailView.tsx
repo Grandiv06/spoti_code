@@ -30,6 +30,16 @@ import { UserStatusBadge, UserPlanBadge, UserRoleBadge } from "../_components/Ba
 import { toPersianDigits, formatPrice, formatPhone, formatPersianDate } from "../_components/utils";
 import EditUserModal from "../_components/EditUserModal";
 import {
+  UserActivityTabSkeleton,
+  UserAdminNotesTabSkeleton,
+  UserCoursesTabSkeleton,
+  UserDetailHeaderSkeleton,
+  UserDetailTabsSkeleton,
+  UserOverviewTabSkeleton,
+  UserTicketsTabSkeleton,
+  UserTransactionsTabSkeleton,
+} from "../_components/UserDetailSkeletons";
+import {
   useAdminUserActivitiesQuery,
   useAdminUserCoursesQuery,
   useAdminUserInternalNoteQuery,
@@ -50,6 +60,23 @@ interface UserDetailViewProps {
 }
 
 type UserDetailTab = "overview" | "courses" | "transactions" | "tickets" | "activity" | "notes";
+
+function TabErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  return (
+    <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+      <p className="text-xs font-black">{message}</p>
+      {onRetry ? (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-4 inline-flex items-center justify-center rounded-xl bg-red-600 px-4 py-2 text-[10px] font-bold text-white transition-colors hover:bg-red-700"
+        >
+          تلاش مجدد
+        </button>
+      ) : null}
+    </div>
+  );
+}
 
 // ----------------------------------------------------
 // 1. Overview Tab Component
@@ -214,7 +241,7 @@ export function UserOverviewTab({ user }: UserOverviewTabProps) {
             <FileText className="w-4 h-4 text-red-400" />
             <span>یادداشت داخلی ادمین</span>
           </h3>
-          <div className="text-xs leading-relaxed text-gray-600 dark:text-gray-300 font-medium bg-gray-50/50 dark:bg-black/15 border border-gray-100/50 dark:border-white/5 p-4 rounded-2xl relative animate-pulse">
+          <div className="text-xs leading-relaxed text-gray-600 dark:text-gray-300 font-medium bg-gray-50/50 dark:bg-black/15 border border-gray-100/50 dark:border-white/5 p-4 rounded-2xl relative">
             <div className="absolute top-0 right-0 w-1 h-full bg-red-400 rounded-r-2xl" />
             <p className="pr-2 truncate">
               {user.internalNotes || "هیچ یادداشتی ثبت نشده است."}
@@ -232,10 +259,16 @@ export function UserOverviewTab({ user }: UserOverviewTabProps) {
 interface UserCoursesTabProps {
   courses: PurchasedCourse[];
   isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
   showToast: (msg: string, type?: "success" | "error" | "info") => void;
 }
 
-export function UserCoursesTab({ courses, isLoading, showToast }: UserCoursesTabProps) {
+export function UserCoursesTab({ courses, isLoading, isError, onRetry, showToast }: UserCoursesTabProps) {
+  if (isLoading) {
+    return <UserCoursesTabSkeleton />;
+  }
+
   return (
     <div className="space-y-4 animate-in fade-in duration-300" dir="rtl">
       <h3 className="text-xs font-black text-gray-400 dark:text-gray-500 flex items-center gap-2">
@@ -244,11 +277,8 @@ export function UserCoursesTab({ courses, isLoading, showToast }: UserCoursesTab
       </h3>
 
       <div className="bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 rounded-[2rem] p-6 space-y-4 shadow-sm">
-        {isLoading && courses.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
-            <div className="w-10 h-10 mx-auto rounded-full border-4 border-primary/20 border-t-primary animate-spin mb-4" />
-            <p className="text-xs font-black text-gray-500 dark:text-gray-400">در حال بارگذاری دوره‌ها...</p>
-          </div>
+        {isError ? (
+          <TabErrorState message="بارگذاری دوره‌های کاربر انجام نشد." onRetry={onRetry} />
         ) : courses.length === 0 ? (
           <div className="text-center py-12 text-gray-400">
             <BookOpen className="w-12 h-12 mx-auto text-gray-300 dark:text-zinc-700 mb-3 animate-bounce" />
@@ -269,8 +299,6 @@ export function UserCoursesTab({ courses, isLoading, showToast }: UserCoursesTab
                   </span>
                   <div className="flex items-center gap-2 text-[10px] text-gray-400 dark:text-gray-500">
                     <span>خریداری شده در: {formatPersianDate(c.purchaseDate)}</span>
-                    <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-zinc-700" />
-                    <span>آخرین مشاهده: {toPersianDigits("۲ روز پیش")}</span>
                   </div>
                 </div>
               </div>
@@ -321,22 +349,22 @@ export function UserCoursesTab({ courses, isLoading, showToast }: UserCoursesTab
 interface UserTransactionsTabProps {
   transactions: UserTransaction[];
   isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
   showToast: (msg: string, type?: "success" | "error" | "info") => void;
 }
 
-export function UserTransactionsTab({ transactions, isLoading, showToast }: UserTransactionsTabProps) {
+export function UserTransactionsTab({ transactions, isLoading, isError, onRetry, showToast }: UserTransactionsTabProps) {
   const [filter, setFilter] = useState<"all" | "موفق" | "ناموفق" | "در انتظار">("all");
 
-  const filtered = transactions.filter(t => {
+  const filtered = transactions.filter((t) => {
     if (filter === "all") return true;
     return t.status === filter;
   });
 
-  const getProductForTx = (txId: string) => {
-    if (txId === "TRX-4820") return "دوره مسترکلاس Next.js";
-    if (txId === "TRX-4512") return "دوره TypeScript پیشرفته";
-    return "دوره React Performance";
-  };
+  if (isLoading) {
+    return <UserTransactionsTabSkeleton />;
+  }
 
   return (
     <div className="space-y-4 animate-in fade-in duration-300" dir="rtl">
@@ -370,11 +398,8 @@ export function UserTransactionsTab({ transactions, isLoading, showToast }: User
       </div>
 
       <div className="bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 rounded-[2rem] p-6 shadow-sm">
-        {isLoading && transactions.length === 0 ? (
-          <div className="text-center py-12 text-gray-400 animate-pulse">
-            <div className="w-10 h-10 mx-auto rounded-full border-4 border-primary/20 border-t-primary animate-spin mb-4" />
-            <p className="text-xs font-black text-gray-500 dark:text-gray-400">در حال بارگذاری تراکنش‌ها...</p>
-          </div>
+        {isError ? (
+          <TabErrorState message="بارگذاری تراکنش‌های کاربر انجام نشد." onRetry={onRetry} />
         ) : filtered.length === 0 ? (
           <div className="text-center py-12 text-gray-400 animate-pulse">
             <CreditCard className="w-12 h-12 mx-auto text-gray-300 dark:text-zinc-700 mb-3" />
@@ -400,10 +425,12 @@ export function UserTransactionsTab({ transactions, isLoading, showToast }: User
                   {filtered.map((t) => (
                     <tr key={t.id} className="text-gray-800 dark:text-gray-300 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
                       <td className="py-4 pr-2 font-mono text-[10px] font-bold text-gray-500">{toPersianDigits(t.id)}</td>
-                      <td className="py-4 font-bold text-gray-900 dark:text-white">{getProductForTx(t.id)}</td>
+                      <td className="py-4 font-bold text-gray-900 dark:text-white">{t.productTitle || "—"}</td>
                       <td className="py-4 text-gray-400 dark:text-gray-500">{formatPersianDate(t.date)}</td>
                       <td className="py-4">
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-gray-50 dark:bg-black/20 border border-gray-100 dark:border-white/5">درگاه بانکی</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-gray-50 dark:bg-black/20 border border-gray-100 dark:border-white/5">
+                          {t.paymentMethod || "—"}
+                        </span>
                       </td>
                       <td className="py-4 font-black text-gray-900 dark:text-white">{formatPrice(t.amount)}</td>
                       <td className="py-4">
@@ -417,7 +444,7 @@ export function UserTransactionsTab({ transactions, isLoading, showToast }: User
                       </td>
                       <td className="py-4 text-left pl-2">
                         <button 
-                          onClick={() => showToast(`جزئیات تراکنش ${t.id}: خرید ${getProductForTx(t.id)} به مبلغ ${formatPrice(t.amount)} درگاه بانک سامان`, "info")}
+                          onClick={() => showToast(`جزئیات تراکنش ${t.id}: ${t.productTitle || "—"} به مبلغ ${formatPrice(t.amount)}`, "info")}
                           className="text-[10px] font-bold text-primary hover:text-primary-hover px-2.5 py-1.5 rounded-lg border border-primary/10 hover:bg-primary/5 transition-all"
                         >
                           مشاهده جزئیات تراکنش
@@ -439,7 +466,7 @@ export function UserTransactionsTab({ transactions, isLoading, showToast }: User
                   <div className="flex justify-between items-start">
                     <div>
                       <span className="font-mono text-[10px] font-bold text-gray-400 block mb-1">{toPersianDigits(t.id)}</span>
-                      <h4 className="text-xs font-black text-gray-900 dark:text-white">{getProductForTx(t.id)}</h4>
+                      <h4 className="text-xs font-black text-gray-900 dark:text-white">{t.productTitle || "—"}</h4>
                     </div>
                     <span className={`inline-block text-[9px] font-black px-1.5 py-0.5 rounded ${
                       t.status === "موفق" ? "bg-emerald-500/10 text-emerald-400" :
@@ -452,7 +479,7 @@ export function UserTransactionsTab({ transactions, isLoading, showToast }: User
 
                   <div className="flex justify-between items-center text-[10px] text-gray-400 dark:text-gray-500 font-semibold border-t border-b border-gray-100 dark:border-white/5 py-2">
                     <span>تاریخ: {formatPersianDate(t.date)}</span>
-                    <span>روش: درگاه بانکی</span>
+                    <span>روش: {t.paymentMethod || "—"}</span>
                   </div>
 
                   <div className="flex justify-between items-center">
@@ -480,14 +507,15 @@ export function UserTransactionsTab({ transactions, isLoading, showToast }: User
 interface UserTicketsTabProps {
   tickets: UserTicket[];
   isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
   showToast: (msg: string, type?: "success" | "error" | "info") => void;
 }
 
-export function UserTicketsTab({ tickets, isLoading, showToast }: UserTicketsTabProps) {
-  const getTicketPriority = (tId: string) => {
-    if (tId === "T-1810") return "متوسط";
-    return "بالا";
-  };
+export function UserTicketsTab({ tickets, isLoading, isError, onRetry, showToast }: UserTicketsTabProps) {
+  if (isLoading) {
+    return <UserTicketsTabSkeleton />;
+  }
 
   return (
     <div className="space-y-4 animate-in fade-in duration-300" dir="rtl">
@@ -497,11 +525,8 @@ export function UserTicketsTab({ tickets, isLoading, showToast }: UserTicketsTab
       </h3>
 
       <div className="bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 rounded-[2rem] p-6 shadow-sm">
-        {isLoading && tickets.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
-            <div className="w-10 h-10 mx-auto rounded-full border-4 border-primary/20 border-t-primary animate-spin mb-4" />
-            <p className="text-xs font-black text-gray-500 dark:text-gray-400">در حال بارگذاری تیکت‌ها...</p>
-          </div>
+        {isError ? (
+          <TabErrorState message="بارگذاری تیکت‌های کاربر انجام نشد." onRetry={onRetry} />
         ) : tickets.length === 0 ? (
           <div className="text-center py-12 text-gray-400">
             <MessageSquare className="w-12 h-12 mx-auto text-gray-300 dark:text-zinc-700 mb-3" />
@@ -531,8 +556,12 @@ export function UserTicketsTab({ tickets, isLoading, showToast }: UserTicketsTab
                       <span className="font-mono text-[9px] font-bold text-gray-400 bg-gray-50 dark:bg-black/20 px-1 py-0.5 rounded">{toPersianDigits(tk.id)}</span>
                       <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-zinc-700" />
                       <span>ثبت: {formatPersianDate(tk.date)}</span>
-                      <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-zinc-700" />
-                      <span>بروزرسانی: {toPersianDigits("۲ ساعت پیش")}</span>
+                      {tk.updatedAt ? (
+                        <>
+                          <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-zinc-700" />
+                          <span>بروزرسانی: {formatPersianDate(tk.updatedAt)}</span>
+                        </>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -547,13 +576,11 @@ export function UserTicketsTab({ tickets, isLoading, showToast }: UserTicketsTab
                     {tk.status}
                   </span>
 
-                  <span className={`inline-block px-2.5 py-1 rounded text-[9px] font-black ${
-                    getTicketPriority(tk.id) === "بالا" ? "bg-red-500/10 text-red-400 border border-red-500/20" :
-                    getTicketPriority(tk.id) === "متوسط" ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" :
-                    "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                  }`}>
-                    اولویت: {getTicketPriority(tk.id)}
-                  </span>
+                  {tk.priority ? (
+                    <span className="inline-block px-2.5 py-1 rounded text-[9px] font-black bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                      اولویت: {tk.priority}
+                    </span>
+                  ) : null}
                   
                   <button 
                     onClick={() => showToast(`انتقال به جزئیات تیکت ${tk.id} (به صورت نمایشی)`, "info")}
@@ -587,10 +614,18 @@ const ACTIVITY_ICON_MAP: Record<UserActivity["kind"], { icon: LucideIcon; classN
 export function UserActivityTab({
   activities,
   isLoading,
+  isError,
+  onRetry,
 }: {
   activities: UserActivity[];
   isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
 }) {
+  if (isLoading) {
+    return <UserActivityTabSkeleton />;
+  }
+
   return (
     <div className="space-y-4 animate-in fade-in duration-300" dir="rtl">
       <h3 className="text-xs font-black text-gray-400 dark:text-gray-500 flex items-center gap-2">
@@ -599,11 +634,8 @@ export function UserActivityTab({
       </h3>
 
       <div className="bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 rounded-[2rem] p-6 shadow-sm">
-        {isLoading && activities.length === 0 ? (
-          <div className="py-12 text-center text-gray-400">
-            <div className="w-10 h-10 mx-auto rounded-full border-4 border-primary/20 border-t-primary animate-spin mb-4" />
-            <p className="text-xs font-bold">در حال بارگذاری فعالیت‌ها...</p>
-          </div>
+        {isError ? (
+          <TabErrorState message="بارگذاری فعالیت‌های کاربر انجام نشد." onRetry={onRetry} />
         ) : activities.length === 0 ? (
           <div className="py-12 text-center text-gray-400">
             <Activity className="w-12 h-12 mx-auto text-gray-300 dark:text-zinc-700 mb-3" />
@@ -645,11 +677,13 @@ export function UserActivityTab({
 interface UserAdminNotesTabProps {
   notes: string;
   isLoading?: boolean;
+  isError?: boolean;
   isSaving?: boolean;
+  onRetry?: () => void;
   onSaveNotes: (updatedNotes: string) => void;
 }
 
-export function UserAdminNotesTab({ notes, isLoading, isSaving, onSaveNotes }: UserAdminNotesTabProps) {
+export function UserAdminNotesTab({ notes, isLoading, isError, isSaving, onRetry, onSaveNotes }: UserAdminNotesTabProps) {
   const [currentNotes, setCurrentNotes] = useState(notes);
 
   useEffect(() => {
@@ -660,6 +694,10 @@ export function UserAdminNotesTab({ notes, isLoading, isSaving, onSaveNotes }: U
     onSaveNotes(currentNotes);
   };
 
+  if (isLoading) {
+    return <UserAdminNotesTabSkeleton />;
+  }
+
   return (
     <div className="space-y-4 animate-in fade-in duration-300" dir="rtl">
       <h3 className="text-xs font-black text-gray-400 dark:text-gray-500 flex items-center gap-2">
@@ -668,12 +706,16 @@ export function UserAdminNotesTab({ notes, isLoading, isSaving, onSaveNotes }: U
       </h3>
 
       <div className="bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 rounded-[2rem] p-6 shadow-sm space-y-6">
+        {isError ? (
+          <TabErrorState message="بارگذاری یادداشت داخلی انجام نشد." onRetry={onRetry} />
+        ) : (
+        <>
         <div className="flex items-center justify-between mb-2 text-[10px] font-semibold text-gray-400 dark:text-gray-500 pb-3 border-b border-gray-100 dark:border-white/5">
           <div className="flex items-center gap-1.5">
             <Shield className="w-4 h-4 text-red-400" />
             <span>ثبت شده توسط: <strong className="text-gray-600 dark:text-gray-300">ادمین</strong></span>
           </div>
-          <span>آخرین ویرایش: {isLoading ? "در حال دریافت..." : "به‌روز از سرور"}</span>
+          <span>آخرین ویرایش: به‌روز از سرور</span>
         </div>
 
         <div className="space-y-4">
@@ -690,14 +732,16 @@ export function UserAdminNotesTab({ notes, isLoading, isSaving, onSaveNotes }: U
             <div className="flex justify-end">
               <button
                 onClick={handleSave}
-                disabled={isLoading || isSaving}
-                className="flex items-center gap-1.5 px-5 py-3 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-primary/20 hover:scale-[1.02]"
+                disabled={isSaving}
+                className="flex items-center gap-1.5 px-5 py-3 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-primary/20 hover:scale-[1.02] disabled:opacity-60"
               >
                 <Save className="w-4 h-4" />
                 <span>{isSaving ? "در حال ذخیره..." : "ذخیره یادداشت"}</span>
               </button>
             </div>
           </div>
+        </>
+        )}
         </div>
       </div>
   );
@@ -749,24 +793,18 @@ export default function UserDetailView({ userId }: UserDetailViewProps) {
   };
 
   const displayUser = user ?? overviewQuery.data ?? null;
-  const currentUser = displayUser as User;
-  const displayedCourses = useMemo(
-    () => coursesQuery.data ?? displayUser?.purchasedCourses ?? [],
-    [coursesQuery.data, displayUser]
-  );
-  const displayedTransactions = useMemo(
-    () => transactionsQuery.data ?? displayUser?.recentTransactions ?? [],
-    [displayUser, transactionsQuery.data]
-  );
-  const displayedTickets = useMemo(
-    () => ticketsQuery.data ?? displayUser?.recentTickets ?? [],
-    [displayUser, ticketsQuery.data]
-  );
+  const isLoadingOverview = overviewQuery.isPending || overviewQuery.isFetching;
+  const displayedCourses = useMemo(() => coursesQuery.data ?? [], [coursesQuery.data]);
+  const displayedTransactions = useMemo(() => transactionsQuery.data ?? [], [transactionsQuery.data]);
+  const displayedTickets = useMemo(() => ticketsQuery.data ?? [], [ticketsQuery.data]);
   const displayedActivities = useMemo(() => activitiesQuery.data ?? [], [activitiesQuery.data]);
-  const displayedInternalNote = useMemo(
-    () => internalNoteQuery.data ?? displayUser?.internalNotes ?? "",
-    [displayUser, internalNoteQuery.data]
-  );
+  const displayedInternalNote = useMemo(() => internalNoteQuery.data ?? "", [internalNoteQuery.data]);
+
+  const isLoadingCourses = coursesQuery.isPending || coursesQuery.isFetching;
+  const isLoadingTransactions = transactionsQuery.isPending || transactionsQuery.isFetching;
+  const isLoadingTickets = ticketsQuery.isPending || ticketsQuery.isFetching;
+  const isLoadingActivities = activitiesQuery.isPending || activitiesQuery.isFetching;
+  const isLoadingNotes = internalNoteQuery.isPending || internalNoteQuery.isFetching;
 
   const tabsList: { id: UserDetailTab; label: string; icon: LucideIcon }[] = [
     { id: "overview", label: "مشخصات کلی", icon: UserIcon },
@@ -777,16 +815,25 @@ export default function UserDetailView({ userId }: UserDetailViewProps) {
     { id: "notes", label: "یادداشت ادمین", icon: FileText }
   ];
 
-  if (overviewQuery.isPending && !displayUser) {
+  if (!userId) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4" dir="rtl">
-        <div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-        <span className="text-xs text-gray-500 dark:text-gray-400 font-bold font-sans">در حال بارگذاری اطلاعات کاربر...</span>
+      <div className="max-w-md mx-auto my-20 p-8 bg-white dark:bg-[#1c1e26] rounded-[2.5rem] border border-gray-100 dark:border-white/5 text-center shadow-xl animate-in fade-in duration-500" dir="rtl">
+        <div className="w-20 h-20 mx-auto rounded-3xl bg-red-500/10 flex items-center justify-center mb-6">
+          <Inbox className="w-10 h-10 text-red-500" />
+        </div>
+        <h2 className="text-xl font-black text-gray-900 dark:text-white mb-3 font-sans">شناسه کاربر نامعتبر است</h2>
+        <button
+          onClick={() => router.push("/admin/users")}
+          className="w-full flex items-center justify-center gap-2 py-3.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-2xl transition-all shadow-md shadow-primary/20 hover:scale-[1.02]"
+        >
+          <ChevronRight className="w-4 h-4" />
+          <span>بازگشت به لیست کاربران</span>
+        </button>
       </div>
     );
   }
 
-  if (overviewQuery.isError) {
+  if (overviewQuery.isError && !displayUser) {
     return (
       <div className="max-w-md mx-auto my-20 p-8 bg-white dark:bg-[#1c1e26] rounded-[2.5rem] border border-gray-100 dark:border-white/5 text-center shadow-xl animate-in fade-in duration-500" dir="rtl">
         <div className="w-20 h-20 mx-auto rounded-3xl bg-red-500/10 flex items-center justify-center mb-6">
@@ -815,7 +862,7 @@ export default function UserDetailView({ userId }: UserDetailViewProps) {
     );
   }
 
-  if (!displayUser) {
+  if (!displayUser && !isLoadingOverview) {
     return (
       <div className="max-w-md mx-auto my-20 p-8 bg-white dark:bg-[#1c1e26] rounded-[2.5rem] border border-gray-100 dark:border-white/5 text-center shadow-xl animate-in fade-in duration-500" dir="rtl">
         <div className="w-20 h-20 mx-auto rounded-3xl bg-red-500/10 flex items-center justify-center mb-6">
@@ -836,9 +883,18 @@ export default function UserDetailView({ userId }: UserDetailViewProps) {
     );
   }
 
+  const currentUser = displayUser as User;
+
   return (
     <div className="max-w-[1400px] mx-auto px-2 md:px-4 pb-20 animate-in fade-in duration-500" dir="rtl">
-      
+      {isLoadingOverview && !displayUser ? (
+        <>
+          <UserDetailHeaderSkeleton />
+          <UserDetailTabsSkeleton />
+          <UserOverviewTabSkeleton />
+        </>
+      ) : displayUser ? (
+        <>
       {/* Top Header Section */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8 bg-white dark:bg-[#1c1e26]/80 backdrop-blur-md border border-gray-100 dark:border-white/5 rounded-[2rem] p-6 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center gap-4">
@@ -899,25 +955,50 @@ export default function UserDetailView({ userId }: UserDetailViewProps) {
       {/* Active Tab View Layout Area */}
       <div className="space-y-6">
         {activeTab === "overview" && (
-          <UserOverviewTab user={currentUser} />
+          isLoadingOverview ? <UserOverviewTabSkeleton /> : <UserOverviewTab user={currentUser} />
         )}
         {activeTab === "courses" && (
-          <UserCoursesTab courses={displayedCourses} isLoading={coursesQuery.isPending} showToast={showToast} />
+          <UserCoursesTab
+            courses={displayedCourses}
+            isLoading={isLoadingCourses}
+            isError={coursesQuery.isError}
+            onRetry={() => void coursesQuery.refetch()}
+            showToast={showToast}
+          />
         )}
         {activeTab === "transactions" && (
-          <UserTransactionsTab transactions={displayedTransactions} isLoading={transactionsQuery.isPending} showToast={showToast} />
+          <UserTransactionsTab
+            transactions={displayedTransactions}
+            isLoading={isLoadingTransactions}
+            isError={transactionsQuery.isError}
+            onRetry={() => void transactionsQuery.refetch()}
+            showToast={showToast}
+          />
         )}
         {activeTab === "tickets" && (
-          <UserTicketsTab tickets={displayedTickets} isLoading={ticketsQuery.isPending} showToast={showToast} />
+          <UserTicketsTab
+            tickets={displayedTickets}
+            isLoading={isLoadingTickets}
+            isError={ticketsQuery.isError}
+            onRetry={() => void ticketsQuery.refetch()}
+            showToast={showToast}
+          />
         )}
         {activeTab === "activity" && (
-          <UserActivityTab activities={displayedActivities} isLoading={activitiesQuery.isPending} />
+          <UserActivityTab
+            activities={displayedActivities}
+            isLoading={isLoadingActivities}
+            isError={activitiesQuery.isError}
+            onRetry={() => void activitiesQuery.refetch()}
+          />
         )}
         {activeTab === "notes" && (
           <UserAdminNotesTab 
             notes={displayedInternalNote}
-            isLoading={internalNoteQuery.isPending}
+            isLoading={isLoadingNotes}
+            isError={internalNoteQuery.isError}
             isSaving={updateInternalNoteMutation.isPending}
+            onRetry={() => void internalNoteQuery.refetch()}
             onSaveNotes={(updatedNotes) => {
               updateInternalNoteMutation.mutate(updatedNotes, {
                 onSuccess: (savedNote) => {
@@ -933,10 +1014,12 @@ export default function UserDetailView({ userId }: UserDetailViewProps) {
           />
         )}
       </div>
+        </>
+      ) : null}
 
       {/* Edit User Modal Overlay */}
       <EditUserModal
-        user={user}
+        user={displayUser}
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         onSave={handleSaveUser}

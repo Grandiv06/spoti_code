@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, UserPlus, Users } from "lucide-react";
 import { User } from "./_components/types";
 import UsersStats from "./_components/UsersStats";
+import UsersStatsSkeleton from "./_components/UsersStatsSkeleton";
 import UsersFilters from "./_components/UsersFilters";
 import UsersTable from "./_components/UsersTable";
+import UsersTableSkeleton from "./_components/UsersTableSkeleton";
 import EditUserModal from "./_components/EditUserModal";
 import AddUserModal from "./_components/AddUserModal";
 import { useAdminUsersQuery } from "@/hooks/api/useAdminUsersQuery";
@@ -15,73 +17,6 @@ interface Toast {
   id: string;
   message: string;
   type: "success" | "error" | "info";
-}
-
-function UsersPageSkeleton() {
-  return (
-    <div className="space-y-6 animate-pulse">
-      <div className="relative w-full rounded-[2.5rem] overflow-hidden bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-xl mb-8">
-        <div className="relative z-10 px-8 py-10 md:px-12 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex flex-col md:flex-row items-center gap-6">
-            <div className="w-16 h-16 rounded-2xl bg-gray-200 dark:bg-white/10" />
-            <div className="text-center md:text-right space-y-3">
-              <div className="h-8 w-56 rounded-full bg-gray-200 dark:bg-white/10" />
-              <div className="h-4 w-80 max-w-full rounded-full bg-gray-200 dark:bg-white/10" />
-            </div>
-          </div>
-          <div className="h-12 w-36 rounded-2xl bg-gray-200 dark:bg-white/10" />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <div
-            key={index}
-            className="bg-white dark:bg-[#1c1e26] p-4 rounded-3xl border border-gray-100 dark:border-white/5 shadow-sm"
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <div className="h-3 w-20 rounded-full bg-gray-200 dark:bg-white/10" />
-              <div className="h-9 w-9 rounded-2xl bg-gray-200 dark:bg-white/10" />
-            </div>
-            <div className="h-7 w-14 rounded-full bg-gray-200 dark:bg-white/10" />
-            <div className="mt-2 h-3 w-24 rounded-full bg-gray-200 dark:bg-white/10" />
-          </div>
-        ))}
-      </div>
-
-      <div className="bg-white dark:bg-[#1c1e26] rounded-3xl border border-gray-100 dark:border-white/5 p-4 md:p-6 shadow-sm">
-        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-          <div className="h-12 w-full md:flex-1 rounded-2xl bg-gray-200 dark:bg-white/10" />
-          <div className="flex items-center gap-2 w-full md:w-auto justify-end">
-            <div className="h-12 w-32 rounded-2xl bg-gray-200 dark:bg-white/10" />
-            <div className="h-12 w-32 rounded-2xl bg-gray-200 dark:bg-white/10" />
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white dark:bg-[#1c1e26] rounded-3xl border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto w-full">
-          <div className="min-w-[1100px]">
-            <div className="grid grid-cols-8 gap-4 px-6 py-4 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-black/10">
-              {Array.from({ length: 8 }).map((_, index) => (
-                <div key={index} className="h-3 rounded-full bg-gray-200 dark:bg-white/10" />
-              ))}
-            </div>
-            {Array.from({ length: 6 }).map((_, row) => (
-              <div
-                key={row}
-                className="grid grid-cols-8 gap-4 px-6 py-5 border-b border-gray-100 dark:border-white/5"
-              >
-                {Array.from({ length: 8 }).map((__, col) => (
-                  <div key={col} className="h-5 rounded-full bg-gray-100 dark:bg-white/5" />
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function UsersErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
@@ -127,7 +62,7 @@ export default function AdminUsersPage() {
     return () => window.clearTimeout(timer);
   }, [searchQuery]);
 
-  const { data, isPending, isError, error, refetch } = useAdminUsersQuery({
+  const { data, isPending, isFetching, isError, error, refetch } = useAdminUsersQuery({
     search: debouncedSearchQuery || undefined,
   });
 
@@ -136,6 +71,9 @@ export default function AdminUsersPage() {
       setUsers(data.users);
     }
   }, [data?.users]);
+
+  const isLoadingUsers = isPending || isFetching;
+  const showUsersContent = !isError || users.length > 0;
 
   const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
     const id = Math.random().toString(36).substr(2, 9);
@@ -214,8 +152,6 @@ export default function AdminUsersPage() {
     showToast(`کاربر جدید «${preparedUser.name}» با موفقیت به پلتفرم اضافه شد.`, "success");
   };
 
-  const isLoading = isPending && users.length === 0;
-
   return (
     <div className="max-w-[1400px] mx-auto px-2 md:px-4 pb-20 animate-in fade-in duration-700" dir="rtl">
       <div className="relative w-full rounded-[2.5rem] overflow-hidden bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-xl mb-8">
@@ -258,48 +194,50 @@ export default function AdminUsersPage() {
         </div>
       ) : null}
 
-      {isLoading ? (
-        <UsersPageSkeleton />
-      ) : (
-        <>
-          <UsersStats users={users} />
+      {isLoadingUsers ? (
+        <UsersStatsSkeleton />
+      ) : showUsersContent ? (
+        <UsersStats users={users} />
+      ) : null}
 
-          <UsersFilters
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            statusFilter={statusFilter}
-            setStatusFilter={setStatusFilter}
-            planFilter={planFilter}
-            setPlanFilter={setPlanFilter}
-            sortBy={sortBy}
-            setSortBy={setSortBy}
-            onClearFilters={handleClearFilters}
-            isFiltersExpanded={isFiltersExpanded}
-            setIsFiltersExpanded={setIsFiltersExpanded}
-            hasActiveFilters={hasActiveFilters}
-          />
+      <UsersFilters
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        planFilter={planFilter}
+        setPlanFilter={setPlanFilter}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        onClearFilters={handleClearFilters}
+        isFiltersExpanded={isFiltersExpanded}
+        setIsFiltersExpanded={setIsFiltersExpanded}
+        hasActiveFilters={hasActiveFilters}
+      />
 
-          <UsersTable
-            users={filteredAndSortedUsers}
-            onShowDetails={handleShowDetails}
-            onEditUser={handleEditUser}
-            onClearFilters={handleClearFilters}
-          />
+      {isLoadingUsers ? (
+        <UsersTableSkeleton />
+      ) : showUsersContent ? (
+        <UsersTable
+          users={filteredAndSortedUsers}
+          onShowDetails={handleShowDetails}
+          onEditUser={handleEditUser}
+          onClearFilters={handleClearFilters}
+        />
+      ) : null}
 
-          <EditUserModal
-            user={selectedEditUser}
-            isOpen={isEditModalOpen}
-            onClose={() => setIsEditModalOpen(false)}
-            onSave={handleSaveUser}
-          />
+      <EditUserModal
+        user={selectedEditUser}
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSave={handleSaveUser}
+      />
 
-          <AddUserModal
-            isOpen={isAddModalOpen}
-            onClose={() => setIsAddModalOpen(false)}
-            onAdd={handleAddUser}
-          />
-        </>
-      )}
+      <AddUserModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onAdd={handleAddUser}
+      />
 
       <div className="fixed bottom-6 left-6 z-50 flex flex-col gap-3 max-w-sm w-full" dir="rtl">
         {toasts.map((t) => (

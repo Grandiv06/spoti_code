@@ -10,6 +10,8 @@ export interface UserTransaction {
   amount: number;
   status: "موفق" | "ناموفق" | "در انتظار";
   date: string;
+  productTitle?: string;
+  paymentMethod?: string;
 }
 
 export interface UserTicket {
@@ -17,6 +19,8 @@ export interface UserTicket {
   title: string;
   status: "باز" | "بسته شده" | "در حال بررسی";
   date: string;
+  priority?: string;
+  updatedAt?: string;
 }
 
 export interface UserActivity {

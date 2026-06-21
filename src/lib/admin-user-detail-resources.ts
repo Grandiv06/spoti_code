@@ -136,6 +136,11 @@ export function normalizeUserTransactionsResponse(response: unknown): UserTransa
       amount: toNumber(findByKeys(row, ["amount", "total", "value", "price"]), 0),
       status: normalizeTransactionStatus(findByKeys(row, ["status", "paymentStatus", "transactionStatus", "state"])),
       date: normalizeString(findByKeys(row, ["date", "createdAt", "paidAt", "updatedAt"])),
+      productTitle: normalizeString(
+        findByKeys(row, ["productTitle", "courseTitle", "courseName", "productName", "title", "description"]),
+        ""
+      ),
+      paymentMethod: normalizeString(findByKeys(row, ["paymentMethod", "gateway", "provider", "method"]), ""),
     };
   });
 }
@@ -148,6 +153,8 @@ export function normalizeUserTicketsResponse(response: unknown): UserTicket[] {
       title: normalizeString(findByKeys(row, ["title", "subject", "message", "summary"]), "تیکت پشتیبانی"),
       status: normalizeTicketStatus(findByKeys(row, ["status", "ticketStatus", "state"])),
       date: normalizeString(findByKeys(row, ["date", "createdAt", "updatedAt", "openedAt"])),
+      priority: normalizeString(findByKeys(row, ["priority", "priorityLabel", "severity"]), ""),
+      updatedAt: normalizeString(findByKeys(row, ["updatedAt", "lastUpdatedAt", "lastReplyAt"]), ""),
     };
   });
 }
