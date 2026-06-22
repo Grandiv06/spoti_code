@@ -72,23 +72,35 @@ export function AdminTicketDetailSkeleton() {
 
 export function AdminTicketListSkeleton() {
   return (
-    <div className="space-y-3 animate-pulse">
-      {Array.from({ length: 4 }).map((_, index) => (
-        <div
-          key={index}
-          className="rounded-3xl border border-gray-100 bg-white p-4 dark:border-white/5 dark:bg-[#1c1e26]"
-        >
-          <div className="mb-2 flex items-center justify-between">
-            <div className="h-3 w-16 rounded-full bg-gray-200 dark:bg-white/10" />
-            <div className="h-6 w-14 rounded-lg bg-gray-100 dark:bg-white/5" />
-          </div>
-          <div className="mb-2 h-4 w-full rounded-full bg-gray-200 dark:bg-white/10" />
-          <div className="flex items-center justify-between">
-            <div className="h-3 w-20 rounded-full bg-gray-100 dark:bg-white/5" />
-            <div className="h-3 w-24 rounded-full bg-gray-100 dark:bg-white/5" />
+    <div className="animate-pulse overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-white/5 dark:bg-[#1c1e26] sm:rounded-3xl">
+      <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3.5 dark:border-white/5">
+        <div className="flex items-center gap-2.5">
+          <div className="h-9 w-9 rounded-xl bg-gray-100 dark:bg-white/5" />
+          <div className="space-y-1.5">
+            <div className="h-3.5 w-24 rounded-full bg-gray-200 dark:bg-white/10" />
+            <div className="h-2.5 w-32 rounded-full bg-gray-100 dark:bg-white/5" />
           </div>
         </div>
-      ))}
+        <div className="h-6 w-8 rounded-full bg-gray-100 dark:bg-white/5" />
+      </div>
+      <div className="space-y-2 px-3 py-3">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <div
+            key={index}
+            className="rounded-2xl border border-gray-100 bg-gray-50/60 p-3 dark:border-white/5 dark:bg-black/15"
+          >
+            <div className="mb-2 flex items-center justify-between">
+              <div className="h-5 w-16 rounded-lg bg-gray-200 dark:bg-white/10" />
+              <div className="h-3 w-14 rounded-full bg-gray-100 dark:bg-white/5" />
+            </div>
+            <div className="mb-2 h-4 w-full rounded-full bg-gray-200 dark:bg-white/10" />
+            <div className="flex items-center justify-between">
+              <div className="h-3 w-20 rounded-full bg-gray-100 dark:bg-white/5" />
+              <div className="h-3 w-16 rounded-full bg-gray-100 dark:bg-white/5" />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

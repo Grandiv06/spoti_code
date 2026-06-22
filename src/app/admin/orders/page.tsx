@@ -1,11 +1,24 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { ShoppingCart, Download, Search, CheckCircle2, X, Hash, Calendar, User, BookOpen, Wallet, Clock3, BadgeCheck, Receipt } from "lucide-react";
+import { ShoppingCart, Download, Search, CheckCircle2, X, Hash, Calendar, User, BookOpen, Wallet, Clock3, BadgeCheck, Receipt, Filter } from "lucide-react";
 import { StatusPill } from "@/components/admin/AdminCharts";
 import type { AdminOrderItem } from "@/lib/admin-orders";
+import CustomSelect from "@/components/ui/CustomSelect";
 import { AdminOrdersStatsSkeleton, AdminOrdersTableSkeleton } from "./_components/AdminOrdersSkeletons";
 import { mapAdminOrderStatusFilter, useAdminOrdersQuery } from "@/hooks/api/useAdminOrdersQuery";
+import { toEnglishDigits } from "@/lib/digits";
+
+function matchesOrderSearch(order: AdminOrderItem, query: string): boolean {
+  const normalizedQuery = toEnglishDigits(query.trim()).toLowerCase();
+  if (!normalizedQuery) return true;
+
+  const haystack = [order.id, order.user, order.course, order.amount, order.date]
+    .map((value) => toEnglishDigits(value).toLowerCase())
+    .join(" ");
+
+  return haystack.includes(normalizedQuery);
+}
 
 interface Toast {
   id: string;
@@ -14,14 +27,22 @@ interface Toast {
 }
 
 type OrderFilters = {
-  search: string;
   status: string;
 };
 
 const defaultOrderFilters: OrderFilters = {
-  search: "",
   status: "all",
 };
+
+const orderStatusFilterOptions = [
+  { value: "all", label: "همه وضعیت‌ها" },
+  { value: "paid", label: "پرداخت شده" },
+  { value: "pending", label: "در انتظار" },
+  { value: "canceled", label: "لغو شده" },
+];
+
+const adminFilterSelectClassName =
+  "h-full [&>div]:h-full [&_button]:h-full [&_button]:min-h-[46px] [&_button]:text-xs [&_button]:px-4";
 
 function OrdersErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
@@ -57,16 +78,14 @@ export default function AdminOrdersPage() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setDebouncedFilters({
-        search: searchQuery.trim(),
         status: statusFilter,
       });
     }, 350);
 
     return () => window.clearTimeout(timer);
-  }, [searchQuery, statusFilter]);
+  }, [statusFilter]);
 
   const { data, isPending, isFetching, isError, error, refetch } = useAdminOrdersQuery({
-    search: debouncedFilters.search || undefined,
     status: mapAdminOrderStatusFilter(debouncedFilters.status),
   });
 
@@ -87,15 +106,11 @@ export default function AdminOrdersPage() {
     }, 3500);
   };
 
-  const hasActiveFilters = useMemo(() => {
-    return searchQuery !== "" || statusFilter !== "all";
-  }, [searchQuery, statusFilter]);
-
-  const clearFilters = () => {
-    setSearchQuery("");
-    setStatusFilter("all");
-    showToast("فیلترهای سفارش با موفقیت پاک شدند.", "info");
-  };
+  const filteredOrders = useMemo(() => {
+    const query = searchQuery.trim();
+    if (!query) return orders;
+    return orders.filter((order) => matchesOrderSearch(order, query));
+  }, [orders, searchQuery]);
 
   const stats = useMemo(() => {
     const paid = orders.filter((o) => o.status === "پرداخت شده");
@@ -164,34 +179,25 @@ export default function AdminOrdersPage() {
       ) : null}
 
       <div className="rounded-3xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md p-6 mb-8">
-        {hasActiveFilters && (
-          <div className="mb-4 flex justify-end">
-            <button onClick={clearFilters} className="text-[10px] font-black text-rose-500">
-              پاکسازی فیلترها
-            </button>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="relative md:col-span-2">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-stretch">
+          <div className="relative md:col-span-2 group">
+            <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="جستجو بر اساس شماره سفارش، کاربر یا عنوان دوره..."
-              className="w-full h-11 rounded-xl border border-gray-200/70 dark:border-white/10 bg-gray-50 dark:bg-white/5 pr-10 pl-3 text-xs font-bold outline-none focus:border-primary"
+              className="h-full min-h-[46px] w-full rounded-2xl border border-gray-100 bg-gray-50 py-3.5 pr-11 pl-3 text-xs font-bold outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-white/10 dark:bg-white/5 dark:text-white"
             />
           </div>
-          <select
+          <CustomSelect
+            options={orderStatusFilterOptions}
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-11 rounded-xl border border-gray-200/70 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 text-xs font-bold outline-none focus:border-primary"
-          >
-            <option value="all">همه وضعیت‌ها</option>
-            <option value="paid">پرداخت شده</option>
-            <option value="pending">در انتظار</option>
-            <option value="canceled">لغو شده</option>
-          </select>
+            onChange={setStatusFilter}
+            placeholder="وضعیت"
+            size="md"
+            className={adminFilterSelectClassName}
+            icon={<Filter className="w-4 h-4" />}
+          />
         </div>
       </div>
 
@@ -199,9 +205,11 @@ export default function AdminOrdersPage() {
         <AdminOrdersTableSkeleton />
       ) : showOrdersContent ? (
         <div className="overflow-x-auto rounded-3xl border border-gray-100 dark:border-white/5 bg-white dark:bg-[#1c1e26] shadow-md p-4 md:p-6">
-          {orders.length === 0 ? (
+          {filteredOrders.length === 0 ? (
             <div className="py-16 text-center">
-              <p className="text-xs font-black text-gray-500 dark:text-gray-400">سفارشی برای نمایش وجود ندارد.</p>
+              <p className="text-xs font-black text-gray-500 dark:text-gray-400">
+                {searchQuery.trim() ? "سفارشی با این عبارت پیدا نشد." : "سفارشی برای نمایش وجود ندارد."}
+              </p>
             </div>
           ) : (
             <table className="w-full border-collapse text-[12px] font-bold min-w-[880px]">
@@ -217,7 +225,7 @@ export default function AdminOrdersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                {orders.map((order) => (
+                {filteredOrders.map((order) => (
                   <tr key={order.id} className="text-gray-700 dark:text-gray-300 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
                     <td className="py-3 px-3 font-black">{order.id}</td>
                     <td className="py-3 px-3">{order.user}</td>

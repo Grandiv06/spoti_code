@@ -1,4 +1,5 @@
 import { initialUsersData } from "@/app/admin/users/_components/types";
+import { ApplicationMainRoles } from "@/lib/application-roles";
 
 type HttpMethod = "get" | "post" | "put" | "patch" | "delete";
 
@@ -59,6 +60,7 @@ function buildAdminUserOverview(userId: string) {
     status: user.status === "فعال",
     role: user.role,
     joinedAt: user.joinedAt,
+    joinedSince: user.joinedAt,
     createdAt: user.joinedAt,
     courses: user.courses,
     coursesCount: user.courses,
@@ -733,6 +735,30 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
     return json({ data: { userId, internalAdminNote: findAdminUser(userId).internalNotes ?? "" } }) as T;
   }
 
+  if (method === "get" && /^\/api\/users\/[^/]+$/.test(cleanPath)) {
+    const segment = decodeURIComponent(cleanPath.split("/").pop() || "");
+    if (segment !== "profile" && segment !== "find-all-by-rolename") {
+      const user = findAdminUser(segment);
+      return json({
+        data: {
+          id: segment,
+          fullName: user.name,
+          phoneNumber: user.phone,
+          email: user.email,
+          isActive: user.status === "فعال",
+          roleName: user.role,
+          internalAdminNote: user.internalNotes ?? "",
+        },
+      }) as T;
+    }
+  }
+
+  if (method === "get" && /^\/api\/tickets\/admin\/[^/]+$/.test(cleanPath)) {
+    const id = decodeURIComponent(cleanPath.split("/")[4] || "");
+    const ticket = tickets.find((item) => item.id === id) ?? tickets[0];
+    return json({ data: ticket }) as T;
+  }
+
   if (method === "get" && cleanPath === "/api/tickets") {
     return json(tickets) as T;
   }
@@ -940,6 +966,45 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
     }) as T;
   }
 
+  if (method === "post" && /^\/api\/tickets\/admin\/[^/]+\/messages$/.test(cleanPath)) {
+    const id = decodeURIComponent(cleanPath.split("/")[4] || "");
+    const ticket = tickets.find((item) => item.id === id);
+    const msgBody =
+      body && typeof body === "object" && "body" in body && typeof (body as { body?: unknown }).body === "string"
+        ? (body as { body: string }).body
+        : "";
+    const newMsg = {
+      id: `msg-${now.getTime()}`,
+      sender: "support",
+      senderType: "admin",
+      senderName: "پشتیبانی ادمین",
+      message: msgBody,
+      text: msgBody,
+      body: msgBody,
+      timestamp: now.toISOString(),
+      createdAt: now.toISOString(),
+    };
+
+    if (ticket) {
+      ticket.messages = [...(ticket.messages ?? []), newMsg];
+      ticket.status = "answered";
+      ticket.updatedAt = "همین الان";
+    }
+
+    return json({ data: newMsg }) as T;
+  }
+
+  if (method === "patch" && /^\/api\/tickets\/my\/[^/]+\/close$/.test(cleanPath)) {
+    const id = decodeURIComponent(cleanPath.split("/")[4] || "");
+    const ticket = tickets.find((item) => item.id === id);
+    if (ticket) {
+      ticket.status = "closed";
+      ticket.updatedAt = "همین الان";
+      return json({ data: ticket }) as T;
+    }
+    return json({ data: { id, status: "closed", updatedAt: "همین الان" } }) as T;
+  }
+
   if ((method === "patch" || method === "put") && cleanPath === "/api/users/profile") {
     return json({
       data: {
@@ -948,6 +1013,25 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
         updatedAt: now.toISOString(),
       },
     }) as T;
+  }
+
+  if (method === "patch" && /^\/api\/users\/[^/]+$/.test(cleanPath)) {
+    const segment = decodeURIComponent(cleanPath.split("/").pop() || "");
+    if (segment !== "profile" && segment !== "find-all-by-rolename") {
+      const user = findAdminUser(segment);
+      const payload = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+      return json({
+        data: {
+          id: segment,
+          fullName: payload.fullName ?? user.name,
+          phoneNumber: payload.phoneNumber ?? user.phone,
+          email: payload.email ?? user.email,
+          isActive: payload.isActive ?? user.status === "فعال",
+          roleName: payload.roleName ?? ApplicationMainRoles.USER,
+          internalAdminNote: payload.internalAdminNote ?? user.internalNotes ?? "",
+        },
+      }) as T;
+    }
   }
 
   if (method === "put" && cleanPath === "/api/profiles/me") {

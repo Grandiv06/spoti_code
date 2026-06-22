@@ -1,4 +1,11 @@
 import type { User } from "@/app/admin/users/_components/types";
+import {
+  ApplicationMainRoles,
+  normalizeApplicationMainRole,
+  pickPrimaryApplicationRole,
+  type ApplicationMainRole,
+} from "@/lib/application-roles";
+import { formatJalaliDate } from "@/lib/dates";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -18,17 +25,22 @@ export type AdminUsersResponse = {
   limit?: number;
 };
 
-const ROLE_MAP: Record<string, User["role"]> = {
-  admin: "ادمین",
-  administrator: "ادمین",
-  superadmin: "ادمین",
-  super_admin: "ادمین",
-  user: "کاربر عادی",
-  customer: "کاربر عادی",
-  student: "کاربر عادی",
-  support: "پشتیبان",
-  support_agent: "پشتیبان",
-  moderator: "پشتیبان",
+const ROLE_MAP: Record<string, ApplicationMainRole> = {
+  super_admin: ApplicationMainRoles.SUPER_ADMIN,
+  superadmin: ApplicationMainRoles.SUPER_ADMIN,
+  admin: ApplicationMainRoles.ADMIN,
+  administrator: ApplicationMainRoles.ADMIN,
+  instructor: ApplicationMainRoles.INSTRUCTOR,
+  teacher: ApplicationMainRoles.INSTRUCTOR,
+  user: ApplicationMainRoles.USER,
+  customer: ApplicationMainRoles.USER,
+  student: ApplicationMainRoles.USER,
+  support: ApplicationMainRoles.USER,
+  support_agent: ApplicationMainRoles.USER,
+  moderator: ApplicationMainRoles.USER,
+  "کاربر عادی": ApplicationMainRoles.USER,
+  ادمین: ApplicationMainRoles.ADMIN,
+  پشتیبان: ApplicationMainRoles.USER,
 };
 
 const PLAN_MAP: Record<string, User["plan"]> = {
@@ -95,11 +107,7 @@ function toNumber(value: unknown, fallback?: number): number | undefined {
 }
 
 function formatDate(value: unknown): string {
-  if (typeof value === "string" && value.trim()) return value;
-  if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return value.toLocaleDateString("fa-IR");
-  }
-  return "—";
+  return formatJalaliDate(value);
 }
 
 function formatMoney(value: unknown): number {
@@ -119,12 +127,10 @@ function normalizeStatus(value: unknown): User["status"] {
   return "غیرفعال";
 }
 
-function normalizeRole(value: unknown): User["role"] {
+function normalizeRole(value: unknown): ApplicationMainRole {
   const raw = String(value ?? "").trim().toLowerCase();
   if (raw in ROLE_MAP) return ROLE_MAP[raw];
-  if (raw.includes("admin")) return "ادمین";
-  if (raw.includes("support")) return "پشتیبان";
-  return "کاربر عادی";
+  return normalizeApplicationMainRole(value);
 }
 
 function getRoles(raw: UnknownRecord): string[] {
@@ -168,8 +174,10 @@ function normalizeUser(raw: unknown, index: number): User {
           ? "فعال"
           : "غیرفعال"
         : normalizeStatus(statusValue),
-    role: normalizeRole(roleFromRoles || roleValue),
-    joinedAt: formatDate(findByKeys(row, ["joinedAt", "createdAt", "registeredAt", "signUpAt", "signupAt"])),
+    role: roles.length > 0 ? pickPrimaryApplicationRole(roles) : normalizeRole(roleFromRoles || roleValue),
+    joinedAt: formatDate(
+      findByKeys(row, ["joinedSince", "joinedAt", "createdAt", "registeredAt", "signUpAt", "signupAt"])
+    ),
     courses: toNumber(findByKeys(row, ["courses", "coursesCount", "enrolledCoursesCount", "purchasedCoursesCount"]), 0) ?? 0,
     ltv: formatMoney(findByKeys(row, ["ltv", "lifetimeValue", "totalSpent", "spend", "revenue"])),
     avatarColor: normalizeString(findByKeys(row, ["avatarColor", "avatarGradient"]), ""),
@@ -199,4 +207,51 @@ export function normalizeAdminUsersResponse(response: unknown): AdminUsersRespon
     page: toNumber(meta?.page),
     limit: toNumber(meta?.limit),
   };
+}
+
+export function normalizeAdminUser(response: unknown): User {
+  const payload = unwrapResponse(response);
+  if (Array.isArray(payload) && payload.length > 0) {
+    return normalizeUser(payload[0], 0);
+  }
+  return normalizeUser(payload, 0);
+}
+
+export type AdminUserUpdateInput = {
+  name: string;
+  phone: string;
+  email: string;
+  status: User["status"];
+  role: ApplicationMainRole;
+  internalNotes: string;
+};
+
+function normalizePhoneForApi(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("98") && digits.length === 12) return `+${digits}`;
+  if (digits.startsWith("09") && digits.length === 11) return `+98${digits.slice(1)}`;
+  return phone.trim();
+}
+
+export function isValidIranPhone(phone: string): boolean {
+  const digits = phone.replace(/\D/g, "");
+  return /^09\d{9}$/.test(digits) || /^989\d{9}$/.test(digits);
+}
+
+export function buildAdminUserUpdatePayload(input: AdminUserUpdateInput): Record<string, unknown> {
+  const isActive = input.status === "فعال";
+  const payload: Record<string, unknown> = {
+    fullName: input.name.trim(),
+    email: input.email.trim(),
+    phoneNumber: normalizePhoneForApi(input.phone),
+    isActive,
+    roleName: input.role,
+  };
+
+  const note = input.internalNotes.trim();
+  if (note) {
+    payload.internalAdminNote = note;
+  }
+
+  return payload;
 }

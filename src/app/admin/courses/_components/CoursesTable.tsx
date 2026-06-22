@@ -1,17 +1,14 @@
 import React from "react";
 import { Course } from "./types";
 import CourseStatusBadge from "./CourseStatusBadge";
-import { 
-  Eye, 
-  Edit2, 
-  BarChart3, 
-  Trash2, 
-  GraduationCap, 
-  User, 
-  Percent, 
-  DollarSign, 
+import {
+  Eye,
+  Edit2,
+  BarChart3,
+  Trash2,
+  GraduationCap,
+  User,
   Calendar,
-  AlertCircle
 } from "lucide-react";
 
 interface CoursesTableProps {
@@ -31,21 +28,10 @@ export default function CoursesTable({
   onShowStats,
   onClearFilters,
 }: CoursesTableProps) {
-
-  // Format Revenue Helper
   const formatRevenue = (value: number) => {
     return `${value.toLocaleString("fa-IR")} تومان`;
   };
 
-  // Format Completion Progress Color
-  const getProgressColor = (completion: number) => {
-    if (completion >= 70) return "bg-emerald-500";
-    if (completion >= 50) return "bg-primary";
-    if (completion >= 30) return "bg-amber-500";
-    return "bg-rose-500";
-  };
-
-  // If no courses found, show professional Empty State
   if (courses.length === 0) {
     return (
       <div className="w-full rounded-3xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md p-12 text-center animate-in fade-in duration-300">
@@ -70,9 +56,8 @@ export default function CoursesTable({
 
   return (
     <div className="w-full">
-      {/* Desktop Table View */}
       <div className="hidden lg:block overflow-x-auto w-full rounded-3xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md">
-        <table className="w-full min-w-[1000px] text-right border-collapse">
+        <table className="w-full min-w-[900px] text-right border-collapse">
           <thead>
             <tr className="border-b border-gray-100 dark:border-white/5 text-[11px] text-gray-400 dark:text-gray-500 font-black select-none bg-gray-50/50 dark:bg-black/10">
               <th className="py-4.5 px-6">کد دوره</th>
@@ -80,7 +65,6 @@ export default function CoursesTable({
               <th className="py-4.5 px-4">مدرس</th>
               <th className="py-4.5 px-4">دسته‌بندی</th>
               <th className="py-4.5 px-4 text-center">تعداد دانشجو</th>
-              <th className="py-4.5 px-4">میزان تکمیل</th>
               <th className="py-4.5 px-4">درآمد کل</th>
               <th className="py-4.5 px-4">وضعیت</th>
               <th className="py-4.5 px-4">آخرین بروزرسانی</th>
@@ -89,58 +73,26 @@ export default function CoursesTable({
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-white/5">
             {courses.map((course) => (
-              <tr 
-                key={course.id} 
+              <tr
+                key={course.id}
                 className="group hover:bg-gray-50/40 dark:hover:bg-black/10 transition-colors duration-250 text-xs text-gray-800 dark:text-gray-200"
               >
-                {/* Code */}
                 <td className="py-4 px-6 font-black text-gray-900 dark:text-white">{course.id}</td>
-                
-                {/* Title */}
                 <td className="py-4 px-4 font-black">
                   <div className="max-w-[200px] truncate" title={course.title}>
                     {course.title}
                   </div>
                 </td>
-                
-                {/* Instructor */}
                 <td className="py-4 px-4 text-gray-500 dark:text-gray-400 font-semibold">{course.instructor}</td>
-                
-                {/* Category */}
                 <td className="py-4 px-4">
                   <span className="px-2.5 py-1 rounded-lg bg-gray-50 dark:bg-black/30 border border-gray-100 dark:border-white/5 font-black text-[10px] text-gray-600 dark:text-gray-400">
                     {course.category}
                   </span>
                 </td>
-                
-                {/* Students Count */}
                 <td className="py-4 px-4 text-center font-bold">{course.students.toLocaleString("fa-IR")}</td>
-                
-                {/* Completion progress */}
-                <td className="py-4 px-4">
-                  <div className="w-32">
-                    <div className="flex items-center justify-between mb-1.5 text-[10px] font-black">
-                      <span className="text-gray-400">{course.completion}%</span>
-                    </div>
-                    <div className="h-1.5 w-full rounded-full bg-gray-100 dark:bg-black/30 overflow-hidden">
-                      <div 
-                        className={`h-full rounded-full transition-all duration-500 ${getProgressColor(course.completion)}`} 
-                        style={{ width: `${course.completion}%` }}
-                      />
-                    </div>
-                  </div>
-                </td>
-                
-                {/* Revenue */}
                 <td className="py-4 px-4 font-black text-emerald-600 dark:text-emerald-400">{formatRevenue(course.revenue)}</td>
-                
-                {/* Status */}
                 <td className="py-4 px-4"><CourseStatusBadge status={course.status} /></td>
-                
-                {/* Updated At */}
                 <td className="py-4 px-4 text-gray-500 dark:text-gray-500 font-bold select-none">{course.updatedAt}</td>
-                
-                {/* Operations */}
                 <td className="py-4 px-6 text-center">
                   <div className="flex items-center justify-center gap-1.5 opacity-90 group-hover:opacity-100 transition-opacity">
                     <button
@@ -150,7 +102,6 @@ export default function CoursesTable({
                     >
                       <Eye className="w-4 h-4" />
                     </button>
-                    
                     <button
                       onClick={() => onEditCourse(course)}
                       className="p-2 bg-gray-50 hover:bg-amber-500/10 dark:bg-black/20 text-gray-600 dark:text-gray-400 hover:text-amber-500 dark:hover:text-amber-400 rounded-xl transition-all hover:scale-105"
@@ -158,7 +109,6 @@ export default function CoursesTable({
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
-                    
                     {onShowStats && (
                       <button
                         onClick={() => onShowStats(course)}
@@ -168,7 +118,6 @@ export default function CoursesTable({
                         <BarChart3 className="w-4 h-4" />
                       </button>
                     )}
-
                     <button
                       onClick={() => onDeleteCourse(course)}
                       className="p-2 bg-gray-50 hover:bg-rose-500/10 dark:bg-black/20 text-gray-600 dark:text-gray-400 hover:text-rose-500 dark:hover:text-rose-400 rounded-xl transition-all hover:scale-105"
@@ -184,28 +133,30 @@ export default function CoursesTable({
         </table>
       </div>
 
-      {/* Mobile Card Grid View */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
         {courses.map((course) => (
-          <div 
+          <div
             key={course.id}
             className="rounded-3xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md p-5 flex flex-col justify-between gap-4 relative overflow-hidden"
           >
-            {/* Soft status highlight strip */}
-            <div className={`absolute top-0 right-0 w-2.5 h-full ${
-              course.status === "منتشر شده" ? "bg-emerald-500" :
-              course.status === "پیش‌نویس" ? "bg-amber-500" :
-              course.status === "در انتظار بررسی" ? "bg-blue-500" : "bg-rose-500"
-            }`} />
+            <div
+              className={`absolute top-0 right-0 w-2.5 h-full ${
+                course.status === "منتشر شده"
+                  ? "bg-emerald-500"
+                  : course.status === "پیش‌نویس"
+                    ? "bg-amber-500"
+                    : course.status === "در انتظار بررسی"
+                      ? "bg-blue-500"
+                      : "bg-rose-500"
+              }`}
+            />
 
-            {/* Header info */}
             <div className="pr-2 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black text-gray-400 dark:text-gray-500">{course.id}</span>
                 <CourseStatusBadge status={course.status} />
               </div>
               <h4 className="text-sm font-black text-gray-900 dark:text-white leading-relaxed">{course.title}</h4>
-              
               <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                 <User className="w-3.5 h-3.5" />
                 <span className="font-semibold">{course.instructor}</span>
@@ -216,15 +167,10 @@ export default function CoursesTable({
               </div>
             </div>
 
-            {/* Quick stats section */}
-            <div className="grid grid-cols-3 gap-2.5 bg-gray-50/50 dark:bg-black/15 p-3 rounded-2xl text-center select-none">
+            <div className="grid grid-cols-2 gap-2.5 bg-gray-50/50 dark:bg-black/15 p-3 rounded-2xl text-center select-none">
               <div className="space-y-0.5">
                 <span className="text-[9px] text-gray-400 dark:text-gray-500 font-bold block">دانشجو</span>
                 <span className="text-[11px] font-black text-gray-800 dark:text-gray-200">{course.students.toLocaleString("fa-IR")}</span>
-              </div>
-              <div className="space-y-0.5">
-                <span className="text-[9px] text-gray-400 dark:text-gray-500 font-bold block">تکمیل</span>
-                <span className="text-[11px] font-black text-gray-800 dark:text-gray-200">{course.completion}%</span>
               </div>
               <div className="space-y-0.5">
                 <span className="text-[9px] text-gray-400 dark:text-gray-500 font-bold block">درآمد کل</span>
@@ -234,24 +180,11 @@ export default function CoursesTable({
               </div>
             </div>
 
-            {/* Progress bar */}
-            <div className="space-y-1">
-              <div className="h-1.5 w-full rounded-full bg-gray-100 dark:bg-black/30 overflow-hidden">
-                <div 
-                  className={`h-full rounded-full transition-all duration-500 ${getProgressColor(course.completion)}`} 
-                  style={{ width: `${course.completion}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Footer updated details */}
             <div className="flex items-center justify-between border-t border-gray-100 dark:border-white/5 pt-3.5 mt-1 select-none">
               <div className="flex items-center gap-1 text-[10px] text-gray-400 font-bold">
                 <Calendar className="w-3.5 h-3.5 text-gray-300" />
                 <span>بروزرسانی: {course.updatedAt}</span>
               </div>
-              
-              {/* Operations */}
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => onShowDetails(course)}
@@ -260,7 +193,6 @@ export default function CoursesTable({
                 >
                   <Eye className="w-4 h-4" />
                 </button>
-                
                 <button
                   onClick={() => onEditCourse(course)}
                   className="p-1.5 bg-gray-50 hover:bg-amber-500/10 dark:bg-black/20 text-gray-600 dark:text-gray-400 hover:text-amber-500 dark:hover:text-amber-400 rounded-xl transition-all"
@@ -268,7 +200,6 @@ export default function CoursesTable({
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
-
                 <button
                   onClick={() => onDeleteCourse(course)}
                   className="p-1.5 bg-gray-50 hover:bg-rose-500/10 dark:bg-black/20 text-gray-600 dark:text-gray-400 hover:text-rose-500 dark:hover:text-rose-400 rounded-xl transition-all"

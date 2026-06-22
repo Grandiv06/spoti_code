@@ -1,4 +1,6 @@
 import type { User, PurchasedCourse, UserTicket, UserTransaction } from "@/app/admin/users/_components/types";
+import { normalizeApplicationMainRole } from "@/lib/application-roles";
+import { formatJalaliDate } from "@/lib/dates";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -62,11 +64,7 @@ function normalizeString(value: unknown, fallback = "—"): string {
 }
 
 function formatDate(value: unknown): string {
-  if (typeof value === "string" && value.trim()) return value;
-  if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return value.toLocaleDateString("fa-IR");
-  }
-  return "—";
+  return formatJalaliDate(value);
 }
 
 function normalizeStatus(value: unknown): User["status"] {
@@ -84,10 +82,7 @@ function normalizePlan(value: unknown): User["plan"] {
 }
 
 function normalizeRole(value: unknown): User["role"] {
-  const raw = String(value ?? "").trim().toLowerCase();
-  if (raw.includes("admin")) return "ادمین";
-  if (raw.includes("support") || raw.includes("moderator")) return "پشتیبان";
-  return "کاربر عادی";
+  return normalizeApplicationMainRole(value);
 }
 
 function hashToGradientSeed(input: string): string {
@@ -187,7 +182,9 @@ export function normalizeAdminUserDetail(response: unknown): User {
           : "غیرفعال"
         : normalizeStatus(findByKeys(row, ["status", "accountStatus", "userStatus", "isActive"])),
     role: normalizeRole(findByKeys(row, ["role", "roleName", "userRole", "primaryRole"])),
-    joinedAt: formatDate(findByKeys(row, ["joinedAt", "createdAt", "registeredAt", "signUpAt", "signupAt"])),
+    joinedAt: formatDate(
+      findByKeys(row, ["joinedSince", "joinedAt", "createdAt", "registeredAt", "signUpAt", "signupAt"])
+    ),
     courses: coursesCount ?? 0,
     ltv: toNumber(findByKeys(row, ["ltv", "lifetimeValue", "totalSpent", "spend", "revenue"]), 0),
     avatarColor: hashToGradientSeed(id),

@@ -26,7 +26,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { User, PurchasedCourse, UserTransaction, UserTicket, UserActivity } from "../_components/types";
-import { UserStatusBadge, UserPlanBadge, UserRoleBadge } from "../_components/Badges";
+import { UserStatusBadge, UserRoleBadge } from "../_components/Badges";
 import { toPersianDigits, formatPrice, formatPhone, formatPersianDate } from "../_components/utils";
 import EditUserModal from "../_components/EditUserModal";
 import {
@@ -113,7 +113,6 @@ export function UserOverviewTab({ user }: UserOverviewTabProps) {
           
           <div className="flex items-center justify-center gap-2 mb-6">
             <UserRoleBadge role={user.role} />
-            <UserPlanBadge plan={user.plan} />
           </div>
           
           <div className="pt-4 border-t border-gray-100 dark:border-white/5 grid grid-cols-2 gap-4 text-xs font-bold">
@@ -779,17 +778,10 @@ export default function UserDetailView({ userId }: UserDetailViewProps) {
   };
 
   const handleSaveUser = (updatedUser: User) => {
-    setUser(updatedUser);
+    setUser((prev) => ({ ...(prev ?? overviewQuery.data ?? updatedUser), ...updatedUser }));
     setIsEditModalOpen(false);
     showToast(`مشخصات کاربر «${updatedUser.name}» با موفقیت ویرایش شد.`, "success");
-
-    if ((updatedUser.internalNotes || "") !== (user?.internalNotes || "")) {
-      updateInternalNoteMutation.mutate(updatedUser.internalNotes || "", {
-        onError: () => {
-          showToast("همگام‌سازی یادداشت داخلی با سرور ناموفق بود.", "error");
-        },
-      });
-    }
+    void overviewQuery.refetch();
   };
 
   const displayUser = user ?? overviewQuery.data ?? null;
@@ -1019,10 +1011,11 @@ export default function UserDetailView({ userId }: UserDetailViewProps) {
 
       {/* Edit User Modal Overlay */}
       <EditUserModal
-        user={displayUser}
+        userId={userId}
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         onSave={handleSaveUser}
+        onError={(message) => showToast(message, "error")}
       />
 
       {/* Dynamic Toast Notifications Overlay */}

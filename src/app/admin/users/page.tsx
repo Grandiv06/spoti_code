@@ -45,10 +45,9 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [planFilter, setPlanFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
-  const [selectedEditUser, setSelectedEditUser] = useState<User | null>(null);
+  const [selectedEditUserId, setSelectedEditUserId] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -84,13 +83,12 @@ export default function AdminUsersPage() {
   };
 
   const hasActiveFilters = useMemo(() => {
-    return searchQuery !== "" || statusFilter !== "all" || planFilter !== "all";
-  }, [searchQuery, statusFilter, planFilter]);
+    return searchQuery !== "" || statusFilter !== "all";
+  }, [searchQuery, statusFilter]);
 
   const handleClearFilters = () => {
     setSearchQuery("");
     setStatusFilter("all");
-    setPlanFilter("all");
     setSortBy("newest");
     showToast("فیلترها با موفقیت پاک شدند.", "info");
   };
@@ -100,10 +98,6 @@ export default function AdminUsersPage() {
 
     if (statusFilter !== "all") {
       result = result.filter((u) => u.status === statusFilter);
-    }
-
-    if (planFilter !== "all") {
-      result = result.filter((u) => u.plan === planFilter);
     }
 
     result.sort((a, b) => {
@@ -119,20 +113,24 @@ export default function AdminUsersPage() {
     });
 
     return result;
-  }, [users, statusFilter, planFilter, sortBy]);
+  }, [users, statusFilter, sortBy]);
 
   const handleShowDetails = (user: User) => {
     router.push(`/admin/users/detail?id=${encodeURIComponent(user.id)}`);
   };
 
   const handleEditUser = (user: User) => {
-    setSelectedEditUser(user);
+    setSelectedEditUserId(user.id);
     setIsEditModalOpen(true);
   };
 
   const handleSaveUser = (updatedUser: User) => {
-    setUsers((prev) => prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
+    setUsers((prev) =>
+      prev.map((u) => (u.id === updatedUser.id ? { ...u, ...updatedUser } : u))
+    );
     setIsEditModalOpen(false);
+    setSelectedEditUserId(null);
+    void refetch();
     showToast(`مشخصات کاربر «${updatedUser.name}» با موفقیت ویرایش شد.`, "success");
   };
 
@@ -205,8 +203,6 @@ export default function AdminUsersPage() {
         setSearchQuery={setSearchQuery}
         statusFilter={statusFilter}
         setStatusFilter={setStatusFilter}
-        planFilter={planFilter}
-        setPlanFilter={setPlanFilter}
         sortBy={sortBy}
         setSortBy={setSortBy}
         onClearFilters={handleClearFilters}
@@ -227,10 +223,14 @@ export default function AdminUsersPage() {
       ) : null}
 
       <EditUserModal
-        user={selectedEditUser}
+        userId={selectedEditUserId}
         isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedEditUserId(null);
+        }}
         onSave={handleSaveUser}
+        onError={(message) => showToast(message, "error")}
       />
 
       <AddUserModal

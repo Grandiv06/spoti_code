@@ -4,19 +4,18 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
 
-import { 
-  Course, 
-  initialCoursesData 
-} from "./_components/types";
+import { Course } from "./_components/types";
+import { cacheAdminCourseDetail, buildMockCourseDetail } from "./_components/course-detail-mock";
 
 import CoursesHeader from "./_components/CoursesHeader";
 import CoursesStats from "./_components/CoursesStats";
+import CoursesStatsSkeleton from "./_components/CoursesStatsSkeleton";
 import CoursesFilters from "./_components/CoursesFilters";
 import CoursesTable from "./_components/CoursesTable";
+import CoursesTableSkeleton from "./_components/CoursesTableSkeleton";
 import CreateCourseWizard from "./_components/CreateCourseWizard";
 import EditCourseModal from "./_components/EditCourseModal";
-import { apiGetNoMock } from "@/lib/api";
-import { normalizeAdminCoursesResponse } from "@/lib/admin-courses";
+import { useAdminCoursesQuery } from "@/hooks/api/useAdminCoursesQuery";
 
 interface Toast {
   id: string;
@@ -24,41 +23,44 @@ interface Toast {
   type: "success" | "error" | "info";
 }
 
+function CoursesErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-sm font-black">بارگذاری لیست دوره‌ها انجام نشد.</p>
+          <p className="mt-2 text-xs leading-relaxed opacity-90">{message}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-red-600 px-4 py-3 text-xs font-bold text-white transition-colors hover:bg-red-700"
+        >
+          <CheckCircle2 className="w-4 h-4" />
+          تلاش مجدد
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminCoursesPage() {
   const router = useRouter();
 
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isLoadingCourses, setIsLoadingCourses] = useState(true);
+
+  const { data, isPending, isFetching, isError, error, refetch } = useAdminCoursesQuery();
 
   useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        const response = await apiGetNoMock<unknown>("/api/admin-dashboard/courses");
-        const normalizedCourses = normalizeAdminCoursesResponse(response);
+    if (data) {
+      setCourses(data);
+      setIsLoaded(true);
+    }
+  }, [data]);
 
-        setCourses(normalizedCourses);
-        localStorage.setItem("spoticode_admin_courses", JSON.stringify(normalizedCourses));
-      } catch {
-        const saved = localStorage.getItem("spoticode_admin_courses");
-        if (saved) {
-          try {
-            setCourses(JSON.parse(saved));
-          } catch {
-            setCourses(initialCoursesData);
-          }
-        } else {
-          setCourses(initialCoursesData);
-        }
-        showToast("دریافت دوره‌ها از سرور انجام نشد. داده ذخیره‌شده نمایش داده شد.", "error");
-      } finally {
-        setIsLoaded(true);
-        setIsLoadingCourses(false);
-      }
-    };
-
-    fetchCourses();
-  }, []);
+  const isLoadingCourses = isPending || isFetching;
+  const showCoursesContent = !isError || courses.length > 0;
 
   useEffect(() => {
     if (isLoaded) {
@@ -66,19 +68,16 @@ export default function AdminCoursesPage() {
     }
   }, [courses, isLoaded]);
 
-  // Filters State
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
 
-  // Modals States
   const [isCreateWizardOpen, setIsCreateWizardOpen] = useState(false);
   const [selectedEditCourse, setSelectedEditCourse] = useState<Course | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  // Toast System State
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
@@ -89,12 +88,10 @@ export default function AdminCoursesPage() {
     }, 4000);
   };
 
-  // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
     return searchQuery !== "" || statusFilter !== "all" || categoryFilter !== "all";
   }, [searchQuery, statusFilter, categoryFilter]);
 
-  // Clear Filters Handler
   const handleClearFilters = () => {
     setSearchQuery("");
     setStatusFilter("all");
@@ -103,11 +100,9 @@ export default function AdminCoursesPage() {
     showToast("فیلترها با موفقیت پاک شدند.", "info");
   };
 
-  // Filter and Sort Logic
   const filteredAndSortedCourses = useMemo(() => {
     let result = [...courses];
 
-    // 1. Search Query Filter
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       result = result.filter(
@@ -118,17 +113,14 @@ export default function AdminCoursesPage() {
       );
     }
 
-    // 2. Status Filter
     if (statusFilter !== "all") {
       result = result.filter((c) => c.status === statusFilter);
     }
 
-    // 3. Category Filter
     if (categoryFilter !== "all") {
       result = result.filter((c) => c.category === categoryFilter);
     }
 
-    // 4. Sorting
     result.sort((a, b) => {
       if (sortBy === "highest_students") {
         return b.students - a.students;
@@ -139,20 +131,17 @@ export default function AdminCoursesPage() {
       if (sortBy === "highest_completion") {
         return b.completion - a.completion;
       }
-      // default or 'newest'
       const idA = parseInt(a.id.replace("CRS-", "")) || 0;
       const idB = parseInt(b.id.replace("CRS-", "")) || 0;
-      return idB - idA; // higher ID is newer
+      return idB - idA;
     });
 
     return result;
   }, [courses, searchQuery, statusFilter, categoryFilter, sortBy]);
 
-
-
-  // Operations
   const handleShowDetails = (course: Course) => {
-    router.push(`/admin/courses/${course.id}`);
+    cacheAdminCourseDetail(buildMockCourseDetail(course));
+    router.push(`/admin/courses/detail?id=${encodeURIComponent(course.id)}`);
   };
 
   const handleEditCourse = (course: Course) => {
@@ -168,15 +157,12 @@ export default function AdminCoursesPage() {
 
   const handleDeleteCourse = (course: Course) => {
     if (confirm(`آیا از غیرفعال‌سازی یا حذف دوره «${course.title}» اطمینان دارید؟`)) {
-      // Completely remove or we can change status to "غیرفعال"
-      // Let's completely remove it from this list
       setCourses((prev) => prev.filter((c) => c.id !== course.id));
       showToast(`دوره «${course.title}» با موفقیت حذف گردید.`, "success");
     }
   };
 
   const handleAddCourse = (newCourse: Course) => {
-    // Check if ID already exists
     if (courses.some((c) => c.id === newCourse.id)) {
       showToast(`خطا: شناسه دوره «${newCourse.id}» قبلاً ثبت شده است.`, "error");
       return;
@@ -193,14 +179,23 @@ export default function AdminCoursesPage() {
 
   return (
     <div className="max-w-[1400px] mx-auto px-2 md:px-4 pb-20 animate-in fade-in duration-700" dir="rtl">
-      
-      {/* Redesigned Premium Header Component */}
       <CoursesHeader onCreateCourseClick={() => setIsCreateWizardOpen(true)} />
 
-      {/* Redesigned KPIs Component */}
-      <CoursesStats courses={courses} />
+      {isError ? (
+        <div className="mb-8">
+          <CoursesErrorState
+            message={error?.message || "لطفاً اتصال شبکه و سطح دسترسی کاربر را بررسی کنید."}
+            onRetry={() => void refetch()}
+          />
+        </div>
+      ) : null}
 
-      {/* Search and Filters Section */}
+      {isLoadingCourses ? (
+        <CoursesStatsSkeleton />
+      ) : showCoursesContent ? (
+        <CoursesStats courses={courses} />
+      ) : null}
+
       <CoursesFilters
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
@@ -216,14 +211,10 @@ export default function AdminCoursesPage() {
         hasActiveFilters={hasActiveFilters}
       />
 
-      {/* Main Table (takes full width) */}
       <div className="w-full">
         {isLoadingCourses ? (
-          <div className="rounded-3xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md p-10 text-center">
-            <div className="mx-auto mb-4 h-10 w-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-            <p className="text-xs font-black text-gray-500 dark:text-gray-400">در حال دریافت دوره‌ها از سرور...</p>
-          </div>
-        ) : (
+          <CoursesTableSkeleton />
+        ) : showCoursesContent ? (
           <CoursesTable
             courses={filteredAndSortedCourses}
             onShowDetails={handleShowDetails}
@@ -232,17 +223,15 @@ export default function AdminCoursesPage() {
             onShowStats={handleShowStats}
             onClearFilters={handleClearFilters}
           />
-        )}
+        ) : null}
       </div>
 
-      {/* Stepper Modal: Create Course */}
       <CreateCourseWizard
         isOpen={isCreateWizardOpen}
         onClose={() => setIsCreateWizardOpen(false)}
         onAdd={handleAddCourse}
       />
 
-      {/* Modal: Edit Course Details */}
       <EditCourseModal
         course={selectedEditCourse}
         isOpen={isEditModalOpen}
@@ -250,7 +239,6 @@ export default function AdminCoursesPage() {
         onSave={handleSaveCourse}
       />
 
-      {/* Custom Toast Notifications Overlay */}
       <div className="fixed bottom-6 left-6 z-50 flex flex-col gap-3 max-w-sm w-full" dir="rtl">
         {toasts.map((t) => (
           <div
@@ -268,7 +256,6 @@ export default function AdminCoursesPage() {
           </div>
         ))}
       </div>
-
     </div>
   );
 }

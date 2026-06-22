@@ -1,9 +1,14 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Ticket } from "@/app/panel/support/data";
-import { apiGetNoMock } from "@/lib/api";
-import { normalizeAdminTicketsResponse } from "@/lib/admin-tickets";
+import { formatTicketDate } from "@/app/panel/support/data";
+import { apiGetNoMock, apiPatchNoMock, apiPostNoMock } from "@/lib/api";
+import {
+  normalizeAdminTicketMessage,
+  normalizeAdminTicketResponse,
+  normalizeAdminTicketsResponse,
+} from "@/lib/admin-tickets";
 
 export type AdminTicketsQueryParams = {
   search?: string;
@@ -14,6 +19,23 @@ export type AdminTicketsQueryParams = {
 };
 
 export const adminTicketsQueryKey = (params: AdminTicketsQueryParams) => ["admin-tickets", params] as const;
+export const adminTicketDetailQueryKey = (ticketId: string) => ["admin-ticket", ticketId] as const;
+
+function beautifyAdminTicketDates(ticket: Ticket): Ticket {
+  return {
+    ...ticket,
+    createdAt: formatTicketDate(ticket.createdAt),
+    updatedAt: formatTicketDate(ticket.updatedAt),
+    messages: ticket.messages.map((message) => ({
+      ...message,
+      timestamp: formatTicketDate(message.timestamp),
+    })),
+  };
+}
+
+function adminTicketDetailPath(ticketId: string) {
+  return `/api/tickets/admin/${encodeURIComponent(ticketId)}`;
+}
 
 function buildAdminTicketsPath(params: AdminTicketsQueryParams) {
   const query = new URLSearchParams();
@@ -45,6 +67,19 @@ export function useAdminTicketsQuery(params: AdminTicketsQueryParams = {}) {
   });
 }
 
+export function useAdminTicketDetailQuery(ticketId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: adminTicketDetailQueryKey(ticketId),
+    queryFn: async () =>
+      beautifyAdminTicketDates(
+        normalizeAdminTicketResponse(await apiGetNoMock<unknown>(adminTicketDetailPath(ticketId)))
+      ),
+    enabled: Boolean(ticketId) && enabled,
+    staleTime: 0,
+    retry: 1,
+  });
+}
+
 export function mapAdminTicketStatusFilter(
   value: string
 ): AdminTicketsQueryParams["status"] | undefined {
@@ -60,4 +95,58 @@ export function mapAdminTicketPriorityFilter(
   if (value === "all") return undefined;
   if (value === "low" || value === "medium" || value === "high") return value;
   return undefined;
+}
+
+function adminTicketClosePath(ticketId: string) {
+  return `/api/tickets/my/${encodeURIComponent(ticketId)}/close`;
+}
+
+function adminTicketMessagePath(ticketId: string) {
+  return `/api/tickets/admin/${encodeURIComponent(ticketId)}/messages`;
+}
+
+export function useCloseAdminTicketMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (ticketId: string) =>
+      normalizeAdminTicketResponse(await apiPatchNoMock<unknown>(adminTicketClosePath(ticketId))),
+    onSuccess: async (_ticket, ticketId) => {
+      await queryClient.invalidateQueries({ queryKey: ["admin-tickets"] });
+      await queryClient.invalidateQueries({ queryKey: adminTicketDetailQueryKey(ticketId) });
+    },
+  });
+}
+
+export function useSendAdminTicketMessageMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ ticketId, body }: { ticketId: string; body: string }) => {
+      const message = normalizeAdminTicketMessage(
+        await apiPostNoMock<unknown>(adminTicketMessagePath(ticketId), { body })
+      );
+
+      return {
+        ...message,
+        timestamp: formatTicketDate(
+          message.timestamp === "—" ? new Date().toISOString() : message.timestamp
+        ),
+      };
+    },
+    onSuccess: async (message, { ticketId }) => {
+      queryClient.setQueryData<Ticket | undefined>(adminTicketDetailQueryKey(ticketId), (current) => {
+        if (!current) return current;
+        if (current.messages.some((item) => item.id === message.id)) return current;
+        return {
+          ...current,
+          status: "answered",
+          updatedAt: message.timestamp,
+          messages: [...current.messages, message],
+        };
+      });
+      await queryClient.invalidateQueries({ queryKey: ["admin-tickets"] });
+      void queryClient.invalidateQueries({ queryKey: adminTicketDetailQueryKey(ticketId) });
+    },
+  });
 }

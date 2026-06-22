@@ -1,8 +1,39 @@
-import React from "react";
-import { Eye, Edit3, UserCheck, Inbox } from "lucide-react";
+"use client";
+
+import React, { useState } from "react";
+import { Eye, Edit3, Inbox, Copy, Check } from "lucide-react";
 import { User } from "./types";
 import { UserStatusBadge } from "./Badges";
 import { toPersianDigits, formatPrice, formatPhone, formatPersianDate } from "./utils";
+import { toEnglishDigits } from "@/lib/digits";
+
+function CopyUserIdButton({ userId }: { userId: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+
+    try {
+      await navigator.clipboard.writeText(toEnglishDigits(userId));
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={(event) => void handleCopy(event)}
+      title="کپی شناسه کاربر"
+      className="inline-flex items-center gap-1.5 rounded-xl border border-gray-100 bg-gray-50 px-2.5 py-1.5 text-xs font-bold text-gray-600 transition-all hover:border-gray-200 hover:text-gray-900 dark:border-white/5 dark:bg-black/20 dark:text-gray-300 dark:hover:border-white/10 dark:hover:text-white"
+    >
+      {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+      <span>{copied ? "کپی شد" : "کپی شناسه"}</span>
+    </button>
+  );
+}
 
 interface UsersTableProps {
   users: User[];
@@ -51,15 +82,15 @@ export default function UsersTable({
   return (
     <div className="bg-white dark:bg-[#1c1e26] rounded-3xl border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden transition-all duration-300">
       <div className="overflow-x-auto w-full">
-        <table className="w-full text-right border-collapse text-sm">
+        <table className="w-full text-right border-collapse text-sm min-w-[960px]">
           <thead>
             <tr className="border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-black/10">
               <th className="py-4 px-6 text-xs font-bold text-gray-400 dark:text-gray-500 w-24">شناسه</th>
               <th className="py-4 px-6 text-xs font-bold text-gray-400 dark:text-gray-500">کاربر</th>
-              <th className="py-4 px-6 text-xs font-bold text-gray-400 dark:text-gray-500">شماره تماس</th>
+              <th className="py-4 px-6 text-xs font-bold text-gray-400 dark:text-gray-500 whitespace-nowrap min-w-[8.5rem]">شماره تماس</th>
               <th className="py-4 px-6 text-xs font-bold text-gray-400 dark:text-gray-500">وضعیت حساب</th>
               <th className="py-4 px-6 text-xs font-bold text-gray-400 dark:text-gray-500 text-center w-24">دوره‌ها</th>
-              <th className="py-4 px-6 text-xs font-bold text-gray-400 dark:text-gray-500">ارزش کل (LTV)</th>
+              <th className="py-4 px-6 text-xs font-bold text-gray-400 dark:text-gray-500 whitespace-nowrap min-w-[7.5rem]">ارزش کل (LTV)</th>
               <th className="py-4 px-6 text-xs font-bold text-gray-400 dark:text-gray-500 w-32">تاریخ عضویت</th>
               <th className="py-4 px-6 text-xs font-bold text-gray-400 dark:text-gray-500 text-center w-48">عملیات</th>
             </tr>
@@ -72,10 +103,8 @@ export default function UsersTable({
                 className="hover:bg-gray-50/30 dark:hover:bg-white/[0.02] transition-colors duration-200 cursor-pointer"
               >
                 {/* ID Column */}
-                <td className="py-4 px-6">
-                  <span className="font-mono text-xs font-bold text-gray-400 dark:text-zinc-500 px-2.5 py-1 bg-gray-50 dark:bg-black/20 border border-gray-100 dark:border-white/5 rounded-xl block text-center w-fit">
-                    {toPersianDigits(user.id)}
-                  </span>
+                <td className="py-4 px-6" onClick={(event) => event.stopPropagation()}>
+                  <CopyUserIdButton userId={user.id} />
                 </td>
 
                 {/* Name / User Info Column */}
@@ -123,7 +152,7 @@ export default function UsersTable({
 
                 {/* LTV Column */}
                 <td className="py-4 px-6">
-                  <span className="font-black text-gray-900 dark:text-white text-xs">
+                  <span className="inline-block font-black text-gray-900 dark:text-white text-xs whitespace-nowrap">
                     {formatPrice(user.ltv)}
                   </span>
                 </td>

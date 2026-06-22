@@ -71,7 +71,7 @@ function normalizePriority(value: unknown): Ticket["priority"] {
 
 function normalizeSender(value: unknown): Message["sender"] {
   const raw = String(value ?? "").trim().toLowerCase();
-  if (["support", "admin", "agent", "staff"].includes(raw)) return "support";
+  if (["support", "admin", "agent", "staff", "administrator"].includes(raw)) return "support";
   return "user";
 }
 
@@ -79,7 +79,9 @@ function mapMessages(source: unknown): Message[] {
   const items = findNestedArray(source, ["messages", "replies", "comments", "conversation"]);
   return items.map((item, index) => {
     const row = isRecord(item) ? item : {};
-    const sender = normalizeSender(findByKeys(row, ["sender", "from", "author", "createdBy"]));
+    const sender = normalizeSender(
+      findByKeys(row, ["senderType", "sender", "from", "author", "createdBy", "role"])
+    );
     return {
       id: normalizeString(findByKeys(row, ["id", "messageId", "code"]), `m-${index + 1}`),
       sender,
@@ -154,4 +156,30 @@ export function normalizeAdminTicketsResponse(response: unknown): Ticket[] {
   if (!Array.isArray(items)) return [];
 
   return items.map((item, index) => toTicket(item, index));
+}
+
+export function normalizeAdminTicketResponse(response: unknown): Ticket {
+  return toTicket(unwrapResponse(response), 0);
+}
+
+export function normalizeAdminTicketMessage(response: unknown): Message {
+  const row = isRecord(unwrapResponse(response)) ? unwrapResponse(response) : {};
+  const sender = normalizeSender(
+    findByKeys(row, ["senderType", "sender", "from", "author", "createdBy", "role"])
+  );
+
+  return {
+    id: normalizeString(findByKeys(row, ["id", "messageId", "code"]), `m-${Date.now()}`),
+    sender,
+    senderName: normalizeString(
+      findByKeys(row, ["senderName", "authorName", "createdByName", "name"]),
+      sender === "support" ? "پشتیبانی ادمین" : "کاربر"
+    ),
+    text: normalizeString(findByKeys(row, ["text", "message", "body", "content"]), ""),
+    timestamp: normalizeString(findByKeys(row, ["timestamp", "createdAt", "date", "time"]), "—"),
+    avatar:
+      typeof findByKeys(row, ["avatar", "photo", "image"]) === "string"
+        ? String(findByKeys(row, ["avatar", "photo", "image"]))
+        : undefined,
+  };
 }

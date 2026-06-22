@@ -1,3 +1,5 @@
+import type { ApplicationMainRole } from "@/lib/application-roles";
+
 export interface PurchasedCourse {
   name: string;
   purchaseDate: string;
@@ -38,7 +40,7 @@ export interface User {
   email: string;
   plan: "Starter" | "Pro" | "Enterprise";
   status: "فعال" | "غیرفعال" | "معلق";
-  role: "کاربر عادی" | "ادمین" | "پشتیبان";
+  role: ApplicationMainRole;
   joinedAt: string;
   courses: number;
   ltv: number;
@@ -62,7 +64,7 @@ export const initialUsersData: User[] = [
     email: "nima.ahmadi@gmail.com",
     plan: "Pro",
     status: "فعال",
-    role: "کاربر عادی",
+    role: "USER",
     joinedAt: "1404/08/12",
     courses: 8,
     ltv: 11400000,
@@ -94,7 +96,7 @@ export const initialUsersData: User[] = [
     email: "hanieh.abedi@yahoo.com",
     plan: "Starter",
     status: "غیرفعال",
-    role: "کاربر عادی",
+    role: "USER",
     joinedAt: "1404/09/02",
     courses: 2,
     ltv: 2120000,
@@ -125,7 +127,7 @@ export const initialUsersData: User[] = [
     email: "reza.maleki@outlook.com",
     plan: "Pro",
     status: "فعال",
-    role: "پشتیبان",
+    role: "INSTRUCTOR",
     joinedAt: "1404/07/20",
     courses: 6,
     ltv: 8900000,
@@ -153,7 +155,7 @@ export const initialUsersData: User[] = [
     email: "zahra.kiani@live.com",
     plan: "Enterprise",
     status: "فعال",
-    role: "ادمین",
+    role: "ADMIN",
     joinedAt: "1404/06/15",
     courses: 13,
     ltv: 21700000,
@@ -185,7 +187,7 @@ export const initialUsersData: User[] = [
     email: "mahsa.zamani@gmail.com",
     plan: "Starter",
     status: "معلق",
-    role: "کاربر عادی",
+    role: "USER",
     joinedAt: "1404/10/01",
     courses: 3,
     ltv: 3240000,
@@ -213,7 +215,7 @@ export const initialUsersData: User[] = [
     email: "arman.ebrahimi@gmail.com",
     plan: "Pro",
     status: "فعال",
-    role: "کاربر عادی",
+    role: "USER",
     joinedAt: "1404/11/11",
     courses: 5,
     ltv: 7060000,
@@ -241,7 +243,7 @@ export const initialUsersData: User[] = [
     email: "somayeh.farahani@yahoo.com",
     plan: "Pro",
     status: "فعال",
-    role: "کاربر عادی",
+    role: "USER",
     joinedAt: "1404/05/09",
     courses: 9,
     ltv: 13850000,

@@ -1,5 +1,10 @@
 import React from "react";
 import { Sparkles, Shield, User as UserIcon } from "lucide-react";
+import {
+  ApplicationMainRoles,
+  getApplicationMainRoleLabel,
+  type ApplicationMainRole,
+} from "@/lib/application-roles";
 
 interface StatusBadgeProps {
   status: "فعال" | "غیرفعال" | "معلق" | string;
@@ -71,27 +76,31 @@ export function UserPlanBadge({ plan }: PlanBadgeProps) {
 }
 
 interface RoleBadgeProps {
-  role: "کاربر عادی" | "ادمین" | "پشتیبان" | string;
+  role: ApplicationMainRole | string;
 }
 
 export function UserRoleBadge({ role }: RoleBadgeProps) {
+  const label = getApplicationMainRoleLabel(role);
+
   switch (role) {
-    case "ادمین":
+    case ApplicationMainRoles.SUPER_ADMIN:
+    case ApplicationMainRoles.ADMIN:
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-bold rounded-md border border-red-500/20 bg-red-500/5 text-red-400">
-          <span>مدیریت</span>
+          <span>{label}</span>
         </span>
       );
-    case "پشتیبان":
+    case ApplicationMainRoles.INSTRUCTOR:
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-bold rounded-md border border-cyan-500/20 bg-cyan-500/5 text-cyan-400">
-          <span>پشتیبان</span>
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-bold rounded-md border border-violet-500/20 bg-violet-500/5 text-violet-400">
+          <span>{label}</span>
         </span>
       );
     default:
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-bold rounded-md border border-zinc-700 bg-zinc-800 text-zinc-400">
-          <span>کاربر</span>
+          <UserIcon className="w-3 h-3" />
+          <span>{label}</span>
         </span>
       );
   }

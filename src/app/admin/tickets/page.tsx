@@ -1,21 +1,25 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Headset, Search, MessageSquare, Clock3, CheckCircle2, AlertTriangle, Send, Paperclip, Filter, Signal } from "lucide-react";
 import type { Ticket } from "@/app/panel/support/data";
-import { TICKET_URGENCY_LABELS, TICKET_URGENCY_OPTIONS, getTicketCategoryLabel } from "@/app/panel/support/data";
+import { TICKET_URGENCY_OPTIONS, getTicketCategoryLabel } from "@/app/panel/support/data";
 import CustomSelect from "@/components/ui/CustomSelect";
-import { cn } from "@/lib/utils";
 import {
   mapAdminTicketPriorityFilter,
   mapAdminTicketStatusFilter,
+  useAdminTicketDetailQuery,
   useAdminTicketsQuery,
+  useCloseAdminTicketMutation,
+  useSendAdminTicketMessageMutation,
 } from "@/hooks/api/useAdminTicketsQuery";
 import {
   AdminTicketDetailSkeleton,
   AdminTicketListSkeleton,
   AdminTicketsStatsSkeleton,
 } from "./_components/AdminTicketsSkeletons";
+import AdminTicketConversation from "./_components/AdminTicketConversation";
+import AdminTicketList from "./_components/AdminTicketList";
 
 type TicketFilters = {
   search: string;
@@ -53,6 +57,11 @@ export default function AdminTicketsPage() {
   const [debouncedFilters, setDebouncedFilters] = useState<TicketFilters>(defaultTicketFilters);
   const [selectedTicketId, setSelectedTicketId] = useState("");
   const [replyText, setReplyText] = useState("");
+  const [actionError, setActionError] = useState<string | null>(null);
+  const conversationEndRef = useRef<HTMLDivElement>(null);
+
+  const closeTicketMutation = useCloseAdminTicketMutation();
+  const sendMessageMutation = useSendAdminTicketMessageMutation();
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -110,25 +119,60 @@ export default function AdminTicketsPage() {
   const isLoadingList = isLoadingTickets || isFiltersPending;
   const showTicketsContent = !isError || tickets.length > 0;
 
-  const selectedTicket = showTicketsContent && !isLoadingList
+  const ticketDetailQuery = useAdminTicketDetailQuery(
+    selectedTicketId,
+    Boolean(selectedTicketId) && showTicketsContent && !isLoadingList
+  );
+
+  useEffect(() => {
+    if (!ticketDetailQuery.data) return;
+    setTickets((prev) =>
+      prev.map((ticket) => {
+        if (ticket.id !== ticketDetailQuery.data!.id) return ticket;
+        const detail = ticketDetailQuery.data!;
+        const messages =
+          ticket.messages.length > detail.messages.length ? ticket.messages : detail.messages;
+        return { ...ticket, ...detail, messages };
+      })
+    );
+  }, [ticketDetailQuery.data]);
+
+  const scrollConversationToBottom = (behavior: ScrollBehavior = "smooth") => {
+    conversationEndRef.current?.scrollIntoView({ behavior, block: "end" });
+  };
+
+  const selectedTicketFromList = showTicketsContent && !isLoadingList
     ? displayedTickets.find((t) => t.id === selectedTicketId) || displayedTickets[0]
     : undefined;
 
-  const statusPill = {
-    open: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-    investigating: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-    answered: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-    closed: "bg-gray-500/10 text-gray-500 border-gray-500/20",
-  };
+  const selectedTicket = selectedTicketFromList
+    ? ticketDetailQuery.data && ticketDetailQuery.data.id === selectedTicketFromList.id
+      ? {
+          ...selectedTicketFromList,
+          ...ticketDetailQuery.data,
+          messages:
+            selectedTicketFromList.messages.length > ticketDetailQuery.data.messages.length
+              ? selectedTicketFromList.messages
+              : ticketDetailQuery.data.messages,
+        }
+      : selectedTicketFromList
+    : undefined;
 
-  const statusLabel = {
-    open: "باز",
-    investigating: "در حال بررسی",
-    answered: "پاسخ داده شده",
-    closed: "بسته شده",
-  };
+  useEffect(() => {
+    if (!selectedTicketId) return;
+    scrollConversationToBottom("auto");
+  }, [selectedTicketId]);
 
-  const priorityLabel = TICKET_URGENCY_LABELS;
+  useEffect(() => {
+    if (!selectedTicket?.messages.length) return;
+    scrollConversationToBottom();
+  }, [selectedTicket?.messages.length, selectedTicket?.id]);
+
+  const isLoadingDetail =
+    Boolean(selectedTicketId) &&
+    showTicketsContent &&
+    !isLoadingList &&
+    (ticketDetailQuery.isPending || ticketDetailQuery.isFetching);
 
   const handleStatusChange = (ticketId: string, nextStatus: Ticket["status"]) => {
     setTickets((prev) =>
@@ -144,39 +188,57 @@ export default function AdminTicketsPage() {
     );
   };
 
-  const handleReply = () => {
-    if (!selectedTicket || !replyText.trim()) return;
-    const msg = {
-      id: `m-${Date.now()}`,
-      sender: "support" as const,
-      senderName: "پشتیبانی ادمین",
-      text: replyText.trim(),
-      timestamp: "همین الان",
-    };
+  const handleCloseTicket = async (ticketId: string) => {
+    setActionError(null);
+    try {
+      const updatedTicket = await closeTicketMutation.mutateAsync(ticketId);
+      setTickets((prev) =>
+        prev.map((ticket) =>
+          ticket.id === ticketId
+            ? {
+                ...ticket,
+                ...updatedTicket,
+                messages: updatedTicket.messages.length > 0 ? updatedTicket.messages : ticket.messages,
+                timeline: updatedTicket.timeline.length > 0 ? updatedTicket.timeline : ticket.timeline,
+                attachments: updatedTicket.attachments.length > 0 ? updatedTicket.attachments : ticket.attachments,
+              }
+            : ticket
+        )
+      );
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "بستن تیکت انجام نشد.");
+    }
+  };
 
-    setTickets((prev) =>
-      prev.map((t) =>
-        t.id === selectedTicket.id
-          ? {
-              ...t,
-              status: "answered",
-              updatedAt: "همین الان",
-              messages: [...t.messages, msg],
-              timeline: [
-                ...t.timeline,
-                {
-                  id: `tl-${Date.now()}`,
-                  title: "پاسخ توسط ادمین ارسال شد",
-                  time: "الان",
-                  icon: "reply",
-                  status: "completed",
-                },
-              ],
-            }
-          : t
-      )
-    );
-    setReplyText("");
+  const handleReply = async () => {
+    if (!selectedTicket || !replyText.trim() || selectedTicket.status === "closed") return;
+
+    setActionError(null);
+    const body = replyText.trim();
+
+    try {
+      const newMessage = await sendMessageMutation.mutateAsync({
+        ticketId: selectedTicket.id,
+        body,
+      });
+
+      setReplyText("");
+      setTickets((prev) =>
+        prev.map((t) =>
+          t.id === selectedTicket.id
+            ? {
+                ...t,
+                status: "answered",
+                updatedAt: newMessage.timestamp,
+                messages: [...t.messages, newMessage],
+              }
+            : t
+        )
+      );
+      requestAnimationFrame(() => scrollConversationToBottom());
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "ارسال پاسخ انجام نشد.");
+    }
   };
 
   return (
@@ -256,76 +318,95 @@ export default function AdminTicketsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-        <div className="xl:col-span-8">
-          {isLoadingList ? (
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12 xl:gap-8">
+        <div className="order-2 xl:order-1 xl:col-span-8">
+          {isLoadingList || isLoadingDetail ? (
             <AdminTicketDetailSkeleton />
+          ) : ticketDetailQuery.isError && selectedTicketId ? (
+            <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+              <p className="text-sm font-black">بارگذاری جزئیات تیکت انجام نشد.</p>
+              <p className="mt-2 text-xs leading-relaxed opacity-90">
+                {ticketDetailQuery.error?.message || "لطفاً اتصال شبکه را بررسی کنید."}
+              </p>
+              <button
+                type="button"
+                onClick={() => void ticketDetailQuery.refetch()}
+                className="mt-4 rounded-xl bg-red-600 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-red-700"
+              >
+                تلاش مجدد
+              </button>
+            </div>
           ) : showTicketsContent && selectedTicket ? (
-            <div className="rounded-[2.5rem] border border-gray-100 dark:border-white/5 bg-white dark:bg-[#1c1e26] p-8 shadow-xl shadow-gray-200/40 dark:shadow-none">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                <div>
-                  <h3 className="text-2xl font-black text-gray-900 dark:text-white leading-tight">{selectedTicket.title}</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 font-bold mt-2">
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xl shadow-gray-200/40 dark:border-white/5 dark:bg-[#1c1e26] dark:shadow-none sm:rounded-[2rem] sm:p-6 lg:rounded-[2.5rem] lg:p-8">
+              <div className="mb-4 flex flex-col gap-4 sm:mb-6 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0 flex-1">
+                  <h3 className="break-words text-lg font-black leading-snug text-gray-900 dark:text-white sm:text-xl lg:text-2xl">
+                    {selectedTicket.title}
+                  </h3>
+                  <p className="mt-2 text-[11px] font-bold text-gray-500 dark:text-gray-400 sm:text-xs">
                     {getTicketCategoryLabel(selectedTicket.category)} • بروزرسانی: {selectedTicket.updatedAt}
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex shrink-0 flex-wrap gap-2">
                   <button
+                    type="button"
                     onClick={() => handleStatusChange(selectedTicket.id, "investigating")}
-                    className="px-4 py-2 rounded-2xl bg-amber-500/10 text-amber-500 text-xs font-black"
+                    className="flex-1 rounded-2xl bg-amber-500/10 px-4 py-2.5 text-xs font-black text-amber-500 sm:flex-none"
                   >
                     در حال بررسی
                   </button>
                   <button
-                    onClick={() => handleStatusChange(selectedTicket.id, "closed")}
-                    className="px-4 py-2 rounded-2xl bg-gray-500/10 text-gray-500 text-xs font-black"
+                    type="button"
+                    onClick={() => void handleCloseTicket(selectedTicket.id)}
+                    disabled={selectedTicket.status === "closed" || closeTicketMutation.isPending}
+                    className="flex-1 rounded-2xl bg-gray-500/10 px-4 py-2.5 text-xs font-black text-gray-500 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
                   >
-                    بستن تیکت
+                    {closeTicketMutation.isPending ? "در حال بستن..." : "بستن تیکت"}
                   </button>
                 </div>
               </div>
 
-              <div className="space-y-5 max-h-[420px] overflow-y-auto">
-                {selectedTicket.messages.map((m) => (
-                  <div
-                    key={m.id}
-                    className={cn(
-                      "rounded-[2rem] p-6 border text-sm leading-relaxed shadow-sm",
-                      m.sender === "user"
-                        ? "bg-white dark:bg-[#1c1e26] border-gray-100 dark:border-white/5 text-gray-900 dark:text-gray-100 rounded-tr-none"
-                        : "bg-primary text-white border-primary/20 rounded-tl-none shadow-lg shadow-primary/20"
-                    )}
-                  >
-                    <div className="flex items-center justify-between mb-3 text-[10px] font-black">
-                      <span>{m.senderName}</span>
-                      <span className={m.sender === "user" ? "text-gray-400" : "text-white/80"}>{m.timestamp}</span>
-                    </div>
-                    <p>{m.text}</p>
-                  </div>
-                ))}
+              {actionError ? (
+                <div className="mb-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-xs font-bold text-rose-400">
+                  {actionError}
+                </div>
+              ) : null}
+
+              <div className="min-h-[240px] max-h-[min(52vh,420px)] overflow-y-auto overscroll-contain px-0.5 sm:min-h-[280px] lg:max-h-[420px]">
+                <AdminTicketConversation messages={selectedTicket.messages} />
+                <div ref={conversationEndRef} aria-hidden="true" />
               </div>
 
-              <div className="mt-8 bg-white dark:bg-[#1c1e26] rounded-[2.5rem] p-8 border border-gray-100 dark:border-white/5 shadow-xl shadow-gray-200/40 dark:shadow-none">
+              <div className="mt-5 rounded-2xl border border-gray-100 bg-white p-4 shadow-xl shadow-gray-200/40 dark:border-white/5 dark:bg-[#1c1e26] dark:shadow-none sm:mt-6 sm:rounded-[2rem] sm:p-6 lg:mt-8 lg:rounded-[2.5rem] lg:p-8">
                 <textarea
                   rows={3}
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   placeholder="پاسخ ادمین را بنویسید..."
-                  className="w-full min-h-[120px] max-h-[170px] px-5 py-4 rounded-3xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 text-gray-900 dark:text-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-right resize-y font-medium leading-relaxed"
+                  className="w-full min-h-[100px] max-h-[170px] resize-y rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3 text-right text-sm font-medium leading-relaxed text-gray-900 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-white/10 dark:bg-white/5 dark:text-white sm:min-h-[120px] sm:rounded-3xl sm:px-5 sm:py-4"
                 />
-                <div className="mt-5 flex flex-col md:flex-row items-center justify-between gap-6">
-                  <p className="text-xs text-gray-400 font-bold max-w-sm text-right">
+                <div className="mt-4 flex flex-col items-stretch justify-between gap-4 sm:mt-5 sm:flex-row sm:items-center sm:gap-6">
+                  <p className="hidden max-w-sm text-right text-xs font-bold text-gray-400 sm:block">
                     لطفاً جزئیات بیشتر یا اسکرین‌شات خطا را ارسال کنید تا پاسخ دقیق‌تری ثبت شود.
                   </p>
-                  <div className="flex items-center gap-4 w-full md:w-auto">
-                    <button className="p-4 bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 rounded-2xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all active:scale-90">
-                      <Paperclip className="w-5 h-5" />
+                  <div className="flex w-full items-center gap-3 sm:w-auto sm:gap-4">
+                    <button
+                      type="button"
+                      className="shrink-0 rounded-2xl bg-gray-100 p-3.5 text-gray-500 transition-all hover:bg-gray-200 active:scale-90 dark:bg-white/5 dark:text-gray-400 dark:hover:bg-white/10 sm:p-4"
+                    >
+                      <Paperclip className="h-5 w-5" />
                     </button>
                     <button
-                      onClick={handleReply}
-                      className="flex-1 md:flex-none px-10 py-4 bg-primary hover:bg-primary-hover text-white rounded-2xl font-black shadow-xl shadow-primary/30 transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
+                      type="button"
+                      onClick={() => void handleReply()}
+                      disabled={
+                        !replyText.trim() ||
+                        selectedTicket.status === "closed" ||
+                        sendMessageMutation.isPending
+                      }
+                      className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3.5 text-sm font-black text-white shadow-xl shadow-primary/30 transition-all hover:bg-primary-hover active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none sm:gap-3 sm:px-10 sm:py-4"
                     >
-                      <span>ارسال پاسخ</span>
+                      <span>{sendMessageMutation.isPending ? "در حال ارسال..." : "ارسال پاسخ"}</span>
                       <Send className="w-5 h-5 rotate-180" />
                     </button>
                   </div>
@@ -339,33 +420,18 @@ export default function AdminTicketsPage() {
           ) : null}
         </div>
 
-        <div className="xl:col-span-4 space-y-3">
+        <div className="order-1 xl:order-2 xl:col-span-4">
           {isLoadingList ? (
             <AdminTicketListSkeleton />
           ) : showTicketsContent ? (
-          displayedTickets.map((ticket) => (
-            <button
-              key={ticket.id}
-              onClick={() => setSelectedTicketId(ticket.id)}
-              className={cn(
-                "w-full rounded-3xl border p-4 text-right transition-all",
-                selectedTicket?.id === ticket.id
-                  ? "border-primary/30 bg-primary/5"
-                  : "border-gray-100 dark:border-white/5 bg-white dark:bg-[#1c1e26] hover:border-primary/20"
-              )}
-            >
-              <div className="mb-2 flex items-center justify-start">
-                <span className={cn("px-2 py-1 rounded-lg border text-[10px] font-black", statusPill[ticket.status])}>
-                  {statusLabel[ticket.status]}
-                </span>
-              </div>
-              <p className="text-sm font-black text-gray-900 dark:text-white line-clamp-2">{ticket.title}</p>
-              <div className="mt-2 text-[10px] font-bold text-gray-500 dark:text-gray-400 flex items-center justify-between">
-                <span>{getTicketCategoryLabel(ticket.category)}</span>
-                <span>اولویت: {priorityLabel[ticket.priority]}</span>
-              </div>
-            </button>
-          ))
+            <AdminTicketList
+              tickets={displayedTickets}
+              selectedTicketId={selectedTicket?.id}
+              onSelect={(ticketId) => {
+                setSelectedTicketId(ticketId);
+                setActionError(null);
+              }}
+            />
           ) : null}
         </div>
       </div>

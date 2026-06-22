@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 
 import { Course, initialCoursesData } from "../_components/types";
+import { buildMockCourseDetail, buildMockCourseDetailById, readAdminCourseDetail } from "../_components/course-detail-mock";
 import CourseStatusBadge from "../_components/CourseStatusBadge";
 import EditCourseModal from "../_components/EditCourseModal";
 
@@ -58,24 +59,34 @@ export default function CourseDetailView({ courseId }: CourseDetailViewProps) {
 
   // Load from LocalStorage
   useEffect(() => {
+    const cached = readAdminCourseDetail(courseId);
+    if (cached) {
+      setCourse(cached);
+      setIsLoaded(true);
+      return;
+    }
+
     const saved = localStorage.getItem("spoticode_admin_courses");
     let coursesList = initialCoursesData;
     if (saved) {
       try {
         coursesList = JSON.parse(saved);
-      } catch (e) {
-        // use initial
+      } catch {
+        coursesList = initialCoursesData;
       }
     }
     setCourses(coursesList);
 
     const found = coursesList.find((c) => c.id === courseId);
     if (found) {
-      setCourse(found);
+      setCourse(buildMockCourseDetail(found));
     } else {
-      // fallback
       const initialFound = initialCoursesData.find((c) => c.id === courseId);
-      if (initialFound) setCourse(initialFound);
+      if (initialFound) {
+        setCourse(initialFound);
+      } else {
+        setCourse(buildMockCourseDetailById(courseId));
+      }
     }
     setIsLoaded(true);
   }, [courseId]);

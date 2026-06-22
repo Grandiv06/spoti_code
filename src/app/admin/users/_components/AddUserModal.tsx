@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X, User as UserIcon, Phone, Mail, Shield, Key, FileText, CheckCircle2 } from "lucide-react";
 import { User } from "./types";
+import { APPLICATION_MAIN_ROLE_OPTIONS, ApplicationMainRoles, type ApplicationMainRole } from "@/lib/application-roles";
 
 interface AddUserModalProps {
   isOpen: boolean;
@@ -20,7 +21,7 @@ export default function AddUserModal({
   const [sendActivationLink, setSendActivationLink] = useState(false);
   const [plan, setPlan] = useState<"Starter" | "Pro" | "Enterprise">("Starter");
   const [status, setStatus] = useState<"فعال" | "غیرفعال">("فعال");
-  const [role, setRole] = useState<"کاربر عادی" | "ادمین" | "پشتیبان">("کاربر عادی");
+  const [role, setRole] = useState<ApplicationMainRole>(ApplicationMainRoles.USER);
   const [internalNotes, setInternalNotes] = useState("");
   const [sendWelcomeSms, setSendWelcomeSms] = useState(true);
 
@@ -105,7 +106,7 @@ export default function AddUserModal({
       setSendActivationLink(false);
       setPlan("Starter");
       setStatus("فعال");
-      setRole("کاربر عادی");
+      setRole(ApplicationMainRoles.USER);
       setInternalNotes("");
       setSendWelcomeSms(true);
       setErrors({});
@@ -267,12 +268,14 @@ export default function AddUserModal({
               <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block">نقش سیستم</label>
               <select
                 value={role}
-                onChange={(e) => setRole(e.target.value as any)}
+                onChange={(e) => setRole(e.target.value as ApplicationMainRole)}
                 className="w-full px-4 py-3 bg-gray-50 dark:bg-black/20 border border-gray-100 dark:border-white/5 rounded-2xl text-xs font-bold text-gray-900 dark:text-white outline-none focus:border-primary/50 transition-all cursor-pointer"
               >
-                <option value="کاربر عادی">کاربر عادی</option>
-                <option value="ادمین">مدیر (ادمین)</option>
-                <option value="پشتیبان">پشتیبان</option>
+                {APPLICATION_MAIN_ROLE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

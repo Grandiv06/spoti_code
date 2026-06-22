@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Activity, BadgePercent, CheckCircle2, Clock3, Pencil, Plus, Search, TicketPercent, ToggleLeft, ToggleRight, Trash2, X } from "lucide-react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Activity, BadgePercent, CheckCircle2, Clock3, Pencil, Plus, Search, TicketPercent, ToggleLeft, ToggleRight, Trash2, X, Percent, BookOpen, UserCog } from "lucide-react";
 import { apiDeleteNoMock, apiGetNoMock, apiPostNoMock, apiPutNoMock } from "@/lib/api";
 import { normalizeAdminDiscountsResponse } from "@/lib/admin-discounts";
+import { sanitizeNumericInput } from "@/lib/digits";
+import CustomSelect from "@/components/ui/CustomSelect";
 
 type DiscountType = "percentage" | "fixed";
 type ScopeType = "all" | "specific";
@@ -78,7 +80,7 @@ const initialDiscounts: DiscountCodeItem[] = [
     endAt: "2026-11-30T23:59",
     usageLimit: "300",
     usagePerUser: "2",
-    applyType: "both",
+    applyType: "admin",
     isEnabled: true,
     usedCount: 88,
   },
@@ -120,6 +122,24 @@ const applyTypeLabel: Record<ApplyType, string> = {
   admin: "اعمال خودکار توسط ادمین",
   both: "هر دو",
 };
+
+const discountTypeOptions = [
+  { value: "percentage", label: "درصدی" },
+  { value: "fixed", label: "مبلغ ثابت" },
+];
+
+const scopeOptions = [
+  { value: "all", label: "همه دوره‌ها" },
+  { value: "specific", label: "انتخاب دوره خاص" },
+];
+
+const applyTypeOptions = [
+  { value: "user", label: "توسط کاربر با وارد کردن کد" },
+  { value: "admin", label: "اعمال خودکار توسط ادمین" },
+];
+
+const formSelectClassName =
+  "[&_button]:h-11 [&_button]:min-h-[44px] [&_button]:rounded-xl [&_button]:text-xs [&_button]:px-4";
 
 export default function AdminDiscountCodesPage() {
   const [discounts, setDiscounts] = useState<DiscountCodeItem[]>(initialDiscounts);
@@ -197,11 +217,18 @@ export default function AdminDiscountCodesPage() {
   const validate = (state: DiscountFormState) => {
     const nextErrors: Record<string, string> = {};
     if (!state.code.trim()) nextErrors.code = "کد تخفیف الزامی است.";
-    if (!state.discountValue.trim()) nextErrors.discountValue = "مقدار تخفیف الزامی است.";
 
-    const valueNum = Number(state.discountValue || 0);
-    if (state.discountValue.trim() && valueNum <= 0) nextErrors.discountValue = "مقدار تخفیف باید بیشتر از صفر باشد.";
-    if (state.discountType === "percentage" && valueNum > 100) nextErrors.discountValue = "درصد تخفیف نمی‌تواند بیشتر از ۱۰۰ باشد.";
+    const normalizedValue = sanitizeNumericInput(state.discountValue);
+    if (!normalizedValue) {
+      nextErrors.discountValue = "مقدار تخفیف الزامی است.";
+    } else {
+      const valueNum = Number(normalizedValue);
+      if (!Number.isFinite(valueNum) || valueNum <= 0) {
+        nextErrors.discountValue = "مقدار تخفیف باید بیشتر از صفر باشد.";
+      } else if (state.discountType === "percentage" && valueNum > 100) {
+        nextErrors.discountValue = "درصد تخفیف نمی‌تواند بیشتر از ۱۰۰ باشد.";
+      }
+    }
 
     if (state.startAt && state.endAt && new Date(state.endAt) <= new Date(state.startAt)) {
       nextErrors.endAt = "تاریخ پایان باید بعد از تاریخ شروع باشد.";
@@ -266,8 +293,14 @@ export default function AdminDiscountCodesPage() {
     e.preventDefault();
     const nextErrors = validate(form);
     setErrors(nextErrors);
+    if (Object.keys(nextErrors).length) {
+      setCreateNotice({
+        type: "error",
+        message: nextErrors.discountValue || Object.values(nextErrors)[0],
+      });
+      return;
+    }
     setCreateNotice(null);
-    if (Object.keys(nextErrors).length) return;
 
     setIsCreatingDiscount(true);
     try {
@@ -318,7 +351,7 @@ export default function AdminDiscountCodesPage() {
       endAt: item.endAt,
       usageLimit: item.usageLimit,
       usagePerUser: item.usagePerUser,
-      applyType: item.applyType,
+      applyType: item.applyType === "both" ? "user" : item.applyType,
       isEnabled: item.isEnabled,
     });
     setEditErrors({});
@@ -330,7 +363,13 @@ export default function AdminDiscountCodesPage() {
     if (!editItem) return;
     const nextErrors = validate(editForm);
     setEditErrors(nextErrors);
-    if (Object.keys(nextErrors).length) return;
+    if (Object.keys(nextErrors).length) {
+      setEditNotice({
+        type: "error",
+        message: nextErrors.discountValue || Object.values(nextErrors)[0],
+      });
+      return;
+    }
 
     setIsUpdatingDiscount(true);
     setEditNotice(null);
@@ -527,36 +566,48 @@ export default function AdminDiscountCodesPage() {
               </div>
             </Field>
 
-            <Field label="نوع تخفیف">
-              <select value={form.discountType} onChange={(e) => setForm((p) => ({ ...p, discountType: e.target.value as DiscountType }))} className={inputClass()}>
-                <option value="percentage">درصدی</option>
-                <option value="fixed">مبلغ ثابت</option>
-              </select>
-            </Field>
+            <SelectField
+              label="نوع تخفیف"
+              value={form.discountType}
+              onChange={(value) => setForm((p) => ({ ...p, discountType: value as DiscountType }))}
+              options={discountTypeOptions}
+              icon={<Percent className="w-4 h-4" />}
+            />
 
             <Field label="مقدار تخفیف" error={errors.discountValue}>
               <input
                 value={form.discountValue}
-                onChange={(e) => setForm((p) => ({ ...p, discountValue: e.target.value.replace(/[^\d]/g, "") }))}
+                onChange={(e) => {
+                  setForm((p) => ({ ...p, discountValue: sanitizeNumericInput(e.target.value) }));
+                  if (errors.discountValue) {
+                    setErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.discountValue;
+                      return next;
+                    });
+                  }
+                }}
                 placeholder={form.discountType === "percentage" ? "عدد درصد مثلا ۲۰" : "مبلغ به تومان"}
-                className={inputClass()}
+                className={inputClass(undefined, Boolean(errors.discountValue))}
               />
             </Field>
 
-            <Field label="دوره‌های قابل اعمال" error={errors.selectedCourseIds}>
-              <select value={form.scope} onChange={(e) => setForm((p) => ({ ...p, scope: e.target.value as ScopeType }))} className={inputClass()}>
-                <option value="all">همه دوره‌ها</option>
-                <option value="specific">انتخاب دوره خاص</option>
-              </select>
-            </Field>
+            <SelectField
+              label="دوره‌های قابل اعمال"
+              value={form.scope}
+              onChange={(value) => setForm((p) => ({ ...p, scope: value as ScopeType }))}
+              options={scopeOptions}
+              error={errors.selectedCourseIds}
+              icon={<BookOpen className="w-4 h-4" />}
+            />
 
-            <Field label="نوع اعمال تخفیف">
-              <select value={form.applyType} onChange={(e) => setForm((p) => ({ ...p, applyType: e.target.value as ApplyType }))} className={inputClass()}>
-                <option value="user">توسط کاربر با وارد کردن کد</option>
-                <option value="admin">اعمال خودکار توسط ادمین</option>
-                <option value="both">هر دو</option>
-              </select>
-            </Field>
+            <SelectField
+              label="نوع اعمال تخفیف"
+              value={form.applyType}
+              onChange={(value) => setForm((p) => ({ ...p, applyType: value as ApplyType }))}
+              options={applyTypeOptions}
+              icon={<UserCog className="w-4 h-4" />}
+            />
           </div>
 
           {form.scope === "specific" && (
@@ -584,10 +635,10 @@ export default function AdminDiscountCodesPage() {
               <input type="datetime-local" value={form.endAt} onChange={(e) => setForm((p) => ({ ...p, endAt: e.target.value }))} className={inputClass()} />
             </Field>
             <Field label="محدودیت تعداد استفاده" hint="خالی بماند = نامحدود" error={errors.usageLimit}>
-              <input value={form.usageLimit} onChange={(e) => setForm((p) => ({ ...p, usageLimit: e.target.value.replace(/[^\d]/g, "") }))} placeholder="مثلا ۱۰۰" className={inputClass()} />
+              <input value={form.usageLimit} onChange={(e) => setForm((p) => ({ ...p, usageLimit: sanitizeNumericInput(e.target.value) }))} placeholder="مثلا ۱۰۰" className={inputClass()} />
             </Field>
             <Field label="محدودیت استفاده برای هر کاربر" error={errors.usagePerUser}>
-              <input value={form.usagePerUser} onChange={(e) => setForm((p) => ({ ...p, usagePerUser: e.target.value.replace(/[^\d]/g, "") }))} placeholder="مثلا ۱ بار" className={inputClass()} />
+              <input value={form.usagePerUser} onChange={(e) => setForm((p) => ({ ...p, usagePerUser: sanitizeNumericInput(e.target.value) }))} placeholder="مثلا ۱ بار" className={inputClass()} />
             </Field>
           </div>
 
@@ -708,28 +759,46 @@ export default function AdminDiscountCodesPage() {
                     </button>
                   </div>
                 </Field>
-                <Field label="نوع تخفیف">
-                  <select value={editForm.discountType} onChange={(e) => setEditForm((p) => ({ ...p, discountType: e.target.value as DiscountType }))} className={inputClass()}>
-                    <option value="percentage">درصدی</option>
-                    <option value="fixed">مبلغ ثابت</option>
-                  </select>
-                </Field>
+                <SelectField
+                  label="نوع تخفیف"
+                  value={editForm.discountType}
+                  onChange={(value) => setEditForm((p) => ({ ...p, discountType: value as DiscountType }))}
+                  options={discountTypeOptions}
+                  icon={<Percent className="w-4 h-4" />}
+                />
                 <Field label="مقدار تخفیف" error={editErrors.discountValue}>
-                  <input value={editForm.discountValue} onChange={(e) => setEditForm((p) => ({ ...p, discountValue: e.target.value.replace(/[^\d]/g, "") }))} className={inputClass()} />
+                  <input
+                    value={editForm.discountValue}
+                    onChange={(e) => {
+                      setEditForm((p) => ({ ...p, discountValue: sanitizeNumericInput(e.target.value) }));
+                      if (editErrors.discountValue) {
+                        setEditErrors((prev) => {
+                          const next = { ...prev };
+                          delete next.discountValue;
+                          return next;
+                        });
+                      }
+                    }}
+                    placeholder={editForm.discountType === "percentage" ? "عدد درصد مثلا ۲۰" : "مبلغ به تومان"}
+                    className={inputClass(undefined, Boolean(editErrors.discountValue))}
+                  />
                 </Field>
-                <Field label="دوره‌های قابل اعمال" error={editErrors.selectedCourseIds}>
-                  <select value={editForm.scope} onChange={(e) => setEditForm((p) => ({ ...p, scope: e.target.value as ScopeType }))} className={inputClass()}>
-                    <option value="all">همه دوره‌ها</option>
-                    <option value="specific">انتخاب دوره خاص</option>
-                  </select>
-                </Field>
-                <Field label="نوع اعمال تخفیف">
-                  <select value={editForm.applyType} onChange={(e) => setEditForm((p) => ({ ...p, applyType: e.target.value as ApplyType }))} className={inputClass()}>
-                    <option value="user">توسط کاربر با وارد کردن کد</option>
-                    <option value="admin">اعمال خودکار توسط ادمین</option>
-                    <option value="both">هر دو</option>
-                  </select>
-                </Field>
+                <SelectField
+                  label="دوره‌های قابل اعمال"
+                  value={editForm.scope}
+                  onChange={(value) => setEditForm((p) => ({ ...p, scope: value as ScopeType }))}
+                  options={scopeOptions}
+                  error={editErrors.selectedCourseIds}
+                  icon={<BookOpen className="w-4 h-4" />}
+                />
+
+                <SelectField
+                  label="نوع اعمال تخفیف"
+                  value={editForm.applyType}
+                  onChange={(value) => setEditForm((p) => ({ ...p, applyType: value as ApplyType }))}
+                  options={applyTypeOptions}
+                  icon={<UserCog className="w-4 h-4" />}
+                />
               </div>
 
               {editForm.scope === "specific" && (
@@ -757,10 +826,10 @@ export default function AdminDiscountCodesPage() {
                   <input type="datetime-local" value={editForm.endAt} onChange={(e) => setEditForm((p) => ({ ...p, endAt: e.target.value }))} className={inputClass()} />
                 </Field>
                 <Field label="محدودیت تعداد استفاده" error={editErrors.usageLimit}>
-                  <input value={editForm.usageLimit} onChange={(e) => setEditForm((p) => ({ ...p, usageLimit: e.target.value.replace(/[^\d]/g, "") }))} className={inputClass()} />
+                  <input value={editForm.usageLimit} onChange={(e) => setEditForm((p) => ({ ...p, usageLimit: sanitizeNumericInput(e.target.value) }))} className={inputClass()} />
                 </Field>
                 <Field label="محدودیت استفاده برای هر کاربر" error={editErrors.usagePerUser}>
-                  <input value={editForm.usagePerUser} onChange={(e) => setEditForm((p) => ({ ...p, usagePerUser: e.target.value.replace(/[^\d]/g, "") }))} className={inputClass()} />
+                  <input value={editForm.usagePerUser} onChange={(e) => setEditForm((p) => ({ ...p, usagePerUser: sanitizeNumericInput(e.target.value) }))} className={inputClass()} />
                 </Field>
               </div>
 
@@ -828,6 +897,37 @@ function MiniStat({
   );
 }
 
+function SelectField({
+  label,
+  value,
+  onChange,
+  options,
+  error,
+  hint,
+  icon,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  error?: string;
+  hint?: string;
+  icon?: ReactNode;
+}) {
+  return (
+    <Field label={label} error={error} hint={hint}>
+      <CustomSelect
+        options={options}
+        value={value}
+        onChange={onChange}
+        size="md"
+        icon={icon}
+        className={formSelectClassName}
+      />
+    </Field>
+  );
+}
+
 function Field({
   label,
   children,
@@ -849,6 +949,10 @@ function Field({
   );
 }
 
-function inputClass(extra?: string) {
-  return `w-full h-11 rounded-xl border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 text-xs font-bold outline-none focus:border-primary ${extra || ""}`;
+function inputClass(extra?: string, hasError?: boolean) {
+  return `w-full h-11 rounded-xl border ${
+    hasError
+      ? "border-rose-500 focus:border-rose-500"
+      : "border-gray-200/80 dark:border-white/10 focus:border-primary"
+  } bg-gray-50 dark:bg-white/5 px-3 text-xs font-bold outline-none ${extra || ""}`;
 }
