@@ -180,10 +180,27 @@ export function normalizeInternalNoteResponse(response: unknown): string {
   if (typeof payload === "string") return payload.trim();
   if (!isRecord(payload)) return "";
 
-  const value = findByKeys(payload, ["note", "internalNote", "internalNotes", "data", "value", "text"]);
+  const value = findByKeys(payload, [
+    "internalAdminNote",
+    "note",
+    "internalNote",
+    "internalNotes",
+    "adminNote",
+    "data",
+    "value",
+    "text",
+  ]);
   if (typeof value === "string") return value.trim();
   if (isRecord(value)) {
-    const nested = findByKeys(value, ["note", "internalNote", "internalNotes", "text", "value"]);
+    const nested = findByKeys(value, [
+      "internalAdminNote",
+      "note",
+      "internalNote",
+      "internalNotes",
+      "adminNote",
+      "text",
+      "value",
+    ]);
     if (typeof nested === "string") return nested.trim();
   }
 

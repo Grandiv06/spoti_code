@@ -111,6 +111,14 @@ export function apiPutNoMock<T = unknown>(path: string, body?: unknown, headers?
   return apiRequest<T>("put", path, { body, headers, useMock: false });
 }
 
+export function apiPatch<T>(path: string, body?: unknown, headers?: HeadersInit) {
+  return apiRequest<T>("patch", path, { body, headers });
+}
+
+export function apiPatchNoMock<T = unknown>(path: string, body?: unknown, headers?: HeadersInit) {
+  return apiRequest<T>("patch", path, { body, headers, useMock: false });
+}
+
 export function apiDelete<T>(path: string, headers?: HeadersInit) {
   return apiRequest<T>("delete", path, { headers });
 }

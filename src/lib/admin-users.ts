@@ -178,7 +178,10 @@ function normalizeUser(raw: unknown, index: number): User {
     successfulTransactionsCount: toNumber(findByKeys(row, ["successfulTransactionsCount", "paidTransactionsCount", "transactionsSuccessCount"]), 0) ?? 0,
     supportTicketsCount: toNumber(findByKeys(row, ["supportTicketsCount", "ticketsCount", "openTicketsCount"]), 0) ?? 0,
     lastCourseViewed: normalizeString(findByKeys(row, ["lastCourseViewed", "lastViewedCourse", "recentCourse", "courseName"]), "—"),
-    internalNotes: normalizeString(findByKeys(row, ["internalNotes", "notes", "adminNote"]), ""),
+    internalNotes: normalizeString(
+      findByKeys(row, ["internalAdminNote", "internalNotes", "internalNote", "notes", "adminNote"]),
+      ""
+    ),
     purchasedCourses: [],
     recentTransactions: [],
     recentTickets: [],

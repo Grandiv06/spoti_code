@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiGetNoMock, apiPutNoMock } from "@/lib/api";
+import { apiGetNoMock, apiPatchNoMock } from "@/lib/api";
 import { normalizeAdminUserDetail } from "@/lib/admin-user-detail";
 import {
   normalizeInternalNoteResponse,
@@ -96,7 +96,7 @@ export function useUpdateAdminUserInternalNoteMutation(userId: string) {
   return useMutation({
     mutationFn: async (note: string) =>
       normalizeInternalNoteResponse(
-        await apiPutNoMock<unknown>(userDetailPath(userId, "internal-note"), { note })
+        await apiPatchNoMock<unknown>(userDetailPath(userId, "internal-note"), { note })
       ),
     onSuccess: async (note) => {
       queryClient.setQueryData(adminUserInternalNoteQueryKey(userId), note);

@@ -730,7 +730,7 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
 
   if (method === "get" && /^\/api\/admin-dashboard\/users\/[^/]+\/internal-note$/.test(cleanPath)) {
     const userId = decodeURIComponent(cleanPath.split("/")[4] || "");
-    return json({ data: { note: findAdminUser(userId).internalNotes } }) as T;
+    return json({ data: { userId, internalAdminNote: findAdminUser(userId).internalNotes ?? "" } }) as T;
   }
 
   if (method === "get" && cleanPath === "/api/tickets") {
@@ -958,12 +958,15 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
     return json({ data: myProfile }) as T;
   }
 
-  if (method === "patch" && /^\/api\/admin-dashboard\/users\/[^/]+\/internal-note$/.test(cleanPath)) {
+  if (
+    (method === "post" || method === "patch") &&
+    /^\/api\/admin-dashboard\/users\/[^/]+\/internal-note$/.test(cleanPath)
+  ) {
     const userId = decodeURIComponent(cleanPath.split("/")[4] || "");
     return json({
       data: {
         userId,
-        note: (body && typeof body === "object" ? (body as { note?: string }).note : "") ?? "",
+        internalAdminNote: (body && typeof body === "object" ? (body as { note?: string }).note : "") ?? "",
         updatedAt: now.toISOString(),
       },
     }) as T;

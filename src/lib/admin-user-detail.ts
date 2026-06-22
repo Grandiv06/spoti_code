@@ -196,7 +196,10 @@ export function normalizeAdminUserDetail(response: unknown): User {
     successfulTransactionsCount: toNumber(findByKeys(row, ["successfulTransactionsCount", "paidTransactionsCount", "transactionsSuccessCount"]), recentTransactions.filter((t) => t.status === "موفق").length) ?? recentTransactions.filter((t) => t.status === "موفق").length,
     supportTicketsCount: toNumber(findByKeys(row, ["supportTicketsCount", "ticketsCount", "openTicketsCount"]), recentTickets.length) ?? recentTickets.length,
     lastCourseViewed: normalizeString(findByKeys(row, ["lastCourseViewed", "lastViewedCourse", "recentCourse", "courseName"]), purchasedCourses[0]?.name ?? "—"),
-    internalNotes: normalizeString(findByKeys(row, ["internalNotes", "notes", "adminNote"]), ""),
+    internalNotes: normalizeString(
+      findByKeys(row, ["internalAdminNote", "internalNotes", "internalNote", "notes", "adminNote"]),
+      ""
+    ),
     purchasedCourses,
     recentTransactions,
     recentTickets,
