@@ -36,6 +36,35 @@ export const TICKET_URGENCY_LABELS: Record<TicketUrgency, string> = {
   high: "زیاد",
 };
 
+export type TicketCategory = "technical" | "billing" | "account" | "featureRequest" | "bugReport" | "other";
+
+export const TICKET_CATEGORY_OPTIONS: { label: string; value: TicketCategory }[] = [
+  { label: "مشکلات فنی", value: "technical" },
+  { label: "پرداخت", value: "billing" },
+  { label: "حساب کاربری", value: "account" },
+  { label: "درخواست ویژگی", value: "featureRequest" },
+  { label: "گزارش باگ", value: "bugReport" },
+  { label: "سایر موارد", value: "other" },
+];
+
+export function getTicketCategoryLabel(category: string): string {
+  const trimmed = category.trim();
+  if (!trimmed) return "—";
+
+  const matched = TICKET_CATEGORY_OPTIONS.find(
+    (option) => option.value.toLowerCase() === trimmed.toLowerCase()
+  );
+  if (matched) return matched.label;
+
+  const normalized = trimmed.toLowerCase().replace(/[^a-z0-9]+/g, "");
+  const byNormalized = TICKET_CATEGORY_OPTIONS.find(
+    (option) => option.value.toLowerCase().replace(/[^a-z0-9]+/g, "") === normalized
+  );
+  if (byNormalized) return byNormalized.label;
+
+  return trimmed;
+}
+
 export interface Ticket {
   id: string;
   title: string;

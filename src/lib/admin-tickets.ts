@@ -1,4 +1,5 @@
 import type { Attachment, Message, Ticket, TimelineEvent } from "@/app/panel/support/data";
+import { getTicketCategoryLabel } from "@/app/panel/support/data";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -135,23 +136,12 @@ export function toTicket(source: unknown, index: number): Ticket {
     title: normalizeString(findByKeys(row, ["title", "subject", "summary", "message"]), "تیکت پشتیبانی"),
     status,
     priority: normalizePriority(findByKeys(row, ["priority", "urgency", "severity"])),
-    category: normalizeString(findByKeys(row, ["category", "type", "department"]), "پشتیبانی"),
+    category: getTicketCategoryLabel(normalizeString(findByKeys(row, ["category", "type", "department"]), "")),
     createdAt,
     updatedAt,
     messages,
     attachments,
-    timeline:
-      timeline.length > 0
-        ? timeline
-        : [
-            {
-              id: `t-${index + 1}-1`,
-              title: "تیکت ثبت شد",
-              time: createdAt,
-              icon: "add",
-              status: "completed",
-            },
-          ],
+    timeline,
   };
 }
 

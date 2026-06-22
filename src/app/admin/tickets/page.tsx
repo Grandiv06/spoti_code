@@ -1,15 +1,21 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Headset, Search, MessageSquare, Clock3, CheckCircle2, AlertTriangle, Send, Paperclip } from "lucide-react";
+import { Headset, Search, MessageSquare, Clock3, CheckCircle2, AlertTriangle, Send, Paperclip, Filter, Signal } from "lucide-react";
 import type { Ticket } from "@/app/panel/support/data";
-import { TICKET_URGENCY_LABELS, TICKET_URGENCY_OPTIONS } from "@/app/panel/support/data";
+import { TICKET_URGENCY_LABELS, TICKET_URGENCY_OPTIONS, getTicketCategoryLabel } from "@/app/panel/support/data";
+import CustomSelect from "@/components/ui/CustomSelect";
 import { cn } from "@/lib/utils";
 import {
   mapAdminTicketPriorityFilter,
   mapAdminTicketStatusFilter,
   useAdminTicketsQuery,
 } from "@/hooks/api/useAdminTicketsQuery";
+import {
+  AdminTicketDetailSkeleton,
+  AdminTicketListSkeleton,
+  AdminTicketsStatsSkeleton,
+} from "./_components/AdminTicketsSkeletons";
 
 type TicketFilters = {
   search: string;
@@ -22,6 +28,22 @@ const defaultTicketFilters: TicketFilters = {
   status: "all",
   priority: "all",
 };
+
+const statusFilterOptions = [
+  { value: "all", label: "همه وضعیت‌ها" },
+  { value: "open", label: "باز" },
+  { value: "investigating", label: "در حال بررسی" },
+  { value: "answered", label: "پاسخ داده شده" },
+  { value: "closed", label: "بسته شده" },
+];
+
+const priorityFilterOptions = [
+  { value: "all", label: "همه اولویت‌ها" },
+  ...TICKET_URGENCY_OPTIONS.map((option) => ({
+    value: option.value,
+    label: option.label,
+  })),
+];
 
 export default function AdminTicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -86,8 +108,11 @@ export default function AdminTicketsPage() {
     statusFilter !== debouncedFilters.status ||
     priorityFilter !== debouncedFilters.priority;
   const isLoadingList = isLoadingTickets || isFiltersPending;
+  const showTicketsContent = !isError || tickets.length > 0;
 
-  const selectedTicket = displayedTickets.find((t) => t.id === selectedTicketId) || displayedTickets[0];
+  const selectedTicket = showTicketsContent && !isLoadingList
+    ? displayedTickets.find((t) => t.id === selectedTicketId) || displayedTickets[0]
+    : undefined;
 
   const statusPill = {
     open: "bg-blue-500/10 text-blue-500 border-blue-500/20",
@@ -173,12 +198,16 @@ export default function AdminTicketsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-        <TicketStat title="کل تیکت‌ها" value={stats.total.toLocaleString("fa-IR")} icon={<MessageSquare className="w-4 h-4 text-primary" />} />
-        <TicketStat title="تیکت باز" value={stats.open.toLocaleString("fa-IR")} icon={<AlertTriangle className="w-4 h-4 text-blue-500" />} />
-        <TicketStat title="در حال بررسی" value={stats.investigating.toLocaleString("fa-IR")} icon={<Clock3 className="w-4 h-4 text-amber-500" />} />
-        <TicketStat title="پاسخ داده شده" value={stats.answered.toLocaleString("fa-IR")} icon={<CheckCircle2 className="w-4 h-4 text-emerald-500" />} />
-      </div>
+      {isLoadingList ? (
+        <AdminTicketsStatsSkeleton />
+      ) : showTicketsContent ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
+          <TicketStat title="کل تیکت‌ها" value={stats.total.toLocaleString("fa-IR")} icon={<MessageSquare className="w-4 h-4 text-primary" />} />
+          <TicketStat title="تیکت باز" value={stats.open.toLocaleString("fa-IR")} icon={<AlertTriangle className="w-4 h-4 text-blue-500" />} />
+          <TicketStat title="در حال بررسی" value={stats.investigating.toLocaleString("fa-IR")} icon={<Clock3 className="w-4 h-4 text-amber-500" />} />
+          <TicketStat title="پاسخ داده شده" value={stats.answered.toLocaleString("fa-IR")} icon={<CheckCircle2 className="w-4 h-4 text-emerald-500" />} />
+        </div>
+      ) : null}
 
       <div className="rounded-3xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md p-6 mb-6">
         {isError ? (
@@ -193,59 +222,51 @@ export default function AdminTicketsPage() {
             </button>
           </div>
         ) : null}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <div className="relative md:col-span-2">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-stretch">
+          <div className="relative md:col-span-2 group">
+            <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="جستجو بر اساس عنوان، شناسه یا دسته‌بندی..."
-              className="w-full h-11 rounded-xl border border-gray-200/70 dark:border-white/10 bg-gray-50 dark:bg-white/5 pr-10 pl-10 text-xs font-bold outline-none focus:border-primary"
+              className="h-full min-h-[46px] w-full rounded-2xl border border-gray-100 bg-gray-50 py-3.5 pr-11 pl-10 text-xs font-bold outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-white/10 dark:bg-white/5 dark:text-white"
             />
             {isLoadingList ? (
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+              <div className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
             ) : null}
           </div>
-          <select
+          <CustomSelect
+            options={statusFilterOptions}
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-11 rounded-xl border border-gray-200/70 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 text-xs font-bold outline-none focus:border-primary"
-          >
-            <option value="all">همه وضعیت‌ها</option>
-            <option value="open">باز</option>
-            <option value="investigating">در حال بررسی</option>
-            <option value="answered">پاسخ داده شده</option>
-            <option value="closed">بسته شده</option>
-          </select>
-          <select
+            onChange={setStatusFilter}
+            placeholder="وضعیت"
+            size="md"
+            className="h-full [&>div]:h-full [&_button]:h-full [&_button]:min-h-[46px] [&_button]:text-xs [&_button]:px-4"
+            icon={<Filter className="w-4 h-4" />}
+          />
+          <CustomSelect
+            options={priorityFilterOptions}
             value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-            className="h-11 rounded-xl border border-gray-200/70 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 text-xs font-bold outline-none focus:border-primary"
-          >
-            <option value="all">همه اولویت‌ها</option>
-            {TICKET_URGENCY_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+            onChange={setPriorityFilter}
+            placeholder="اولویت"
+            size="md"
+            className="h-full [&>div]:h-full [&_button]:h-full [&_button]:min-h-[46px] [&_button]:text-xs [&_button]:px-4"
+            icon={<Signal className="w-4 h-4" />}
+          />
         </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
         <div className="xl:col-span-8">
           {isLoadingList ? (
-            <div className="rounded-3xl border border-gray-100 dark:border-white/5 bg-white dark:bg-[#1c1e26] p-10 text-center text-gray-400 font-bold">
-              <div className="mx-auto mb-4 h-10 w-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-              <p className="text-xs font-black text-gray-500 dark:text-gray-400">در حال دریافت تیکت‌ها از سرور...</p>
-            </div>
-          ) : selectedTicket ? (
+            <AdminTicketDetailSkeleton />
+          ) : showTicketsContent && selectedTicket ? (
             <div className="rounded-[2.5rem] border border-gray-100 dark:border-white/5 bg-white dark:bg-[#1c1e26] p-8 shadow-xl shadow-gray-200/40 dark:shadow-none">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div>
                   <h3 className="text-2xl font-black text-gray-900 dark:text-white leading-tight">{selectedTicket.title}</h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400 font-bold mt-2">
-                    {selectedTicket.id} • {selectedTicket.category} • بروزرسانی: {selectedTicket.updatedAt}
+                    {getTicketCategoryLabel(selectedTicket.category)} • بروزرسانی: {selectedTicket.updatedAt}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -311,29 +332,17 @@ export default function AdminTicketsPage() {
                 </div>
               </div>
             </div>
-          ) : (
+          ) : showTicketsContent ? (
             <div className="rounded-3xl border border-gray-100 dark:border-white/5 bg-white dark:bg-[#1c1e26] p-10 text-center text-gray-400 font-bold">
               تیکتی برای نمایش وجود ندارد.
             </div>
-          )}
+          ) : null}
         </div>
 
         <div className="xl:col-span-4 space-y-3">
           {isLoadingList ? (
-            Array.from({ length: 3 }).map((_, index) => (
-              <div
-                key={index}
-                className="animate-pulse rounded-3xl border border-gray-100 bg-white p-4 dark:border-white/5 dark:bg-[#1c1e26]"
-              >
-                <div className="mb-2 flex items-center justify-between">
-                  <div className="h-3 w-16 rounded-full bg-gray-200 dark:bg-white/10" />
-                  <div className="h-6 w-14 rounded-lg bg-gray-100 dark:bg-white/5" />
-                </div>
-                <div className="mb-2 h-4 w-full rounded-full bg-gray-200 dark:bg-white/10" />
-                <div className="h-3 w-2/3 rounded-full bg-gray-100 dark:bg-white/5" />
-              </div>
-            ))
-          ) : (
+            <AdminTicketListSkeleton />
+          ) : showTicketsContent ? (
           displayedTickets.map((ticket) => (
             <button
               key={ticket.id}
@@ -345,20 +354,19 @@ export default function AdminTicketsPage() {
                   : "border-gray-100 dark:border-white/5 bg-white dark:bg-[#1c1e26] hover:border-primary/20"
               )}
             >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-black text-gray-400">{ticket.id}</span>
+              <div className="mb-2 flex items-center justify-start">
                 <span className={cn("px-2 py-1 rounded-lg border text-[10px] font-black", statusPill[ticket.status])}>
                   {statusLabel[ticket.status]}
                 </span>
               </div>
               <p className="text-sm font-black text-gray-900 dark:text-white line-clamp-2">{ticket.title}</p>
               <div className="mt-2 text-[10px] font-bold text-gray-500 dark:text-gray-400 flex items-center justify-between">
-                <span>{ticket.category}</span>
+                <span>{getTicketCategoryLabel(ticket.category)}</span>
                 <span>اولویت: {priorityLabel[ticket.priority]}</span>
               </div>
             </button>
           ))
-          )}
+          ) : null}
         </div>
       </div>
     </div>
