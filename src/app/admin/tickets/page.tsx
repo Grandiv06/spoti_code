@@ -2,35 +2,72 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { Headset, Search, MessageSquare, Clock3, CheckCircle2, AlertTriangle, Send, Paperclip } from "lucide-react";
-import { mockTickets, Ticket } from "@/app/panel/support/data";
-import { apiGetNoMock } from "@/lib/api";
-import { normalizeAdminTicketsResponse } from "@/lib/admin-tickets";
+import type { Ticket } from "@/app/panel/support/data";
+import { TICKET_URGENCY_LABELS, TICKET_URGENCY_OPTIONS } from "@/app/panel/support/data";
 import { cn } from "@/lib/utils";
+import {
+  mapAdminTicketPriorityFilter,
+  mapAdminTicketStatusFilter,
+  useAdminTicketsQuery,
+} from "@/hooks/api/useAdminTicketsQuery";
+
+type TicketFilters = {
+  search: string;
+  status: string;
+  priority: string;
+};
+
+const defaultTicketFilters: TicketFilters = {
+  search: "",
+  status: "all",
+  priority: "all",
+};
 
 export default function AdminTicketsPage() {
-  const [tickets, setTickets] = useState<Ticket[]>(mockTickets);
-  const [isLoadingTickets, setIsLoadingTickets] = useState(true);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
+  const [debouncedFilters, setDebouncedFilters] = useState<TicketFilters>(defaultTicketFilters);
   const [selectedTicketId, setSelectedTicketId] = useState("");
   const [replyText, setReplyText] = useState("");
 
   useEffect(() => {
-    const fetchTickets = async () => {
-      try {
-        const response = await apiGetNoMock<unknown>("/api/admin-dashboard/tickets");
-        const mapped = normalizeAdminTicketsResponse(response);
-        setTickets(mapped.length > 0 ? mapped : mockTickets);
-      } catch {
-        setTickets(mockTickets);
-      } finally {
-        setIsLoadingTickets(false);
-      }
-    };
+    const timer = window.setTimeout(() => {
+      setDebouncedFilters({
+        search: searchQuery.trim(),
+        status: statusFilter,
+        priority: priorityFilter,
+      });
+    }, 350);
 
-    fetchTickets();
-  }, []);
+    return () => window.clearTimeout(timer);
+  }, [searchQuery, statusFilter, priorityFilter]);
+
+  const { data, isPending, isFetching, isError, refetch } = useAdminTicketsQuery({
+    search: debouncedFilters.search || undefined,
+    status: mapAdminTicketStatusFilter(debouncedFilters.status),
+    urgency: mapAdminTicketPriorityFilter(debouncedFilters.priority),
+  });
+
+  useEffect(() => {
+    if (data) {
+      setTickets(data);
+    }
+  }, [data]);
+
+  const isLoadingTickets = isPending || isFetching;
+
+  useEffect(() => {
+    if (tickets.length === 0) {
+      setSelectedTicketId("");
+      return;
+    }
+
+    if (!tickets.some((ticket) => ticket.id === selectedTicketId)) {
+      setSelectedTicketId(tickets[0].id);
+    }
+  }, [tickets, selectedTicketId]);
 
   const stats = useMemo(() => {
     const total = tickets.length;
@@ -40,23 +77,17 @@ export default function AdminTicketsPage() {
     return { total, open, investigating, answered };
   }, [tickets]);
 
-  const filteredTickets = useMemo(() => {
-    return tickets
-      .filter((t) => {
-        if (statusFilter !== "all" && t.status !== statusFilter) return false;
-        if (priorityFilter !== "all" && t.priority !== priorityFilter) return false;
-        if (!searchQuery.trim()) return true;
-        const q = searchQuery.trim().toLowerCase();
-        return (
-          t.id.toLowerCase().includes(q) ||
-          t.title.toLowerCase().includes(q) ||
-          t.category.toLowerCase().includes(q)
-        );
-      })
-      .sort((a, b) => b.id.localeCompare(a.id));
-  }, [tickets, statusFilter, priorityFilter, searchQuery]);
+  const displayedTickets = useMemo(() => {
+    return [...tickets].sort((a, b) => b.id.localeCompare(a.id));
+  }, [tickets]);
 
-  const selectedTicket = filteredTickets.find((t) => t.id === selectedTicketId) || filteredTickets[0];
+  const isFiltersPending =
+    searchQuery.trim() !== debouncedFilters.search ||
+    statusFilter !== debouncedFilters.status ||
+    priorityFilter !== debouncedFilters.priority;
+  const isLoadingList = isLoadingTickets || isFiltersPending;
+
+  const selectedTicket = displayedTickets.find((t) => t.id === selectedTicketId) || displayedTickets[0];
 
   const statusPill = {
     open: "bg-blue-500/10 text-blue-500 border-blue-500/20",
@@ -72,11 +103,7 @@ export default function AdminTicketsPage() {
     closed: "بسته شده",
   };
 
-  const priorityLabel = {
-    normal: "عادی",
-    high: "مهم",
-    urgent: "فوری",
-  };
+  const priorityLabel = TICKET_URGENCY_LABELS;
 
   const handleStatusChange = (ticketId: string, nextStatus: Ticket["status"]) => {
     setTickets((prev) =>
@@ -154,6 +181,18 @@ export default function AdminTicketsPage() {
       </div>
 
       <div className="rounded-3xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md p-6 mb-6">
+        {isError ? (
+          <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+            <p className="text-xs font-black">بارگذاری تیکت‌ها انجام نشد.</p>
+            <button
+              type="button"
+              onClick={() => void refetch()}
+              className="mt-3 rounded-xl bg-red-600 px-4 py-2 text-[10px] font-bold text-white transition-colors hover:bg-red-700"
+            >
+              تلاش مجدد
+            </button>
+          </div>
+        ) : null}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div className="relative md:col-span-2">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -161,8 +200,11 @@ export default function AdminTicketsPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="جستجو بر اساس عنوان، شناسه یا دسته‌بندی..."
-              className="w-full h-11 rounded-xl border border-gray-200/70 dark:border-white/10 bg-gray-50 dark:bg-white/5 pr-10 pl-3 text-xs font-bold outline-none focus:border-primary"
+              className="w-full h-11 rounded-xl border border-gray-200/70 dark:border-white/10 bg-gray-50 dark:bg-white/5 pr-10 pl-10 text-xs font-bold outline-none focus:border-primary"
             />
+            {isLoadingList ? (
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+            ) : null}
           </div>
           <select
             value={statusFilter}
@@ -181,16 +223,18 @@ export default function AdminTicketsPage() {
             className="h-11 rounded-xl border border-gray-200/70 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 text-xs font-bold outline-none focus:border-primary"
           >
             <option value="all">همه اولویت‌ها</option>
-            <option value="normal">عادی</option>
-            <option value="high">مهم</option>
-            <option value="urgent">فوری</option>
+            {TICKET_URGENCY_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
         </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
         <div className="xl:col-span-8">
-          {isLoadingTickets ? (
+          {isLoadingList ? (
             <div className="rounded-3xl border border-gray-100 dark:border-white/5 bg-white dark:bg-[#1c1e26] p-10 text-center text-gray-400 font-bold">
               <div className="mx-auto mb-4 h-10 w-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
               <p className="text-xs font-black text-gray-500 dark:text-gray-400">در حال دریافت تیکت‌ها از سرور...</p>
@@ -275,7 +319,22 @@ export default function AdminTicketsPage() {
         </div>
 
         <div className="xl:col-span-4 space-y-3">
-          {filteredTickets.map((ticket) => (
+          {isLoadingList ? (
+            Array.from({ length: 3 }).map((_, index) => (
+              <div
+                key={index}
+                className="animate-pulse rounded-3xl border border-gray-100 bg-white p-4 dark:border-white/5 dark:bg-[#1c1e26]"
+              >
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="h-3 w-16 rounded-full bg-gray-200 dark:bg-white/10" />
+                  <div className="h-6 w-14 rounded-lg bg-gray-100 dark:bg-white/5" />
+                </div>
+                <div className="mb-2 h-4 w-full rounded-full bg-gray-200 dark:bg-white/10" />
+                <div className="h-3 w-2/3 rounded-full bg-gray-100 dark:bg-white/5" />
+              </div>
+            ))
+          ) : (
+          displayedTickets.map((ticket) => (
             <button
               key={ticket.id}
               onClick={() => setSelectedTicketId(ticket.id)}
@@ -298,7 +357,8 @@ export default function AdminTicketsPage() {
                 <span>اولویت: {priorityLabel[ticket.priority]}</span>
               </div>
             </button>
-          ))}
+          ))
+          )}
         </div>
       </div>
     </div>

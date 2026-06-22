@@ -22,11 +22,25 @@ export interface TimelineEvent {
   status: "completed" | "pending";
 }
 
+export type TicketUrgency = "low" | "medium" | "high";
+
+export const TICKET_URGENCY_OPTIONS: { label: string; value: TicketUrgency }[] = [
+  { label: "کم", value: "low" },
+  { label: "متوسط", value: "medium" },
+  { label: "زیاد", value: "high" },
+];
+
+export const TICKET_URGENCY_LABELS: Record<TicketUrgency, string> = {
+  low: "کم",
+  medium: "متوسط",
+  high: "زیاد",
+};
+
 export interface Ticket {
   id: string;
   title: string;
   status: "open" | "investigating" | "answered" | "closed";
-  priority: "normal" | "high" | "urgent";
+  priority: TicketUrgency;
   category: string;
   createdAt: string;
   updatedAt: string;
@@ -74,7 +88,7 @@ export const mockTickets: Ticket[] = [
     title: "درخواست بازگشت وجه - خرید اشتباه اشتراک ویژه",
     category: "مالی و پرداخت",
     status: "investigating",
-    priority: "urgent",
+    priority: "high",
     createdAt: "۱۴۰۲/۰۸/۲۲",
     updatedAt: "۱ روز پیش",
     messages: [
@@ -99,7 +113,7 @@ export const mockTickets: Ticket[] = [
     title: "خطای ۵۰۰ هنگام تغییر عکس پروفایل در پنل کاربری",
     category: "فنی و پنل",
     status: "closed",
-    priority: "normal",
+    priority: "low",
     createdAt: "۱۴۰۲/۰۸/۱۵",
     updatedAt: "۳ روز پیش",
     messages: [
@@ -172,7 +186,7 @@ export function buildMockTicketDetails(ticketId: string, partial?: Partial<Ticke
     id: ticketId,
     title: partial?.title ?? "تیکت پشتیبانی",
     status: partial?.status ?? "open",
-    priority: partial?.priority ?? "normal",
+    priority: partial?.priority ?? "low",
     category: partial?.category ?? "عمومی",
     createdAt,
     updatedAt,

@@ -13,6 +13,7 @@ import {
   Inbox
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TICKET_URGENCY_LABELS } from "@/app/panel/support/data";
 import { useTicketsQuery } from "@/hooks/api/useTicketsQuery";
 import { TicketListSkeleton } from "./TicketSupportSkeleton";
 
@@ -32,9 +33,9 @@ const statusMap = {
 };
 
 const priorityMap = {
-  normal: { label: "عادی", class: "text-gray-400 bg-gray-100 dark:bg-white/5" },
-  high: { label: "مهم", class: "text-amber-500 bg-amber-500/5" },
-  urgent: { label: "فوری", class: "text-red-500 bg-red-500/5" },
+  low: { label: TICKET_URGENCY_LABELS.low, class: "text-gray-400 bg-gray-100 dark:bg-white/5" },
+  medium: { label: TICKET_URGENCY_LABELS.medium, class: "text-amber-500 bg-amber-500/5" },
+  high: { label: TICKET_URGENCY_LABELS.high, class: "text-red-500 bg-red-500/5" },
 };
 
 const PAGE_SIZE = 3;

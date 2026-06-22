@@ -62,11 +62,10 @@ function normalizeStatus(value: unknown): Ticket["status"] {
 
 function normalizePriority(value: unknown): Ticket["priority"] {
   const raw = String(value ?? "").trim().toLowerCase();
-  if (["urgent", "critical", "فوری", "high"].includes(raw)) {
-    return raw === "high" ? "high" : "urgent";
-  }
-  if (["medium", "normal", "low", "عادی"].includes(raw)) return "normal";
-  return "normal";
+  if (["high", "زیاد", "urgent", "critical"].includes(raw)) return "high";
+  if (["medium", "متوسط", "normal"].includes(raw)) return "medium";
+  if (["low", "کم"].includes(raw)) return "low";
+  return "low";
 }
 
 function normalizeSender(value: unknown): Message["sender"] {

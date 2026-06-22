@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { apiGetNoMock } from "@/lib/api";
-import { Ticket, formatTicketDate } from "@/app/panel/support/data";
+import { Ticket, formatTicketDate, type TicketUrgency } from "@/app/panel/support/data";
 
 export const ticketQueryKey = ["tickets"] as const;
 
@@ -33,9 +33,9 @@ export function useTicketsQuery() {
               : rawStatus === "closed"
                 ? "closed"
                 : "open";
-        const rawPriority = String(row.priority ?? "").toLowerCase();
-        const priority: Ticket["priority"] =
-          rawPriority === "high" ? "high" : rawPriority === "urgent" ? "urgent" : "normal";
+        const rawPriority = String(row.urgency ?? row.priority ?? "").toLowerCase();
+        const priority: TicketUrgency =
+          rawPriority === "high" ? "high" : rawPriority === "medium" ? "medium" : "low";
 
         return {
           id: String(row.id ?? row.ticketId ?? `TKT-${index + 1}`),

@@ -129,9 +129,9 @@ export default function TicketDetailsClient({ onBack }: TicketDetailsClientProps
   };
 
   const priorityMap = {
-    normal: { label: "عادی", class: "bg-gray-100 dark:bg-white/5 text-gray-500" },
-    high: { label: "مهم", class: "bg-amber-500/10 text-amber-500" },
-    urgent: { label: "فوری", class: "bg-red-500/10 text-red-500" },
+    low: { label: "کم", class: "bg-gray-100 dark:bg-white/5 text-gray-500" },
+    medium: { label: "متوسط", class: "bg-amber-500/10 text-amber-500" },
+    high: { label: "زیاد", class: "bg-red-500/10 text-red-500" },
   };
 
   return (

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Send, AlertCircle, Paperclip, ChevronRight } from "lucide-react";
 import CustomSelect from "@/components/ui/CustomSelect";
+import { TICKET_URGENCY_OPTIONS } from "@/app/panel/support/data";
 import { apiPostNoMock } from "@/lib/api";
 
 export default function TicketForm({ onBack }: { onBack: () => void }) {
@@ -10,7 +11,7 @@ export default function TicketForm({ onBack }: { onBack: () => void }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
-  const [priority, setPriority] = useState("normal");
+  const [priority, setPriority] = useState("low");
   const [error, setError] = useState("");
 
   const categoryOptions = [
@@ -22,11 +23,10 @@ export default function TicketForm({ onBack }: { onBack: () => void }) {
     { label: "سایر موارد", value: "other" },
   ];
 
-  const priorityOptions = [
-    { label: "کم", value: "low" },
-    { label: "متوسط", value: "medium" },
-    { label: "زیاد", value: "high" },
-  ];
+  const priorityOptions = TICKET_URGENCY_OPTIONS.map((option) => ({
+    label: option.label,
+    value: option.value,
+  }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
