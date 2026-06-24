@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Send, AlertCircle, Paperclip, ChevronRight } from "lucide-react";
 import CustomSelect from "@/components/ui/CustomSelect";
-import { TICKET_URGENCY_OPTIONS, TICKET_CATEGORY_OPTIONS } from "@/app/panel/support/data";
+import { TICKET_CATEGORY_OPTIONS } from "@/app/panel/support/data";
 import { apiPostNoMock } from "@/lib/api";
 
 export default function TicketForm({ onBack }: { onBack: () => void }) {
@@ -11,15 +11,9 @@ export default function TicketForm({ onBack }: { onBack: () => void }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
-  const [priority, setPriority] = useState("low");
   const [error, setError] = useState("");
 
   const categoryOptions = TICKET_CATEGORY_OPTIONS;
-
-  const priorityOptions = TICKET_URGENCY_OPTIONS.map((option) => ({
-    label: option.label,
-    value: option.value,
-  }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +27,6 @@ export default function TicketForm({ onBack }: { onBack: () => void }) {
           subject: title.trim(),
           description,
           category,
-          urgency: priority,
           tags: [],
           attachmentFileIds: [],
           firstMessage: description,
@@ -119,22 +112,13 @@ export default function TicketForm({ onBack }: { onBack: () => void }) {
                   />
                 </div>
 
-                <div className="z-30">
+                <div className="md:col-span-2 z-30">
                   <CustomSelect
                     label="دسته‌بندی موضوع"
                     value={category}
                     options={categoryOptions}
                     onChange={setCategory}
                     placeholder="انتخاب کنید..."
-                  />
-                </div>
-
-                <div className="z-20">
-                  <CustomSelect
-                    label="اولویت درخواست"
-                    value={priority}
-                    options={priorityOptions}
-                    onChange={setPriority}
                   />
                 </div>
 

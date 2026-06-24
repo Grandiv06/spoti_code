@@ -1,5 +1,5 @@
 import type { Attachment, Message, Ticket, TimelineEvent } from "@/app/panel/support/data";
-import { getTicketCategoryLabel } from "@/app/panel/support/data";
+import { getTicketCategoryLabel, isTicketClosed } from "@/app/panel/support/data";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -51,14 +51,9 @@ function normalizeString(value: unknown, fallback = "—"): string {
   return fallback;
 }
 
-function normalizeStatus(value: unknown): Ticket["status"] {
-  const raw = String(value ?? "").trim().toLowerCase();
-  if (!raw || ["open", "pending", "waiting", "باز", "new", "newticket"].includes(raw)) return "open";
-  if (["investigating", "underreview", "reviewing", "در حال بررسی", "inprogress"].includes(raw)) {
-    return "investigating";
-  }
-  if (["answered", "resolved", "reply", "replied", "پاسخ داده شده"].includes(raw)) return "answered";
-  return "closed";
+function normalizeStatus(value: unknown): string {
+  const raw = String(value ?? "").trim();
+  return raw || "open";
 }
 
 function normalizePriority(value: unknown): Ticket["priority"] {
@@ -126,7 +121,15 @@ function mapTimeline(source: unknown): TimelineEvent[] {
 
 export function toTicket(source: unknown, index: number): Ticket {
   const row = isRecord(source) ? source : {};
-  const status = normalizeStatus(findByKeys(row, ["status", "state", "ticketStatus"]));
+  const closedAt = findByKeys(row, ["closedAt", "closed_at", "closedDate"]);
+  const normalizedStatus = normalizeStatus(findByKeys(row, ["status", "state", "ticketStatus"]));
+  const status =
+    closedAt != null &&
+    String(closedAt).trim() &&
+    String(closedAt).toLowerCase() !== "null" &&
+    !isTicketClosed(normalizedStatus)
+      ? "closed"
+      : normalizedStatus;
   const createdAt = normalizeString(findByKeys(row, ["createdAt", "created", "date", "openedAt"]), "—");
   const updatedAt = normalizeString(findByKeys(row, ["updatedAt", "updated", "lastUpdated", "timeAgo"]), createdAt);
   const messages = mapMessages(row);

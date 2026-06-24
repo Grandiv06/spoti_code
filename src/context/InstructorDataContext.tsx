@@ -84,7 +84,9 @@ export interface StudentQuestion {
   }[];
   courseId: string;
   courseTitle: string;
+  lessonId?: string;
   lessonTitle?: string;
+  studentId?: string;
   createdAt: string;
   status: "new" | "answered";
   replies: {
@@ -358,9 +360,20 @@ function normalizeStudentQuestion(raw: unknown, index: number): StudentQuestion 
         (isRecord(source.course) ? (source.course as UnknownRecord).title ?? (source.course as UnknownRecord).name : undefined),
       "دوره نامشخص"
     ),
+    lessonId: normalizeString(
+      source.lessonId ?? (isRecord(source.lesson) ? (source.lesson as UnknownRecord).id : undefined),
+      ""
+    ),
     lessonTitle: normalizeString(
       source.lessonTitle ??
         (isRecord(source.lesson) ? (source.lesson as UnknownRecord).title : undefined),
+      ""
+    ),
+    studentId: normalizeString(
+      source.studentId ??
+        source.userId ??
+        (isRecord(source.user) ? (source.user as UnknownRecord).id : undefined) ??
+        (isRecord(source.student) ? (source.student as UnknownRecord).id : undefined),
       ""
     ),
     createdAt: formatQaDate(source.createdAt ?? source.date ?? source.askedAt),
@@ -588,6 +601,7 @@ const initialQuestions: StudentQuestion[] = [
     errorText: "Hydration failed because the initial UI does not match what was rendered on the server.",
     courseId: "CRS-410",
     courseTitle: "متخصص React و Next.js",
+    lessonId: "LES-410-1",
     lessonTitle: "فولدر استراکچر جدید و سیستم Routing",
     createdAt: "1404/02/15",
     status: "new",
@@ -610,6 +624,7 @@ const initialQuestions: StudentQuestion[] = [
     description: "سلام خسته نباشید. متغیرهای محیطی که در فایل env.local قرار دادم در داخل Server Actionها لود نمی‌شوند و undefined برمی‌گردانند. علت چیست؟",
     courseId: "CRS-410",
     courseTitle: "متخصص React و Next.js",
+    lessonId: "LES-410-2",
     lessonTitle: "مفهوم Server Actions در ری‌اکت ۱۹",
     createdAt: "1404/02/12",
     status: "answered",
@@ -629,6 +644,21 @@ const initialQuestions: StudentQuestion[] = [
         createdAt: "1404/02/13",
       },
     ],
+  },
+  {
+    id: "QST-003",
+    studentName: "علیرضا رضایی",
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=150&auto=format&fit=crop",
+    title: "ادامه مشکل Hydration بعد از ریفرش",
+    text: "بعد از اعمال پیشنهاد شما، با ریفرش صفحه دوباره خطای Hydration برمی‌گردد.",
+    description: "بعد از اعمال پیشنهاد شما، با ریفرش صفحه دوباره خطای Hydration برمی‌گردد.",
+    courseId: "CRS-410",
+    courseTitle: "متخصص React و Next.js",
+    lessonId: "LES-410-1",
+    lessonTitle: "فولدر استراکچر جدید و سیستم Routing",
+    createdAt: "1404/02/16",
+    status: "new",
+    replies: [],
   },
 ];
 

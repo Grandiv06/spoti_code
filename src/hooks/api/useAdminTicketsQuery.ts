@@ -84,7 +84,7 @@ export function mapAdminTicketStatusFilter(
   value: string
 ): AdminTicketsQueryParams["status"] | undefined {
   if (value === "all") return undefined;
-  if (value === "investigating") return "underReview";
+  if (value === "investigating") return "open";
   if (value === "open" || value === "answered" || value === "closed") return value;
   return undefined;
 }
@@ -98,7 +98,7 @@ export function mapAdminTicketPriorityFilter(
 }
 
 function adminTicketClosePath(ticketId: string) {
-  return `/api/tickets/my/${encodeURIComponent(ticketId)}/close`;
+  return `/api/tickets/admin/${encodeURIComponent(ticketId)}/close`;
 }
 
 function adminTicketMessagePath(ticketId: string) {

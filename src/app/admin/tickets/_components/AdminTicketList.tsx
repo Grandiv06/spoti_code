@@ -3,22 +3,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { MessageSquare } from "lucide-react";
 import type { Ticket } from "@/app/panel/support/data";
-import { TICKET_URGENCY_LABELS, getTicketCategoryLabel } from "@/app/panel/support/data";
+import { TICKET_URGENCY_LABELS, formatTicketStatusLabel, getTicketCategoryLabel, getTicketStatusClass } from "@/app/panel/support/data";
 import { cn } from "@/lib/utils";
-
-const statusPill: Record<Ticket["status"], string> = {
-  open: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-  investigating: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-  answered: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-  closed: "bg-gray-500/10 text-gray-500 border-gray-500/20",
-};
-
-const statusLabel: Record<Ticket["status"], string> = {
-  open: "باز",
-  investigating: "در حال بررسی",
-  answered: "پاسخ داده شده",
-  closed: "بسته شده",
-};
 
 const priorityDot: Record<Ticket["priority"], string> = {
   high: "bg-rose-500",
@@ -110,10 +96,10 @@ export default function AdminTicketList({ tickets, selectedTicketId, onSelect }:
                     <span
                       className={cn(
                         "shrink-0 rounded-lg border px-2 py-0.5 text-[10px] font-black leading-none",
-                        statusPill[ticket.status]
+                        getTicketStatusClass(ticket.status)
                       )}
                     >
-                      {statusLabel[ticket.status]}
+                      {formatTicketStatusLabel(ticket.status)}
                     </span>
                     <span className="truncate text-[10px] font-bold text-gray-400 dark:text-gray-500" dir="ltr">
                       {ticket.updatedAt}

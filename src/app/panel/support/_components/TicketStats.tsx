@@ -1,8 +1,9 @@
 "use client";
 
 import React from "react";
-import { MessageSquare, Clock, CheckCircle2, Inbox, LucideIcon } from "lucide-react";
+import { Clock, CheckCircle2, Inbox, LucideIcon } from "lucide-react";
 import { useTicketsQuery } from "@/hooks/api/useTicketsQuery";
+import { isTicketUnderReview, isTicketAnswered } from "@/app/panel/support/data";
 import { TicketStatsSkeleton } from "./TicketSupportSkeleton";
 
 export default function TicketStats() {
@@ -14,13 +15,12 @@ export default function TicketStats() {
 
   const stats = [
     { label: "کل تیکت‌ها", value: tickets.length.toLocaleString("fa-IR"), icon: Inbox, color: "blue" },
-    { label: "تیکت‌های باز", value: tickets.filter((t) => t.status === "open").length.toLocaleString("fa-IR"), icon: MessageSquare, color: "primary" },
-    { label: "در حال بررسی", value: tickets.filter((t) => t.status === "investigating").length.toLocaleString("fa-IR"), icon: Clock, color: "amber" },
-    { label: "پاسخ داده شده", value: tickets.filter((t) => t.status === "answered").length.toLocaleString("fa-IR"), icon: CheckCircle2, color: "green" },
+    { label: "در حال بررسی", value: tickets.filter((t) => isTicketUnderReview(t.status)).length.toLocaleString("fa-IR"), icon: Clock, color: "amber" },
+    { label: "پاسخ داده شده", value: tickets.filter((t) => isTicketAnswered(t.status)).length.toLocaleString("fa-IR"), icon: CheckCircle2, color: "green" },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-8">
       {stats.map((stat, i) => (
         <div key={i} className="bg-white dark:bg-[#1c1e26] p-4 md:p-5 rounded-[2rem] border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
           <div className={`absolute top-0 right-0 w-16 h-16 bg-${stat.color}-500/5 rounded-full blur-xl -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500`} />

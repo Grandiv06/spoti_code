@@ -1,12 +1,11 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Headset, Search, MessageSquare, Clock3, CheckCircle2, AlertTriangle, Send, Paperclip, Filter, Signal } from "lucide-react";
+import { Headset, Search, MessageSquare, Clock3, CheckCircle2, Send, Paperclip, Filter } from "lucide-react";
 import type { Ticket } from "@/app/panel/support/data";
-import { TICKET_URGENCY_OPTIONS, getTicketCategoryLabel } from "@/app/panel/support/data";
+import { getTicketCategoryLabel, isTicketClosed, isTicketUnderReview, isTicketAnswered } from "@/app/panel/support/data";
 import CustomSelect from "@/components/ui/CustomSelect";
 import {
-  mapAdminTicketPriorityFilter,
   mapAdminTicketStatusFilter,
   useAdminTicketDetailQuery,
   useAdminTicketsQuery,
@@ -20,44 +19,35 @@ import {
 } from "./_components/AdminTicketsSkeletons";
 import AdminTicketConversation from "./_components/AdminTicketConversation";
 import AdminTicketList from "./_components/AdminTicketList";
+import CloseTicketConfirmModal from "@/components/tickets/CloseTicketConfirmModal";
 
 type TicketFilters = {
   search: string;
   status: string;
-  priority: string;
 };
 
 const defaultTicketFilters: TicketFilters = {
   search: "",
   status: "all",
-  priority: "all",
 };
 
 const statusFilterOptions = [
   { value: "all", label: "همه وضعیت‌ها" },
-  { value: "open", label: "باز" },
   { value: "investigating", label: "در حال بررسی" },
   { value: "answered", label: "پاسخ داده شده" },
   { value: "closed", label: "بسته شده" },
-];
-
-const priorityFilterOptions = [
-  { value: "all", label: "همه اولویت‌ها" },
-  ...TICKET_URGENCY_OPTIONS.map((option) => ({
-    value: option.value,
-    label: option.label,
-  })),
 ];
 
 export default function AdminTicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [priorityFilter, setPriorityFilter] = useState("all");
   const [debouncedFilters, setDebouncedFilters] = useState<TicketFilters>(defaultTicketFilters);
   const [selectedTicketId, setSelectedTicketId] = useState("");
   const [replyText, setReplyText] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [closeError, setCloseError] = useState<string | null>(null);
   const conversationEndRef = useRef<HTMLDivElement>(null);
 
   const closeTicketMutation = useCloseAdminTicketMutation();
@@ -68,17 +58,15 @@ export default function AdminTicketsPage() {
       setDebouncedFilters({
         search: searchQuery.trim(),
         status: statusFilter,
-        priority: priorityFilter,
       });
     }, 350);
 
     return () => window.clearTimeout(timer);
-  }, [searchQuery, statusFilter, priorityFilter]);
+  }, [searchQuery, statusFilter]);
 
   const { data, isPending, isFetching, isError, refetch } = useAdminTicketsQuery({
     search: debouncedFilters.search || undefined,
     status: mapAdminTicketStatusFilter(debouncedFilters.status),
-    urgency: mapAdminTicketPriorityFilter(debouncedFilters.priority),
   });
 
   useEffect(() => {
@@ -102,10 +90,9 @@ export default function AdminTicketsPage() {
 
   const stats = useMemo(() => {
     const total = tickets.length;
-    const open = tickets.filter((t) => t.status === "open").length;
-    const investigating = tickets.filter((t) => t.status === "investigating").length;
-    const answered = tickets.filter((t) => t.status === "answered").length;
-    return { total, open, investigating, answered };
+    const underReview = tickets.filter((t) => isTicketUnderReview(t.status)).length;
+    const answered = tickets.filter((t) => isTicketAnswered(t.status)).length;
+    return { total, underReview, answered };
   }, [tickets]);
 
   const displayedTickets = useMemo(() => {
@@ -114,8 +101,7 @@ export default function AdminTicketsPage() {
 
   const isFiltersPending =
     searchQuery.trim() !== debouncedFilters.search ||
-    statusFilter !== debouncedFilters.status ||
-    priorityFilter !== debouncedFilters.priority;
+    statusFilter !== debouncedFilters.status;
   const isLoadingList = isLoadingTickets || isFiltersPending;
   const showTicketsContent = !isError || tickets.length > 0;
 
@@ -188,13 +174,16 @@ export default function AdminTicketsPage() {
     );
   };
 
-  const handleCloseTicket = async (ticketId: string) => {
+  const handleCloseTicket = async () => {
+    if (!selectedTicket) return;
+
+    setCloseError(null);
     setActionError(null);
     try {
-      const updatedTicket = await closeTicketMutation.mutateAsync(ticketId);
+      const updatedTicket = await closeTicketMutation.mutateAsync(selectedTicket.id);
       setTickets((prev) =>
         prev.map((ticket) =>
-          ticket.id === ticketId
+          ticket.id === selectedTicket.id
             ? {
                 ...ticket,
                 ...updatedTicket,
@@ -205,13 +194,25 @@ export default function AdminTicketsPage() {
             : ticket
         )
       );
+      setShowCloseConfirm(false);
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : "بستن تیکت انجام نشد.");
+      setCloseError(error instanceof Error ? error.message : "بستن تیکت انجام نشد.");
     }
   };
 
+  const openCloseConfirm = () => {
+    setCloseError(null);
+    setShowCloseConfirm(true);
+  };
+
+  const cancelCloseConfirm = () => {
+    if (closeTicketMutation.isPending) return;
+    setCloseError(null);
+    setShowCloseConfirm(false);
+  };
+
   const handleReply = async () => {
-    if (!selectedTicket || !replyText.trim() || selectedTicket.status === "closed") return;
+    if (!selectedTicket || !replyText.trim() || isTicketClosed(selectedTicket.status)) return;
 
     setActionError(null);
     const body = replyText.trim();
@@ -263,10 +264,9 @@ export default function AdminTicketsPage() {
       {isLoadingList ? (
         <AdminTicketsStatsSkeleton />
       ) : showTicketsContent ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
           <TicketStat title="کل تیکت‌ها" value={stats.total.toLocaleString("fa-IR")} icon={<MessageSquare className="w-4 h-4 text-primary" />} />
-          <TicketStat title="تیکت باز" value={stats.open.toLocaleString("fa-IR")} icon={<AlertTriangle className="w-4 h-4 text-blue-500" />} />
-          <TicketStat title="در حال بررسی" value={stats.investigating.toLocaleString("fa-IR")} icon={<Clock3 className="w-4 h-4 text-amber-500" />} />
+          <TicketStat title="در حال بررسی" value={stats.underReview.toLocaleString("fa-IR")} icon={<Clock3 className="w-4 h-4 text-amber-500" />} />
           <TicketStat title="پاسخ داده شده" value={stats.answered.toLocaleString("fa-IR")} icon={<CheckCircle2 className="w-4 h-4 text-emerald-500" />} />
         </div>
       ) : null}
@@ -284,7 +284,7 @@ export default function AdminTicketsPage() {
             </button>
           </div>
         ) : null}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-stretch">
           <div className="relative md:col-span-2 group">
             <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
             <input
@@ -305,15 +305,6 @@ export default function AdminTicketsPage() {
             size="md"
             className="h-full [&>div]:h-full [&_button]:h-full [&_button]:min-h-[46px] [&_button]:text-xs [&_button]:px-4"
             icon={<Filter className="w-4 h-4" />}
-          />
-          <CustomSelect
-            options={priorityFilterOptions}
-            value={priorityFilter}
-            onChange={setPriorityFilter}
-            placeholder="اولویت"
-            size="md"
-            className="h-full [&>div]:h-full [&_button]:h-full [&_button]:min-h-[46px] [&_button]:text-xs [&_button]:px-4"
-            icon={<Signal className="w-4 h-4" />}
           />
         </div>
       </div>
@@ -351,17 +342,17 @@ export default function AdminTicketsPage() {
                   <button
                     type="button"
                     onClick={() => handleStatusChange(selectedTicket.id, "investigating")}
-                    className="flex-1 rounded-2xl bg-amber-500/10 px-4 py-2.5 text-xs font-black text-amber-500 sm:flex-none"
+                    className="flex-1 cursor-pointer rounded-2xl bg-amber-500/10 px-4 py-2.5 text-xs font-black text-amber-500 transition-all hover:bg-amber-500/15 sm:flex-none"
                   >
                     در حال بررسی
                   </button>
                   <button
                     type="button"
-                    onClick={() => void handleCloseTicket(selectedTicket.id)}
-                    disabled={selectedTicket.status === "closed" || closeTicketMutation.isPending}
-                    className="flex-1 rounded-2xl bg-gray-500/10 px-4 py-2.5 text-xs font-black text-gray-500 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+                    onClick={openCloseConfirm}
+                    disabled={isTicketClosed(selectedTicket.status) || closeTicketMutation.isPending}
+                    className="flex-1 cursor-pointer rounded-2xl bg-gray-500/10 px-4 py-2.5 text-xs font-black text-gray-500 transition-all hover:bg-gray-500/15 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
                   >
-                    {closeTicketMutation.isPending ? "در حال بستن..." : "بستن تیکت"}
+                    بستن تیکت
                   </button>
                 </div>
               </div>
@@ -401,7 +392,7 @@ export default function AdminTicketsPage() {
                       onClick={() => void handleReply()}
                       disabled={
                         !replyText.trim() ||
-                        selectedTicket.status === "closed" ||
+                        isTicketClosed(selectedTicket.status) ||
                         sendMessageMutation.isPending
                       }
                       className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3.5 text-sm font-black text-white shadow-xl shadow-primary/30 transition-all hover:bg-primary-hover active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none sm:gap-3 sm:px-10 sm:py-4"
@@ -435,6 +426,15 @@ export default function AdminTicketsPage() {
           ) : null}
         </div>
       </div>
+
+      <CloseTicketConfirmModal
+        isOpen={showCloseConfirm}
+        ticketTitle={selectedTicket?.title}
+        isPending={closeTicketMutation.isPending}
+        error={closeError}
+        onCancel={cancelCloseConfirm}
+        onConfirm={() => void handleCloseTicket()}
+      />
     </div>
   );
 }

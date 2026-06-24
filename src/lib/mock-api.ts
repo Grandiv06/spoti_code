@@ -298,6 +298,14 @@ const comments = [
       role: "توسعه‌دهنده فرانت‌اند",
       avatar: "/images/student2.jpg",
     },
+    reply: {
+      content: "از بازخورد شما ممنونیم. خوشحالیم که تجربه مثبتی داشتید.",
+      createdAt: "2026-05-10T09:00:00.000Z",
+      author: {
+        fullName: "مدرس دوره",
+        role: "مدرس",
+      },
+    },
   },
   {
     id: "comment-3",
@@ -994,7 +1002,7 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
     return json({ data: newMsg }) as T;
   }
 
-  if (method === "patch" && /^\/api\/tickets\/my\/[^/]+\/close$/.test(cleanPath)) {
+  if (method === "patch" && /^\/api\/tickets\/(?:my|admin)\/[^/]+\/close$/.test(cleanPath)) {
     const id = decodeURIComponent(cleanPath.split("/")[4] || "");
     const ticket = tickets.find((item) => item.id === id);
     if (ticket) {

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Send, Paperclip, AlertCircle, Plus } from "lucide-react";
-import { Message } from "../../data";
+import { Message, isTicketClosed } from "../../data";
 import { sendMyTicketMessage } from "@/lib/panel-tickets";
 
 export default function ReplyBox({
@@ -19,7 +19,7 @@ export default function ReplyBox({
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const isClosed = ticketStatus === "closed";
+  const isClosed = isTicketClosed(ticketStatus);
 
   const sendMessage = async () => {
     const trimmed = message.trim();

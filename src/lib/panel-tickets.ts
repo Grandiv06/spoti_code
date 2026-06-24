@@ -1,6 +1,6 @@
 import { formatTicketDate, Message, Ticket } from "@/app/panel/support/data";
 import { toTicket, unwrapResponse } from "@/lib/admin-tickets";
-import { apiGetNoMock, apiPostNoMock } from "@/lib/api";
+import { apiGetNoMock, apiPatchNoMock, apiPostNoMock } from "@/lib/api";
 import { getAuthHeaders } from "@/lib/auth-tokens";
 
 function beautifyTicketDates(ticket: Ticket): Ticket {
@@ -65,6 +65,15 @@ export async function fetchMyTicketMessages(ticketId: string): Promise<Message[]
     getAuthHeaders()
   );
   return mapMessagesResponse(response);
+}
+
+export async function closeMyTicket(ticketId: string): Promise<Ticket> {
+  const response = await apiPatchNoMock<unknown>(
+    `/api/tickets/my/${encodeURIComponent(ticketId)}/close`,
+    undefined,
+    getAuthHeaders()
+  );
+  return beautifyTicketDates(toTicket(unwrapResponse(response), 0));
 }
 
 export async function sendMyTicketMessage(ticketId: string, body: string): Promise<Message> {

@@ -13,30 +13,16 @@ import {
   Inbox
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TICKET_URGENCY_LABELS } from "@/app/panel/support/data";
+import { formatTicketStatusLabel, getTicketStatusClass, matchesTicketStatusFilter } from "@/app/panel/support/data";
 import { useTicketsQuery } from "@/hooks/api/useTicketsQuery";
 import { TicketListSkeleton } from "./TicketSupportSkeleton";
 
 const tabs = [
   { id: "all", label: "همه تیکت‌ها" },
-  { id: "open", label: "باز" },
   { id: "investigating", label: "در حال بررسی" },
   { id: "answered", label: "پاسخ داده شده" },
   { id: "closed", label: "بسته شده" },
 ];
-
-const statusMap = {
-  open: { label: "باز", class: "bg-blue-500/10 text-blue-500 border-blue-500/20" },
-  investigating: { label: "در حال بررسی", class: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
-  answered: { label: "پاسخ داده شده", class: "bg-green-500/10 text-green-500 border-green-500/20" },
-  closed: { label: "بسته شده", class: "bg-gray-500/10 text-gray-500 border-gray-500/20" },
-};
-
-const priorityMap = {
-  low: { label: TICKET_URGENCY_LABELS.low, class: "text-gray-400 bg-gray-100 dark:bg-white/5" },
-  medium: { label: TICKET_URGENCY_LABELS.medium, class: "text-amber-500 bg-amber-500/5" },
-  high: { label: TICKET_URGENCY_LABELS.high, class: "text-red-500 bg-red-500/5" },
-};
 
 const PAGE_SIZE = 3;
 
@@ -120,7 +106,7 @@ export default function TicketList({ onNewTicket }: { onNewTicket: () => void })
   const filteredTickets = useMemo(
     () =>
       tickets.filter((ticket) => {
-        const matchesTab = activeTab === "all" || ticket.status === activeTab;
+        const matchesTab = matchesTicketStatusFilter(ticket.status, activeTab);
         const matchesSearch =
           ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           ticket.id.toLowerCase().includes(searchQuery.toLowerCase());
@@ -194,20 +180,11 @@ export default function TicketList({ onNewTicket }: { onNewTicket: () => void })
               >
                 <div className="flex-1 space-y-4">
                   <div className="flex flex-wrap items-center gap-3">
-                    <span className="text-[10px] font-black tracking-widest text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-white/5 px-3 py-1 rounded-lg border border-gray-200 dark:border-white/5">
-                      {ticket.id}
-                    </span>
                     <span className={cn(
                       "text-[11px] font-black px-3 py-1 rounded-full border uppercase tracking-tight",
-                      statusMap[ticket.status as keyof typeof statusMap].class
+                      getTicketStatusClass(ticket.status)
                     )}>
-                      {statusMap[ticket.status as keyof typeof statusMap].label}
-                    </span>
-                    <span className={cn(
-                      "text-[11px] font-bold px-3 py-1 rounded-lg",
-                      priorityMap[ticket.priority as keyof typeof priorityMap].class
-                    )}>
-                      {priorityMap[ticket.priority as keyof typeof priorityMap].label}
+                      {formatTicketStatusLabel(ticket.status)}
                     </span>
                   </div>
 

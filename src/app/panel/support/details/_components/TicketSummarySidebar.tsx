@@ -9,7 +9,7 @@ import {
   Paperclip,
   Activity
 } from "lucide-react";
-import { Ticket } from "../../data";
+import { Ticket, isTicketClosed } from "../../data";
 import { cn } from "@/lib/utils";
 
 export default function TicketSummarySidebar({ ticket }: { ticket: Ticket }) {
@@ -75,7 +75,7 @@ export default function TicketSummarySidebar({ ticket }: { ticket: Ticket }) {
             </div>
           ))}
           
-          {ticket.status !== "closed" && (
+          {!isTicketClosed(ticket.status) && (
             <div className="relative flex items-start gap-4 pr-10 opacity-50">
               <div className="absolute right-0 top-0 w-8 h-8 rounded-full border-4 bg-white dark:bg-[#1c1e26] border-gray-100 dark:border-white/10 text-gray-400 flex items-center justify-center z-10">
                 <Circle className="w-3 h-3 fill-current" />

@@ -9,13 +9,16 @@ import {
   Hash,
   AlertCircle,
   ArrowRight,
+  XCircle,
 } from "lucide-react";
-import { Message, Ticket } from "../data";
+import { Message, Ticket, formatTicketStatusLabel, getTicketStatusClass, isTicketClosed } from "../data";
 import { cn } from "@/lib/utils";
 import ConversationThread from "./_components/ConversationThread";
 import ReplyBox from "./_components/ReplyBox";
 import TicketDetailsSkeleton from "./TicketDetailsSkeleton";
 import { fetchMyTicketById, fetchMyTicketMessages } from "@/lib/panel-tickets";
+import { useCloseMyTicketMutation } from "@/hooks/api/useTicketsQuery";
+import CloseTicketConfirmModal from "@/components/tickets/CloseTicketConfirmModal";
 
 interface TicketDetailsClientProps {
   onBack?: () => void;
@@ -29,7 +32,10 @@ export default function TicketDetailsClient({ onBack }: TicketDetailsClientProps
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [closeError, setCloseError] = useState<string | null>(null);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const messagesScrollRef = useRef<HTMLDivElement>(null);
+  const closeTicketMutation = useCloseMyTicketMutation();
   const handleBack = onBack ?? (() => router.push("/panel/support"));
 
   useEffect(() => {
@@ -90,6 +96,38 @@ export default function TicketDetailsClient({ onBack }: TicketDetailsClientProps
     });
   };
 
+  const handleCloseTicket = async () => {
+    if (!ticket || isTicketClosed(ticket.status) || closeTicketMutation.isPending) return;
+
+    setCloseError(null);
+    try {
+      const updatedTicket = await closeTicketMutation.mutateAsync(ticket.id);
+      setTicket((prev) =>
+        prev
+          ? {
+              ...prev,
+              ...updatedTicket,
+              messages: updatedTicket.messages.length > 0 ? updatedTicket.messages : prev.messages,
+            }
+          : prev
+      );
+      setShowCloseConfirm(false);
+    } catch (error) {
+      setCloseError(error instanceof Error ? error.message : "بستن تیکت انجام نشد.");
+    }
+  };
+
+  const openCloseConfirm = () => {
+    setCloseError(null);
+    setShowCloseConfirm(true);
+  };
+
+  const cancelCloseConfirm = () => {
+    if (closeTicketMutation.isPending) return;
+    setCloseError(null);
+    setShowCloseConfirm(false);
+  };
+
   useEffect(() => {
     const container = messagesScrollRef.current;
     if (!container) return;
@@ -121,19 +159,6 @@ export default function TicketDetailsClient({ onBack }: TicketDetailsClientProps
     );
   }
 
-  const statusMap = {
-    open: { label: "باز", class: "bg-blue-500/10 text-blue-500 border-blue-500/20" },
-    investigating: { label: "در حال بررسی", class: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
-    answered: { label: "پاسخ داده شده", class: "bg-green-500/10 text-green-500 border-green-500/20" },
-    closed: { label: "بسته شده", class: "bg-gray-500/10 text-gray-500 border-gray-500/20" },
-  };
-
-  const priorityMap = {
-    low: { label: "کم", class: "bg-gray-100 dark:bg-white/5 text-gray-500" },
-    medium: { label: "متوسط", class: "bg-amber-500/10 text-amber-500" },
-    high: { label: "زیاد", class: "bg-red-500/10 text-red-500" },
-  };
-
   return (
     <div
       className="mx-auto flex h-[calc(100dvh-7.5rem)] max-w-[1400px] flex-col overflow-hidden px-2 md:px-4 animate-in fade-in duration-700"
@@ -155,11 +180,8 @@ export default function TicketDetailsClient({ onBack }: TicketDetailsClientProps
                 <Hash className="h-3.5 w-3.5" />
                 <span>{ticket.id}</span>
               </div>
-              <div className={cn("rounded-full border px-4 py-1 text-xs font-black", statusMap[ticket.status].class)}>
-                {statusMap[ticket.status].label}
-              </div>
-              <div className={cn("rounded-full px-4 py-1 text-xs font-black", priorityMap[ticket.priority].class)}>
-                اولویت {priorityMap[ticket.priority].label}
+              <div className={cn("rounded-full border px-4 py-1 text-xs font-black", getTicketStatusClass(ticket.status))}>
+                {formatTicketStatusLabel(ticket.status)}
               </div>
             </div>
 
@@ -168,22 +190,36 @@ export default function TicketDetailsClient({ onBack }: TicketDetailsClientProps
             </h1>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 rounded-3xl border border-gray-100 bg-white p-4 text-sm font-bold text-gray-500 shadow-sm dark:border-white/5 dark:bg-white/5 dark:text-gray-400 md:gap-6">
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] text-gray-400">تاریخ ثبت</span>
-              <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
-                <Calendar className="h-4 w-4 text-primary" />
-                <span>{ticket.createdAt}</span>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="flex flex-wrap items-center gap-4 rounded-3xl border border-gray-100 bg-white p-4 text-sm font-bold text-gray-500 shadow-sm dark:border-white/5 dark:bg-white/5 dark:text-gray-400 md:gap-6">
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-gray-400">تاریخ ثبت</span>
+                <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                  <Calendar className="h-4 w-4 text-primary" />
+                  <span>{ticket.createdAt}</span>
+                </div>
+              </div>
+              <div className="h-8 w-px bg-gray-200 dark:bg-white/10" />
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-gray-400">آخرین بروزرسانی</span>
+                <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                  <Clock className="h-4 w-4 text-blue-500" />
+                  <span>{ticket.updatedAt}</span>
+                </div>
               </div>
             </div>
-            <div className="h-8 w-px bg-gray-200 dark:bg-white/10" />
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] text-gray-400">آخرین بروزرسانی</span>
-              <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
-                <Clock className="h-4 w-4 text-blue-500" />
-                <span>{ticket.updatedAt}</span>
-              </div>
-            </div>
+
+            {!isTicketClosed(ticket.status) ? (
+              <button
+                type="button"
+                onClick={openCloseConfirm}
+                disabled={closeTicketMutation.isPending}
+                className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl bg-gray-500/10 px-5 py-3 text-sm font-black text-gray-500 transition-all hover:bg-gray-500/15 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-400"
+              >
+                <XCircle className="h-4 w-4" />
+                <span>بستن تیکت</span>
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
@@ -205,6 +241,15 @@ export default function TicketDetailsClient({ onBack }: TicketDetailsClientProps
           />
         </div>
       </div>
+
+      <CloseTicketConfirmModal
+        isOpen={showCloseConfirm}
+        ticketTitle={ticket.title}
+        isPending={closeTicketMutation.isPending}
+        error={closeError}
+        onCancel={cancelCloseConfirm}
+        onConfirm={() => void handleCloseTicket()}
+      />
     </div>
   );
 }

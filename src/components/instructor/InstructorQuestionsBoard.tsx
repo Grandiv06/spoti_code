@@ -2,8 +2,124 @@
 
 import React, { useMemo, useState } from "react";
 import { FileText, HelpCircle, Paperclip, Search, User, Send, Loader2, Download, ArrowRight, X, ChevronLeft, MessageSquare } from "lucide-react";
-import { useInstructorData } from "@/context/InstructorDataContext";
+import { useInstructorData, type StudentQuestion } from "@/context/InstructorDataContext";
 import { cn } from "@/lib/utils";
+
+type QuestionChatMessage = {
+  id: string;
+  role: "instructor" | "student";
+  senderName: string;
+  text: string;
+  showTitle?: string;
+  errorText?: string;
+  attachments?: StudentQuestion["attachments"];
+  createdAt: string;
+};
+
+type QuestionThread = {
+  id: string;
+  studentName: string;
+  avatar?: string;
+  courseId: string;
+  courseTitle: string;
+  lessonId?: string;
+  lessonTitle?: string;
+  status: "new" | "answered";
+  createdAt: string;
+  updatedAt: string;
+  title: string;
+  questions: StudentQuestion[];
+  primaryQuestionId: string;
+};
+
+function parseQuestionTimestamp(value: string): number {
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function getQuestionThreadKey(question: StudentQuestion): string {
+  const lessonKey = question.lessonId || question.lessonTitle || "general";
+  const studentKey = question.studentId || question.studentName;
+  return `${question.courseId}::${lessonKey}::${studentKey}`;
+}
+
+function groupQuestionsIntoThreads(questions: StudentQuestion[]): QuestionThread[] {
+  const grouped = new Map<string, StudentQuestion[]>();
+
+  for (const question of questions) {
+    const key = getQuestionThreadKey(question);
+    const current = grouped.get(key) ?? [];
+    current.push(question);
+    grouped.set(key, current);
+  }
+
+  return Array.from(grouped.entries())
+    .map(([id, threadQuestions]) => {
+      const sorted = [...threadQuestions].sort(
+        (a, b) => parseQuestionTimestamp(a.createdAt) - parseQuestionTimestamp(b.createdAt)
+      );
+      const first = sorted[0];
+      const latest = sorted[sorted.length - 1];
+
+      return {
+        id,
+        studentName: first.studentName,
+        avatar: first.avatar,
+        courseId: first.courseId,
+        courseTitle: first.courseTitle,
+        lessonId: first.lessonId,
+        lessonTitle: first.lessonTitle,
+        status: sorted.some((item) => item.status === "new") ? "new" : "answered",
+        createdAt: first.createdAt,
+        updatedAt: latest.createdAt,
+        title: first.title,
+        questions: sorted,
+        primaryQuestionId: latest.id,
+      } satisfies QuestionThread;
+    })
+    .sort((a, b) => parseQuestionTimestamp(b.updatedAt) - parseQuestionTimestamp(a.updatedAt));
+}
+
+function buildThreadChatMessages(thread: QuestionThread): QuestionChatMessage[] {
+  const messages: QuestionChatMessage[] = [];
+
+  thread.questions.forEach((question, questionIndex) => {
+    messages.push({
+      id: `${question.id}-initial`,
+      role: "student",
+      senderName: question.studentName,
+      text: question.description || question.text,
+      showTitle:
+        questionIndex === 0
+          ? question.title
+          : question.title !== thread.title
+            ? question.title
+            : undefined,
+      errorText: question.errorText,
+      attachments: question.attachments,
+      createdAt: question.createdAt,
+    });
+
+    question.replies.forEach((reply, replyIndex) => {
+      messages.push({
+        id: `${question.id}-reply-${replyIndex}`,
+        role: reply.role,
+        senderName: reply.senderName,
+        text: reply.text,
+        attachments: reply.attachments,
+        createdAt: reply.createdAt,
+      });
+    });
+  });
+
+  return messages;
+}
+
+function getThreadSnippet(thread: QuestionThread): string {
+  const messages = buildThreadChatMessages(thread);
+  const lastMessage = messages[messages.length - 1];
+  return lastMessage?.text || thread.title;
+}
 
 type Props = {
   showHero?: boolean;
@@ -30,7 +146,7 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
     caption?: string;
   };
 
-  const [selectedQuestionId, setSelectedQuestionId] = useState("");
+  const [selectedThreadId, setSelectedThreadId] = useState("");
   const [composerText, setComposerText] = useState("");
   const isInputCode = (() => {
     if (!composerText) return false;
@@ -66,11 +182,26 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const questionThreads = useMemo(
+    () => groupQuestionsIntoThreads(sourceQuestions),
+    [sourceQuestions]
+  );
+
+  const activeThread = useMemo(
+    () => questionThreads.find((thread) => thread.id === selectedThreadId) ?? null,
+    [questionThreads, selectedThreadId]
+  );
+
+  const activeChatMessages = useMemo(
+    () => (activeThread ? buildThreadChatMessages(activeThread) : []),
+    [activeThread]
+  );
+
   React.useEffect(() => {
-    if (selectedQuestionId) {
+    if (selectedThreadId) {
       setTimeout(scrollToBottom, 100);
     }
-  }, [selectedQuestionId, sourceQuestions]);
+  }, [selectedThreadId, activeChatMessages.length]);
 
   const toDataUrl = (file: File) =>
     new Promise<string>((resolve, reject) => {
@@ -135,7 +266,7 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
   };
 
   const handleSendMessage = async () => {
-    if (!composerText.trim() && pendingAttachments.length === 0) return;
+    if (!activeThread || (!composerText.trim() && pendingAttachments.length === 0)) return;
     setIsSendingMessage(true);
     try {
       const attachments = await Promise.all(
@@ -153,7 +284,11 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
         })
       );
 
-      await replyToQuestion(selectedQuestionId, composerText.trim(), attachments.length ? attachments : undefined);
+      await replyToQuestion(
+        activeThread?.primaryQuestionId ?? "",
+        composerText.trim(),
+        attachments.length ? attachments : undefined
+      );
       setComposerText("");
       setPendingAttachments([]);
     } catch (err) {
@@ -163,6 +298,68 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
       setIsSendingMessage(false);
     }
   };
+
+  const renderMessageAttachments = (
+    files: NonNullable<StudentQuestion["attachments"]>,
+    isInstructor: boolean
+  ) => (
+    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+      {files.map((file) => (
+        <div
+          key={file.id}
+          className={cn(
+            "rounded-xl border p-2",
+            isInstructor
+              ? "border-white/10 bg-black/10 text-white"
+              : "border-[#d1e7dd]/50 bg-white/70 dark:border-white/10 dark:bg-white/5 text-emerald-900 dark:text-emerald-100"
+          )}
+        >
+          {file.type.startsWith("image/") && file.previewUrl ? (
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => setImageLightboxUrl(file.previewUrl || "")}
+                className="group relative w-full cursor-pointer overflow-hidden rounded-lg"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={file.previewUrl}
+                  alt={file.name}
+                  className="h-32 w-full object-cover transition duration-300 group-hover:scale-105"
+                />
+              </button>
+              {file.caption ? (
+                <p
+                  className={cn(
+                    "rounded p-1 text-xs font-medium leading-6",
+                    isInstructor
+                      ? "bg-black/5 text-white opacity-90"
+                      : "bg-black/5 text-emerald-800 dark:text-[#a3cfbb] dark:bg-white/5"
+                  )}
+                >
+                  {file.caption}
+                </p>
+              ) : null}
+            </div>
+          ) : (
+            <a
+              href={file.previewUrl || "#"}
+              target="_blank"
+              rel="noreferrer"
+              className="flex cursor-pointer items-center gap-2 rounded-lg p-2 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+            >
+              <FileText className="h-5 w-5 shrink-0" />
+              <div className="min-w-0 flex-1 text-right">
+                <p className="truncate text-xs font-black">{file.name}</p>
+                <p className="text-[10px] opacity-70">{formatBytes(file.size)}</p>
+              </div>
+              <Download className="h-4 w-4 shrink-0" />
+            </a>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 
   const renderMessageText = (text: string) => {
     if (!text) return null;
@@ -232,32 +429,38 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
   };
 
   const stats = useMemo(() => {
-    const total = sourceQuestions.length;
-    const pending = sourceQuestions.filter((q) => q.status === "new").length;
-    const answered = sourceQuestions.filter((q) => q.status === "answered").length;
+    const total = questionThreads.length;
+    const pending = questionThreads.filter((thread) => thread.status === "new").length;
+    const answered = questionThreads.filter((thread) => thread.status === "answered").length;
     return { total, pending, answered };
-  }, [sourceQuestions]);
+  }, [questionThreads]);
 
-  const filteredQuestions = useMemo(() => {
-    let result = [...sourceQuestions];
+  const filteredThreads = useMemo(() => {
+    let result = [...questionThreads];
 
     if (statusFilter !== "all") {
-      result = result.filter((q) => q.status === statusFilter);
+      result = result.filter((thread) => thread.status === statusFilter);
     }
 
     if (search.trim()) {
       const q = search.toLowerCase().trim();
       result = result.filter(
-        (question) =>
-          question.title.toLowerCase().includes(q) ||
-          question.text.toLowerCase().includes(q) ||
-          question.studentName.toLowerCase().includes(q) ||
-          question.courseTitle.toLowerCase().includes(q)
+        (thread) =>
+          thread.title.toLowerCase().includes(q) ||
+          thread.studentName.toLowerCase().includes(q) ||
+          thread.courseTitle.toLowerCase().includes(q) ||
+          (thread.lessonTitle || "").toLowerCase().includes(q) ||
+          thread.questions.some(
+            (question) =>
+              question.title.toLowerCase().includes(q) ||
+              question.text.toLowerCase().includes(q) ||
+              (question.description || "").toLowerCase().includes(q)
+          )
       );
     }
 
-    return result.sort((a, b) => b.id.localeCompare(a.id));
-  }, [sourceQuestions, search, statusFilter]);
+    return result.sort((a, b) => parseQuestionTimestamp(b.updatedAt) - parseQuestionTimestamp(a.updatedAt));
+  }, [questionThreads, search, statusFilter]);
 
   return (
     <div className={cn("mx-auto max-w-[1320px] pb-20 text-right animate-in fade-in duration-500", className)} dir="rtl">
@@ -299,7 +502,7 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
                 key={tab.id}
                 onClick={() => setStatusFilter(tab.id)}
                 className={cn(
-                  "inline-flex h-11 items-center gap-2 rounded-xl border px-4 text-xs font-black transition",
+                  "inline-flex h-11 cursor-pointer items-center gap-2 rounded-xl border px-4 text-xs font-black transition",
                   statusFilter === tab.id
                     ? "border-primary/20 bg-primary/10 text-primary"
                     : "border-transparent bg-gray-50 text-gray-600 hover:bg-gray-100 dark:bg-white/5 dark:text-gray-400 dark:hover:bg-white/10"
@@ -317,211 +520,136 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
 
       <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr] xl:grid-cols-[1.6fr_1fr] items-start">
         {/* Left pane: Active Chat Detail */}
-        <div className={cn("lg:block", selectedQuestionId ? "block" : "hidden lg:block")}>
-          {selectedQuestionId ? (
-            (() => {
-              const activeQ = sourceQuestions.find((q) => q.id === selectedQuestionId);
-              if (!activeQ) return null;
-
-              return (
+        <div className={cn("lg:block", selectedThreadId ? "block" : "hidden lg:block")}>
+          {activeThread ? (
                 <div className="flex flex-col rounded-[2rem] border border-gray-100 bg-white shadow-sm dark:border-white/5 dark:bg-[#1c1e26] overflow-hidden min-h-[550px] animate-in fade-in duration-300">
                   {/* Chat Header */}
                   <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800 p-4 bg-gray-50/50 dark:bg-white/5 backdrop-blur-sm shrink-0">
                     <div className="flex items-center gap-3">
                       <button
-                        onClick={() => setSelectedQuestionId("")}
+                        onClick={() => setSelectedThreadId("")}
                         className="lg:hidden w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-primary transition-colors cursor-pointer flex items-center justify-center"
                       >
                         <ArrowRight className="w-4 h-4" />
                       </button>
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-primary/20 bg-primary/10">
-                        {activeQ.avatar ? (
+                        {activeThread.avatar ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={activeQ.avatar} alt={activeQ.studentName} className="h-full w-full object-cover" />
+                          <img src={activeThread.avatar} alt={activeThread.studentName} className="h-full w-full object-cover" />
                         ) : (
                           <User className="h-5 w-5 text-primary" />
                         )}
                       </div>
                       <div className="text-right">
                         <h4 className="text-sm font-black text-gray-900 dark:text-white">
-                          {activeQ.studentName}
+                          {activeThread.studentName}
                         </h4>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className={cn(
                             "rounded px-1.5 py-0.5 text-[9px] font-black leading-none",
-                            activeQ.status === "new" && "bg-rose-500/10 text-rose-400",
-                            activeQ.status === "answered" && "bg-emerald-500/10 text-emerald-400"
+                            activeThread.status === "new" && "bg-rose-500/10 text-rose-400",
+                            activeThread.status === "answered" && "bg-emerald-500/10 text-emerald-400"
                           )}>
-                            {activeQ.status === "new" && "جدید"}
-                            {activeQ.status === "answered" && "پاسخ داده شده"}
+                            {activeThread.status === "new" && "جدید"}
+                            {activeThread.status === "answered" && "پاسخ داده شده"}
                           </span>
                           <span className="text-[10px] font-semibold text-gray-400">
-                            {activeQ.createdAt}
+                            {activeThread.updatedAt}
                           </span>
+                          {activeThread.questions.length > 1 ? (
+                            <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-black text-gray-500 dark:bg-white/10 dark:text-gray-300">
+                              {activeThread.questions.length.toLocaleString("fa-IR")} پیام
+                            </span>
+                          ) : null}
                         </div>
                       </div>
                     </div>
-
-
                   </div>
 
                   {/* Course & Lesson context banner */}
                   <div className="bg-primary/5 dark:bg-primary/5 border-b border-gray-100 dark:border-gray-800/50 px-4 py-2 flex flex-wrap gap-2 text-right">
-                    <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">دوره: {activeQ.courseTitle}</span>
-                    {activeQ.lessonTitle && (
+                    <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">دوره: {activeThread.courseTitle}</span>
+                    {activeThread.lessonTitle && (
                       <>
                         <span className="text-[10px] text-gray-300 dark:text-gray-700">•</span>
-                        <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">جلسه: {activeQ.lessonTitle}</span>
+                        <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">جلسه: {activeThread.lessonTitle}</span>
                       </>
                     )}
                   </div>
 
                   {/* Messages Area */}
-                  <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-[480px] min-h-[380px] bg-slate-50/30 dark:bg-black/10">
-                    
-                    {/* Message 1: Initial Student Post */}
-                    <div className="flex justify-end text-right">
-                      <div className="max-w-[78%] rounded-2xl rounded-tl-sm p-4 bg-[#e6f7ed] dark:bg-[#143c24]/30 border border-[#d1e7dd]/60 dark:border-[#1e5c37]/30 text-[#0f5132] dark:text-[#a3cfbb] shadow-sm animate-in fade-in duration-300">
-                        <h4 className="text-xs font-black text-emerald-700 dark:text-emerald-400 mb-1.5">{activeQ.title}</h4>
-                        
-                        <p className="text-sm font-semibold leading-7 whitespace-pre-wrap text-emerald-950 dark:text-[#a3cfbb]/90">
-                          {activeQ.description || activeQ.text}
-                        </p>
-
-                        {activeQ.errorText && (
-                          <div className="mt-3 rounded-xl overflow-hidden border border-gray-200/60 dark:border-white/10 bg-[#f7f8fb] dark:bg-[#14161c]" dir="ltr">
-                            <div className="bg-black/5 dark:bg-black/30 px-3 py-1 text-[10px] font-mono text-gray-500 dark:text-gray-400 border-b border-black/5 dark:border-white/5 flex justify-between items-center">
-                              <span>Error / Log</span>
-                            </div>
-                            <pre className="font-mono text-xs p-3 overflow-x-auto text-left leading-relaxed text-gray-700 dark:text-gray-300">
-                              {activeQ.errorText}
-                            </pre>
-                          </div>
-                        )}
-
-                        {!!activeQ.attachments?.length && (
-                          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                            {activeQ.attachments.map((file) => (
-                              <div key={file.id} className="rounded-xl border border-[#d1e7dd]/50 bg-white/70 dark:border-white/10 dark:bg-white/5 p-2 text-emerald-900 dark:text-emerald-100">
-                                {file.type.startsWith("image/") && file.previewUrl ? (
-                                  <div className="space-y-2">
-                                    <button 
-                                      type="button" 
-                                      onClick={() => setImageLightboxUrl(file.previewUrl || "")}
-                                      className="w-full relative group overflow-hidden rounded-lg cursor-pointer"
-                                    >
-                                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                                      <img src={file.previewUrl} alt={file.name} className="h-32 w-full object-cover transition duration-300 group-hover:scale-105" />
-                                    </button>
-                                    {file.caption && (
-                                      <p className="text-xs leading-6 p-1 bg-black/5 dark:bg-white/5 rounded font-medium text-emerald-800 dark:text-emerald-250">
-                                        {file.caption}
-                                      </p>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <a
-                                    href={file.previewUrl || "#"}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="flex items-center gap-2 p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                                  >
-                                    <FileText className="h-5 w-5 shrink-0 text-emerald-600/70" />
-                                    <div className="min-w-0 flex-1 text-right">
-                                      <p className="truncate text-xs font-black">{file.name}</p>
-                                      <p className="text-[10px] opacity-70">{formatBytes(file.size)}</p>
-                                    </div>
-                                    <Download className="w-4 h-4 shrink-0 text-emerald-600/70" />
-                                  </a>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        <div className="mt-2 text-left text-[9px] text-emerald-600/75 dark:text-emerald-400/65 font-bold">
-                          {activeQ.createdAt}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Replies */}
-                    {activeQ.replies.map((rep, idx) => {
-                      const isInstructor = rep.role === "instructor";
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-[480px] min-h-[380px] bg-slate-50/30 dark:bg-black/10" dir="rtl">
+                    {activeChatMessages.map((message) => {
+                      const isInstructor = message.role === "instructor";
                       return (
                         <div
-                          key={idx}
-                          className={cn("flex animate-in fade-in duration-300", isInstructor ? "justify-start text-right" : "justify-end text-right")}
+                          key={message.id}
+                          className={cn(
+                            "flex animate-in fade-in duration-300",
+                            isInstructor ? "justify-start text-right" : "justify-end text-right"
+                          )}
                         >
-                          <div className={cn(
-                            "max-w-[78%] rounded-2xl p-4 shadow-sm",
-                            isInstructor 
-                              ? "bg-[#f8f9fa] dark:bg-[#252833] text-gray-800 dark:text-gray-100 rounded-tr-sm border border-gray-200 dark:border-white/5"
-                              : "bg-[#e6f7ed] dark:bg-[#143c24]/40 text-[#0f5132] dark:text-[#a3cfbb] border border-[#d1e7dd]/60 dark:border-[#1e5c37]/40 rounded-tl-sm"
-                          )}>
+                          <div
+                            className={cn(
+                              "max-w-[78%] rounded-2xl p-4 shadow-sm",
+                              isInstructor
+                                ? "bg-[#f8f9fa] dark:bg-[#252833] text-gray-800 dark:text-gray-100 rounded-tr-sm border border-gray-200 dark:border-white/5"
+                                : "bg-[#e6f7ed] dark:bg-[#143c24]/40 text-[#0f5132] dark:text-[#a3cfbb] border border-[#d1e7dd]/60 dark:border-[#1e5c37]/40 rounded-tl-sm"
+                            )}
+                          >
                             <div className="flex items-center gap-1.5 mb-1.5">
-                              {isInstructor && (
+                              {isInstructor ? (
                                 <span className="rounded bg-indigo-600 dark:bg-indigo-500 px-1.5 py-0.5 text-[9px] font-black text-white leading-none">
                                   مدرس
                                 </span>
-                              )}
-                              <p className={cn("text-[10px] font-black", isInstructor ? "text-indigo-600 dark:text-indigo-400" : "text-emerald-700 dark:text-emerald-300")}>
-                                {rep.senderName}
+                              ) : null}
+                              <p
+                                className={cn(
+                                  "text-[10px] font-black",
+                                  isInstructor
+                                    ? "text-indigo-600 dark:text-indigo-400"
+                                    : "text-emerald-700 dark:text-emerald-300"
+                                )}
+                              >
+                                {message.senderName}
                               </p>
                             </div>
 
-                            {renderMessageText(rep.text)}
+                            {message.showTitle ? (
+                              <h4 className="mb-1.5 text-xs font-black text-emerald-700 dark:text-emerald-400">
+                                {message.showTitle}
+                              </h4>
+                            ) : null}
 
-                            {!!rep.attachments?.length && (
-                              <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                                {rep.attachments.map((file) => (
-                                  <div
-                                    key={file.id}
-                                    className={cn(
-                                      "rounded-xl border p-2",
-                                      isInstructor 
-                                        ? "border-white/10 bg-black/10 text-white"
-                                        : "border-gray-100 bg-gray-50 dark:border-white/5 dark:bg-white/5 text-gray-800 dark:text-white"
-                                    )}
-                                  >
-                                    {file.type.startsWith("image/") && file.previewUrl ? (
-                                      <div className="space-y-2">
-                                        <button
-                                          type="button"
-                                          onClick={() => setImageLightboxUrl(file.previewUrl || "")}
-                                          className="w-full relative group overflow-hidden rounded-lg cursor-pointer"
-                                        >
-                                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                                          <img src={file.previewUrl} alt={file.name} className="h-32 w-full object-cover transition duration-300 group-hover:scale-105" />
-                                        </button>
-                                        {file.caption && (
-                                          <p className={cn("text-xs leading-6 p-1 rounded font-medium", isInstructor ? "text-white opacity-90 bg-black/5" : "text-gray-600 dark:text-gray-300 bg-black/5 dark:bg-white/5")}>
-                                            {file.caption}
-                                          </p>
-                                        )}
-                                      </div>
-                                    ) : (
-                                      <a
-                                        href={file.previewUrl || "#"}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="flex items-center gap-2 p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                                      >
-                                        <FileText className="h-5 w-5 shrink-0" />
-                                        <div className="min-w-0 flex-1 text-right">
-                                          <p className="truncate text-xs font-black">{file.name}</p>
-                                          <p className="text-[10px] opacity-70">{formatBytes(file.size)}</p>
-                                        </div>
-                                        <Download className="w-4 h-4 shrink-0" />
-                                      </a>
-                                    )}
-                                  </div>
-                                ))}
+                            {renderMessageText(message.text)}
+
+                            {message.errorText ? (
+                              <div
+                                className="mt-3 overflow-hidden rounded-xl border border-gray-200/60 bg-[#f7f8fb] dark:border-white/10 dark:bg-[#14161c]"
+                                dir="ltr"
+                              >
+                                <div className="flex items-center justify-between border-b border-black/5 bg-black/5 px-3 py-1 text-[10px] font-mono text-gray-500 dark:border-white/5 dark:bg-black/30 dark:text-gray-400">
+                                  <span>Error / Log</span>
+                                </div>
+                                <pre className="overflow-x-auto p-3 text-left font-mono text-xs leading-relaxed text-gray-700 dark:text-gray-300">
+                                  {message.errorText}
+                                </pre>
                               </div>
-                            )}
+                            ) : null}
 
-                            <div className={cn("mt-2 text-left text-[9px]", isInstructor ? "opacity-75" : "text-gray-400")}>
-                              {rep.createdAt}
+                            {message.attachments?.length
+                              ? renderMessageAttachments(message.attachments, isInstructor)
+                              : null}
+
+                            <div
+                              className={cn(
+                                "mt-2 text-left text-[9px]",
+                                isInstructor
+                                  ? "text-gray-400 opacity-75"
+                                  : "font-bold text-emerald-600/75 dark:text-emerald-400/65"
+                              )}
+                            >
+                              {message.createdAt}
                             </div>
                           </div>
                         </div>
@@ -643,8 +771,6 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
                     </div>
                   </div>
                 </div>
-              );
-            })()
           ) : (
             /* Glassmorphism empty state placeholder */
             <div className="flex flex-col items-center justify-center rounded-[2rem] border border-gray-150 bg-white/40 dark:border-white/5 dark:bg-white/5 p-12 text-center shadow-sm min-h-[550px] backdrop-blur-sm">
@@ -660,8 +786,8 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
         </div>
 
         {/* Right pane: Thread List */}
-        <div className={cn("lg:block", selectedQuestionId ? "hidden lg:block" : "block")}>
-          {filteredQuestions.length === 0 ? (
+        <div className={cn("lg:block", selectedThreadId ? "hidden lg:block" : "block")}>
+          {filteredThreads.length === 0 ? (
             <section className="flex flex-col items-center justify-center rounded-[2rem] border border-gray-100 bg-white p-12 text-center shadow-sm dark:border-white/5 dark:bg-[#1c1e26]">
               <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <HelpCircle className="h-8 w-8" />
@@ -673,16 +799,15 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
             </section>
           ) : (
             <div className="space-y-3">
-              {filteredQuestions.map((q) => {
-                const isActive = q.id === selectedQuestionId;
-                const lastRep = q.replies[q.replies.length - 1];
-                const snippet = lastRep ? lastRep.text : (q.description || q.text);
+              {filteredThreads.map((thread) => {
+                const isActive = thread.id === selectedThreadId;
+                const snippet = getThreadSnippet(thread);
 
                 return (
                   <div
-                    key={q.id}
+                    key={thread.id}
                     onClick={() => {
-                      setSelectedQuestionId(q.id);
+                      setSelectedThreadId(thread.id);
                       setComposerText("");
                       setPendingAttachments([]);
                     }}
@@ -696,19 +821,19 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-primary/20 bg-primary/10">
-                          {q.avatar ? (
+                          {thread.avatar ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={q.avatar} alt={q.studentName} className="h-full w-full object-cover" />
+                            <img src={thread.avatar} alt={thread.studentName} className="h-full w-full object-cover" />
                           ) : (
                             <User className="h-5 w-5 text-primary" />
                           )}
                         </div>
                         <div className="text-right">
                           <h4 className="text-sm font-black text-gray-900 dark:text-white group-hover:text-primary transition-colors">
-                            {q.studentName}
+                            {thread.studentName}
                           </h4>
                           <p className="text-[10px] font-semibold text-gray-400 mt-0.5">
-                            {q.createdAt}
+                            {thread.updatedAt}
                           </p>
                         </div>
                       </div>
@@ -716,18 +841,18 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
                       <span
                         className={cn(
                           "rounded-lg px-2.5 py-1 text-[10px] font-black",
-                          q.status === "new" && "bg-rose-500/10 text-rose-400",
-                          q.status === "answered" && "bg-emerald-500/10 text-emerald-400"
+                          thread.status === "new" && "bg-rose-500/10 text-rose-400",
+                          thread.status === "answered" && "bg-emerald-500/10 text-emerald-400"
                         )}
                       >
-                        {q.status === "new" && "جدید"}
-                        {q.status === "answered" && "پاسخ داده شده"}
+                        {thread.status === "new" && "جدید"}
+                        {thread.status === "answered" && "پاسخ داده شده"}
                       </span>
                     </div>
 
                     <div className="text-right">
                       <h3 className="text-sm font-black text-gray-900 dark:text-white group-hover:text-primary transition-colors truncate">
-                        {q.title}
+                        {thread.lessonTitle || thread.title}
                       </h3>
                       <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
                         {snippet}
@@ -736,7 +861,10 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
 
                     <div className="mt-1 pt-3 border-t border-gray-50 dark:border-gray-800 flex items-center justify-between gap-2 flex-wrap">
                       <span className="text-[9px] font-bold text-gray-400">
-                        {q.courseTitle}
+                        {thread.courseTitle}
+                        {thread.questions.length > 1
+                          ? ` • ${thread.questions.length.toLocaleString("fa-IR")} پیام`
+                          : ""}
                       </span>
                       <div className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-800/80 flex items-center justify-center text-gray-400 group-hover:text-primary group-hover:bg-primary/10 transition-colors shadow-sm">
                         <ChevronLeft className="w-4 h-4 text-right" />

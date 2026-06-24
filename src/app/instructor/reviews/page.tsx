@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Search, MessageSquare, Star, User, Loader2 } from "lucide-react";
+import { Search, MessageSquare, Star, Loader2, Filter, BookOpen, ArrowUpDown } from "lucide-react";
 import { useInstructorData } from "@/context/InstructorDataContext";
 import { apiGet, apiRequest } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import CustomSelect from "@/components/ui/CustomSelect";
+import InstructorReviewList from "./_components/InstructorReviewList";
 
 type ApiRecord = Record<string, unknown>;
 
@@ -20,11 +22,35 @@ type InstructorReview = {
   rating: number;
   comment: string;
   createdAt: string;
+  createdAtTimestamp: number;
   courseId: string;
   courseTitle: string;
   parentId?: string;
   reply?: ReviewReply;
 };
+
+const statusFilterOptions = [
+  { value: "all", label: "همه وضعیت‌ها" },
+  { value: "pending", label: "بدون پاسخ" },
+  { value: "answered", label: "پاسخ داده‌شده" },
+];
+
+const ratingFilterOptions = [
+  { value: "all", label: "همه امتیازها" },
+  { value: "5", label: "۵ ستاره" },
+  { value: "4", label: "۴ ستاره" },
+  { value: "3", label: "۳ ستاره" },
+  { value: "2", label: "۲ ستاره" },
+  { value: "1", label: "۱ ستاره" },
+];
+
+const sortFilterOptions = [
+  { value: "newest", label: "جدیدترین" },
+  { value: "oldest", label: "قدیمی‌ترین" },
+];
+
+const filterSelectClassName =
+  "h-full [&>div]:h-full [&_button]:h-full [&_button]:min-h-[46px] [&_button]:text-xs [&_button]:px-4";
 
 function isRecord(value: unknown): value is ApiRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -59,18 +85,25 @@ function normalizeRating(value: unknown): number {
   return 5;
 }
 
-function normalizeDate(value: unknown): string {
+function normalizeCreatedAt(value: unknown): { label: string; timestamp: number } {
   if (typeof value === "string" && value.trim()) {
     const parsed = Date.parse(value);
-    return Number.isNaN(parsed) ? value.trim() : new Date(parsed).toLocaleDateString("fa-IR");
+    if (!Number.isNaN(parsed)) {
+      return {
+        label: new Date(parsed).toLocaleDateString("fa-IR"),
+        timestamp: parsed,
+      };
+    }
+    return { label: value.trim(), timestamp: 0 };
   }
-  return "";
+  return { label: "", timestamp: 0 };
 }
 
 function normalizeComment(record: unknown, index: number): InstructorReview {
   const row = isRecord(record) ? record : {};
   const author = isRecord(row.author) ? row.author : isRecord(row.user) ? row.user : isRecord(row.student) ? row.student : {};
   const reply = isRecord(row.reply) ? row.reply : isRecord(row.answer) ? row.answer : undefined;
+  const createdAt = normalizeCreatedAt(row.createdAt ?? row.createdAtAt ?? row.date ?? row.timestamp);
 
   const commentText = normalizeString(row.content ?? row.comment ?? row.text ?? row.body ?? row.description, "");
   const replyText = reply ? normalizeString(reply.content ?? reply.text ?? reply.answer ?? reply.body, "") : "";
@@ -81,7 +114,8 @@ function normalizeComment(record: unknown, index: number): InstructorReview {
     avatar: typeof author.avatar === "string" ? author.avatar : typeof row.avatar === "string" ? row.avatar : undefined,
     rating: normalizeRating(row.rating ?? row.score ?? row.stars),
     comment: commentText,
-    createdAt: normalizeDate(row.createdAt ?? row.createdAtAt ?? row.date ?? row.timestamp),
+    createdAt: createdAt.label,
+    createdAtTimestamp: createdAt.timestamp,
     courseId: normalizeString(
       row.commentableId ??
         row.courseId ??
@@ -101,7 +135,7 @@ function normalizeComment(record: unknown, index: number): InstructorReview {
       ? {
           reply: {
             text: replyText,
-            createdAt: normalizeDate((reply && (reply.createdAt ?? reply.date)) ?? row.replyCreatedAt ?? row.updatedAt),
+            createdAt: normalizeCreatedAt((reply && (reply.createdAt ?? reply.date)) ?? row.replyCreatedAt ?? row.updatedAt).label,
           },
         }
       : {}),
@@ -127,11 +161,23 @@ export default function InstructorReviewsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [ratingFilter, setRatingFilter] = useState("all");
   const [courseFilter, setCourseFilter] = useState("all");
+  const [sortFilter, setSortFilter] = useState("newest");
   const [selectedReviewId, setSelectedReviewId] = useState("");
   const [replyText, setReplyText] = useState("");
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
 
   const publishedCourses = useMemo(() => courses.filter((course) => course.status === "published"), [courses]);
+
+  const courseFilterOptions = useMemo(
+    () => [
+      { value: "all", label: "همه دوره‌های ثبت‌شده" },
+      ...publishedCourses.map((course) => ({
+        value: course.id,
+        label: course.title,
+      })),
+    ],
+    [publishedCourses]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -162,7 +208,7 @@ export default function InstructorReviewsPage() {
   }, []);
 
   const filteredReviews = useMemo(() => {
-    return reviews.filter((review) => {
+    const filtered = reviews.filter((review) => {
       const isAnswered = Boolean(review.reply);
       if (statusFilter === "answered" && !isAnswered) return false;
       if (statusFilter === "pending" && isAnswered) return false;
@@ -177,7 +223,24 @@ export default function InstructorReviewsPage() {
         review.courseTitle.toLowerCase().includes(q)
       );
     });
-  }, [reviews, statusFilter, ratingFilter, courseFilter, search]);
+
+    return filtered.sort((a, b) =>
+      sortFilter === "newest"
+        ? b.createdAtTimestamp - a.createdAtTimestamp
+        : a.createdAtTimestamp - b.createdAtTimestamp
+    );
+  }, [reviews, statusFilter, ratingFilter, courseFilter, search, sortFilter]);
+
+  useEffect(() => {
+    if (filteredReviews.length === 0) {
+      setSelectedReviewId("");
+      return;
+    }
+
+    if (!filteredReviews.some((review) => review.id === selectedReviewId)) {
+      setSelectedReviewId(filteredReviews[0].id);
+    }
+  }, [filteredReviews, selectedReviewId]);
 
   const stats = useMemo(() => {
     const total = reviews.length;
@@ -186,7 +249,22 @@ export default function InstructorReviewsPage() {
     return { total, answered, pending };
   }, [reviews]);
 
-  const active = filteredReviews.find((review) => review.id === selectedReviewId) || filteredReviews[0] || null;
+  const active = filteredReviews.find((review) => review.id === selectedReviewId) || null;
+
+  const listItems = useMemo(
+    () =>
+      filteredReviews.map((review) => ({
+        id: review.id,
+        studentName: review.studentName,
+        avatar: review.avatar,
+        rating: review.rating,
+        comment: review.comment,
+        createdAt: review.createdAt,
+        courseTitle: review.courseTitle,
+        hasReply: Boolean(review.reply),
+      })),
+    [filteredReviews]
+  );
 
   const handleSubmitReply = async () => {
     if (!active || !replyText.trim() || active.reply || isSubmittingReply) return;
@@ -197,7 +275,7 @@ export default function InstructorReviewsPage() {
         body: buildReplyPayload(active, replyText.trim()),
       });
 
-      const now = new Date().toISOString();
+      const now = new Date();
       setReviews((prev) =>
         prev.map((review) =>
           review.id === active.id
@@ -205,7 +283,7 @@ export default function InstructorReviewsPage() {
                 ...review,
                 reply: {
                   text: replyText.trim(),
-                  createdAt: now,
+                  createdAt: now.toLocaleDateString("fa-IR"),
                 },
               }
             : review
@@ -236,54 +314,58 @@ export default function InstructorReviewsPage() {
         </div>
       </section>
 
-      <section className="mb-7 rounded-[1.75rem] border border-gray-100 bg-white p-5 shadow-sm dark:border-white/5 dark:bg-[#1c1e26] md:p-6">
-        <div className="grid gap-4 xl:grid-cols-[1fr_auto_auto_auto] xl:items-center">
-          <div className="relative w-full xl:max-w-md">
-            <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+      <section className="mb-7 rounded-3xl border border-gray-100 bg-white p-6 shadow-md dark:border-white/5 dark:bg-[#1c1e26]">
+        <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-2 xl:grid-cols-6">
+          <div className="relative group md:col-span-2 xl:col-span-2">
+            <Search className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-primary" />
             <input
               type="text"
               placeholder="جستجو در نظرات، دانشجو یا عنوان دوره..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-12 w-full rounded-2xl border border-gray-200/70 bg-gray-50 pr-12 pl-4 text-sm font-semibold text-gray-800 outline-none transition focus:border-primary dark:border-white/10 dark:bg-white/5 dark:text-white"
+              className="h-full min-h-[46px] w-full rounded-2xl border border-gray-100 bg-gray-50 py-3.5 pr-11 pl-3 text-xs font-bold text-gray-900 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-white/10 dark:bg-white/5 dark:text-white"
             />
           </div>
 
-          <select
+          <CustomSelect
+            options={statusFilterOptions}
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-12 rounded-2xl border border-gray-200/70 bg-gray-50 px-4 text-xs font-bold text-gray-700 outline-none dark:border-white/10 dark:bg-white/5 dark:text-gray-200"
-          >
-            <option value="all">همه وضعیت‌ها</option>
-            <option value="pending">بدون پاسخ</option>
-            <option value="answered">پاسخ داده‌شده</option>
-          </select>
+            onChange={setStatusFilter}
+            placeholder="وضعیت"
+            size="md"
+            className={filterSelectClassName}
+            icon={<Filter className="h-4 w-4" />}
+          />
 
-          <select
+          <CustomSelect
+            options={courseFilterOptions}
             value={courseFilter}
-            onChange={(e) => setCourseFilter(e.target.value)}
-            className="h-12 rounded-2xl border border-gray-200/70 bg-gray-50 px-4 text-xs font-bold text-gray-700 outline-none dark:border-white/10 dark:bg-white/5 dark:text-gray-200"
-          >
-            <option value="all">همه دوره‌های ثبت‌شده</option>
-            {publishedCourses.map((course) => (
-              <option key={course.id} value={course.id}>
-                {course.title}
-              </option>
-            ))}
-          </select>
+            onChange={setCourseFilter}
+            placeholder="دوره"
+            size="md"
+            className={filterSelectClassName}
+            icon={<BookOpen className="h-4 w-4" />}
+          />
 
-          <select
+          <CustomSelect
+            options={ratingFilterOptions}
             value={ratingFilter}
-            onChange={(e) => setRatingFilter(e.target.value)}
-            className="h-12 rounded-2xl border border-gray-200/70 bg-gray-50 px-4 text-xs font-bold text-gray-700 outline-none dark:border-white/10 dark:bg-white/5 dark:text-gray-200"
-          >
-            <option value="all">همه امتیازها</option>
-            <option value="5">۵ ستاره</option>
-            <option value="4">۴ ستاره</option>
-            <option value="3">۳ ستاره</option>
-            <option value="2">۲ ستاره</option>
-            <option value="1">۱ ستاره</option>
-          </select>
+            onChange={setRatingFilter}
+            placeholder="امتیاز"
+            size="md"
+            className={filterSelectClassName}
+            icon={<Star className="h-4 w-4" />}
+          />
+
+          <CustomSelect
+            options={sortFilterOptions}
+            value={sortFilter}
+            onChange={setSortFilter}
+            placeholder="مرتب‌سازی"
+            size="md"
+            className={filterSelectClassName}
+            icon={<ArrowUpDown className="h-4 w-4" />}
+          />
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-black">
@@ -299,8 +381,8 @@ export default function InstructorReviewsPage() {
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr] items-start">
-        <div className={cn("lg:block", active ? "block" : "hidden lg:block")}>
+      <div className="grid items-start gap-6 lg:grid-cols-[1.3fr_1fr]">
+        <div className={cn("order-2 lg:order-1", active ? "block" : "hidden lg:block")}>
           {isLoading ? (
             <div className="rounded-[2rem] border border-gray-100 bg-white p-10 text-center shadow-sm dark:border-white/5 dark:bg-[#1c1e26]">
               <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
@@ -361,54 +443,27 @@ export default function InstructorReviewsPage() {
           )}
         </div>
 
-        <div className="space-y-3">
-          {filteredReviews.length === 0 ? (
-            <div className="rounded-[2rem] border border-gray-100 bg-white p-10 text-center shadow-sm dark:border-white/5 dark:bg-[#1c1e26]">
-              <p className="text-sm font-bold text-gray-400">موردی مطابق فیلترها پیدا نشد.</p>
+        <div className="order-1 lg:order-2">
+          {isLoading ? (
+            <div className="animate-pulse overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-white/5 dark:bg-[#1c1e26] sm:rounded-3xl">
+              <div className="border-b border-gray-100 px-4 py-3.5 dark:border-white/5">
+                <div className="h-9 w-40 rounded-full bg-gray-200 dark:bg-white/10" />
+              </div>
+              <div className="space-y-2 px-3 py-3">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div key={index} className="h-28 rounded-2xl bg-gray-100 dark:bg-white/5" />
+                ))}
+              </div>
             </div>
           ) : (
-            filteredReviews.map((review) => (
-              <button
-                key={review.id}
-                onClick={() => {
-                  setSelectedReviewId(review.id);
-                  setReplyText("");
-                }}
-                className={cn(
-                  "w-full rounded-[1.5rem] border p-4 text-right transition-all",
-                  active?.id === review.id
-                    ? "border-primary/30 bg-primary/5"
-                    : "border-gray-100 bg-white hover:border-primary/20 dark:border-white/5 dark:bg-[#1c1e26]"
-                )}
-              >
-                <div className="mb-2 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-                      {review.avatar ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={review.avatar} alt={review.studentName} className="h-full w-full rounded-full object-cover" />
-                      ) : (
-                        <User className="h-4 w-4" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-xs font-black text-gray-900 dark:text-white">{review.studentName}</p>
-                      <p className="text-[10px] font-semibold text-gray-400">{review.createdAt}</p>
-                    </div>
-                  </div>
-                  <span
-                    className={cn(
-                      "rounded-md px-2 py-1 text-[10px] font-black",
-                      review.reply ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"
-                    )}
-                  >
-                    {review.reply ? "پاسخ داده‌شده" : "بدون پاسخ"}
-                  </span>
-                </div>
-                <p className="mb-1 text-[10px] font-bold text-gray-500 dark:text-gray-400">{review.courseTitle}</p>
-                <p className="line-clamp-2 text-xs font-semibold leading-6 text-gray-700 dark:text-gray-300">{review.comment}</p>
-              </button>
-            ))
+            <InstructorReviewList
+              reviews={listItems}
+              selectedReviewId={active?.id}
+              onSelect={(reviewId) => {
+                setSelectedReviewId(reviewId);
+                setReplyText("");
+              }}
+            />
           )}
         </div>
       </div>

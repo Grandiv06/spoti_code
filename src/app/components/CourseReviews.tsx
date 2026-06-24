@@ -7,6 +7,13 @@ import { CreateCommentDto } from "@/api/models/CreateCommentDto";
 import { apiPostNoMock, apiGetNoMock } from "@/lib/api";
 import { SkeletonBox } from "@/components/ui/Skeleton";
 
+export interface ReviewReply {
+  author: string;
+  role: string;
+  comment: string;
+  date: string;
+}
+
 export interface Review {
   id: string;
   author: string;
@@ -15,6 +22,8 @@ export interface Review {
   comment: string;
   date: string;
   userId?: string;
+  parentId?: string;
+  reply?: ReviewReply;
 }
 
 const MOCK_REVIEWS: Review[] = [
@@ -37,6 +46,12 @@ const MOCK_REVIEWS: Review[] = [
       "بهترین تصمیمی که برای آینده‌ام گرفتم شرکت در این دوره بود. منتورها واقعاً دلسوزانه کمک می‌کنند و محتوا عالیه.",
     date: "۱ ماه پیش",
     userId: "user-2",
+    reply: {
+      author: "مدرس دوره",
+      role: "مدرس",
+      comment: "خوشحالیم که تجربه خوبی داشتید. موفق باشید!",
+      date: "۳ هفته پیش",
+    },
   },
   {
     id: "3",
@@ -94,6 +109,154 @@ const normalizeCommentsResponse = (response: { data?: unknown } | unknown) => {
 
   return { items, total };
 };
+
+function formatCommentDate(raw: string): string {
+  if (!raw) return "تازه";
+  const parsed = Date.parse(raw);
+  return Number.isNaN(parsed) ? raw : new Date(parsed).toLocaleDateString("fa-IR");
+}
+
+function extractReplyFromObject(source: unknown): ReviewReply | undefined {
+  if (!source || typeof source !== "object") return undefined;
+
+  const row = source as Record<string, unknown>;
+  const text = String(row.content ?? row.comment ?? row.text ?? row.body ?? "").trim();
+  if (!text) return undefined;
+
+  const author = (row.author ?? row.user ?? row.instructor ?? {}) as Record<string, unknown>;
+
+  return {
+    author: String(author.fullName ?? author.name ?? row.authorName ?? "مدرس دوره"),
+    role: String(author.role ?? "مدرس"),
+    comment: text,
+    date: formatCommentDate(String(row.createdAt ?? row.date ?? "")),
+  };
+}
+
+function mapRowToReview(row: Record<string, unknown>, idx: number): Review {
+  const user = (row.user ?? row.author ?? {}) as Record<string, unknown>;
+  const createdAtRaw = String(row.createdAt ?? row.date ?? "");
+  let reply = extractReplyFromObject(row.reply ?? row.answer);
+
+  const children = row.replies ?? row.children;
+  if (!reply && Array.isArray(children)) {
+    for (const child of children) {
+      const nestedReply = extractReplyFromObject(child);
+      if (nestedReply) {
+        reply = nestedReply;
+        break;
+      }
+    }
+  }
+
+  return {
+    id: String(row.id ?? `comment-${idx + 1}`),
+    author: String(user.fullName ?? user.name ?? row.authorName ?? "کاربر اسپاتی‌کد"),
+    role: String(user.role ?? row.role ?? "دانشجو"),
+    avatar: String(user.avatar ?? row.avatar ?? "/images/student1.jpg"),
+    comment: String(row.content ?? row.comment ?? ""),
+    date: formatCommentDate(createdAtRaw),
+    userId: typeof user.id === "string" ? user.id : undefined,
+    parentId: typeof row.parentId === "string" ? row.parentId : undefined,
+    reply,
+  };
+}
+
+function buildReviewsWithReplies(items: unknown[]): Review[] {
+  const mapped = items.map((item, idx) => mapRowToReview((item ?? {}) as Record<string, unknown>, idx));
+  const topLevel = mapped.filter((review) => !review.parentId || review.parentId === review.id);
+  const replyOnly = mapped.filter((review) => review.parentId && review.parentId !== review.id);
+  const topLevelById = new Map(topLevel.map((review) => [review.id, review]));
+
+  for (const replyRow of replyOnly) {
+    const parent = topLevelById.get(replyRow.parentId!);
+    if (!parent || parent.reply) continue;
+
+    parent.reply = {
+      author: replyRow.author,
+      role: replyRow.role,
+      comment: replyRow.comment,
+      date: replyRow.date,
+    };
+  }
+
+  return topLevel;
+}
+
+function ReviewReplyBlock({ reply }: { reply: ReviewReply }) {
+  return (
+    <div className="relative mt-4 md:mt-5 pr-0 sm:pr-6 md:pr-8">
+      <div
+        aria-hidden="true"
+        className="absolute right-0 top-3 hidden h-[calc(100%-0.75rem)] w-px bg-gradient-to-b from-primary/30 via-primary/15 to-transparent sm:block"
+      />
+      <div className="rounded-[1.25rem] border border-primary/20 bg-primary/5 p-4 dark:border-primary/25 dark:bg-primary/10 md:rounded-2xl md:p-5">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-black text-primary">
+            <span className="material-symbols-outlined text-sm">school</span>
+            پاسخ مدرس
+          </span>
+          <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500">{reply.date}</span>
+        </div>
+        <p className="text-sm font-medium leading-7 text-gray-700 dark:text-gray-200 md:text-[15px]">
+          {reply.comment}
+        </p>
+        <p className="mt-3 text-[11px] font-black text-primary/80">
+          {reply.author}
+          {reply.role ? ` • ${reply.role}` : ""}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ReviewCard({ review }: { review: Review }) {
+  return (
+    <div className="glass-panel rounded-[2rem] p-5 transition-all duration-300 hover:bg-white/40 dark:hover:bg-white/5 md:rounded-4xl md:p-6 lg:p-8">
+      <div className="flex flex-col gap-4 sm:flex-row md:gap-6">
+        <div className="flex shrink-0 items-center gap-3 border-b border-gray-100 pb-4 dark:border-gray-800 sm:border-b-0 sm:pb-0 md:gap-4">
+          {review.userId ? (
+            <Link
+              href={`/social/profile/${review.userId}`}
+              className="group/profile flex w-full shrink-0 items-center gap-3 sm:w-auto md:gap-4"
+            >
+              <div className="relative size-12 shrink-0 overflow-hidden rounded-xl border-2 border-white shadow-lg transition-transform group-hover/profile:scale-105 dark:border-gray-700 md:size-16 md:rounded-2xl">
+                <Image src={review.avatar} alt={review.author} fill className="object-cover" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h4 className="truncate text-base font-bold text-gray-900 transition-colors group-hover/profile:text-primary dark:text-white md:text-lg">
+                  {review.author}
+                </h4>
+                <span className="block truncate text-[10px] font-bold text-primary md:text-sm">{review.role}</span>
+              </div>
+            </Link>
+          ) : (
+            <div className="flex w-full shrink-0 items-center gap-3 sm:w-auto md:gap-4">
+              <div className="relative size-12 shrink-0 overflow-hidden rounded-xl border-2 border-white shadow-lg dark:border-gray-700 md:size-16 md:rounded-2xl">
+                <Image src={review.avatar} alt={review.author} fill className="object-cover" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h4 className="truncate text-base font-bold text-gray-900 dark:text-white md:text-lg">{review.author}</h4>
+                <span className="block truncate text-[10px] font-bold text-primary md:text-sm">{review.role}</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1">
+          <p className="text-justify text-sm font-medium leading-relaxed text-gray-600 dark:text-gray-300 sm:text-right md:text-base">
+            {review.comment}
+          </p>
+          <span className="mt-3 block text-left text-[10px] text-gray-500 dark:text-gray-400 sm:text-right md:mt-5 md:text-xs">
+            {review.date}
+          </span>
+        </div>
+      </div>
+
+      {review.reply ? <ReviewReplyBlock reply={review.reply} /> : null}
+    </div>
+  );
+}
 
 function CommentsSkeleton() {
   return (
@@ -157,27 +320,7 @@ export default function CourseReviews({
     const res = await apiGetNoMock<{ data?: unknown }>(getCommentsPath(courseId));
     const { items, total } = normalizeCommentsResponse(res);
 
-    const mapped: Review[] = items.map((item, idx) => {
-      const row = (item ?? {}) as Record<string, unknown>;
-      const user = (row.user ?? row.author ?? {}) as Record<string, unknown>;
-      const createdAtRaw = String(row.createdAt ?? row.date ?? "");
-      const createdAtLabel =
-        createdAtRaw && !Number.isNaN(Date.parse(createdAtRaw))
-          ? new Date(createdAtRaw).toLocaleDateString("fa-IR")
-          : "تازه";
-
-      return {
-        id: String(row.id ?? `comment-${idx + 1}`),
-        author: String(
-          user.fullName ?? user.name ?? row.authorName ?? "کاربر اسپاتی‌کد"
-        ),
-        role: String(user.role ?? row.role ?? "دانشجو"),
-        avatar: String(user.avatar ?? row.avatar ?? "/images/student1.jpg"),
-        comment: String(row.content ?? row.comment ?? ""),
-        date: createdAtLabel,
-        userId: typeof user.id === "string" ? user.id : undefined,
-      };
-    });
+    const mapped = buildReviewsWithReplies(items);
 
     setLiveReviews(mapped);
     setLiveTotalReviews(total);
@@ -394,63 +537,7 @@ export default function CourseReviews({
             هنوز نظری برای این دوره ثبت نشده است.
           </div>
         ) : (
-          liveReviews.map((review) => (
-            <div
-              key={review.id}
-              className="glass-panel rounded-[2rem] md:rounded-4xl p-5 md:p-6 lg:p-8 transition-all duration-300 hover:bg-white/40 dark:hover:bg-white/5"
-            >
-              <div className="flex flex-col sm:flex-row gap-4 md:gap-6">
-                <div className="flex items-center gap-3 md:gap-4 shrink-0 border-b sm:border-b-0 border-gray-100 dark:border-gray-800 pb-4 sm:pb-0">
-                  {review.userId ? (
-                    <Link
-                      href={`/social/profile/${review.userId}`}
-                      className="flex items-center gap-3 md:gap-4 group/profile shrink-0 w-full sm:w-auto"
-                    >
-                      <div className="relative size-12 md:size-16 rounded-xl md:rounded-2xl overflow-hidden border-2 border-white dark:border-gray-700 shadow-lg transition-transform group-hover/profile:scale-105 shrink-0">
-                        <Image
-                          src={review.avatar}
-                          alt={review.author}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-base md:text-lg text-gray-900 dark:text-white group-hover/profile:text-primary transition-colors truncate">
-                          {review.author}
-                        </h4>
-                        <span className="text-[10px] md:text-sm text-primary font-bold truncate block">{review.role}</span>
-                      </div>
-                    </Link>
-                  ) : (
-                    <div className="flex items-center gap-3 md:gap-4 shrink-0 w-full sm:w-auto">
-                      <div className="relative size-12 md:size-16 rounded-xl md:rounded-2xl overflow-hidden border-2 border-white dark:border-gray-700 shadow-lg shrink-0">
-                        <Image
-                          src={review.avatar}
-                          alt={review.author}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-base md:text-lg text-gray-900 dark:text-white truncate">
-                          {review.author}
-                        </h4>
-                        <span className="text-[10px] md:text-sm text-primary font-bold truncate block">{review.role}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 leading-relaxed md:leading-relaxed font-medium text-justify sm:text-right">
-                    {review.comment}
-                  </p>
-                  <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 mt-3 md:mt-5 block text-left sm:text-right">
-                    {review.date}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))
+          liveReviews.map((review) => <ReviewCard key={review.id} review={review} />)
         )}
       </div>
     </section>

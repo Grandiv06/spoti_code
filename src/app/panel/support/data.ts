@@ -65,10 +65,173 @@ export function getTicketCategoryLabel(category: string): string {
   return trimmed;
 }
 
+const TICKET_STATUS_LABELS: Record<string, string> = {
+  open: "در حال بررسی",
+  pending: "در انتظار",
+  new: "جدید",
+  newticket: "جدید",
+  waiting: "در انتظار",
+
+  underreview: "در حال بررسی",
+  investigating: "در حال بررسی",
+  inprogress: "در حال بررسی",
+  reviewing: "در حال بررسی",
+
+  waitingforadmin: "منتظر ادمین",
+  waitingforuser: "پاسخ داده شده",
+  waitingforcustomer: "پاسخ داده شده",
+  waitingforclient: "پاسخ داده شده",
+  waitingforstaff: "منتظر پشتیبانی",
+  waitingforsupport: "منتظر پشتیبانی",
+
+  answered: "پاسخ داده شده",
+  resolved: "حل شده",
+  replied: "پاسخ داده شده",
+  reply: "پاسخ داده شده",
+
+  closed: "بسته شده",
+  close: "بسته شده",
+  closedbyadmin: "بسته شده توسط ادمین",
+  closedbyuser: "بسته شده توسط کاربر",
+
+  باز: "در حال بررسی",
+  درحالبررسی: "در حال بررسی",
+  پاسخدادهشده: "پاسخ داده شده",
+  بستهشده: "بسته شده",
+  حلشده: "حل شده",
+  معلق: "معلق",
+};
+
+const TICKET_STATUS_PART_LABELS: Record<string, string> = {
+  waiting: "منتظر",
+  for: "",
+  user: "کاربر",
+  admin: "ادمین",
+  customer: "کاربر",
+  client: "کاربر",
+  support: "پشتیبانی",
+  staff: "پشتیبانی",
+  closed: "بسته",
+  by: "توسط",
+  open: "در حال بررسی",
+  answered: "پاسخ داده شده",
+  answer: "پاسخ",
+  review: "بررسی",
+  under: "",
+  progress: "پیشرفت",
+  pending: "در انتظار",
+  new: "جدید",
+  resolved: "حل شده",
+  replied: "پاسخ داده شده",
+  investigating: "در حال بررسی",
+  ticket: "تیکت",
+};
+
+function translateUnknownTicketStatus(raw: string): string {
+  const parts = raw
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  const translated = parts
+    .map((part) => TICKET_STATUS_PART_LABELS[part])
+    .filter((part): part is string => Boolean(part && part.trim()));
+
+  return translated.length > 0 ? translated.join(" ") : raw;
+}
+
+export function normalizeTicketStatusKey(value: unknown): string {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s-]+/g, "");
+}
+
+export function formatTicketStatusLabel(value: unknown): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "—";
+
+  const known = TICKET_STATUS_LABELS[normalizeTicketStatusKey(raw)];
+  if (known) return known;
+
+  if (/[\u0600-\u06FF]/.test(raw)) return raw;
+
+  return translateUnknownTicketStatus(raw);
+}
+
+export function isTicketUnderReview(value: unknown): boolean {
+  const key = normalizeTicketStatusKey(value);
+  if (!key) return false;
+  if (key === "open") return true;
+  return (
+    key.includes("investigat") ||
+    key.includes("review") ||
+    key.includes("progress") ||
+    key.includes("waitingforadmin") ||
+    key.includes("waitingforstaff") ||
+    key.includes("waitingforsupport")
+  );
+}
+
+export function isTicketAnswered(value: unknown): boolean {
+  const key = normalizeTicketStatusKey(value);
+  return (
+    key.includes("answer") ||
+    key.includes("resolved") ||
+    key.includes("reply") ||
+    key.includes("waitingforuser") ||
+    key.includes("waitingforcustomer") ||
+    key.includes("waitingforclient")
+  );
+}
+
+export function getTicketStatusClass(value: unknown): string {
+  const key = normalizeTicketStatusKey(value);
+
+  if (!key || ["pending", "new", "waiting", "newticket"].includes(key)) {
+    return "bg-blue-500/10 text-blue-500 border-blue-500/20";
+  }
+  if (isTicketAnswered(value)) {
+    return "bg-green-500/10 text-green-500 border-green-500/20";
+  }
+  if (isTicketUnderReview(value)) {
+    return "bg-amber-500/10 text-amber-500 border-amber-500/20";
+  }
+  if (key.includes("close")) {
+    return "bg-gray-500/10 text-gray-500 border-gray-500/20";
+  }
+
+  return "bg-gray-500/10 text-gray-500 border-gray-500/20";
+}
+
+export function isTicketClosed(value: unknown): boolean {
+  const key = normalizeTicketStatusKey(value);
+  return Boolean(key) && key.includes("close");
+}
+
+export function matchesTicketStatusFilter(status: unknown, filter: string): boolean {
+  if (filter === "all") return true;
+
+  const key = normalizeTicketStatusKey(status);
+  const filterKey = normalizeTicketStatusKey(filter);
+
+  if (filterKey === "closed") return isTicketClosed(status);
+  if (filterKey === "investigating" || filterKey === "open") {
+    return isTicketUnderReview(status);
+  }
+  if (filterKey === "answered") {
+    return isTicketAnswered(status);
+  }
+
+  return key === filterKey;
+}
+
 export interface Ticket {
   id: string;
   title: string;
-  status: "open" | "investigating" | "answered" | "closed";
+  status: string;
   priority: TicketUrgency;
   category: string;
   createdAt: string;
