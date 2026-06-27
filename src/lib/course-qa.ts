@@ -15,6 +15,7 @@ export type CourseQaAttachment = {
 };
 
 export type CourseQaReply = {
+  id?: string;
   senderName: string;
   role: "instructor" | "student";
   text: string;
@@ -106,8 +107,10 @@ function normalizeReply(value: unknown, fallbackRole: CourseQaReply["role"]): Co
     .map(normalizeAttachment)
     .filter(Boolean) as CourseQaAttachment[];
   const createdAt = formatDate(value.createdAt ?? value.date ?? value.timestamp);
+  const id = readString(value.id ?? value.replyId ?? value.messageId, "");
 
   return {
+    ...(id ? { id } : {}),
     senderName: readString(
       value.senderName ?? value.authorName ?? value.name,
       fallbackRole === "instructor" ? "مدرس دوره" : "دانشجو"
@@ -118,6 +121,94 @@ function normalizeReply(value: unknown, fallbackRole: CourseQaReply["role"]): Co
     createdAtIso: createdAt.iso,
     ...(attachments.length ? { attachments } : {}),
   };
+}
+
+export function extractQaRepliesFromSource(source: UnknownRecord): unknown[] {
+  const merged: unknown[] = [];
+  for (const key of ["replies", "answers", "messages", "instructorReplies", "answerHistory", "answerMessages"]) {
+    const value = source[key];
+    if (Array.isArray(value)) merged.push(...value);
+  }
+  return merged;
+}
+
+function getReplyTimestampMs(reply: Pick<CourseQaReply, "createdAt" | "createdAtIso">): number {
+  if (reply.createdAtIso) {
+    const parsed = Date.parse(reply.createdAtIso);
+    if (!Number.isNaN(parsed)) return parsed;
+  }
+  const parsed = Date.parse(reply.createdAt);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function getReplyDedupeKey(reply: Pick<CourseQaReply, "id" | "role" | "text" | "createdAtIso" | "createdAt">): string {
+  if (reply.id) return `id:${reply.id}`;
+  if (reply.createdAtIso) return `iso:${reply.createdAtIso}`;
+  return `text:${reply.role}::${reply.text.trim()}`;
+}
+
+export function dedupeQaReplies<T extends CourseQaReply>(replies: T[]): T[] {
+  const ordered: T[] = [];
+  const indexByKey = new Map<string, number>();
+
+  for (const reply of replies) {
+    const key = getReplyDedupeKey(reply);
+    const existingIndex = indexByKey.get(key);
+    if (existingIndex === undefined) {
+      indexByKey.set(key, ordered.length);
+      ordered.push(reply);
+      continue;
+    }
+
+    const existing = ordered[existingIndex];
+    if (getReplyTimestampMs(reply) >= getReplyTimestampMs(existing)) {
+      ordered[existingIndex] = reply;
+    }
+  }
+
+  return ordered;
+}
+
+function appendAnswerFieldReplies(
+  source: UnknownRecord,
+  replies: CourseQaReply[],
+  fallbackInstructorName: string
+): CourseQaReply[] {
+  const answerCandidates = [
+    readString(source.answer),
+    readString(source.latestAnswer),
+    readString(source.lastAnswer),
+  ].filter(Boolean);
+
+  let next = [...replies];
+  for (const answerText of answerCandidates) {
+    if (next.some((reply) => reply.role === "instructor" && reply.text.trim() === answerText.trim())) {
+      continue;
+    }
+    const answerDate = formatDate(source.answeredAt ?? source.updatedAt ?? source.createdAt);
+    next.push({
+      senderName: readString(source.instructorName ?? source.teacherName, fallbackInstructorName),
+      role: "instructor",
+      text: answerText,
+      createdAt: answerDate.label,
+      createdAtIso: answerDate.iso,
+    });
+  }
+
+  return dedupeQaReplies(next);
+}
+
+export function buildQaRepliesFromSource(
+  source: UnknownRecord,
+  fallbackInstructorName = "مدرس دوره"
+): CourseQaReply[] {
+  const replies = dedupeQaReplies(
+    extractQaRepliesFromSource(source)
+      .map((item) => normalizeReply(item, "instructor"))
+      .filter(Boolean) as CourseQaReply[]
+  );
+
+  return appendAnswerFieldReplies(source, replies, fallbackInstructorName);
 }
 
 function splitQuestionContent(question: string): {
@@ -146,23 +237,7 @@ export function mapCourseQaRecord(raw: unknown, index: number, fallbackCourseTit
   const split = splitQuestionContent(questionText);
   const createdAt = formatDate(source.createdAt ?? source.date ?? source.askedAt);
 
-  const replies = (Array.isArray(source.replies) ? source.replies : [])
-    .concat(Array.isArray(source.answers) ? source.answers : [])
-    .concat(Array.isArray(source.messages) ? source.messages : [])
-    .map((item) => normalizeReply(item, "instructor"))
-    .filter(Boolean) as CourseQaReply[];
-
-  const answerText = readString(source.answer);
-  if (answerText && !replies.some((reply) => reply.role === "instructor")) {
-    const answerDate = formatDate(source.answeredAt ?? source.updatedAt ?? source.createdAt);
-    replies.push({
-      senderName: readString(source.instructorName ?? source.teacherName, "مدرس دوره"),
-      role: "instructor",
-      text: answerText,
-      createdAt: answerDate.label,
-      createdAtIso: answerDate.iso,
-    });
-  }
+  const repliesWithAnswer = buildQaRepliesFromSource(source, "مدرس دوره");
 
   const attachments = (Array.isArray(source.attachments) ? source.attachments : [])
     .concat(Array.isArray(source.questionFiles) ? source.questionFiles : [])
@@ -194,8 +269,10 @@ export function mapCourseQaRecord(raw: unknown, index: number, fallbackCourseTit
     lessonTitle: readString(source.lessonTitle ?? lessonRaw?.title ?? lessonRaw?.name, ""),
     createdAt: createdAt.label,
     createdAtIso: createdAt.iso,
-    status: normalizeStatus(source.status ?? source.answerStatus ?? (answerText ? "answered" : "new")),
-    replies,
+    status: normalizeStatus(
+      source.status ?? source.answerStatus ?? (repliesWithAnswer.some((reply) => reply.role === "instructor") ? "answered" : "new")
+    ),
+    replies: repliesWithAnswer,
   };
 }
 
@@ -229,6 +306,20 @@ function buildQuery(params: Record<string, string | undefined>): string {
   });
   const query = search.toString();
   return query ? `?${query}` : "";
+}
+
+/** GET /api/qas/instructor */
+export async function fetchInstructorCourseQas(options: {
+  courseId?: string;
+  lessonId?: string;
+  courseTitle?: string;
+}): Promise<CourseLearningQuestion[]> {
+  const query = buildQuery({
+    courseId: options.courseId,
+    lessonId: options.lessonId,
+  });
+  const response = await apiGetNoMock<unknown>(`/api/qas/instructor${query}`, getAuthHeaders());
+  return mapCourseQaList(response, options.courseTitle);
 }
 
 /** GET /api/qas/my */

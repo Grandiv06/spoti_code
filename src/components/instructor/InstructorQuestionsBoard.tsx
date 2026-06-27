@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { FileText, HelpCircle, Paperclip, Search, User, Send, Loader2, Download, ArrowRight, X, ChevronLeft, MessageSquare } from "lucide-react";
 import { useInstructorData, type StudentQuestion } from "@/context/InstructorDataContext";
 import { cn } from "@/lib/utils";
@@ -10,10 +10,12 @@ type QuestionChatMessage = {
   role: "instructor" | "student";
   senderName: string;
   text: string;
-  showTitle?: string;
   errorText?: string;
   attachments?: StudentQuestion["attachments"];
   createdAt: string;
+  createdAtIso?: string;
+  sortMs: number;
+  sequence: number;
 };
 
 type QuestionThread = {
@@ -27,20 +29,72 @@ type QuestionThread = {
   status: "new" | "answered";
   createdAt: string;
   updatedAt: string;
+  updatedAtMs: number;
   title: string;
   questions: StudentQuestion[];
   primaryQuestionId: string;
 };
 
-function parseQuestionTimestamp(value: string): number {
-  const parsed = Date.parse(value);
-  return Number.isNaN(parsed) ? 0 : parsed;
+function parseActivityTimestamp(label?: string, iso?: string): number {
+  if (iso) {
+    const parsedIso = Date.parse(iso);
+    if (!Number.isNaN(parsedIso)) return parsedIso;
+  }
+  if (label) {
+    const parsedLabel = Date.parse(label);
+    if (!Number.isNaN(parsedLabel)) return parsedLabel;
+  }
+  return 0;
+}
+
+function getQuestionActivityMs(question: StudentQuestion): number {
+  let latest = parseActivityTimestamp(question.createdAt, question.createdAtIso);
+  for (const reply of question.replies) {
+    latest = Math.max(latest, parseActivityTimestamp(reply.createdAt, reply.createdAtIso));
+  }
+  return latest;
+}
+
+function formatActivityLabel(ms: number, fallback: string): string {
+  if (ms > 0) return new Date(ms).toLocaleDateString("fa-IR");
+  return fallback;
+}
+
+function parseQuestionTimestamp(value: string, iso?: string): number {
+  return parseActivityTimestamp(value, iso);
 }
 
 function getQuestionThreadKey(question: StudentQuestion): string {
   const lessonKey = question.lessonId || question.lessonTitle || "general";
   const studentKey = question.studentId || question.studentName;
   return `${question.courseId}::${lessonKey}::${studentKey}`;
+}
+
+function resolveAnswerTargetQuestion(questions: StudentQuestion[]): StudentQuestion {
+  const sortedAsc = [...questions].sort(
+    (a, b) => getQuestionActivityMs(a) - getQuestionActivityMs(b)
+  );
+  let target = sortedAsc[sortedAsc.length - 1];
+
+  for (const question of sortedAsc) {
+    const instructorReplies = question.replies.filter((reply) => reply.role === "instructor");
+    if (!instructorReplies.length) continue;
+
+    const lastInstructorMs = Math.max(
+      ...instructorReplies.map((reply) => parseActivityTimestamp(reply.createdAt, reply.createdAtIso))
+    );
+    const laterStudentExists = sortedAsc.some((candidate) => {
+      if (candidate.id === question.id) return false;
+      const candidateMs = parseActivityTimestamp(candidate.createdAt, candidate.createdAtIso);
+      return candidateMs > lastInstructorMs;
+    });
+
+    if (!laterStudentExists) {
+      target = question;
+    }
+  }
+
+  return target;
 }
 
 function groupQuestionsIntoThreads(questions: StudentQuestion[]): QuestionThread[] {
@@ -56,10 +110,16 @@ function groupQuestionsIntoThreads(questions: StudentQuestion[]): QuestionThread
   return Array.from(grouped.entries())
     .map(([id, threadQuestions]) => {
       const sorted = [...threadQuestions].sort(
-        (a, b) => parseQuestionTimestamp(a.createdAt) - parseQuestionTimestamp(b.createdAt)
+        (a, b) =>
+          parseQuestionTimestamp(a.createdAt, a.createdAtIso) -
+          parseQuestionTimestamp(b.createdAt, b.createdAtIso)
       );
       const first = sorted[0];
-      const latest = sorted[sorted.length - 1];
+      const answerTarget = resolveAnswerTargetQuestion(sorted);
+      const latestActivityMs = sorted.reduce(
+        (max, question) => Math.max(max, getQuestionActivityMs(question)),
+        0
+      );
 
       return {
         id,
@@ -71,48 +131,77 @@ function groupQuestionsIntoThreads(questions: StudentQuestion[]): QuestionThread
         lessonTitle: first.lessonTitle,
         status: sorted.some((item) => item.status === "new") ? "new" : "answered",
         createdAt: first.createdAt,
-        updatedAt: latest.createdAt,
+        updatedAt: formatActivityLabel(latestActivityMs, answerTarget.createdAt),
+        updatedAtMs: latestActivityMs,
         title: first.title,
         questions: sorted,
-        primaryQuestionId: latest.id,
+        primaryQuestionId: answerTarget.id,
       } satisfies QuestionThread;
     })
-    .sort((a, b) => parseQuestionTimestamp(b.updatedAt) - parseQuestionTimestamp(a.updatedAt));
+    .sort((a, b) => b.updatedAtMs - a.updatedAtMs);
+}
+
+function dedupeChatMessages(messages: QuestionChatMessage[]): QuestionChatMessage[] {
+  const ordered: QuestionChatMessage[] = [];
+  const indexByKey = new Map<string, number>();
+
+  for (const message of messages) {
+    const key = message.id.includes("-reply-")
+      ? message.id
+      : `${message.role}::${message.text.trim()}::${message.createdAtIso || message.createdAt}`;
+    const existingIndex = indexByKey.get(key);
+    if (existingIndex === undefined) {
+      indexByKey.set(key, ordered.length);
+      ordered.push(message);
+      continue;
+    }
+
+    const existing = ordered[existingIndex];
+    if (message.sortMs > existing.sortMs || (message.sortMs === existing.sortMs && message.sequence > existing.sequence)) {
+      ordered[existingIndex] = message;
+    }
+  }
+
+  return ordered;
 }
 
 function buildThreadChatMessages(thread: QuestionThread): QuestionChatMessage[] {
   const messages: QuestionChatMessage[] = [];
+  let sequence = 0;
 
-  thread.questions.forEach((question, questionIndex) => {
+  thread.questions.forEach((question) => {
     messages.push({
       id: `${question.id}-initial`,
       role: "student",
       senderName: question.studentName,
       text: question.description || question.text,
-      showTitle:
-        questionIndex === 0
-          ? question.title
-          : question.title !== thread.title
-            ? question.title
-            : undefined,
       errorText: question.errorText,
       attachments: question.attachments,
       createdAt: question.createdAt,
+      createdAtIso: question.createdAtIso,
+      sortMs: parseActivityTimestamp(question.createdAt, question.createdAtIso),
+      sequence: sequence++,
     });
 
     question.replies.forEach((reply, replyIndex) => {
       messages.push({
-        id: `${question.id}-reply-${replyIndex}`,
+        id: `${question.id}-reply-${reply.id ?? replyIndex}`,
         role: reply.role,
         senderName: reply.senderName,
         text: reply.text,
         attachments: reply.attachments,
         createdAt: reply.createdAt,
+        createdAtIso: reply.createdAtIso,
+        sortMs: parseActivityTimestamp(reply.createdAt, reply.createdAtIso),
+        sequence: sequence++,
       });
     });
   });
 
-  return messages;
+  return dedupeChatMessages(messages).sort((a, b) => {
+    if (a.sortMs !== b.sortMs) return a.sortMs - b.sortMs;
+    return a.sequence - b.sequence;
+  });
 }
 
 function getThreadSnippet(thread: QuestionThread): string {
@@ -121,11 +210,106 @@ function getThreadSnippet(thread: QuestionThread): string {
   return lastMessage?.text || thread.title;
 }
 
+function isGroupedWithPrevious(messages: QuestionChatMessage[], index: number): boolean {
+  if (index === 0) return false;
+  const prev = messages[index - 1];
+  const curr = messages[index];
+  return prev.role === curr.role && prev.senderName === curr.senderName;
+}
+
 type Props = {
   showHero?: boolean;
   filterCourseId?: string;
   className?: string;
 };
+
+const THREADS_PAGE_SIZE = 6;
+
+function ThreadPagination({
+  currentPage,
+  totalPages,
+  totalItems,
+  onPageChange,
+}: {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  onPageChange: (page: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+
+  const canGoPrev = currentPage > 1;
+  const canGoNext = currentPage < totalPages;
+  const showAllPages = totalPages <= 7;
+  const pages = showAllPages ? Array.from({ length: totalPages }, (_, index) => index + 1) : [];
+
+  return (
+    <div className="shrink-0 border-t border-gray-100 px-1 pt-3 dark:border-gray-800">
+      <p className="mb-2 text-center text-[10px] font-semibold text-gray-400">
+        نمایش {((currentPage - 1) * THREADS_PAGE_SIZE + 1).toLocaleString("fa-IR")} تا{" "}
+        {Math.min(currentPage * THREADS_PAGE_SIZE, totalItems).toLocaleString("fa-IR")} از{" "}
+        {totalItems.toLocaleString("fa-IR")} گفتگو
+      </p>
+      <div className="flex justify-center">
+        <div className="flex items-center gap-1.5 rounded-2xl border border-gray-100 bg-white p-1.5 dark:border-white/5 dark:bg-[#1c1e26]">
+          <button
+            type="button"
+            aria-label="صفحه قبل"
+            disabled={!canGoPrev}
+            onClick={() => onPageChange(currentPage - 1)}
+            className={cn(
+              "flex h-9 w-9 items-center justify-center rounded-xl transition-all",
+              canGoPrev
+                ? "cursor-pointer bg-gray-50 text-gray-600 hover:bg-gray-100 dark:bg-white/5 dark:text-gray-400 dark:hover:bg-white/10"
+                : "cursor-not-allowed bg-gray-50 text-gray-300 dark:bg-white/5 dark:text-gray-600"
+            )}
+          >
+            <ChevronLeft className="h-4 w-4 rotate-180" />
+          </button>
+
+          {showAllPages ? (
+            pages.map((page) => (
+              <button
+                key={page}
+                type="button"
+                aria-label={`صفحه ${page.toLocaleString("fa-IR")}`}
+                aria-current={currentPage === page ? "page" : undefined}
+                onClick={() => onPageChange(page)}
+                className={cn(
+                  "flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-xs font-black transition-all",
+                  currentPage === page
+                    ? "bg-primary text-white shadow-md shadow-primary/20"
+                    : "text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-white/5"
+                )}
+              >
+                {page.toLocaleString("fa-IR")}
+              </button>
+            ))
+          ) : (
+            <span className="min-w-[4.5rem] px-2 text-center text-xs font-black text-gray-600 dark:text-gray-300">
+              {currentPage.toLocaleString("fa-IR")} / {totalPages.toLocaleString("fa-IR")}
+            </span>
+          )}
+
+          <button
+            type="button"
+            aria-label="صفحه بعد"
+            disabled={!canGoNext}
+            onClick={() => onPageChange(currentPage + 1)}
+            className={cn(
+              "flex h-9 w-9 items-center justify-center rounded-xl transition-all",
+              canGoNext
+                ? "cursor-pointer bg-gray-50 text-gray-600 hover:bg-gray-100 dark:bg-white/5 dark:text-gray-400 dark:hover:bg-white/10"
+                : "cursor-not-allowed bg-gray-50 text-gray-300 dark:bg-white/5 dark:text-gray-600"
+            )}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function InstructorQuestionsBoard({ showHero = true, filterCourseId, className }: Props) {
   const { questions, replyToQuestion } = useInstructorData();
@@ -136,6 +320,7 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [threadPage, setThreadPage] = useState(1);
 
   // --- Telegram Q&A Chat States & Helpers ---
   type PendingAttachment = {
@@ -201,7 +386,7 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
     if (selectedThreadId) {
       setTimeout(scrollToBottom, 100);
     }
-  }, [selectedThreadId, activeChatMessages.length]);
+  }, [selectedThreadId, activeChatMessages.length, activeChatMessages[activeChatMessages.length - 1]?.id]);
 
   const toDataUrl = (file: File) =>
     new Promise<string>((resolve, reject) => {
@@ -266,11 +451,18 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
   };
 
   const handleSendMessage = async () => {
-    if (!activeThread || (!composerText.trim() && pendingAttachments.length === 0)) return;
+    if (!activeThread || (!composerText.trim() && pendingAttachments.length === 0) || isSendingMessage) return;
+
+    const textToSend = composerText.trim();
+    const attachmentsToSend = pendingAttachments;
+
+    setComposerText("");
+    setPendingAttachments([]);
     setIsSendingMessage(true);
+
     try {
       const attachments = await Promise.all(
-        pendingAttachments.map(async (item) => {
+        attachmentsToSend.map(async (item) => {
           const isImage = item.file.type.startsWith("image/");
           const previewUrl = item.previewUrl || (isImage ? await toDataUrl(item.file) : undefined);
           return {
@@ -285,14 +477,15 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
       );
 
       await replyToQuestion(
-        activeThread?.primaryQuestionId ?? "",
-        composerText.trim(),
+        activeThread.primaryQuestionId,
+        textToSend,
         attachments.length ? attachments : undefined
       );
-      setComposerText("");
-      setPendingAttachments([]);
+      setTimeout(scrollToBottom, 100);
     } catch (err) {
       console.error(err);
+      setComposerText(textToSend);
+      setPendingAttachments(attachmentsToSend);
       alert("خطا در ارسال پیام. لطفاً دوباره تلاش کنید.");
     } finally {
       setIsSendingMessage(false);
@@ -303,19 +496,19 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
     files: NonNullable<StudentQuestion["attachments"]>,
     isInstructor: boolean
   ) => (
-    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+    <div className="mt-2.5 grid gap-2 sm:grid-cols-2">
       {files.map((file) => (
         <div
           key={file.id}
           className={cn(
-            "rounded-xl border p-2",
+            "overflow-hidden rounded-xl border",
             isInstructor
-              ? "border-white/10 bg-black/10 text-white"
-              : "border-[#d1e7dd]/50 bg-white/70 dark:border-white/10 dark:bg-white/5 text-emerald-900 dark:text-emerald-100"
+              ? "border-emerald-200/60 bg-white/80 text-emerald-900 dark:border-emerald-700/30 dark:bg-black/15 dark:text-emerald-100"
+              : "border-white/15 bg-white/10 text-gray-100 dark:border-white/10 dark:bg-black/30"
           )}
         >
           {file.type.startsWith("image/") && file.previewUrl ? (
-            <div className="space-y-2">
+            <div className="p-1.5">
               <button
                 type="button"
                 onClick={() => setImageLightboxUrl(file.previewUrl || "")}
@@ -325,16 +518,16 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
                 <img
                   src={file.previewUrl}
                   alt={file.name}
-                  className="h-32 w-full object-cover transition duration-300 group-hover:scale-105"
+                  className="h-32 w-full object-cover transition duration-300 group-hover:scale-[1.02]"
                 />
               </button>
               {file.caption ? (
                 <p
                   className={cn(
-                    "rounded p-1 text-xs font-medium leading-6",
+                    "mt-1.5 rounded-lg px-2 py-1 text-xs font-medium leading-6",
                     isInstructor
-                      ? "bg-black/5 text-white opacity-90"
-                      : "bg-black/5 text-emerald-800 dark:text-[#a3cfbb] dark:bg-white/5"
+                      ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
+                      : "bg-white/10 text-gray-200"
                   )}
                 >
                   {file.caption}
@@ -346,7 +539,7 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
               href={file.previewUrl || "#"}
               target="_blank"
               rel="noreferrer"
-              className="flex cursor-pointer items-center gap-2 rounded-lg p-2 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+              className="flex cursor-pointer items-center gap-2 p-2.5 transition-colors hover:bg-black/[0.03] dark:hover:bg-white/5"
             >
               <FileText className="h-5 w-5 shrink-0" />
               <div className="min-w-0 flex-1 text-right">
@@ -396,11 +589,11 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
 
     const parts = processedText.split("```");
     if (parts.length < 3) {
-      return <p className="whitespace-pre-wrap text-sm leading-7 font-medium">{processedText}</p>;
+      return <p className="whitespace-pre-wrap font-medium">{processedText}</p>;
     }
     
     return (
-      <div className="space-y-2 text-sm leading-7">
+      <div className="space-y-2">
         {parts.map((part, index) => {
           if (index % 2 === 1) {
             const lines = part.split("\n");
@@ -459,11 +652,29 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
       );
     }
 
-    return result.sort((a, b) => parseQuestionTimestamp(b.updatedAt) - parseQuestionTimestamp(a.updatedAt));
+    return result.sort((a, b) => b.updatedAtMs - a.updatedAtMs);
   }, [questionThreads, search, statusFilter]);
 
+  const totalThreadPages = Math.max(1, Math.ceil(filteredThreads.length / THREADS_PAGE_SIZE));
+  const safeThreadPage = Math.min(threadPage, totalThreadPages);
+
+  const paginatedThreads = useMemo(() => {
+    const start = (safeThreadPage - 1) * THREADS_PAGE_SIZE;
+    return filteredThreads.slice(start, start + THREADS_PAGE_SIZE);
+  }, [filteredThreads, safeThreadPage]);
+
+  useEffect(() => {
+    setThreadPage(1);
+  }, [search, statusFilter]);
+
+  useEffect(() => {
+    if (threadPage > totalThreadPages) {
+      setThreadPage(totalThreadPages);
+    }
+  }, [threadPage, totalThreadPages]);
+
   return (
-    <div className={cn("mx-auto max-w-[1320px] pb-20 text-right animate-in fade-in duration-500", className)} dir="rtl">
+    <div className={cn("mx-auto max-w-[1320px] pb-8 text-right animate-in fade-in duration-500", className)} dir="rtl">
       {showHero && <section className="mb-6 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm dark:border-white/5 dark:bg-[#1c1e26] md:p-8">
         <div className="grid items-center gap-5 md:grid-cols-[1fr_auto]">
           <div>
@@ -518,11 +729,11 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
         </div>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr] xl:grid-cols-[1.6fr_1fr] items-start">
+      <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr] xl:grid-cols-[1.6fr_1fr] items-stretch lg:max-h-[calc(100vh-220px)]">
         {/* Left pane: Active Chat Detail */}
-        <div className={cn("lg:block", selectedThreadId ? "block" : "hidden lg:block")}>
+        <div className={cn("lg:block lg:min-h-0", selectedThreadId ? "block" : "hidden lg:block")}>
           {activeThread ? (
-                <div className="flex flex-col rounded-[2rem] border border-gray-100 bg-white shadow-sm dark:border-white/5 dark:bg-[#1c1e26] overflow-hidden min-h-[550px] animate-in fade-in duration-300">
+                <div className="flex h-full max-h-[calc(100vh-220px)] flex-col rounded-[2rem] border border-gray-100 bg-white shadow-sm dark:border-white/5 dark:bg-[#1c1e26] overflow-hidden min-h-[550px] animate-in fade-in duration-300">
                   {/* Chat Header */}
                   <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800 p-4 bg-gray-50/50 dark:bg-white/5 backdrop-blur-sm shrink-0">
                     <div className="flex items-center gap-3">
@@ -578,83 +789,74 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
                   </div>
 
                   {/* Messages Area */}
-                  <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-[480px] min-h-[380px] bg-slate-50/30 dark:bg-black/10" dir="rtl">
-                    {activeChatMessages.map((message) => {
-                      const isInstructor = message.role === "instructor";
-                      return (
-                        <div
-                          key={message.id}
-                          className={cn(
-                            "flex animate-in fade-in duration-300",
-                            isInstructor ? "justify-start text-right" : "justify-end text-right"
-                          )}
-                        >
+                  <div
+                    className="flex-1 overflow-y-auto px-3 py-4 sm:px-5 max-h-[480px] min-h-[380px] bg-[#f4f6f9] dark:bg-[#12141a] bg-[radial-gradient(circle_at_1px_1px,rgba(0,0,0,0.035)_1px,transparent_0)] dark:bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.04)_1px,transparent_0)] bg-[length:20px_20px]"
+                    dir="rtl"
+                  >
+                    <div className="flex flex-col gap-1">
+                      {activeChatMessages.map((message, messageIndex) => {
+                        const isInstructor = message.role === "instructor";
+                        const isGrouped = isGroupedWithPrevious(activeChatMessages, messageIndex);
+
+                        return (
                           <div
+                            key={message.id}
                             className={cn(
-                              "max-w-[78%] rounded-2xl p-4 shadow-sm",
-                              isInstructor
-                                ? "bg-[#f8f9fa] dark:bg-[#252833] text-gray-800 dark:text-gray-100 rounded-tr-sm border border-gray-200 dark:border-white/5"
-                                : "bg-[#e6f7ed] dark:bg-[#143c24]/40 text-[#0f5132] dark:text-[#a3cfbb] border border-[#d1e7dd]/60 dark:border-[#1e5c37]/40 rounded-tl-sm"
+                              "flex w-full animate-in fade-in duration-300",
+                              isGrouped ? "mt-0.5" : "mt-3 first:mt-0",
+                              isInstructor ? "justify-start" : "justify-end"
                             )}
                           >
-                            <div className="flex items-center gap-1.5 mb-1.5">
-                              {isInstructor ? (
-                                <span className="rounded bg-indigo-600 dark:bg-indigo-500 px-1.5 py-0.5 text-[9px] font-black text-white leading-none">
-                                  مدرس
-                                </span>
-                              ) : null}
-                              <p
-                                className={cn(
-                                  "text-[10px] font-black",
-                                  isInstructor
-                                    ? "text-indigo-600 dark:text-indigo-400"
-                                    : "text-emerald-700 dark:text-emerald-300"
-                                )}
-                              >
-                                {message.senderName}
-                              </p>
-                            </div>
+                            <div className="max-w-[min(88%,520px)]">
+                              <div className="min-w-0 text-right">
+                                <div
+                                  className={cn(
+                                    "relative px-3.5 py-2.5 shadow-sm",
+                                    isGrouped
+                                      ? "rounded-2xl"
+                                      : isInstructor
+                                        ? "rounded-2xl rounded-bl-md"
+                                        : "rounded-2xl rounded-br-md",
+                                    isInstructor
+                                      ? "bg-gradient-to-br from-emerald-50 via-white to-teal-50/90 text-emerald-950 shadow-emerald-900/[0.04] ring-1 ring-emerald-200/70 dark:from-emerald-950/50 dark:via-[#1a2420] dark:to-teal-950/40 dark:text-emerald-50 dark:ring-emerald-700/25"
+                                      : "bg-gray-900 text-white shadow-black/20 ring-1 ring-gray-800 dark:bg-[#0f1115] dark:ring-white/10"
+                                  )}
+                                >
+                                  <div
+                                    className={cn(
+                                      "text-[13px] leading-[1.75]",
+                                      isInstructor
+                                        ? "text-emerald-950 dark:text-emerald-50"
+                                        : "text-gray-100"
+                                    )}
+                                  >
+                                    {renderMessageText(message.text)}
+                                  </div>
 
-                            {message.showTitle ? (
-                              <h4 className="mb-1.5 text-xs font-black text-emerald-700 dark:text-emerald-400">
-                                {message.showTitle}
-                              </h4>
-                            ) : null}
+                                  {message.errorText ? (
+                                    <div
+                                      className="mt-2.5 overflow-hidden rounded-xl border border-rose-200/60 bg-rose-50/50 dark:border-rose-500/20 dark:bg-rose-950/30"
+                                      dir="ltr"
+                                    >
+                                      <div className="flex items-center justify-between border-b border-rose-200/50 bg-rose-100/50 px-3 py-1.5 text-[10px] font-mono text-rose-600 dark:border-rose-500/15 dark:bg-rose-950/50 dark:text-rose-300">
+                                        <span>Error / Log</span>
+                                      </div>
+                                      <pre className="overflow-x-auto p-3 text-left font-mono text-xs leading-relaxed text-rose-900 dark:text-rose-100">
+                                        {message.errorText}
+                                      </pre>
+                                    </div>
+                                  ) : null}
 
-                            {renderMessageText(message.text)}
-
-                            {message.errorText ? (
-                              <div
-                                className="mt-3 overflow-hidden rounded-xl border border-gray-200/60 bg-[#f7f8fb] dark:border-white/10 dark:bg-[#14161c]"
-                                dir="ltr"
-                              >
-                                <div className="flex items-center justify-between border-b border-black/5 bg-black/5 px-3 py-1 text-[10px] font-mono text-gray-500 dark:border-white/5 dark:bg-black/30 dark:text-gray-400">
-                                  <span>Error / Log</span>
+                                  {message.attachments?.length
+                                    ? renderMessageAttachments(message.attachments, isInstructor)
+                                    : null}
                                 </div>
-                                <pre className="overflow-x-auto p-3 text-left font-mono text-xs leading-relaxed text-gray-700 dark:text-gray-300">
-                                  {message.errorText}
-                                </pre>
                               </div>
-                            ) : null}
-
-                            {message.attachments?.length
-                              ? renderMessageAttachments(message.attachments, isInstructor)
-                              : null}
-
-                            <div
-                              className={cn(
-                                "mt-2 text-left text-[9px]",
-                                isInstructor
-                                  ? "text-gray-400 opacity-75"
-                                  : "font-bold text-emerald-600/75 dark:text-emerald-400/65"
-                              )}
-                            >
-                              {message.createdAt}
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
 
                     <div ref={messagesEndRef} />
                   </div>
@@ -740,8 +942,9 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
                             onChange={(e) => setComposerText(e.target.value)}
                             placeholder="پاسخ فنی خود را بنویسید..."
                             rows={1}
+                            disabled={isSendingMessage}
                             className={cn(
-                              "flex-1 max-h-32 min-h-10 outline-none resize-none bg-transparent py-2 text-sm leading-6 transition-all duration-300 font-medium placeholder-gray-400 dark:placeholder-gray-500",
+                              "flex-1 max-h-32 min-h-10 outline-none resize-none bg-transparent py-2 text-sm leading-6 transition-all duration-300 font-medium placeholder-gray-400 dark:placeholder-gray-500 disabled:cursor-not-allowed disabled:opacity-60",
                               isInputCode
                                 ? "text-left font-mono text-xs text-gray-800 dark:text-gray-200 bg-black/[0.04] dark:bg-black/35 p-3.5 rounded-2xl border border-black/5 dark:border-white/5 shadow-inner"
                                 : "text-right text-gray-800 dark:text-white"
@@ -757,7 +960,7 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
 
                           <button
                             type="button"
-                            disabled={(!composerText.trim() && pendingAttachments.length === 0) || isSendingMessage}
+                            disabled={isSendingMessage || (!composerText.trim() && pendingAttachments.length === 0)}
                             onClick={handleSendMessage}
                             className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary via-indigo-600 to-indigo-500 text-white hover:opacity-95 shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/30 transform hover:-translate-y-0.5 active:translate-y-0 active:scale-95 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none transition-all duration-300 shrink-0 cursor-pointer"
                           >
@@ -773,7 +976,7 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
                 </div>
           ) : (
             /* Glassmorphism empty state placeholder */
-            <div className="flex flex-col items-center justify-center rounded-[2rem] border border-gray-150 bg-white/40 dark:border-white/5 dark:bg-white/5 p-12 text-center shadow-sm min-h-[550px] backdrop-blur-sm">
+            <div className="flex flex-col items-center justify-center rounded-[2rem] border border-gray-150 bg-white/40 dark:border-white/5 dark:bg-white/5 p-12 text-center shadow-sm min-h-[550px] max-h-[calc(100vh-220px)] backdrop-blur-sm">
               <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-primary animate-pulse">
                 <MessageSquare className="h-10 w-10 text-primary" />
               </div>
@@ -786,9 +989,9 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
         </div>
 
         {/* Right pane: Thread List */}
-        <div className={cn("lg:block", selectedThreadId ? "hidden lg:block" : "block")}>
+        <div className={cn("lg:block lg:min-h-0", selectedThreadId ? "hidden lg:block" : "block")}>
           {filteredThreads.length === 0 ? (
-            <section className="flex flex-col items-center justify-center rounded-[2rem] border border-gray-100 bg-white p-12 text-center shadow-sm dark:border-white/5 dark:bg-[#1c1e26]">
+            <section className="flex flex-col items-center justify-center rounded-[2rem] border border-gray-100 bg-white p-12 text-center shadow-sm dark:border-white/5 dark:bg-[#1c1e26] max-h-[calc(100vh-220px)]">
               <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <HelpCircle className="h-8 w-8" />
               </div>
@@ -798,8 +1001,9 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
               </p>
             </section>
           ) : (
-            <div className="space-y-3">
-              {filteredThreads.map((thread) => {
+            <div className="flex max-h-[calc(100vh-220px)] flex-col rounded-[2rem] border border-gray-100 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-[#1c1e26] sm:p-5">
+              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+              {paginatedThreads.map((thread) => {
                 const isActive = thread.id === selectedThreadId;
                 const snippet = getThreadSnippet(thread);
 
@@ -873,6 +1077,13 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
                   </div>
                 );
               })}
+              </div>
+              <ThreadPagination
+                currentPage={safeThreadPage}
+                totalPages={totalThreadPages}
+                totalItems={filteredThreads.length}
+                onPageChange={setThreadPage}
+              />
             </div>
           )}
         </div>

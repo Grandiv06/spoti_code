@@ -522,7 +522,24 @@ let instructorQuestions = [
   },
 ];
 
-let studentQuestions = [
+let studentQuestions: Array<{
+  id: string;
+  lessonId: string;
+  courseId: string;
+  question: string;
+  status: string;
+  createdAt: string;
+  studentName: string;
+  courseTitle: string;
+  lessonTitle: string;
+  replies: {
+    senderName: string;
+    role: string;
+    avatar?: string;
+    text: string;
+    createdAt: string;
+  }[];
+}> = [
   {
     id: "QST-STU-001",
     lessonId: "l1",
@@ -652,6 +669,10 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
   }
 
   if (method === "get" && cleanPath === "/api/instructor-dashboard/my-qas") {
+    return json({ data: instructorQuestions }) as T;
+  }
+
+  if (method === "get" && cleanPath === "/api/qas/instructor") {
     return json({ data: instructorQuestions }) as T;
   }
 
@@ -908,12 +929,15 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
     const existing = instructorQuestions.find((question) => question.id === id);
 
     if (existing) {
+      const replyId = `reply-${now.getTime()}`;
       const updated = {
         ...existing,
         status: "answered" as const,
+        answer,
         replies: [
           ...existing.replies,
           {
+            id: replyId,
             senderName: "اصغر رضایی",
             role: "instructor" as const,
             avatar: "",
@@ -933,6 +957,15 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
         ],
       };
       instructorQuestions = instructorQuestions.map((question) => (question.id === id ? updated : question));
+      studentQuestions = studentQuestions.map((question) =>
+        question.id === id
+          ? {
+              ...question,
+              status: "answered",
+              replies: updated.replies,
+            }
+          : question
+      );
       return json(updated) as T;
     }
 

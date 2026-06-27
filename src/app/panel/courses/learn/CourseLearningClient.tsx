@@ -20,6 +20,7 @@ import {
 import {
   buildCourseQuestionText,
   createCourseQuestion,
+  dedupeQaReplies,
   fetchMyCourseQas,
   type CourseLearningQuestion,
 } from "@/lib/course-qa";
@@ -220,7 +221,7 @@ function buildLessonChatMessages(questions: LearningQuestion[]): LessonChatMessa
 
     thread.replies.forEach((reply, replyIndex) => {
       messages.push({
-        id: `${thread.id}-reply-${replyIndex}`,
+        id: `${thread.id}-reply-${reply.id ?? replyIndex}`,
         role: reply.role,
         senderName: reply.senderName,
         text: reply.text,
@@ -244,9 +245,19 @@ function mergeLessonQuestions(
     merged.set(question.id, question);
   }
   for (const question of local) {
-    if (!merged.has(question.id)) {
+    const existing = merged.get(question.id);
+    if (!existing) {
       merged.set(question.id, question);
+      continue;
     }
+
+    merged.set(question.id, {
+      ...(parseChatTimestamp(existing.createdAtIso || existing.createdAt) >=
+      parseChatTimestamp(question.createdAtIso || question.createdAt)
+        ? existing
+        : question),
+      replies: dedupeQaReplies([...existing.replies, ...question.replies]),
+    });
   }
 
   return Array.from(merged.values()).sort(
@@ -254,6 +265,14 @@ function mergeLessonQuestions(
       parseChatTimestamp(a.createdAtIso || a.createdAt) -
       parseChatTimestamp(b.createdAtIso || b.createdAt)
   );
+}
+
+function getQuestionActivityMs(question: LearningQuestion): number {
+  let latest = parseChatTimestamp(question.createdAtIso || question.createdAt);
+  for (const reply of question.replies) {
+    latest = Math.max(latest, parseChatTimestamp(reply.createdAtIso || reply.createdAt));
+  }
+  return latest;
 }
 
 const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "pdf", "txt", "log"];
@@ -650,6 +669,14 @@ export default function CourseLearningClient() {
   useEffect(() => {
     if (activeTab !== "qa" || courseLoading) return;
     void loadCourseQas();
+  }, [activeTab, courseLoading, loadCourseQas]);
+
+  useEffect(() => {
+    if (activeTab !== "qa" || courseLoading) return;
+    const intervalId = window.setInterval(() => {
+      void loadCourseQas({ silent: true });
+    }, 12000);
+    return () => window.clearInterval(intervalId);
   }, [activeTab, courseLoading, loadCourseQas]);
 
   React.useEffect(() => {

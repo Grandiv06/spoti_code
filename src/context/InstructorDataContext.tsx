@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { apiGet, apiRequest } from "@/lib/api";
+import { buildQaRepliesFromSource, dedupeQaReplies } from "@/lib/course-qa";
 
 // --- TYPES ---
 export interface Lesson {
@@ -88,13 +89,16 @@ export interface StudentQuestion {
   lessonTitle?: string;
   studentId?: string;
   createdAt: string;
+  createdAtIso?: string;
   status: "new" | "answered";
   replies: {
+    id?: string;
     senderName: string;
     role: "instructor" | "student";
     avatar?: string;
     text: string;
     createdAt: string;
+    createdAtIso?: string;
     attachments?: {
       id: string;
       name: string;
@@ -286,12 +290,30 @@ function extractQaArray(value: unknown): unknown[] {
   return [];
 }
 
-function formatQaDate(value: unknown): string {
+function formatQaDate(value: unknown): { label: string; iso?: string } {
   if (typeof value === "string" && value.trim()) {
     const parsed = Date.parse(value);
-    return Number.isNaN(parsed) ? value.trim() : new Date(parsed).toLocaleDateString("fa-IR");
+    if (!Number.isNaN(parsed)) {
+      const date = new Date(parsed);
+      return { label: date.toLocaleDateString("fa-IR"), iso: date.toISOString() };
+    }
+    return { label: value.trim() };
   }
-  return "";
+  return { label: "" };
+}
+
+function dedupeQuestionReplies(replies: StudentQuestion["replies"]): StudentQuestion["replies"] {
+  return dedupeQaReplies(replies) as StudentQuestion["replies"];
+}
+
+function mergeQuestionsList(local: StudentQuestion[], remote: StudentQuestion[]): StudentQuestion[] {
+  const map = new Map<string, StudentQuestion>();
+  for (const question of local) map.set(question.id, question);
+  for (const question of remote) {
+    const existing = map.get(question.id);
+    map.set(question.id, existing ? mergeStudentQuestion(existing, question) : question);
+  }
+  return Array.from(map.values());
 }
 
 function normalizeQaStatus(value: unknown): StudentQuestion["status"] {
@@ -312,32 +334,52 @@ function normalizeQaAttachment(value: unknown): { id: string; name: string; size
   };
 }
 
-function normalizeQaReply(value: unknown) {
-  if (!isRecord(value)) return null;
-  const attachments = extractQaArray(value.attachments ?? value.files ?? value.answerFiles)
-    .map(normalizeQaAttachment)
-    .filter(Boolean) as NonNullable<ReturnType<typeof normalizeQaAttachment>>[];
+function mergeStudentQuestion(existing: StudentQuestion, incoming: StudentQuestion): StudentQuestion {
+  const mergedReplies = dedupeQuestionReplies([...existing.replies, ...incoming.replies]);
+  const hasInstructorReply = mergedReplies.some((reply) => reply.role === "instructor");
 
   return {
-    senderName: normalizeString(value.senderName ?? value.authorName ?? value.name, "مدرس اسپاتی‌کد"),
-    role: normalizeString(value.role ?? value.senderRole, "instructor") === "student" ? ("student" as const) : ("instructor" as const),
-    avatar: typeof value.avatar === "string" ? value.avatar : undefined,
-    text: normalizeString(value.text ?? value.answer ?? value.message),
-    createdAt: formatQaDate(value.createdAt ?? value.date ?? value.timestamp),
-    ...(attachments.length ? { attachments } : {}),
+    ...existing,
+    ...incoming,
+    title: incoming.title && incoming.title !== "سوال بدون عنوان" ? incoming.title : existing.title,
+    text: incoming.text || existing.text,
+    description: incoming.description || existing.description,
+    studentName: incoming.studentName && incoming.studentName !== "دانشجو" ? incoming.studentName : existing.studentName,
+    courseTitle: incoming.courseTitle && incoming.courseTitle !== "دوره نامشخص" ? incoming.courseTitle : existing.courseTitle,
+    courseId: incoming.courseId && incoming.courseId !== "unknown-course" ? incoming.courseId : existing.courseId,
+    lessonId: incoming.lessonId || existing.lessonId,
+    lessonTitle: incoming.lessonTitle || existing.lessonTitle,
+    avatar: incoming.avatar ?? existing.avatar,
+    createdAt: incoming.createdAt || existing.createdAt,
+    createdAtIso: incoming.createdAtIso || existing.createdAtIso,
+    replies: mergedReplies,
+    status: hasInstructorReply || incoming.status === "answered" ? "answered" : existing.status,
   };
 }
 
 function normalizeStudentQuestion(raw: unknown, index: number): StudentQuestion {
   const row = (isRecord(raw) ? raw : {}) as UnknownRecord;
-  const nestedQuestion = isRecord(row.question) ? (row.question as UnknownRecord) : undefined;
+  const nestedQuestion = isRecord(row.question)
+    ? (row.question as UnknownRecord)
+    : isRecord(row.data)
+      ? (row.data as UnknownRecord)
+      : undefined;
   const source = nestedQuestion ?? row;
-  const replies = extractQaArray(source.replies ?? source.answers ?? source.messages)
-    .map(normalizeQaReply)
-    .filter(Boolean) as StudentQuestion["replies"];
+  const qaReplies = buildQaRepliesFromSource(source, "مدرس اسپاتی‌کد");
+  const replies: StudentQuestion["replies"] = qaReplies.map((reply) => ({
+    ...(reply.id ? { id: reply.id } : {}),
+    senderName: reply.senderName,
+    role: reply.role,
+    text: reply.text,
+    createdAt: reply.createdAt,
+    ...(reply.createdAtIso ? { createdAtIso: reply.createdAtIso } : {}),
+    ...(reply.attachments?.length ? { attachments: reply.attachments } : {}),
+  }));
+  const hasInstructorReply = replies.some((reply) => reply.role === "instructor");
   const attachments = extractQaArray(source.attachments ?? source.files ?? source.questionFiles)
     .map(normalizeQaAttachment)
     .filter(Boolean) as NonNullable<StudentQuestion["attachments"]>;
+  const questionCreatedAt = formatQaDate(source.createdAt ?? source.date ?? source.askedAt);
 
   return {
     id: normalizeString(source.id ?? row.id ?? source.qaId ?? source.questionId, `QST-${String(index + 1).padStart(3, "0")}`),
@@ -376,9 +418,10 @@ function normalizeStudentQuestion(raw: unknown, index: number): StudentQuestion 
         (isRecord(source.student) ? (source.student as UnknownRecord).id : undefined),
       ""
     ),
-    createdAt: formatQaDate(source.createdAt ?? source.date ?? source.askedAt),
-    status: normalizeQaStatus(source.status ?? source.answerStatus),
-    replies,
+    createdAt: questionCreatedAt.label,
+    ...(questionCreatedAt.iso ? { createdAtIso: questionCreatedAt.iso } : {}),
+    status: normalizeQaStatus(source.status ?? source.answerStatus ?? (hasInstructorReply ? "answered" : "new")),
+    replies: dedupeQuestionReplies(replies),
     ...(attachments.length ? { attachments } : {}),
   };
 }
@@ -763,9 +806,12 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
     localStorage.setItem("spoticode_inst_courses", JSON.stringify(data));
   };
 
-  const syncQuestions = (data: StudentQuestion[]) => {
-    setQuestions(data);
-    localStorage.setItem("spoticode_inst_questions", JSON.stringify(data));
+  const syncQuestions = (updater: StudentQuestion[] | ((prev: StudentQuestion[]) => StudentQuestion[])) => {
+    setQuestions((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      localStorage.setItem("spoticode_inst_questions", JSON.stringify(next));
+      return next;
+    });
   };
 
   const syncPayouts = (data: PayoutRequest[]) => {
@@ -782,14 +828,19 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
     let cancelled = false;
 
     const loadQuestions = async () => {
-      try {
-        const response = await apiGet<unknown>("/api/instructor-dashboard/my-qas");
-        const normalizedQuestions = extractQaArray(response).map(normalizeStudentQuestion);
-        if (!cancelled) {
-          syncQuestions(normalizedQuestions);
+      const endpoints = ["/api/instructor-dashboard/my-qas", "/api/qas/instructor"] as const;
+
+      for (const endpoint of endpoints) {
+        try {
+          const response = await apiGet<unknown>(endpoint);
+          const normalizedQuestions = extractQaArray(response).map(normalizeStudentQuestion);
+          if (!cancelled) {
+            syncQuestions((prev) => mergeQuestionsList(prev, normalizedQuestions));
+          }
+          return;
+        } catch {
+          // Try the next endpoint.
         }
-      } catch {
-        // Keep the cached/local fallback when the API is unavailable.
       }
     };
 
@@ -1054,48 +1105,75 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
     }[]
   ) => {
     const answerFileIds = attachments?.map((attachment) => attachment.id).filter(Boolean);
-    const response = await apiRequest<unknown>("patch", `/api/qas/${questionId}/answer`, {
-      body: {
-        answer: text,
-        ...(answerFileIds?.length ? { answerFileIds } : {}),
-      },
-    });
+    const now = new Date();
+    const optimisticReplyId = `optimistic-${now.getTime()}`;
+    const optimisticReply: StudentQuestion["replies"][number] = {
+      id: optimisticReplyId,
+      senderName: profile.displayName || profile.name,
+      role: "instructor",
+      text,
+      createdAt: now.toLocaleDateString("fa-IR"),
+      createdAtIso: now.toISOString(),
+      ...(attachments?.length ? { attachments } : {}),
+    };
 
-    const normalizedResponse = Array.isArray(response)
-      ? response.map((item, index) => normalizeStudentQuestion(item, index))
-      : isRecord(response)
-        ? [normalizeStudentQuestion(response, 0)]
-        : [];
+    syncQuestions((prev) =>
+      prev.map((question) =>
+        question.id === questionId
+          ? {
+              ...question,
+              status: "answered",
+              replies: [...question.replies, optimisticReply],
+            }
+          : question
+      )
+    );
 
-    if (normalizedResponse.length > 0) {
-      const [updatedQuestion] = normalizedResponse;
-      const nextQuestions = questions.map((question) => (question.id === updatedQuestion.id ? updatedQuestion : question));
-      syncQuestions(nextQuestions);
-      showToast("پاسخ شما به سوال دانشجو با موفقیت ثبت شد.", "success");
-      return;
-    }
+    try {
+      const response = await apiRequest<unknown>("patch", `/api/qas/${questionId}/answer`, {
+        body: {
+          answer: text,
+          ...(answerFileIds?.length ? { answerFileIds } : {}),
+        },
+      });
 
-    const updated = questions.map((q) => {
-      if (q.id === questionId) {
-        return {
-          ...q,
-          status: "answered" as const,
-          replies: [
-            ...q.replies,
-            {
-              senderName: profile.name,
-              role: "instructor" as const,
-              text,
-              createdAt: new Date().toLocaleDateString("fa-IR"),
-              attachments,
-            },
-          ],
-        };
+      const records = extractQaArray(response);
+      const normalizedResponse = records.length
+        ? records.map((item, index) => normalizeStudentQuestion(item, index))
+        : isRecord(response)
+          ? [normalizeStudentQuestion(response, 0)]
+          : [];
+
+      if (normalizedResponse.length > 0) {
+        const [updatedQuestion] = normalizedResponse;
+        syncQuestions((prev) =>
+          prev.map((question) => {
+            if (question.id !== questionId && question.id !== updatedQuestion.id) return question;
+            const withoutOptimistic = {
+              ...question,
+              replies: question.replies.filter((reply) => reply.id !== optimisticReplyId),
+            };
+            return mergeStudentQuestion(withoutOptimistic, updatedQuestion);
+          })
+        );
       }
-      return q;
-    });
-    syncQuestions(updated);
-    showToast("پاسخ شما به سوال دانشجو با موفقیت ثبت شد.", "success");
+
+      showToast("پاسخ شما به سوال دانشجو با موفقیت ثبت شد.", "success");
+    } catch (error) {
+      syncQuestions((prev) =>
+        prev.map((question) => {
+          if (question.id !== questionId) return question;
+          const nextReplies = question.replies.filter((reply) => reply.id !== optimisticReplyId);
+          return {
+            ...question,
+            replies: nextReplies,
+            status: nextReplies.some((reply) => reply.role === "instructor") ? "answered" : "new",
+          };
+        })
+      );
+      showToast("خطا در ارسال پاسخ. لطفاً دوباره تلاش کنید.", "error");
+      throw error;
+    }
   };
 
   // Earnings
