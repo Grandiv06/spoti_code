@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Local: SQLite (file:./dev.db)
+// Railway: set provider to "postgresql" and DATABASE_URL to your Postgres URL
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum CourseCategory {
+  frontend
+  backend
+  ai
+  base
+  mobile
+  devops
+}
+
+enum CourseLevel {
+  elementary
+  intermediate
+  advanced
+}
+
+enum CourseStatus {
+  draft
+  published
+}
+
+model Instructor {
+  id        String   @id
+  slug      String   @unique
+  name      String
+  avatar    String
+  courses   Course[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Course {
+  id               String         @id
+  slug             String         @unique
+  title            String
+  shortDescription String
+  description      String
+  category         CourseCategory
+  categoryTitle    String
+  instructorId     String
+  instructor       Instructor     @relation(fields: [instructorId], references: [id])
+  cover            String
+  thumbnail        String
+  difficulty       String
+  level            CourseLevel
+  durationHours    Int
+  studentsCount    Int            @default(0)
+  price            Int
+  rating           Float          @default(0)
+  status           CourseStatus   @default(draft)
+  revenue          BigInt         @default(0)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([status])
+  @@index([category])
+}

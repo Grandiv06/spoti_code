@@ -613,8 +613,87 @@ function findCourse(path: string) {
   return courses.find((course) => course.id === id || course.slug === id) ?? courses[0];
 }
 
+function parseMockQuery(path: string): URLSearchParams {
+  const index = path.indexOf("?");
+  return new URLSearchParams(index >= 0 ? path.slice(index + 1) : "");
+}
+
+function buildMockLessonChatItemsFromThread(
+  records: Array<{
+    id: string;
+    courseId: string;
+    lessonId?: string;
+    createdAt: string;
+    questionText: string;
+    replies: { role: string; text: string; createdAt: string }[];
+  }>,
+  courseId: string,
+  lessonId: string
+) {
+  const items: Array<{
+    id: string;
+    qaId: string;
+    senderType: "user" | "instructor";
+    body: string;
+    createdAt: string;
+  }> = [];
+
+  for (const record of records) {
+    if (record.courseId !== courseId) continue;
+    if (record.lessonId && record.lessonId !== lessonId) continue;
+    items.push({
+      id: `${record.id}-question`,
+      qaId: record.id,
+      senderType: "user",
+      body: record.questionText,
+      createdAt: record.createdAt,
+    });
+    for (const [index, reply] of record.replies.entries()) {
+      items.push({
+        id: `${record.id}-reply-${index}`,
+        qaId: record.id,
+        senderType: reply.role === "instructor" ? "instructor" : "user",
+        body: reply.text,
+        createdAt: reply.createdAt,
+      });
+    }
+  }
+
+  return items.sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  );
+}
+
+function buildMockLessonChatResponseFromThread(
+  records: Array<{
+    id: string;
+    courseId: string;
+    lessonId?: string;
+    createdAt: string;
+    questionText: string;
+    replies: { role: string; text: string; createdAt: string }[];
+  }>,
+  courseId: string,
+  lessonId: string
+) {
+  const items = buildMockLessonChatItemsFromThread(records, courseId, lessonId);
+  return {
+    items,
+    instructor: { id: "INS-001", fullName: "اصغر رضایی" },
+    meta: {
+      itemCount: items.length,
+      totalItems: items.length,
+      itemsPerPage: 50,
+      totalPages: 1,
+      currentPage: 1,
+    },
+    links: {},
+  };
+}
+
 export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | undefined {
   const cleanPath = path.split("?")[0];
+  const query = parseMockQuery(path);
 
   if (method === "get" && cleanPath === "/api/courses/public") {
     return json({ data: courses }) as T;
@@ -673,10 +752,52 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
   }
 
   if (method === "get" && cleanPath === "/api/qas/instructor") {
+    const courseId = query.get("courseId") || "";
+    const lessonId = query.get("lessonId") || "";
+    if (courseId && lessonId) {
+      return json({
+        data: buildMockLessonChatResponseFromThread(
+          instructorQuestions.map((question) => ({
+            id: question.id,
+            courseId: question.courseId,
+            lessonId:
+              "lessonId" in question && typeof question.lessonId === "string"
+                ? question.lessonId
+                : undefined,
+            createdAt: question.createdAt,
+            questionText: question.description || question.text,
+            replies: question.replies,
+          })),
+          courseId,
+          lessonId
+        ),
+      }) as T;
+    }
     return json({ data: instructorQuestions }) as T;
   }
 
   if (method === "get" && cleanPath === "/api/qas/my") {
+    const courseId = query.get("courseId") || "";
+    const lessonId = query.get("lessonId") || "";
+    if (courseId && lessonId) {
+      return json({
+        data: buildMockLessonChatResponseFromThread(
+          studentQuestions.map((question) => ({
+            id: question.id,
+            courseId: question.courseId,
+            lessonId:
+              "lessonId" in question && typeof question.lessonId === "string"
+                ? question.lessonId
+                : undefined,
+            createdAt: question.createdAt,
+            questionText: question.question,
+            replies: question.replies,
+          })),
+          courseId,
+          lessonId
+        ),
+      }) as T;
+    }
     return json({ data: studentQuestions }) as T;
   }
 
@@ -695,6 +816,22 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
       replies: [],
     };
     studentQuestions = [created, ...studentQuestions];
+    instructorQuestions = [
+      {
+        id: created.id,
+        studentName: created.studentName,
+        title: created.question.split("\n")[0] || "سوال جدید",
+        text: created.question,
+        description: created.question,
+        courseId: created.courseId,
+        courseTitle: created.courseTitle,
+        lessonTitle: created.lessonTitle,
+        createdAt: created.createdAt,
+        status: "new" as const,
+        replies: [],
+      },
+      ...instructorQuestions,
+    ] as typeof instructorQuestions;
     return json({ data: created }) as T;
   }
 
@@ -926,7 +1063,9 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
     const requestBody = body && typeof body === "object" ? (body as { answer?: string; answerFileIds?: string[] }) : {};
     const answer = typeof requestBody.answer === "string" ? requestBody.answer : "";
     const answerFileIds = Array.isArray(requestBody.answerFileIds) ? requestBody.answerFileIds.filter(Boolean) : [];
-    const existing = instructorQuestions.find((question) => question.id === id);
+    const existingInstructor = instructorQuestions.find((question) => question.id === id);
+    const existingStudent = studentQuestions.find((question) => question.id === id);
+    const existing = existingInstructor ?? existingStudent;
 
     if (existing) {
       const replyId = `reply-${now.getTime()}`;
@@ -956,16 +1095,39 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
           },
         ],
       };
-      instructorQuestions = instructorQuestions.map((question) => (question.id === id ? updated : question));
+      instructorQuestions = instructorQuestions.map((question) =>
+        question.id === id ? (updated as (typeof instructorQuestions)[number]) : question
+      );
+      if (!existingInstructor) {
+        instructorQuestions = [updated as (typeof instructorQuestions)[number], ...instructorQuestions.filter((question) => question.id !== id)];
+      }
       studentQuestions = studentQuestions.map((question) =>
         question.id === id
           ? {
               ...question,
               status: "answered",
-              replies: updated.replies,
+              replies: updated.replies as typeof question.replies,
             }
           : question
       );
+      if (!existingStudent) {
+        const studentRecord = existingStudent ?? studentQuestions.find((question) => question.id === id);
+        studentQuestions = [
+          {
+            id: updated.id,
+            lessonId: studentRecord?.lessonId ?? "",
+            courseId: updated.courseId ?? studentRecord?.courseId ?? "",
+            question: ("text" in updated ? updated.text : studentRecord?.question) ?? answer,
+            status: "answered",
+            createdAt: updated.createdAt ?? now.toISOString(),
+            studentName: updated.studentName ?? studentRecord?.studentName ?? "کاربر تست",
+            courseTitle: updated.courseTitle ?? studentRecord?.courseTitle ?? "دوره تست",
+            lessonTitle: updated.lessonTitle ?? studentRecord?.lessonTitle ?? "درس فعال",
+            replies: updated.replies as typeof studentQuestions[number]["replies"],
+          },
+          ...studentQuestions.filter((question) => question.id !== id),
+        ];
+      }
       return json(updated) as T;
     }
 

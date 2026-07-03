@@ -1,4 +1,4 @@
-import type { UpsertProfileDto } from "@/api/models/UpsertProfileDto";
+import type { UpsertProfileDto } from "@/types/api-dtos";
 import type { ProfileSettings } from "@/context/ProfileSettingsContext";
 import { unwrapResponse } from "@/lib/admin-tickets";
 import { apiGetNoMock, apiPutNoMock } from "@/lib/api";

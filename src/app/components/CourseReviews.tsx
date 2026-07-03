@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useState, useEffect } from "react";
-import { CreateCommentDto } from "@/api/models/CreateCommentDto";
+import type { CreateCommentDto } from "@/types/api-dtos";
 import { apiPostNoMock, apiGetNoMock } from "@/lib/api";
 import { SkeletonBox } from "@/components/ui/Skeleton";
 
@@ -350,7 +350,7 @@ export default function CourseReviews({
     try {
       const requestBody: CreateCommentDto = {
         content: formData.comment.trim(),
-        commentableType: CreateCommentDto.commentableType.COURSE,
+        commentableType: "course",
         commentableId: courseId,
       };
 

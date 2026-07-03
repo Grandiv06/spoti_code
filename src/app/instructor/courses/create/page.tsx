@@ -50,7 +50,13 @@ import CourseHero from "@/app/components/CourseHero";
 import CourseFAQ from "@/app/components/CourseFAQ";
 import CustomSelect from "@/components/ui/CustomSelect";
 import HighlightableTextareaWithBadges from "@/components/ui/HighlightableTextareaWithBadges";
-import { CourseService, CreateCourseDto } from "@/api";
+import { apiPostNoMock, apiPutNoMock } from "@/lib/api";
+import {
+  CreateCourseCategory,
+  CreateCourseDifficulty,
+  CreateCoursePriceType,
+  type CreateCourseDto,
+} from "@/types/api-dtos";
 
 const FEATURE_ICON_OPTIONS = [
   { value: "all_inclusive", label: "بینهایت / مادام‌العمر", icon: "all_inclusive" },
@@ -649,59 +655,59 @@ export default function CreateCourseWizardPage() {
     }));
   };
 
-  const mapCategoryToApi = (category: string): CreateCourseDto.category => {
+  const mapCategoryToApi = (category: string): CreateCourseCategory => {
     switch (category) {
       case "Backend":
-        return CreateCourseDto.category.BACKEND;
+        return CreateCourseCategory.BACKEND;
       case "DevOps":
-        return CreateCourseDto.category.DEVOPS;
+        return CreateCourseCategory.DEVOPS;
       case "Mobile":
-        return CreateCourseDto.category.MOBILE;
+        return CreateCourseCategory.MOBILE;
       case "UI/UX":
-        return CreateCourseDto.category.BASE;
+        return CreateCourseCategory.BASE;
       case "Frontend":
       default:
-        return CreateCourseDto.category.FRONTEND;
+        return CreateCourseCategory.FRONTEND;
     }
   };
 
-  const mapLevelToApi = (level: string): CreateCourseDto.difficulty => {
+  const mapLevelToApi = (level: string): CreateCourseDifficulty => {
     switch (level) {
       case "elementary":
-        return CreateCourseDto.difficulty.BEGINNER;
+        return CreateCourseDifficulty.BEGINNER;
       case "advanced":
-        return CreateCourseDto.difficulty.ADVANCED;
+        return CreateCourseDifficulty.ADVANCED;
       case "intermediate":
       default:
-        return CreateCourseDto.difficulty.INTERMEDIATE;
+        return CreateCourseDifficulty.INTERMEDIATE;
     }
   };
 
-  const mapCategoryToLocal = (category?: CreateCourseDto.category) => {
+  const mapCategoryToLocal = (category?: CreateCourseCategory) => {
     switch (category) {
-      case CreateCourseDto.category.BACKEND:
+      case CreateCourseCategory.BACKEND:
         return "Backend";
-      case CreateCourseDto.category.DEVOPS:
+      case CreateCourseCategory.DEVOPS:
         return "DevOps";
-      case CreateCourseDto.category.MOBILE:
+      case CreateCourseCategory.MOBILE:
         return "Mobile";
-      case CreateCourseDto.category.BASE:
+      case CreateCourseCategory.BASE:
         return "UI/UX";
-      case CreateCourseDto.category.AI:
+      case CreateCourseCategory.AI:
         return "Frontend";
-      case CreateCourseDto.category.FRONTEND:
+      case CreateCourseCategory.FRONTEND:
       default:
         return "Frontend";
     }
   };
 
-  const mapLevelToLocal = (difficulty?: CreateCourseDto.difficulty) => {
+  const mapLevelToLocal = (difficulty?: CreateCourseDifficulty) => {
     switch (difficulty) {
-      case CreateCourseDto.difficulty.BEGINNER:
+      case CreateCourseDifficulty.BEGINNER:
         return "elementary";
-      case CreateCourseDto.difficulty.ADVANCED:
+      case CreateCourseDifficulty.ADVANCED:
         return "advanced";
-      case CreateCourseDto.difficulty.INTERMEDIATE:
+      case CreateCourseDifficulty.INTERMEDIATE:
       default:
         return "intermediate";
     }
@@ -722,7 +728,7 @@ export default function CreateCourseWizardPage() {
       difficulty: mapLevelToApi(formData.level),
       time: formData.duration.trim(),
       mockStudentsCount: 0,
-      priceType: formData.isPaid === "free" ? CreateCourseDto.priceType.FREE : CreateCourseDto.priceType.CASH,
+      priceType: formData.isPaid === "free" ? CreateCoursePriceType.FREE : CreateCoursePriceType.CASH,
       thumbnailFileId: undefined,
     };
   };
@@ -1384,7 +1390,7 @@ export default function CreateCourseWizardPage() {
     const payload = buildStep1CoursePayload();
 
     if (createdCourseId) {
-      await CourseService.courseControllerUpdateCourse(createdCourseId, {
+      await apiPutNoMock(`/api/courses/${createdCourseId}/admin`, {
         title: payload.title,
         price: payload.price,
         slug: payload.slug,
@@ -1412,7 +1418,7 @@ export default function CreateCourseWizardPage() {
       return true;
     }
 
-    const createdCourse = await CourseService.courseControllerCreateCourse(payload);
+    const createdCourse = await apiPostNoMock<unknown>("/api/courses/admin", payload);
     const apiCourseId = extractCourseId(createdCourse);
     const courseId = addCourse({
       id: apiCourseId || undefined,

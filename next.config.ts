@@ -1,10 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // ✅ برای خروجی کاملاً استاتیک (سازگار با Capacitor)
-  output: "export",
-
-  // ✅ چون Image Optimization سرور می‌خواهد، برای export باید غیر فعالش کنیم
   images: {
     unoptimized: true,
     remotePatterns: [

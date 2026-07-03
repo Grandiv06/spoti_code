@@ -3,6 +3,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { FileText, HelpCircle, Paperclip, Search, User, Send, Loader2, Download, ArrowRight, X, ChevronLeft, MessageSquare } from "lucide-react";
 import { useInstructorData, type StudentQuestion } from "@/context/InstructorDataContext";
+import {
+  fetchLessonChatMessages,
+  resolveReplyTargetQaId,
+  type LessonChatMessage,
+} from "@/lib/course-qa";
 import { cn } from "@/lib/utils";
 
 type QuestionChatMessage = {
@@ -143,25 +148,10 @@ function groupQuestionsIntoThreads(questions: StudentQuestion[]): QuestionThread
 
 function dedupeChatMessages(messages: QuestionChatMessage[]): QuestionChatMessage[] {
   const ordered: QuestionChatMessage[] = [];
-  const indexByKey = new Map<string, number>();
-
   for (const message of messages) {
-    const key = message.id.includes("-reply-")
-      ? message.id
-      : `${message.role}::${message.text.trim()}::${message.createdAtIso || message.createdAt}`;
-    const existingIndex = indexByKey.get(key);
-    if (existingIndex === undefined) {
-      indexByKey.set(key, ordered.length);
-      ordered.push(message);
-      continue;
-    }
-
-    const existing = ordered[existingIndex];
-    if (message.sortMs > existing.sortMs || (message.sortMs === existing.sortMs && message.sequence > existing.sequence)) {
-      ordered[existingIndex] = message;
-    }
+    if (ordered.some((existing) => existing.id === message.id)) continue;
+    ordered.push(message);
   }
-
   return ordered;
 }
 
@@ -311,6 +301,21 @@ function ThreadPagination({
   );
 }
 
+function mapLessonChatToBoardMessages(messages: LessonChatMessage[]): QuestionChatMessage[] {
+  return messages.map((message, index) => ({
+    id: message.id,
+    role: message.role,
+    senderName: message.senderName,
+    text: message.text,
+    errorText: message.errorText,
+    attachments: message.attachments,
+    createdAt: message.createdAt,
+    createdAtIso: message.createdAtIso,
+    sortMs: parseActivityTimestamp(message.createdAt, message.createdAtIso) || index,
+    sequence: index,
+  }));
+}
+
 export default function InstructorQuestionsBoard({ showHero = true, filterCourseId, className }: Props) {
   const { questions, replyToQuestion } = useInstructorData();
   const sourceQuestions = useMemo(
@@ -360,6 +365,9 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [imageLightboxUrl, setImageLightboxUrl] = useState("");
+  const [threadChatMessages, setThreadChatMessages] = useState<QuestionChatMessage[]>([]);
+  const [threadLessonChat, setThreadLessonChat] = useState<LessonChatMessage[]>([]);
+  const [threadChatLoading, setThreadChatLoading] = useState(false);
 
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
@@ -377,10 +385,64 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
     [questionThreads, selectedThreadId]
   );
 
-  const activeChatMessages = useMemo(
-    () => (activeThread ? buildThreadChatMessages(activeThread) : []),
-    [activeThread]
+  const loadThreadChat = React.useCallback(
+    async (thread: QuestionThread, options?: { silent?: boolean }) => {
+      if (!thread.courseId || !thread.lessonId) {
+        setThreadLessonChat([]);
+        setThreadChatMessages(buildThreadChatMessages(thread));
+        return;
+      }
+
+      const studentId = thread.questions.find((question) => question.studentId)?.studentId;
+      if (!studentId) {
+        setThreadLessonChat([]);
+        setThreadChatMessages(buildThreadChatMessages(thread));
+        return;
+      }
+
+      if (!options?.silent) setThreadChatLoading(true);
+      try {
+        const chat = await fetchLessonChatMessages({
+          courseId: thread.courseId,
+          lessonId: thread.lessonId,
+          endpoint: "instructor",
+          userId: studentId,
+          studentName: thread.studentName,
+        });
+        setThreadLessonChat(chat.messages);
+        setThreadChatMessages(mapLessonChatToBoardMessages(chat.messages));
+      } catch {
+        setThreadLessonChat([]);
+        setThreadChatMessages(buildThreadChatMessages(thread));
+      } finally {
+        if (!options?.silent) setThreadChatLoading(false);
+      }
+    },
+    []
   );
+
+  React.useEffect(() => {
+    if (!activeThread) {
+      setThreadLessonChat([]);
+      setThreadChatMessages([]);
+      return;
+    }
+    void loadThreadChat(activeThread);
+  }, [activeThread, loadThreadChat]);
+
+  React.useEffect(() => {
+    if (!activeThread) return;
+    const intervalId = window.setInterval(() => {
+      void loadThreadChat(activeThread, { silent: true });
+    }, 12000);
+    return () => window.clearInterval(intervalId);
+  }, [activeThread, loadThreadChat]);
+
+  const activeChatMessages = threadChatMessages.length
+    ? threadChatMessages
+    : activeThread
+      ? buildThreadChatMessages(activeThread)
+      : [];
 
   React.useEffect(() => {
     if (selectedThreadId) {
@@ -476,11 +538,17 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
         })
       );
 
+      const targetQaId = resolveReplyTargetQaId(
+        threadLessonChat,
+        activeThread.primaryQuestionId
+      );
+
       await replyToQuestion(
-        activeThread.primaryQuestionId,
+        targetQaId,
         textToSend,
         attachments.length ? attachments : undefined
       );
+      await loadThreadChat(activeThread, { silent: true });
       setTimeout(scrollToBottom, 100);
     } catch (err) {
       console.error(err);

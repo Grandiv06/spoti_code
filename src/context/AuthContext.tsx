@@ -1,19 +1,14 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
-import { OpenAPI } from "@/api";
-import { API_BASE_URL } from "@/lib/api-config";
 import {
   ACCESS_TOKEN_KEY,
   clearAuthTokens,
   getAccessToken,
   onAuthSessionExpired,
   setAuthTokens,
-  syncOpenApiToken,
 } from "@/lib/auth-tokens";
 import { setupApiClient } from "@/lib/setup-api-client";
-
-OpenAPI.BASE = API_BASE_URL;
 
 const AUTH_STORAGE_KEY = "spoticode-auth";
 
@@ -74,7 +69,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setupApiClient();
-    syncOpenApiToken(getAccessToken());
 
     const stored = loadFromStorage();
 

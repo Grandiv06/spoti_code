@@ -14,15 +14,17 @@ import {
   findFirstUnlockedLessonId,
   mapStepsToChapters,
   mergeLessonDetail,
+  readCourseId,
   readCourseMeta,
   unwrapApiData,
 } from "@/lib/course-learning";
 import {
   buildCourseQuestionText,
   createCourseQuestion,
-  dedupeQaReplies,
-  fetchMyCourseQas,
-  type CourseLearningQuestion,
+  fetchLessonChatMessages,
+  hasInstructorReply,
+  mergeLessonChatMessages,
+  type LessonChatMessage,
 } from "@/lib/course-qa";
 import CourseLearningSkeleton from "./CourseLearningSkeleton";
 
@@ -177,103 +179,6 @@ type ComposerBlock =
       content: string;
     };
 
-type LearningQuestion = CourseLearningQuestion;
-
-type LessonChatMessage = {
-  id: string;
-  role: "student" | "instructor";
-  senderName: string;
-  text: string;
-  showTitle?: string;
-  errorText?: string;
-  attachments?: LearningQuestion["attachments"];
-  createdAt: string;
-  createdAtIso?: string;
-};
-
-function parseChatTimestamp(value?: string): number {
-  if (!value) return 0;
-  const parsed = Date.parse(value);
-  return Number.isNaN(parsed) ? 0 : parsed;
-}
-
-function buildLessonChatMessages(questions: LearningQuestion[]): LessonChatMessage[] {
-  const sorted = [...questions].sort(
-    (a, b) =>
-      parseChatTimestamp(a.createdAtIso || a.createdAt) -
-      parseChatTimestamp(b.createdAtIso || b.createdAt)
-  );
-
-  const messages: LessonChatMessage[] = [];
-
-  sorted.forEach((thread, index) => {
-    messages.push({
-      id: `${thread.id}-question`,
-      role: "student",
-      senderName: thread.studentName || "شما",
-      text: thread.description || thread.text || thread.title,
-      showTitle: index === 0 ? thread.title : undefined,
-      errorText: thread.errorText,
-      attachments: thread.attachments,
-      createdAt: thread.createdAt,
-      createdAtIso: thread.createdAtIso,
-    });
-
-    thread.replies.forEach((reply, replyIndex) => {
-      messages.push({
-        id: `${thread.id}-reply-${reply.id ?? replyIndex}`,
-        role: reply.role,
-        senderName: reply.senderName,
-        text: reply.text,
-        attachments: reply.attachments,
-        createdAt: reply.createdAt,
-        createdAtIso: reply.createdAtIso,
-      });
-    });
-  });
-
-  return messages;
-}
-
-function mergeLessonQuestions(
-  local: LearningQuestion[],
-  remote: LearningQuestion[]
-): LearningQuestion[] {
-  const merged = new Map<string, LearningQuestion>();
-
-  for (const question of remote) {
-    merged.set(question.id, question);
-  }
-  for (const question of local) {
-    const existing = merged.get(question.id);
-    if (!existing) {
-      merged.set(question.id, question);
-      continue;
-    }
-
-    merged.set(question.id, {
-      ...(parseChatTimestamp(existing.createdAtIso || existing.createdAt) >=
-      parseChatTimestamp(question.createdAtIso || question.createdAt)
-        ? existing
-        : question),
-      replies: dedupeQaReplies([...existing.replies, ...question.replies]),
-    });
-  }
-
-  return Array.from(merged.values()).sort(
-    (a, b) =>
-      parseChatTimestamp(a.createdAtIso || a.createdAt) -
-      parseChatTimestamp(b.createdAtIso || b.createdAt)
-  );
-}
-
-function getQuestionActivityMs(question: LearningQuestion): number {
-  let latest = parseChatTimestamp(question.createdAtIso || question.createdAt);
-  for (const reply of question.replies) {
-    latest = Math.max(latest, parseChatTimestamp(reply.createdAtIso || reply.createdAt));
-  }
-  return latest;
-}
 
 const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "pdf", "txt", "log"];
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
@@ -293,6 +198,9 @@ const formatBytes = (size: number) => {
   return `${(size / 1024 / 1024).toFixed(1)} MB`;
 };
 
+const normalizePersianDigits = (value: string) =>
+  value.replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)));
+
 const formatTimeLabel = (dateIso?: string, fallback?: string) => {
   if (dateIso) {
     const d = new Date(dateIso);
@@ -300,14 +208,12 @@ const formatTimeLabel = (dateIso?: string, fallback?: string) => {
       return d.toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" });
     }
   }
-  if (fallback && /^\d{1,2}:\d{2}$/.test(fallback)) return fallback;
-  const seed = (fallback || "spoticode")
-    .split("")
-    .reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
-  const hour = seed % 24;
-  const minute = (seed * 7) % 60;
-  const pseudoDate = new Date(2000, 0, 1, hour, minute);
-  return pseudoDate.toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" });
+  const normalizedFallback = fallback ? normalizePersianDigits(fallback.trim()) : "";
+  if (/^\d{1,2}:\d{2}$/.test(normalizedFallback)) {
+    return fallback?.trim() || normalizedFallback;
+  }
+  if (fallback && fallback.trim()) return fallback.trim();
+  return "";
 };
 
 const formatDateTooltip = (dateIso?: string, fallback?: string) => {
@@ -388,23 +294,17 @@ export default function CourseLearningClient() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [fileError, setFileError] = useState("");
   const [formError, setFormError] = useState("");
-  const [qaQuestions, setQaQuestions] = useState<LearningQuestion[]>([]);
+  const [lessonChatMessages, setLessonChatMessages] = useState<LessonChatMessage[]>([]);
+  const [instructorChatName, setInstructorChatName] = useState("");
+  const [resolvedCourseId, setResolvedCourseId] = useState("");
   const [qaLoading, setQaLoading] = useState(false);
   const [qaError, setQaError] = useState<string | null>(null);
 
-  const lessonChatMessages = useMemo(
-    () => buildLessonChatMessages(qaQuestions),
-    [qaQuestions]
-  );
-
   const qaMessageState = useMemo(() => {
-    const hasInstructorReply = qaQuestions.some((question) =>
-      question.replies.some((reply) => reply.role === "instructor")
-    );
-    if (hasInstructorReply) return "replied" as const;
-    if (qaQuestions.some((question) => question.replies.length > 0)) return "seen" as const;
+    if (hasInstructorReply(lessonChatMessages)) return "replied" as const;
+    if (lessonChatMessages.length > 0) return "seen" as const;
     return "sent" as const;
-  }, [qaQuestions]);
+  }, [lessonChatMessages]);
 
   const loadLessonDetail = useCallback(async (lessonId: string, baseLesson?: LearningLesson) => {
     if (!lessonId) return;
@@ -427,6 +327,10 @@ export default function CourseLearningClient() {
           detail
         );
         setActiveLessonDetail(merged);
+        const lessonCourseId = readCourseId(detail, "");
+        if (lessonCourseId) {
+          setResolvedCourseId((prev) => lessonCourseId || prev);
+        }
       }
     } catch {
       if (baseLesson) setActiveLessonDetail(baseLesson);
@@ -462,8 +366,14 @@ export default function CourseLearningClient() {
             : {};
         const meta = readCourseMeta(metaSource);
 
+        const nextResolvedCourseId =
+          meta.id ||
+          readCourseId(stepsPayload, "") ||
+          readCourseId(coursePayload, "") ||
+          courseId;
+
         const nextCourse: LearningCourseData = {
-          id: courseId,
+          id: nextResolvedCourseId,
           title: meta.title || fallbackCourseData.title,
           instructor: meta.instructor || fallbackCourseData.instructor,
           progress: meta.progress || fallbackCourseData.progress,
@@ -474,6 +384,7 @@ export default function CourseLearningClient() {
         };
 
         setCourseData(nextCourse);
+        setResolvedCourseId(nextResolvedCourseId);
 
         const firstLessonId =
           findFirstUnlockedLessonId(nextCourse.chapters) ??
@@ -595,89 +506,62 @@ export default function CourseLearningClient() {
     }
   }, [activeTab, lessonChatMessages]);
 
-  const loadCourseQas = useCallback(async (options?: { silent?: boolean }) => {
+  const loadLessonChat = useCallback(async (options?: { silent?: boolean }) => {
+    const chatCourseId = resolvedCourseId || courseData.id;
+    if (!chatCourseId || !activeLessonId) return;
     if (!options?.silent) {
       setQaLoading(true);
     }
     setQaError(null);
     try {
-      const questions = await fetchMyCourseQas({
-        courseId,
-        lessonId: activeLessonId || undefined,
-        courseTitle: courseData.title,
+      const chat = await fetchLessonChatMessages({
+        courseId: chatCourseId,
+        lessonId: activeLessonId,
+        studentName: "شما",
       });
-      setQaQuestions(questions);
+      setLessonChatMessages((prev) => mergeLessonChatMessages(prev, chat.messages));
+      setInstructorChatName(chat.instructorName);
     } catch {
-      setQaQuestions([]);
-      setQaError("بارگذاری پرسش و پاسخ انجام نشد.");
+      if (!options?.silent) {
+        setQaError("بارگذاری پرسش و پاسخ انجام نشد.");
+      }
     } finally {
       if (!options?.silent) {
         setQaLoading(false);
       }
     }
-  }, [activeLessonId, courseData.title, courseId]);
+  }, [activeLessonId, courseData.id, resolvedCourseId]);
 
-  const appendQuestionToChat = useCallback(
-    (question: LearningQuestion, fallbackText?: string) => {
-      const now = new Date();
-      const enriched: LearningQuestion = {
-        ...question,
-        id: question.id || `local-${now.getTime()}`,
-        lessonId: question.lessonId || activeLessonId,
-        courseId: question.courseId || courseId,
-        courseTitle: question.courseTitle || courseData.title,
-        text: question.text || question.description || fallbackText || "",
-        description: question.description || question.text || fallbackText || "",
-        title: question.title || fallbackText?.split("\n")[0]?.trim() || question.text || "پیام",
-        createdAtIso: question.createdAtIso || now.toISOString(),
-        createdAt:
-          question.createdAt ||
-          now.toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" }),
-        replies: question.replies ?? [],
-      };
-
-      setQaQuestions((prev) => {
-        if (prev.some((item) => item.id === enriched.id)) {
-          return prev.map((item) => (item.id === enriched.id ? enriched : item));
-        }
-        return [...prev, enriched];
-      });
-
-      requestAnimationFrame(() => {
-        setTimeout(scrollToBottom, 100);
-      });
-    },
-    [activeLessonId, courseData.title, courseId]
-  );
-
-  const syncCourseQasAfterSend = useCallback(async () => {
-    try {
-      const questions = await fetchMyCourseQas({
-        courseId,
-        lessonId: activeLessonId || undefined,
-        courseTitle: courseData.title,
-      });
-      setQaQuestions((prev) => mergeLessonQuestions(prev, questions));
-      requestAnimationFrame(() => {
-        setTimeout(scrollToBottom, 100);
-      });
-    } catch {
-      // Keep optimistic message if refresh fails or lags behind.
-    }
-  }, [activeLessonId, courseData.title, courseId]);
+  const appendMessageToChat = useCallback((message: LessonChatMessage) => {
+    setLessonChatMessages((prev) => {
+      if (prev.some((item) => item.id === message.id)) {
+        return prev.map((item) => (item.id === message.id ? message : item));
+      }
+      return [...prev, message];
+    });
+    requestAnimationFrame(() => {
+      setTimeout(scrollToBottom, 100);
+    });
+  }, []);
 
   useEffect(() => {
     if (activeTab !== "qa" || courseLoading) return;
-    void loadCourseQas();
-  }, [activeTab, courseLoading, loadCourseQas]);
+    void loadLessonChat();
+  }, [activeTab, courseLoading, loadLessonChat]);
 
   useEffect(() => {
     if (activeTab !== "qa" || courseLoading) return;
     const intervalId = window.setInterval(() => {
-      void loadCourseQas({ silent: true });
+      void loadLessonChat({ silent: true });
     }, 12000);
     return () => window.clearInterval(intervalId);
-  }, [activeTab, courseLoading, loadCourseQas]);
+  }, [activeTab, courseLoading, loadLessonChat]);
+
+  useEffect(() => {
+    if (activeTab !== "qa") return;
+    setLessonChatMessages([]);
+    void loadLessonChat();
+  }, [activeLessonId, activeTab, loadLessonChat]);
 
   React.useEffect(() => {
     composerBlocks.forEach((block) => {
@@ -834,16 +718,28 @@ export default function CourseLearningClient() {
 
     setIsSendingMessage(true);
     const messageText = composerPayload.trim();
+    const now = new Date();
     try {
       const created = await createCourseQuestion({
         lessonId: activeLessonId,
         question: buildCourseQuestionText({ description: messageText }),
       });
 
-      appendQuestionToChat(created, messageText);
+      if (created.courseId) {
+        setResolvedCourseId((prev) => created.courseId || prev);
+      }
+      appendMessageToChat({
+        id: `local-${now.getTime()}`,
+        qaId: created.id,
+        role: "student",
+        senderName: "شما",
+        text: messageText,
+        createdAt: now.toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" }),
+        createdAtIso: now.toISOString(),
+      });
       setComposerBlocks([{ id: makeBlockId(), type: "text", content: "" }]);
       setPendingAttachments([]);
-      void syncCourseQasAfterSend();
+      void loadLessonChat({ silent: true });
     } catch {
       alert("خطا در ارسال پیام. لطفاً دوباره تلاش کنید.");
     } finally {
@@ -1026,8 +922,21 @@ export default function CourseLearningClient() {
         question: questionText,
       });
 
-      appendQuestionToChat(created, questionDescription.trim());
-      void syncCourseQasAfterSend();
+      if (created.courseId) {
+        setResolvedCourseId((prev) => created.courseId || prev);
+      }
+
+      const now = new Date();
+      appendMessageToChat({
+        id: `local-${now.getTime()}`,
+        qaId: created.id,
+        role: "student",
+        senderName: "شما",
+        text: questionDescription.trim(),
+        createdAt: now.toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" }),
+        createdAtIso: now.toISOString(),
+      });
+      void loadLessonChat({ silent: true });
       setActiveTab("qa");
       setIsQuestionModalOpen(false);
       resetQuestionForm();
@@ -1277,7 +1186,7 @@ export default function CourseLearningClient() {
                       );
                     }
 
-                    if (qaQuestions.length === 0) {
+                    if (lessonChatMessages.length === 0) {
                       return (
                         <div className="flex flex-col rounded-3xl border border-gray-100 bg-white/60 dark:border-white/5 dark:bg-white/5 shadow-sm overflow-hidden min-h-[500px]">
                           <div className="flex flex-col items-center justify-center px-6 py-12 text-center text-gray-500 dark:text-gray-400">
@@ -1331,7 +1240,7 @@ export default function CourseLearningClient() {
                             </div>
                             <div className="text-right leading-6">
                               <h4 className="text-sm font-black text-gray-900 dark:text-white">
-                                {courseData.instructor}
+                                {instructorChatName || courseData.instructor}
                               </h4>
                               <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
                                 استاد دوره
@@ -1390,12 +1299,6 @@ export default function CourseLearningClient() {
                                       {message.senderName}
                                     </p>
                                   </div>
-
-                                  {message.showTitle && (
-                                    <h4 className="text-xs font-black text-emerald-700 dark:text-emerald-400 mb-1.5">
-                                      {message.showTitle}
-                                    </h4>
-                                  )}
 
                                   {renderMessageText(message.text)}
 

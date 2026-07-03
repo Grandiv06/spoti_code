@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { AdminDashboardService } from "@/api";
+import { apiGetNoMock } from "@/lib/api";
 import {
   normalizeAdminDashboardOverview,
   type AdminDashboardViewModel,
@@ -13,9 +13,7 @@ export function useAdminDashboardOverview() {
   return useQuery<AdminDashboardViewModel, Error>({
     queryKey: adminDashboardOverviewQueryKey,
     queryFn: async () =>
-      normalizeAdminDashboardOverview(
-        await AdminDashboardService.adminDashboardControllerGetOverview()
-      ),
+      normalizeAdminDashboardOverview(await apiGetNoMock("/api/admin/dashboard/overview")),
     staleTime: 60_000,
     retry: 1,
   });

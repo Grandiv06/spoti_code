@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { apiGet, apiRequest } from "@/lib/api";
-import { buildQaRepliesFromSource, dedupeQaReplies } from "@/lib/course-qa";
+import { buildQaRepliesFromSource, dedupeQaReplies, mergeQaReplies } from "@/lib/course-qa";
 
 // --- TYPES ---
 export interface Lesson {
@@ -335,7 +335,7 @@ function normalizeQaAttachment(value: unknown): { id: string; name: string; size
 }
 
 function mergeStudentQuestion(existing: StudentQuestion, incoming: StudentQuestion): StudentQuestion {
-  const mergedReplies = dedupeQuestionReplies([...existing.replies, ...incoming.replies]);
+  const mergedReplies = mergeQaReplies(existing.replies, incoming.replies) as StudentQuestion["replies"];
   const hasInstructorReply = mergedReplies.some((reply) => reply.role === "instructor");
 
   return {
@@ -414,7 +414,9 @@ function normalizeStudentQuestion(raw: unknown, index: number): StudentQuestion 
     studentId: normalizeString(
       source.studentId ??
         source.userId ??
+        row.userId ??
         (isRecord(source.user) ? (source.user as UnknownRecord).id : undefined) ??
+        (isRecord(row.user) ? (row.user as UnknownRecord).id : undefined) ??
         (isRecord(source.student) ? (source.student as UnknownRecord).id : undefined),
       ""
     ),

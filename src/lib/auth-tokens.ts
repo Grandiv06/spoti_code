@@ -1,4 +1,3 @@
-import { OpenAPI } from "@/api";
 import { API_BASE_URL } from "@/lib/api-config";
 import { unwrapResponse } from "@/lib/admin-tickets";
 
@@ -29,10 +28,6 @@ export function getRefreshToken(): string | null {
   return localStorage.getItem(REFRESH_TOKEN_KEY);
 }
 
-export function syncOpenApiToken(token?: string | null): void {
-  OpenAPI.TOKEN = token || getAccessToken() || "";
-}
-
 export function setAuthTokens(accessToken: string, refreshToken?: string | null): void {
   if (!isBrowser()) return;
 
@@ -40,7 +35,6 @@ export function setAuthTokens(accessToken: string, refreshToken?: string | null)
   if (refreshToken) {
     localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
   }
-  syncOpenApiToken(accessToken);
 }
 
 export function clearAuthTokens(): void {
@@ -48,7 +42,6 @@ export function clearAuthTokens(): void {
 
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
-  syncOpenApiToken("");
 }
 
 export function getAuthHeaders(): HeadersInit | undefined {

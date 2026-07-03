@@ -2,11 +2,15 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { Search, MessageSquare, Star, Loader2, Filter, BookOpen, ArrowUpDown } from "lucide-react";
-import { useInstructorData } from "@/context/InstructorDataContext";
-import { apiGet, apiRequest } from "@/lib/api";
+import { apiGetNoMock, apiRequest } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import CustomSelect from "@/components/ui/CustomSelect";
 import InstructorReviewList from "./_components/InstructorReviewList";
+import {
+  ReviewDetailSkeleton,
+  ReviewListSkeleton,
+  ReviewStatsBadgesSkeleton,
+} from "./_components/InstructorReviewsSkeleton";
 
 type ApiRecord = Record<string, unknown>;
 
@@ -153,7 +157,6 @@ function buildReplyPayload(review: InstructorReview, content: string) {
 }
 
 export default function InstructorReviewsPage() {
-  const { courses } = useInstructorData();
   const [reviews, setReviews] = useState<InstructorReview[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -166,18 +169,19 @@ export default function InstructorReviewsPage() {
   const [replyText, setReplyText] = useState("");
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
 
-  const publishedCourses = useMemo(() => courses.filter((course) => course.status === "published"), [courses]);
+  const courseFilterOptions = useMemo(() => {
+    const courseMap = new Map<string, string>();
+    for (const review of reviews) {
+      if (review.courseId && review.courseId !== "unknown-course" && review.courseTitle) {
+        courseMap.set(review.courseId, review.courseTitle);
+      }
+    }
 
-  const courseFilterOptions = useMemo(
-    () => [
+    return [
       { value: "all", label: "همه دوره‌های ثبت‌شده" },
-      ...publishedCourses.map((course) => ({
-        value: course.id,
-        label: course.title,
-      })),
-    ],
-    [publishedCourses]
-  );
+      ...Array.from(courseMap.entries()).map(([value, label]) => ({ value, label })),
+    ];
+  }, [reviews]);
 
   useEffect(() => {
     let cancelled = false;
@@ -186,7 +190,7 @@ export default function InstructorReviewsPage() {
       setIsLoading(true);
       setLoadError("");
       try {
-        const response = await apiGet<unknown>("/api/instructor-dashboard/my-comments");
+        const response = await apiGetNoMock<unknown>("/api/instructor-dashboard/my-comments");
         const nextReviews = unwrapList(response).map(normalizeComment);
         if (!cancelled) {
           setReviews(nextReviews);
@@ -369,9 +373,21 @@ export default function InstructorReviewsPage() {
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-black">
-          <span className="rounded-lg bg-primary/10 px-3 py-1 text-primary">کل نظرات: {stats.total.toLocaleString("fa-IR")}</span>
-          <span className="rounded-lg bg-emerald-500/10 px-3 py-1 text-emerald-500">پاسخ داده‌شده: {stats.answered.toLocaleString("fa-IR")}</span>
-          <span className="rounded-lg bg-amber-500/10 px-3 py-1 text-amber-500">بدون پاسخ: {stats.pending.toLocaleString("fa-IR")}</span>
+          {isLoading ? (
+            <ReviewStatsBadgesSkeleton />
+          ) : (
+            <>
+              <span className="rounded-lg bg-primary/10 px-3 py-1 text-primary">
+                کل نظرات: {stats.total.toLocaleString("fa-IR")}
+              </span>
+              <span className="rounded-lg bg-emerald-500/10 px-3 py-1 text-emerald-500">
+                پاسخ داده‌شده: {stats.answered.toLocaleString("fa-IR")}
+              </span>
+              <span className="rounded-lg bg-amber-500/10 px-3 py-1 text-amber-500">
+                بدون پاسخ: {stats.pending.toLocaleString("fa-IR")}
+              </span>
+            </>
+          )}
         </div>
       </section>
 
@@ -382,12 +398,9 @@ export default function InstructorReviewsPage() {
       )}
 
       <div className="grid items-start gap-6 lg:grid-cols-[1.3fr_1fr]">
-        <div className={cn("order-2 lg:order-1", active ? "block" : "hidden lg:block")}>
+        <div className={cn("order-2 lg:order-1", isLoading || active ? "block" : "hidden lg:block")}>
           {isLoading ? (
-            <div className="rounded-[2rem] border border-gray-100 bg-white p-10 text-center shadow-sm dark:border-white/5 dark:bg-[#1c1e26]">
-              <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
-              <p className="mt-3 text-sm font-bold text-gray-400">در حال دریافت نظرات...</p>
-            </div>
+            <ReviewDetailSkeleton />
           ) : active ? (
             <div className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm dark:border-white/5 dark:bg-[#1c1e26]">
               <div className="mb-4 flex items-center justify-between">
@@ -445,16 +458,7 @@ export default function InstructorReviewsPage() {
 
         <div className="order-1 lg:order-2">
           {isLoading ? (
-            <div className="animate-pulse overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-white/5 dark:bg-[#1c1e26] sm:rounded-3xl">
-              <div className="border-b border-gray-100 px-4 py-3.5 dark:border-white/5">
-                <div className="h-9 w-40 rounded-full bg-gray-200 dark:bg-white/10" />
-              </div>
-              <div className="space-y-2 px-3 py-3">
-                {Array.from({ length: 4 }).map((_, index) => (
-                  <div key={index} className="h-28 rounded-2xl bg-gray-100 dark:bg-white/5" />
-                ))}
-              </div>
-            </div>
+            <ReviewListSkeleton />
           ) : (
             <InstructorReviewList
               reviews={listItems}

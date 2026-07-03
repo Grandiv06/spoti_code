@@ -132,6 +132,27 @@ export function mapStepsToChapters(steps: unknown): MappedChapter[] {
   });
 }
 
+export function readCourseId(source: unknown, fallback = ""): string {
+  if (!source || typeof source !== "object") return fallback;
+  const record = source as Record<string, unknown>;
+  const nestedCourse =
+    typeof record.course === "object" && record.course
+      ? (record.course as Record<string, unknown>)
+      : null;
+  const nestedStep =
+    typeof record.step === "object" && record.step
+      ? (record.step as Record<string, unknown>)
+      : null;
+
+  return readString(
+    record.courseId ??
+      record.id ??
+      nestedCourse?.id ??
+      nestedStep?.courseId,
+    fallback
+  );
+}
+
 export function mergeLessonDetail(lesson: MappedLesson, detail: unknown): MappedLesson {
   if (!detail || typeof detail !== "object") return lesson;
   const record = detail as CourseRecord;
@@ -158,6 +179,7 @@ export function readCourseMeta(course: CourseRecord) {
   const playerTypeRaw = readString(course.playerType ?? course.deliveryType, "internal").toLowerCase();
 
   return {
+    id: readString(course.id ?? course.courseId ?? course.uuid, ""),
     title: readString(course.title ?? course.name, "دوره بدون عنوان"),
     instructor,
     progress,

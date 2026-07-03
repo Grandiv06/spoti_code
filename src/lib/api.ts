@@ -1,4 +1,3 @@
-import type { paths } from "@/types/openapi";
 import {
   getAccessToken,
   refreshAccessToken,
@@ -8,10 +7,6 @@ import { API_BASE_URL, USE_MOCK_API } from "./api-config";
 import { getMockApiResponse } from "./mock-api";
 
 type HttpMethod = "get" | "post" | "put" | "patch" | "delete";
-
-type PathWithMethod<M extends HttpMethod> = {
-  [P in keyof paths]: M extends keyof paths[P] ? P : never;
-}[keyof paths] & string;
 
 interface ApiRequestOptions {
   headers?: HeadersInit;
@@ -43,9 +38,10 @@ export async function apiRequest<T>(
   path: string,
   options: ApiRequestOptions = {}
 ): Promise<T> {
-  const mockResponse = options.useMock === false
-    ? undefined
-    : getMockApiResponse<T>({ method, path, body: options.body });
+  const mockResponse =
+    USE_MOCK_API && options.useMock !== false
+      ? getMockApiResponse<T>({ method, path, body: options.body })
+      : undefined;
 
   if (USE_MOCK_API && mockResponse !== undefined) {
     return mockResponse;
@@ -74,20 +70,18 @@ export async function apiRequest<T>(
 
     if (!response.ok) {
       const message = await response.text();
-      if (mockResponse !== undefined) return mockResponse;
-      throw new Error(message);
+      if (USE_MOCK_API && mockResponse !== undefined) return mockResponse;
+      throw new Error(message || `Request failed (${response.status})`);
     }
 
     return response.json() as Promise<T>;
   } catch (error) {
-    if (mockResponse !== undefined) return mockResponse;
+    if (USE_MOCK_API && mockResponse !== undefined) return mockResponse;
     throw error;
   }
 }
 
-export function apiGet<P extends PathWithMethod<"get">, T>(path: P, headers?: HeadersInit): Promise<T>;
-export function apiGet<T = unknown>(path: string, headers?: HeadersInit): Promise<T>;
-export function apiGet(path: string, headers?: HeadersInit) {
+export function apiGet<T = unknown>(path: string, headers?: HeadersInit): Promise<T> {
   return apiRequest("get", path, { headers });
 }
 
