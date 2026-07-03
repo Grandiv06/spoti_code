@@ -101,8 +101,29 @@ function adminTicketClosePath(ticketId: string) {
   return `/api/tickets/admin/${encodeURIComponent(ticketId)}/close`;
 }
 
+function adminTicketPath(ticketId: string) {
+  return `/api/tickets/admin/${encodeURIComponent(ticketId)}`;
+}
+
 function adminTicketMessagePath(ticketId: string) {
   return `/api/tickets/admin/${encodeURIComponent(ticketId)}/messages`;
+}
+
+export function useUpdateAdminTicketStatusMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ ticketId, status }: { ticketId: string; status: Ticket["status"] }) =>
+      beautifyAdminTicketDates(
+        normalizeAdminTicketResponse(
+          await apiPatchNoMock<unknown>(adminTicketPath(ticketId), { status })
+        )
+      ),
+    onSuccess: async (ticket) => {
+      await queryClient.invalidateQueries({ queryKey: ["admin-tickets"] });
+      queryClient.setQueryData(adminTicketDetailQueryKey(ticket.id), ticket);
+    },
+  });
 }
 
 export function useCloseAdminTicketMutation() {

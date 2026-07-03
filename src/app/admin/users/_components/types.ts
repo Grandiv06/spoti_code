@@ -21,7 +21,6 @@ export interface UserTicket {
   title: string;
   status: "باز" | "بسته شده" | "در حال بررسی";
   date: string;
-  priority?: string;
   updatedAt?: string;
 }
 

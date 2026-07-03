@@ -38,8 +38,14 @@ enum AppUserRole {
 model User {
   id          String             @id
   phone       String             @unique
+  email       String?            @unique
   fullName    String?
   role        AppUserRole        @default(USER)
+  status      String             @default("active")
+  plan        String             @default("Starter")
+  nationalCode String?           @unique
+  internalAdminNote String?
+  lastLoginAt DateTime?
   enrollments CourseEnrollment[]
   orders      UserOrder[]
   tickets     SupportTicket[]

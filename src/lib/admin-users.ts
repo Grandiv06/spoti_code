@@ -122,6 +122,7 @@ function normalizePlan(value: unknown): User["plan"] {
 
 function normalizeStatus(value: unknown): User["status"] {
   const raw = String(value ?? "").trim().toLowerCase();
+  if (!raw) return "فعال";
   if (["active", "enabled", "activeuser", "فعال", "true", "1"].includes(raw)) return "فعال";
   if (["pending", "suspended", "blocked", "معلق"].includes(raw)) return "معلق";
   return "غیرفعال";
@@ -245,6 +246,7 @@ export function buildAdminUserUpdatePayload(input: AdminUserUpdateInput): Record
     email: input.email.trim(),
     phoneNumber: normalizePhoneForApi(input.phone),
     isActive,
+    status: input.status,
     roleName: input.role,
   };
 

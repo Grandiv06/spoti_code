@@ -7,18 +7,6 @@ import type { AdminOrderItem } from "@/lib/admin-orders";
 import CustomSelect from "@/components/ui/CustomSelect";
 import { AdminOrdersStatsSkeleton, AdminOrdersTableSkeleton } from "./_components/AdminOrdersSkeletons";
 import { mapAdminOrderStatusFilter, useAdminOrdersQuery } from "@/hooks/api/useAdminOrdersQuery";
-import { toEnglishDigits } from "@/lib/digits";
-
-function matchesOrderSearch(order: AdminOrderItem, query: string): boolean {
-  const normalizedQuery = toEnglishDigits(query.trim()).toLowerCase();
-  if (!normalizedQuery) return true;
-
-  const haystack = [order.id, order.user, order.course, order.amount, order.date]
-    .map((value) => toEnglishDigits(value).toLowerCase())
-    .join(" ");
-
-  return haystack.includes(normalizedQuery);
-}
 
 interface Toast {
   id: string;
@@ -70,6 +58,7 @@ export default function AdminOrdersPage() {
 
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [debouncedFilters, setDebouncedFilters] = useState<OrderFilters>(defaultOrderFilters);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -77,22 +66,28 @@ export default function AdminOrdersPage() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery.trim());
       setDebouncedFilters({
         status: statusFilter,
       });
     }, 350);
 
     return () => window.clearTimeout(timer);
-  }, [statusFilter]);
+  }, [searchQuery, statusFilter]);
 
   const { data, isPending, isFetching, isError, error, refetch } = useAdminOrdersQuery({
+    search: debouncedSearchQuery || undefined,
     status: mapAdminOrderStatusFilter(debouncedFilters.status),
   });
 
   useEffect(() => {
-    if (data) {
+    if (!data) return undefined;
+
+    const timer = window.setTimeout(() => {
       setOrders(data);
-    }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [data]);
 
   const isLoadingOrders = isPending || isFetching;
@@ -105,12 +100,6 @@ export default function AdminOrdersPage() {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 3500);
   };
-
-  const filteredOrders = useMemo(() => {
-    const query = searchQuery.trim();
-    if (!query) return orders;
-    return orders.filter((order) => matchesOrderSearch(order, query));
-  }, [orders, searchQuery]);
 
   const stats = useMemo(() => {
     const paid = orders.filter((o) => o.status === "پرداخت شده");
@@ -205,10 +194,10 @@ export default function AdminOrdersPage() {
         <AdminOrdersTableSkeleton />
       ) : showOrdersContent ? (
         <div className="overflow-x-auto rounded-3xl border border-gray-100 dark:border-white/5 bg-white dark:bg-[#1c1e26] shadow-md p-4 md:p-6">
-          {filteredOrders.length === 0 ? (
+          {orders.length === 0 ? (
             <div className="py-16 text-center">
               <p className="text-xs font-black text-gray-500 dark:text-gray-400">
-                {searchQuery.trim() ? "سفارشی با این عبارت پیدا نشد." : "سفارشی برای نمایش وجود ندارد."}
+                {debouncedSearchQuery ? "سفارشی با این عبارت پیدا نشد." : "سفارشی برای نمایش وجود ندارد."}
               </p>
             </div>
           ) : (
@@ -225,7 +214,7 @@ export default function AdminOrdersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                {filteredOrders.map((order) => (
+                {orders.map((order) => (
                   <tr key={order.id} className="text-gray-700 dark:text-gray-300 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
                     <td className="py-3 px-3 font-black">{order.id}</td>
                     <td className="py-3 px-3">{order.user}</td>

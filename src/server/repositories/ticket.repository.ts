@@ -93,7 +93,7 @@ export async function closeUserTicket(userId: string, ticketId: string) {
 
   return prisma.supportTicket.update({
     where: { id: ticketId },
-    data: { status: "closed" },
+    data: { status: "closedByUser" },
     include: {
       messages: {
         orderBy: { createdAt: "asc" },

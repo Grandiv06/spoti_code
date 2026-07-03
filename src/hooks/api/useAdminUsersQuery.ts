@@ -1,8 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { apiGetNoMock } from "@/lib/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { User } from "@/app/admin/users/_components/types";
+import { apiGetNoMock, apiPostNoMock } from "@/lib/api";
 import {
+  normalizeAdminUser,
   normalizeAdminUsersResponse,
   type AdminUsersQueryParams,
 } from "@/lib/admin-users";
@@ -38,5 +40,28 @@ export function useAdminUsersQuery(params: AdminUsersQueryParams = {}) {
       normalizeAdminUsersResponse(await apiGetNoMock<unknown>(buildAdminUsersPath(queryParams))),
     staleTime: 30_000,
     retry: 1,
+  });
+}
+
+export function useCreateAdminUserMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: User) => {
+      const response = await apiPostNoMock<unknown>("/api/admin-dashboard/users", {
+        fullName: input.name,
+        phoneNumber: input.phone,
+        email: input.email,
+        plan: input.plan,
+        status: input.status,
+        roleName: input.role,
+        internalAdminNote: input.internalNotes,
+      });
+
+      return normalizeAdminUser(response);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+    },
   });
 }

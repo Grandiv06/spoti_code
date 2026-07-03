@@ -574,12 +574,6 @@ export function UserTicketsTab({ tickets, isLoading, isError, onRetry, showToast
                   }`}>
                     {tk.status}
                   </span>
-
-                  {tk.priority ? (
-                    <span className="inline-block px-2.5 py-1 rounded text-[9px] font-black bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                      اولویت: {tk.priority}
-                    </span>
-                  ) : null}
                   
                   <button 
                     onClick={() => showToast(`انتقال به جزئیات تیکت ${tk.id} (به صورت نمایشی)`, "info")}

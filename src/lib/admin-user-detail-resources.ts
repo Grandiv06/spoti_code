@@ -153,7 +153,6 @@ export function normalizeUserTicketsResponse(response: unknown): UserTicket[] {
       title: normalizeString(findByKeys(row, ["title", "subject", "message", "summary"]), "تیکت پشتیبانی"),
       status: normalizeTicketStatus(findByKeys(row, ["status", "ticketStatus", "state"])),
       date: normalizeString(findByKeys(row, ["date", "createdAt", "updatedAt", "openedAt"])),
-      priority: normalizeString(findByKeys(row, ["priority", "priorityLabel", "severity"]), ""),
       updatedAt: normalizeString(findByKeys(row, ["updatedAt", "lastUpdatedAt", "lastReplyAt"]), ""),
     };
   });

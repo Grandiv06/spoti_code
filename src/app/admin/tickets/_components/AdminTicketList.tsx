@@ -3,14 +3,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { MessageSquare } from "lucide-react";
 import type { Ticket } from "@/app/panel/support/data";
-import { TICKET_URGENCY_LABELS, formatTicketStatusLabel, getTicketCategoryLabel, getTicketStatusClass } from "@/app/panel/support/data";
+import { formatTicketStatusLabel, getTicketCategoryLabel, getTicketStatusClass } from "@/app/panel/support/data";
 import { cn } from "@/lib/utils";
-
-const priorityDot: Record<Ticket["priority"], string> = {
-  high: "bg-rose-500",
-  medium: "bg-amber-500",
-  low: "bg-gray-400",
-};
 
 type AdminTicketListProps = {
   tickets: Ticket[];
@@ -112,10 +106,6 @@ export default function AdminTicketList({ tickets, selectedTicketId, onSelect }:
 
                   <div className="mt-2.5 flex items-center justify-between gap-2 text-[10px] font-bold text-gray-500 dark:text-gray-400">
                     <span className="truncate">{getTicketCategoryLabel(ticket.category)}</span>
-                    <span className="flex shrink-0 items-center gap-1.5">
-                      <span className={cn("h-1.5 w-1.5 rounded-full", priorityDot[ticket.priority])} />
-                      {TICKET_URGENCY_LABELS[ticket.priority]}
-                    </span>
                   </div>
                 </button>
               );

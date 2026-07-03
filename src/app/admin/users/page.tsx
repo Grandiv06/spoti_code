@@ -11,7 +11,7 @@ import UsersTable from "./_components/UsersTable";
 import UsersTableSkeleton from "./_components/UsersTableSkeleton";
 import EditUserModal from "./_components/EditUserModal";
 import AddUserModal from "./_components/AddUserModal";
-import { useAdminUsersQuery } from "@/hooks/api/useAdminUsersQuery";
+import { useAdminUsersQuery, useCreateAdminUserMutation } from "@/hooks/api/useAdminUsersQuery";
 
 interface Toast {
   id: string;
@@ -64,11 +64,16 @@ export default function AdminUsersPage() {
   const { data, isPending, isFetching, isError, error, refetch } = useAdminUsersQuery({
     search: debouncedSearchQuery || undefined,
   });
+  const createUserMutation = useCreateAdminUserMutation();
 
   useEffect(() => {
-    if (data?.users) {
+    if (!data?.users) return undefined;
+
+    const timer = window.setTimeout(() => {
       setUsers(data.users);
-    }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [data?.users]);
 
   const isLoadingUsers = isPending || isFetching;
@@ -135,19 +140,19 @@ export default function AdminUsersPage() {
   };
 
   const handleAddUser = (newUser: User) => {
-    const numericIds = users
-      .map((u) => Number(String(u.id).replace(/\D/g, "")))
-      .filter((n) => Number.isFinite(n));
-    const nextId = numericIds.length > 0 ? Math.max(...numericIds) + 1 : 1000;
-
-    const preparedUser = {
-      ...newUser,
-      id: `USR-${nextId}`,
-    };
-
-    setUsers((prev) => [preparedUser, ...prev]);
-    setIsAddModalOpen(false);
-    showToast(`کاربر جدید «${preparedUser.name}» با موفقیت به پلتفرم اضافه شد.`, "success");
+    createUserMutation.mutate(newUser, {
+      onSuccess: (createdUser) => {
+        setUsers((prev) => [createdUser, ...prev.filter((user) => user.id !== createdUser.id)]);
+        setIsAddModalOpen(false);
+        showToast(`کاربر جدید «${createdUser.name}» با موفقیت به پلتفرم اضافه شد.`, "success");
+        void refetch();
+      },
+      onError: (mutationError) => {
+        const message =
+          mutationError instanceof Error ? mutationError.message : "ایجاد کاربر جدید انجام نشد.";
+        showToast(message, "error");
+      },
+    });
   };
 
   return (
