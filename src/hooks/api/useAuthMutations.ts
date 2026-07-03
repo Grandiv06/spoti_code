@@ -9,6 +9,7 @@ const SEND_OTP_PATH = "/api/auth/resend-verification-code";
 
 type RegisterPayload = {
   phone: string;
+  fullName?: string;
 };
 
 type LoginPayload = {
@@ -20,8 +21,9 @@ type LoginPayload = {
 export function useRegisterByPhoneMutation() {
   return useMutation({
     mutationFn: (payload: RegisterPayload) =>
-      apiPost(REGISTER_PATH, {
+      apiPostNoMock(REGISTER_PATH, {
         phoneNumber: payload.phone,
+        fullName: payload.fullName,
       }),
   });
 }

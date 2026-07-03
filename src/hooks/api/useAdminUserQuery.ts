@@ -10,7 +10,9 @@ export function useAdminUserQuery(id: string) {
   return useQuery({
     queryKey: adminUserQueryKey(id),
     queryFn: async () =>
-      normalizeAdminUserDetail(await apiGetNoMock(`/api/admin/users/${id}/overview`)),
+      normalizeAdminUserDetail(
+        await apiGetNoMock(`/api/admin-dashboard/users/${encodeURIComponent(id)}/overview`)
+      ),
     enabled: Boolean(id),
     retry: 1,
     staleTime: 30_000,

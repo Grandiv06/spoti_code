@@ -13,7 +13,7 @@ export function useAdminDashboardOverview() {
   return useQuery<AdminDashboardViewModel, Error>({
     queryKey: adminDashboardOverviewQueryKey,
     queryFn: async () =>
-      normalizeAdminDashboardOverview(await apiGetNoMock("/api/admin/dashboard/overview")),
+      normalizeAdminDashboardOverview(await apiGetNoMock("/api/admin-dashboard/overview")),
     staleTime: 60_000,
     retry: 1,
   });

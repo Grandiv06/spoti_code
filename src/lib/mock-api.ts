@@ -1,4 +1,12 @@
+import { initialCoursesData } from "@/app/admin/courses/_components/types";
 import { initialUsersData } from "@/app/admin/users/_components/types";
+import {
+  channelData,
+  monthlyRevenue,
+  recentOrders,
+  salesByCategory,
+  ticketsData as adminTicketsData,
+} from "@/components/admin/admin-data";
 import { ApplicationMainRoles } from "@/lib/application-roles";
 
 type HttpMethod = "get" | "post" | "put" | "patch" | "delete";
@@ -44,6 +52,64 @@ const adminUserActivities = [
 
 function findAdminUser(userId: string) {
   return initialUsersData.find((user) => user.id === userId) ?? initialUsersData[0];
+}
+
+let adminDiscounts = [
+  {
+    id: "d1",
+    title: "تخفیف نوروزی",
+    code: "NOWRUZ30",
+    discountType: "percentage",
+    discountValue: 30,
+    scope: "all",
+    selectedCourseIds: [] as string[],
+    startAt: "2026-03-01T09:00",
+    endAt: "2026-12-30T23:59",
+    usageLimit: "1000",
+    usagePerUser: "1",
+    applyType: "user",
+    isEnabled: true,
+    usedCount: 210,
+  },
+  {
+    id: "d2",
+    title: "تخفیف ویژه React",
+    code: "REACT20",
+    discountType: "percentage",
+    discountValue: 20,
+    scope: "specific",
+    selectedCourseIds: ["c1"],
+    startAt: "2026-05-01T08:00",
+    endAt: "2026-11-30T23:59",
+    usageLimit: "500",
+    usagePerUser: "1",
+    applyType: "both",
+    isEnabled: true,
+    usedCount: 84,
+  },
+];
+
+function buildAdminDashboardOverviewPayload() {
+  return {
+    totalUsers: 12480,
+    usersGrowth: 12.4,
+    activeUsers: 2194,
+    activeUsersGrowth: 6.1,
+    revenueThisMonth: 784000000,
+    revenueGrowth: 18.3,
+    churnRate: 3.8,
+    churnChange: -0.6,
+    newUsersToday: 48,
+    conversionRateToday: 4.2,
+    monthlyRevenueSeries: monthlyRevenue.map((item) => ({
+      label: item.month,
+      value: item.revenue,
+    })),
+    channelData,
+    salesByCategory,
+    recentOrders,
+    ticketsData: adminTicketsData,
+  };
 }
 
 function buildAdminUserOverview(userId: string) {
@@ -729,10 +795,15 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
       data: {
         activeCourses: 3,
         activeCoursesCount: 3,
+        enrolledCoursesCount: 3,
         learningHours: 86,
         totalLearningHours: 86,
         completedCourses: 1,
         completedCoursesCount: 1,
+        myCommentsCount: 12,
+        acceptedCommentsCount: 9,
+        waitingCommentsCount: 3,
+        hasActiveOrder: true,
       },
     }) as T;
   }
@@ -974,24 +1045,32 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
 
   if (method === "post" && cleanPath === "/api/auth/resend-verification-code") {
     const phoneNumber = (body as { phoneNumber?: string } | undefined)?.phoneNumber;
-    return json({ data: { otp: "000000", phoneNumber } }) as T;
+    return json({ data: { otp: "123456", phoneNumber, secondsToExpire: 180 } }) as T;
   }
 
   if (method === "post" && cleanPath === "/api/auth/register-by-phone") {
     const phoneNumber = (body as { phoneNumber?: string } | undefined)?.phoneNumber;
-    return json({ data: { otp: "000000", phoneNumber } }) as T;
+    return json({ data: { otp: "123456", phoneNumber, secondsToExpire: 180 } }) as T;
   }
 
   if (method === "post" && cleanPath === "/api/auth/verify-phone") {
-    const phoneNumber = (body as { phoneNumber?: string } | undefined)?.phoneNumber ?? "+989100000004";
+    const payload = body as { phoneNumber?: string } | undefined;
+    const phoneNumber = payload?.phoneNumber ?? "+989000000003";
+    const roleByPhone: Record<string, string> = {
+      "+989000000001": "ADMIN",
+      "+989000000002": "INSTRUCTOR",
+      "+989000000003": "USER",
+    };
+    const roleName = roleByPhone[phoneNumber] ?? "USER";
     return json({
       data: {
-        id: "mock-user-1",
+        id: `mock-${roleName.toLowerCase()}`,
         accessToken: "mock-access-token",
         refreshToken: "mock-refresh-token",
         phoneNumber,
         fullName: "کاربر تست",
-        roles: [{ name: "USER" }],
+        role: roleName.toLowerCase(),
+        roles: [{ name: roleName }],
       },
     }) as T;
   }
@@ -1257,6 +1336,115 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
         updatedAt: now.toISOString(),
       },
     }) as T;
+  }
+
+  if (
+    method === "get" &&
+    (cleanPath === "/api/admin-dashboard/overview" || cleanPath === "/api/admin/dashboard/overview")
+  ) {
+    return json({ data: buildAdminDashboardOverviewPayload() }) as T;
+  }
+
+  if (method === "get" && cleanPath === "/api/admin-dashboard/users") {
+    return json({
+      data: {
+        items: initialUsersData,
+        users: initialUsersData,
+        total: initialUsersData.length,
+        page: Number(query.get("page") || 1),
+        limit: Number(query.get("limit") || 20),
+      },
+    }) as T;
+  }
+
+  if (method === "get" && cleanPath === "/api/admin-dashboard/courses") {
+    return json({
+      data: {
+        items: initialCoursesData,
+        courses: initialCoursesData,
+        total: initialCoursesData.length,
+      },
+    }) as T;
+  }
+
+  if (method === "get" && cleanPath === "/api/admin-dashboard/orders") {
+    return json({
+      data: {
+        items: recentOrders,
+        orders: recentOrders,
+        total: recentOrders.length,
+      },
+    }) as T;
+  }
+
+  if (method === "get" && cleanPath === "/api/admin-dashboard/tickets") {
+    return json({
+      data: {
+        items: tickets,
+        tickets,
+        total: tickets.length,
+      },
+    }) as T;
+  }
+
+  if (method === "get" && cleanPath === "/api/admin-dashboard/discounts") {
+    return json({ data: { items: adminDiscounts, discounts: adminDiscounts } }) as T;
+  }
+
+  if (method === "get" && /^\/api\/admin\/users\/[^/]+\/overview$/.test(cleanPath)) {
+    const userId = decodeURIComponent(cleanPath.split("/")[4] || "");
+    return json({ data: buildAdminUserOverview(userId) }) as T;
+  }
+
+  if (method === "post" && cleanPath === "/api/discounts/admin") {
+    const payload = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+    const created = {
+      id: `d-${now.getTime()}`,
+      title: String(payload.title ?? "تخفیف جدید"),
+      code: String(payload.code ?? "NEWCODE"),
+      discountType: payload.discountType === "fixed" ? "fixed" : "percentage",
+      discountValue: Number(payload.discountValue ?? 0),
+      scope: payload.scope === "specific" ? "specific" : "all",
+      selectedCourseIds: Array.isArray(payload.selectedCourseIds)
+        ? payload.selectedCourseIds.map(String)
+        : [],
+      startAt: String(payload.startAt ?? ""),
+      endAt: String(payload.endAt ?? ""),
+      usageLimit: String(payload.usageLimit ?? ""),
+      usagePerUser: String(payload.usagePerUser ?? "1"),
+      applyType:
+        payload.applyType === "admin" || payload.applyType === "both" ? payload.applyType : "user",
+      isEnabled: payload.isEnabled !== false,
+      usedCount: 0,
+    };
+    adminDiscounts = [created, ...adminDiscounts];
+    return json({ data: created }) as T;
+  }
+
+  if (method === "put" && /^\/api\/discounts\/[^/]+\/admin$/.test(cleanPath)) {
+    const discountId = decodeURIComponent(cleanPath.split("/")[3] || "");
+    const payload = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+    const existing = adminDiscounts.find((item) => item.id === discountId);
+    const updated = {
+      ...(existing ?? adminDiscounts[0]),
+      ...payload,
+      id: discountId,
+      discountType: payload.discountType === "fixed" ? "fixed" : "percentage",
+      scope: payload.scope === "specific" ? "specific" : "all",
+      selectedCourseIds: Array.isArray(payload.selectedCourseIds)
+        ? payload.selectedCourseIds.map(String)
+        : existing?.selectedCourseIds ?? [],
+      isEnabled:
+        typeof payload.isEnabled === "boolean" ? payload.isEnabled : existing?.isEnabled ?? true,
+    };
+    adminDiscounts = adminDiscounts.map((item) => (item.id === discountId ? updated : item));
+    return json({ data: updated }) as T;
+  }
+
+  if (method === "delete" && /^\/api\/discounts\/[^/]+\/admin$/.test(cleanPath)) {
+    const discountId = decodeURIComponent(cleanPath.split("/")[3] || "");
+    adminDiscounts = adminDiscounts.filter((item) => item.id !== discountId);
+    return json({ data: { id: discountId, deleted: true } }) as T;
   }
 
   return undefined;

@@ -1,66 +1,297 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRegisterByPhoneMutation } from "@/hooks/api/useAuthMutations";
 import { useRouter } from "next/navigation";
+import { InputOTP } from "@/components/ui/input-otp";
+import { useAuth } from "@/context/AuthContext";
+import { extractTokensFromAuthResponse } from "@/lib/auth-tokens";
+import { useLoginByPhoneMutation, useRegisterByPhoneMutation } from "@/hooks/api/useAuthMutations";
+import { normalizeDigits, PHONE_ROLE_MAP, toIranIntlPhone } from "@/lib/phone-auth";
 
-function normalizeDigits(str: string): string {
-  const persian = "۰۱۲۳۴۵۶۷۸۹";
-  const arabic = "٠١٢٣٤٥٦٧٨٩";
-  let result = str;
-  for (let i = 0; i < 10; i++) {
-    result = result.replace(new RegExp(persian[i], "g"), String(i));
-    result = result.replace(new RegExp(arabic[i], "g"), String(i));
-  }
-  return result.replace(/\s/g, "").replace(/-/g, "");
-}
+type AppRole = "admin" | "user" | "instructor";
 
-function toIranIntlPhone(input: string): string {
-  let value = normalizeDigits(input).replace(/[^0-9]/g, "");
-  if (value.startsWith("98")) value = value.slice(2);
-  if (value.startsWith("0")) value = value.slice(1);
-  return `+98${value}`;
+function resolveAppRole(result: {
+  user?: { role?: string; roles?: Array<{ name?: string }> };
+  data?: { role?: string; roles?: Array<{ name?: string }>; phoneNumber?: string; phone?: string };
+}, fallbackPhone: string): AppRole {
+  const roleNames = [
+    ...(result?.data?.roles ?? []).map((role) => String(role?.name || "").toUpperCase()),
+    ...(result?.user?.roles ?? []).map((role) => String(role?.name || "").toUpperCase()),
+  ];
+
+  if (roleNames.some((role) => role === "SUPER_ADMIN" || role === "ADMIN")) return "admin";
+  if (roleNames.some((role) => role === "INSTRUCTOR")) return "instructor";
+  if (roleNames.some((role) => role === "USER")) return "user";
+
+  const directRole = String(result?.data?.role || result?.user?.role || "").toLowerCase();
+  if (directRole === "superadmin" || directRole === "super_admin" || directRole === "admin") return "admin";
+  if (directRole === "instructor") return "instructor";
+  if (directRole === "user") return "user";
+
+  const phone = result?.data?.phoneNumber || result?.data?.phone || fallbackPhone;
+  return PHONE_ROLE_MAP[phone] || "user";
 }
 
 export default function RegisterForm() {
+  const [step, setStep] = useState<"details" | "otp">("details");
   const [fullName, setFullName] = useState("");
   const [phoneInput, setPhoneInput] = useState("");
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [sentOtp, setSentOtp] = useState("");
+  const [otpExpiresIn, setOtpExpiresIn] = useState(0);
+  const [otpSubmitting, setOtpSubmitting] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const { login } = useAuth();
   const registerMutation = useRegisterByPhoneMutation();
+  const loginMutation = useLoginByPhoneMutation();
+  const lastAutoSubmitCodeRef = useRef("");
 
   useEffect(() => {
     document.documentElement.classList.remove("auth-route-transitioning");
   }, []);
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const normalized = normalizeDigits(e.target.value).replace(/[^0-9]/g, "");
+  useEffect(() => {
+    if (step !== "otp" || otpExpiresIn <= 0) return;
+    const intervalId = window.setInterval(() => {
+      setOtpExpiresIn((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => window.clearInterval(intervalId);
+  }, [step, otpExpiresIn]);
+
+  const handlePhoneChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const normalized = normalizeDigits(event.target.value).replace(/[^0-9]/g, "");
     setPhoneInput(normalized);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const completeLogin = useCallback(
+    (user: { id: string; phone: string; displayName: string; role: AppRole }, token?: string, refreshToken?: string) => {
+      login(user, token, refreshToken);
+      const fallbackPath =
+        user.role === "admin"
+          ? "/admin"
+          : user.role === "instructor"
+            ? "/instructor/dashboard"
+            : "/panel";
+      router.push(fallbackPath);
+    },
+    [login, router]
+  );
+
+  const handleDetailsSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError("");
+
+    const trimmedName = fullName.trim();
+    if (!trimmedName) {
+      setError("نام و نام خانوادگی الزامی است.");
+      return;
+    }
+
     const rawPhone = normalizeDigits(phoneInput).replace(/[^0-9]/g, "");
     if (rawPhone.length < 10) {
       setError("شماره موبایل معتبر نیست.");
       return;
     }
-    const phone = toIranIntlPhone(rawPhone);
+
+    const normalizedPhone = toIranIntlPhone(rawPhone);
 
     try {
-      await registerMutation.mutateAsync({
-        phone,
-      });
-      router.push(`/login?phone=${encodeURIComponent(rawPhone)}`);
+      const result = await registerMutation.mutateAsync({
+        phone: normalizedPhone,
+        fullName: trimmedName,
+      }) as { data?: { otp?: string; secondsToExpire?: number } };
+
+      setPhone(normalizedPhone);
+      setSentOtp(result?.data?.otp || "");
+      setOtpExpiresIn(Number(result?.data?.secondsToExpire ?? 180));
+      setStep("otp");
     } catch {
       setError("ثبت‌نام ناموفق بود. دوباره تلاش کنید.");
     }
   };
 
+  const verifyOtpAndLogin = useCallback(async () => {
+    if (otpSubmitting || loginMutation.isPending) return;
+    setError("");
+    if (otp.length !== 6) return;
+
+    const normalizedOtp = normalizeDigits(otp).replace(/[^0-9]/g, "");
+    setOtpSubmitting(true);
+
+    try {
+      const result = await loginMutation.mutateAsync({
+        phone,
+        otp: normalizedOtp,
+      }) as {
+        data?: {
+          id?: string;
+          accessToken?: string;
+          fullName?: string | null;
+          displayName?: string;
+          phoneNumber?: string;
+          phone?: string;
+          role?: string;
+          roles?: Array<{ name?: string }>;
+        };
+      };
+
+      const { accessToken, refreshToken } = extractTokensFromAuthResponse(result);
+      const apiUser = result?.data;
+      const role = resolveAppRole(result, phone);
+      const userPhone = apiUser?.phoneNumber || apiUser?.phone || phone;
+      const displayName = apiUser?.fullName || apiUser?.displayName || fullName.trim() || "کاربر اسپاتی‌کد";
+
+      completeLogin(
+        {
+          id: apiUser?.id || `${role}-${userPhone}`,
+          phone: userPhone,
+          displayName,
+          role,
+        },
+        accessToken,
+        refreshToken
+      );
+    } catch {
+      setError("کد تایید نامعتبر است.");
+    } finally {
+      setOtpSubmitting(false);
+    }
+  }, [completeLogin, fullName, loginMutation, otp, otpSubmitting, phone]);
+
+  useEffect(() => {
+    if (step !== "otp" || otpExpiresIn <= 0 || otp.length !== 6) {
+      lastAutoSubmitCodeRef.current = "";
+      return;
+    }
+
+    if (lastAutoSubmitCodeRef.current === otp || otpSubmitting || loginMutation.isPending) {
+      return;
+    }
+
+    lastAutoSubmitCodeRef.current = otp;
+    void verifyOtpAndLogin();
+  }, [loginMutation.isPending, otp, otpExpiresIn, otpSubmitting, step, verifyOtpAndLogin]);
+
+  const handleResendOtp = async () => {
+    if (!phone || otpSubmitting || loginMutation.isPending || registerMutation.isPending) return;
+
+    setError("");
+    setOtp("");
+
+    try {
+      const result = await registerMutation.mutateAsync({
+        phone,
+        fullName: fullName.trim(),
+      }) as { data?: { otp?: string; secondsToExpire?: number } };
+
+      setSentOtp(result?.data?.otp || "");
+      setOtpExpiresIn(Number(result?.data?.secondsToExpire ?? 180));
+    } catch {
+      setError("ارسال مجدد کد تایید انجام نشد.");
+    }
+  };
+
   const inputClassName =
     "w-full h-14 px-6 pr-14 rounded-[2.5rem] border border-gray-300 dark:border-slate-700/85 bg-gray-50 dark:bg-[#171922] text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-[#00c853]/20 focus:border-[#00c853] focus:bg-white dark:focus:bg-[#14161d] outline-none transition-all duration-300 placeholder:text-gray-400 dark:placeholder:text-gray-500 placeholder:text-base placeholder:tracking-normal font-medium text-base tracking-normal";
+
+  if (step === "otp") {
+    return (
+      <div className="text-center mb-8">
+        <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">
+          تایید شماره موبایل
+        </h1>
+        <p className="text-gray-500 dark:text-gray-400 font-medium text-sm leading-relaxed">
+          کد ۶ رقمی ارسال شده به {phone} را وارد کنید
+        </p>
+        {otpExpiresIn > 0 ? (
+          <p className="text-emerald-600 dark:text-emerald-400 font-bold text-sm mt-2">
+            زمان باقی‌مانده: {Math.floor(otpExpiresIn / 60).toString().padStart(2, "0")}:
+            {(otpExpiresIn % 60).toString().padStart(2, "0")}
+          </p>
+        ) : (
+          <button
+            type="button"
+            onClick={handleResendOtp}
+            disabled={otpSubmitting || loginMutation.isPending || registerMutation.isPending}
+            className="mt-2 text-sm font-black text-[#00c853] dark:text-green-400 hover:underline decoration-2 underline-offset-4 cursor-pointer disabled:opacity-50"
+          >
+            ارسال مجدد کد
+          </button>
+        )}
+        {sentOtp ? (
+          <p className="text-emerald-600 dark:text-emerald-400 font-bold text-sm mt-2">
+            کد OTP (تست): {sentOtp}
+          </p>
+        ) : null}
+
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void verifyOtpAndLogin();
+          }}
+          className="space-y-6 mt-8"
+        >
+          {error ? (
+            <p className="text-red-500 dark:text-red-400 text-sm font-medium text-center">{error}</p>
+          ) : null}
+          <div className="flex justify-center" dir="ltr">
+            <InputOTP
+              maxLength={6}
+              pattern="^[0-9۰-۹٠-٩]+$"
+              value={otp}
+              onChange={(value) => {
+                setError("");
+                setOtp(normalizeDigits(value).replace(/[^0-9]/g, "").slice(0, 6));
+              }}
+              placeholder="•"
+              textAlign="left"
+              dir="ltr"
+              autoFocus
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={otp.length !== 6 || otpSubmitting || loginMutation.isPending || otpExpiresIn <= 0}
+            className="w-full h-14 bg-[#00c853] hover:bg-[#009624] dark:bg-[#00c853] dark:hover:bg-[#009624] disabled:opacity-50 disabled:cursor-not-allowed text-white text-lg font-bold rounded-[2.5rem] shadow-lg shadow-green-500/20 hover:shadow-green-600/30 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 mt-4 cursor-pointer"
+          >
+            <span>
+              {otpExpiresIn <= 0
+                ? "کد منقضی شده"
+                : otpSubmitting || loginMutation.isPending
+                  ? "در حال تایید..."
+                  : "تایید و ورود"}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setStep("details");
+              setOtp("");
+              setSentOtp("");
+              setOtpExpiresIn(0);
+            }}
+            className="text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-[#00c853] dark:hover:text-green-400 transition-colors cursor-pointer"
+          >
+            ویرایش اطلاعات ثبت‌نام
+          </button>
+        </form>
+
+        <div className="mt-8 text-center">
+          <p className="text-gray-500 dark:text-gray-400 font-medium text-sm">
+            قبلاً ثبت‌نام کرده‌اید؟{" "}
+            <Link href="/login" className="text-[#00c853] dark:text-green-400 font-black mr-1">
+              ورود
+            </Link>
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -73,15 +304,12 @@ export default function RegisterForm() {
         </p>
       </div>
 
-      <form className="space-y-5" onSubmit={handleSubmit}>
-        {error && (
+      <form className="space-y-5" onSubmit={handleDetailsSubmit}>
+        {error ? (
           <p className="text-red-500 dark:text-red-400 text-sm font-medium text-center">{error}</p>
-        )}
+        ) : null}
         <div className="space-y-2">
-          <label
-            htmlFor="name"
-            className="block text-gray-700 dark:text-gray-300 text-sm font-bold pr-1"
-          >
+          <label htmlFor="name" className="block text-gray-700 dark:text-gray-300 text-sm font-bold pr-1">
             نام و نام خانوادگی
           </label>
           <div className="relative group">
@@ -90,7 +318,7 @@ export default function RegisterForm() {
               name="name"
               type="text"
               value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
+              onChange={(event) => setFullName(event.target.value)}
               className={inputClassName}
               placeholder="علی محمدی"
             />
@@ -101,10 +329,7 @@ export default function RegisterForm() {
         </div>
 
         <div className="space-y-2">
-          <label
-            htmlFor="phone"
-            className="block text-gray-700 dark:text-gray-300 text-sm font-bold pr-1"
-          >
+          <label htmlFor="phone" className="block text-gray-700 dark:text-gray-300 text-sm font-bold pr-1">
             شماره تلفن
           </label>
           <div className="relative group">
@@ -133,7 +358,7 @@ export default function RegisterForm() {
           disabled={registerMutation.isPending}
           className="w-full h-14 bg-[#00c853] hover:bg-[#009624] dark:bg-[#00c853] dark:hover:bg-[#009624] text-white text-lg font-bold rounded-[2.5rem] shadow-lg shadow-green-500/20 hover:shadow-green-600/30 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 mt-4 cursor-pointer"
         >
-          <span>{registerMutation.isPending ? "در حال ثبت‌نام..." : "ثبت‌نام"}</span>
+          <span>{registerMutation.isPending ? "در حال ارسال کد..." : "دریافت کد تایید"}</span>
         </button>
       </form>
 
@@ -141,10 +366,7 @@ export default function RegisterForm() {
         <div>
           <p className="text-gray-500 dark:text-gray-400 font-medium text-sm">
             قبلاً ثبت‌نام کرده‌اید؟{" "}
-            <Link
-              href="/login"
-              className="text-[#00c853] dark:text-green-400 font-black mr-1"
-            >
+            <Link href="/login" className="text-[#00c853] dark:text-green-400 font-black mr-1">
               ورود
             </Link>
           </p>

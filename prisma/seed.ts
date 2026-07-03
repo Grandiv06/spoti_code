@@ -11,6 +11,12 @@ const instructors = [
   { id: "INS-104", slug: "nima-alavi", name: "نیما علوی", avatar: "/images/inst3.jpg" },
 ] as const;
 
+const users = [
+  { id: "USR-ADMIN-001", phone: "+989000000001", fullName: "ادمین تست", role: "ADMIN" as const },
+  { id: "USR-INST-001", phone: "+989000000002", fullName: "مدرس تست", role: "INSTRUCTOR" as const },
+  { id: "USR-USER-001", phone: "+989000000003", fullName: "کاربر تست", role: "USER" as const },
+];
+
 const courses = [
   {
     id: "html",
@@ -159,6 +165,14 @@ function withCourseContent(course: (typeof courses)[number]) {
 }
 
 async function main() {
+  for (const user of users) {
+    await prisma.user.upsert({
+      where: { phone: user.phone },
+      update: user,
+      create: user,
+    });
+  }
+
   for (const instructor of instructors) {
     const profile = INSTRUCTOR_PROFILE_SEED[instructor.id as keyof typeof INSTRUCTOR_PROFILE_SEED];
     await prisma.instructor.upsert({

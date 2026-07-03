@@ -15,6 +15,32 @@ interface ApiRequestOptions {
   _retryAuth?: boolean;
 }
 
+function sanitizeApiErrorMessage(message: string, status: number): string {
+  const trimmed = message.trim();
+  if (!trimmed) return `Request failed (${status})`;
+
+  if (
+    trimmed.startsWith("<!DOCTYPE") ||
+    trimmed.startsWith("<html") ||
+    trimmed.includes("<body") ||
+    trimmed.includes("<script")
+  ) {
+    if (status === 404) return "مسیر درخواست‌شده یافت نشد.";
+    return `خطا در ارتباط با سرور (${status})`;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as { message?: unknown; error?: unknown };
+    if (typeof parsed.message === "string" && parsed.message.trim()) return parsed.message;
+    if (typeof parsed.error === "string" && parsed.error.trim()) return parsed.error;
+  } catch {
+    // Not JSON — use raw text below.
+  }
+
+  if (trimmed.length > 240) return `${trimmed.slice(0, 240)}…`;
+  return trimmed;
+}
+
 function buildRequestHeaders(token: string | null, extra?: HeadersInit): Record<string, string> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -71,7 +97,7 @@ export async function apiRequest<T>(
     if (!response.ok) {
       const message = await response.text();
       if (USE_MOCK_API && mockResponse !== undefined) return mockResponse;
-      throw new Error(message || `Request failed (${response.status})`);
+      throw new Error(sanitizeApiErrorMessage(message, response.status));
     }
 
     return response.json() as Promise<T>;

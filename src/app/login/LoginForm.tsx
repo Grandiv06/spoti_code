@@ -8,35 +8,9 @@ import Link from "next/link";
 import { apiPostNoMock } from "@/lib/api";
 import { extractTokensFromAuthResponse } from "@/lib/auth-tokens";
 import { useLoginByPhoneMutation } from "@/hooks/api/useAuthMutations";
-
+import { normalizeDigits, PHONE_ROLE_MAP, toIranIntlPhone } from "@/lib/phone-auth";
 
 type AppRole = "admin" | "user" | "instructor";
-
-const PHONE_ROLE_MAP: Record<string, AppRole> = {
-  "+989100000001": "admin", // superadmin -> admin panel
-  "+989100000002": "admin",
-  "+989100000003": "instructor",
-  "+989100000004": "user",
-};
-
-/** اعداد فارسی/عربی را به انگلیسی تبدیل می‌کند */
-function normalizeDigits(str: string): string {
-  const persian = "۰۱۲۳۴۵۶۷۸۹";
-  const arabic = "٠١٢٣٤٥٦٧٨٩";
-  let result = str;
-  for (let i = 0; i < 10; i++) {
-    result = result.replace(new RegExp(persian[i], "g"), String(i));
-    result = result.replace(new RegExp(arabic[i], "g"), String(i));
-  }
-  return result.replace(/\s/g, "").replace(/-/g, "");
-}
-
-function toIranIntlPhone(input: string): string {
-  let value = normalizeDigits(input).replace(/[^0-9]/g, "");
-  if (value.startsWith("98")) value = value.slice(2);
-  if (value.startsWith("0")) value = value.slice(1);
-  return `+98${value}`;
-}
 
 function resolveAppRole(result: {
   user?: { role?: string; roles?: Array<{ name?: string }> };
