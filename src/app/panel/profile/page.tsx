@@ -11,19 +11,28 @@ import ProjectsTabs from "../../social/profile/_components/ProjectsTabs";
 import ActivityTabs from "../../social/profile/_components/ActivityTabs";
 import { SocialButton } from "@/components/social/SocialButton";
 
+type ApiProfile = Partial<ReturnType<typeof useProfileSettings>["settings"]> & {
+  role?: string;
+  joinDate?: string;
+};
+
 export default function PanelProfilePage() {
   const router = useRouter();
   const { currentUser } = useSocial();
   const { settings } = useProfileSettings();
-  const [apiProfile, setApiProfile] = React.useState<Partial<typeof settings> | null>(null);
+  const [apiProfile, setApiProfile] = React.useState<ApiProfile | null>(null);
+  const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
     const loadProfile = async () => {
+      setLoading(true);
       try {
         const result = await fetchMyProfile();
-        setApiProfile(Object.keys(result).length > 0 ? result : null);
+        setApiProfile(Object.keys(result).length > 0 ? (result as ApiProfile) : null);
       } catch {
         setApiProfile(null);
+      } finally {
+        setLoading(false);
       }
     };
     void loadProfile();
@@ -40,25 +49,41 @@ export default function PanelProfilePage() {
     );
   }
 
-  // Combine currentUser data with settings
+  if (loading) {
+    return (
+      <main className="min-h-screen pb-20 animate-pulse">
+        <div className="container mx-auto max-w-7xl px-4 md:px-6 pt-4 space-y-8">
+          <div className="h-64 rounded-4xl bg-gray-100 dark:bg-white/5" />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="lg:col-span-8 h-96 rounded-3xl bg-gray-100 dark:bg-white/5" />
+            <div className="lg:col-span-4 h-64 rounded-3xl bg-gray-100 dark:bg-white/5" />
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   const mergedProfile = {
-    displayName: settings.displayName || apiProfile?.displayName || currentUser.displayName,
-    bio: settings.bio || apiProfile?.bio || currentUser.bio || "عاشق یادگیری تکنولوژی‌های وب و ساخت رابط‌های کاربری مدرن.",
-    avatarImage: settings.avatarImage || apiProfile?.avatarImage || currentUser.avatarUrl,
-    mbti: settings.mbti || apiProfile?.mbti || "INTJ",
-    githubUrl: settings.githubUrl || apiProfile?.githubUrl || "",
-    linkedinUrl: settings.linkedinUrl || apiProfile?.linkedinUrl || "",
-    telegramUrl: settings.telegramUrl || apiProfile?.telegramUrl || "",
-    websiteUrl: settings.websiteUrl || apiProfile?.websiteUrl || "",
-    skills: settings.skills.length > 0 ? settings.skills : apiProfile?.skills || [
-      "JavaScript",
-      "React",
-      "Next.js",
-      "TypeScript",
-      "Tailwind CSS",
-      "Git",
-      "Figma",
-    ],
+    displayName:
+      apiProfile?.displayName || settings.displayName || currentUser.displayName,
+    bio:
+      apiProfile?.bio?.trim() ||
+      settings.bio?.trim() ||
+      "هنوز بیویی ننوشته‌اید. از ویرایش پروفایل می‌توانید خودتان را معرفی کنید.",
+    avatarImage:
+      apiProfile?.avatarImage || settings.avatarImage || currentUser.avatarUrl || "/images/student1.jpg",
+    githubUrl: apiProfile?.githubUrl || settings.githubUrl || "",
+    linkedinUrl: apiProfile?.linkedinUrl || settings.linkedinUrl || "",
+    telegramUrl: apiProfile?.telegramUrl || settings.telegramUrl || "",
+    websiteUrl: apiProfile?.websiteUrl || settings.websiteUrl || "",
+    skills:
+      apiProfile?.skills && apiProfile.skills.length > 0
+        ? apiProfile.skills
+        : settings.skills.length > 0
+          ? settings.skills
+          : [],
+    role: apiProfile?.role || "یادگیرنده",
+    joinDate: apiProfile?.joinDate || "—",
   };
 
   const socials = getProfileSocialLinks(mergedProfile);
@@ -69,13 +94,13 @@ export default function PanelProfilePage() {
     description: mergedProfile.bio,
     bannerUrl: settings.bannerImage || "",
     avatarUrl: mergedProfile.avatarImage,
-    role: "Frontend Learner",
-    mbti: mergedProfile.mbti,
-    joinDate: "۱۴۰۲",
+    role: mergedProfile.role,
+    mbti: "",
+    joinDate: mergedProfile.joinDate,
     socials,
     stats: {
-      daysActive: 124,
-      reputation: 850,
+      daysActive: 0,
+      reputation: 0,
       followers: currentUser.followersCount || 0,
       following: currentUser.followingCount || 0,
     },
@@ -84,21 +109,17 @@ export default function PanelProfilePage() {
 
   return (
     <main className="min-h-screen pb-20 animate-in fade-in duration-500">
-      {/* Decorative Background Blob */}
       <div className="fixed top-0 left-0 w-full h-[500px] bg-green-500/10 blur-[120px] rounded-b-[100%] pointer-events-none -z-10" />
 
       <div className="container mx-auto max-w-7xl px-4 md:px-6 pt-4">
-        {/* Header Section */}
         <ProfileHeader user={userProfileData} isOwnProfile={true} />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-6 md:mt-10">
-          {/* Left Column (Main Content) - Wide */}
           <div className="lg:col-span-8 space-y-8 order-2 lg:order-1">
             <ProjectsTabs />
             <ActivityTabs />
           </div>
 
-          {/* Right Column (Sidebar) - Narrow */}
           <div className="lg:col-span-4 space-y-8 order-1 lg:order-2">
             <ProfileSidebar user={userProfileData} />
           </div>

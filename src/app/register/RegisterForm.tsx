@@ -4,10 +4,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { InputOTP } from "@/components/ui/input-otp";
+import OtpCodeDisplay from "@/components/auth/OtpCodeDisplay";
 import { useAuth } from "@/context/AuthContext";
 import { extractTokensFromAuthResponse } from "@/lib/auth-tokens";
 import { useLoginByPhoneMutation, useRegisterByPhoneMutation } from "@/hooks/api/useAuthMutations";
-import { normalizeDigits, PHONE_ROLE_MAP, toIranIntlPhone } from "@/lib/phone-auth";
+import { normalizeDigits, PHONE_ROLE_MAP, toIranIntlPhone, extractOtpFromAuthResponse, extractAuthErrorMessage } from "@/lib/phone-auth";
 
 type AppRole = "admin" | "user" | "instructor";
 
@@ -102,14 +103,14 @@ export default function RegisterForm() {
       const result = await registerMutation.mutateAsync({
         phone: normalizedPhone,
         fullName: trimmedName,
-      }) as { data?: { otp?: string; secondsToExpire?: number } };
-
+      });
+      const { otp, secondsToExpire } = extractOtpFromAuthResponse(result);
       setPhone(normalizedPhone);
-      setSentOtp(result?.data?.otp || "");
-      setOtpExpiresIn(Number(result?.data?.secondsToExpire ?? 180));
+      setSentOtp(otp);
+      setOtpExpiresIn(secondsToExpire);
       setStep("otp");
-    } catch {
-      setError("ثبت‌نام ناموفق بود. دوباره تلاش کنید.");
+    } catch (error) {
+      setError(extractAuthErrorMessage(error, "ثبت‌نام ناموفق بود. دوباره تلاش کنید."));
     }
   };
 
@@ -185,12 +186,12 @@ export default function RegisterForm() {
       const result = await registerMutation.mutateAsync({
         phone,
         fullName: fullName.trim(),
-      }) as { data?: { otp?: string; secondsToExpire?: number } };
-
-      setSentOtp(result?.data?.otp || "");
-      setOtpExpiresIn(Number(result?.data?.secondsToExpire ?? 180));
-    } catch {
-      setError("ارسال مجدد کد تایید انجام نشد.");
+      });
+      const { otp, secondsToExpire } = extractOtpFromAuthResponse(result);
+      setSentOtp(otp);
+      setOtpExpiresIn(secondsToExpire);
+    } catch (error) {
+      setError(extractAuthErrorMessage(error, "ارسال مجدد کد تایید انجام نشد."));
     }
   };
 
@@ -206,6 +207,7 @@ export default function RegisterForm() {
         <p className="text-gray-500 dark:text-gray-400 font-medium text-sm leading-relaxed">
           کد ۶ رقمی ارسال شده به {phone} را وارد کنید
         </p>
+        <OtpCodeDisplay code={sentOtp} />
         {otpExpiresIn > 0 ? (
           <p className="text-emerald-600 dark:text-emerald-400 font-bold text-sm mt-2">
             زمان باقی‌مانده: {Math.floor(otpExpiresIn / 60).toString().padStart(2, "0")}:
@@ -221,12 +223,6 @@ export default function RegisterForm() {
             ارسال مجدد کد
           </button>
         )}
-        {sentOtp ? (
-          <p className="text-emerald-600 dark:text-emerald-400 font-bold text-sm mt-2">
-            کد OTP (تست): {sentOtp}
-          </p>
-        ) : null}
-
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -301,6 +297,9 @@ export default function RegisterForm() {
         </h1>
         <p className="text-gray-500 dark:text-gray-400 font-medium text-sm leading-relaxed">
           با پر کردن فرم زیر، حساب کاربری خود را ایجاد کنید
+        </p>
+        <p className="text-gray-400 dark:text-gray-500 font-medium text-xs leading-relaxed mt-2">
+          می‌توانید با هر شماره موبایل معتبر ایران ثبت‌نام کنید.
         </p>
       </div>
 

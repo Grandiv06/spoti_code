@@ -1,12 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Send, AlertCircle, Paperclip, ChevronRight } from "lucide-react";
 import CustomSelect from "@/components/ui/CustomSelect";
 import { TICKET_CATEGORY_OPTIONS } from "@/app/panel/support/data";
+import { ticketQueryKey } from "@/hooks/api/useTicketsQuery";
 import { apiPostNoMock } from "@/lib/api";
+import { getAuthHeaders } from "@/lib/auth-tokens";
 
 export default function TicketForm({ onBack }: { onBack: () => void }) {
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -20,7 +24,6 @@ export default function TicketForm({ onBack }: { onBack: () => void }) {
     setError("");
     setLoading(true);
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
       await apiPostNoMock(
         "/api/tickets/my",
         {
@@ -31,8 +34,9 @@ export default function TicketForm({ onBack }: { onBack: () => void }) {
           attachmentFileIds: [],
           firstMessage: description,
         },
-        token ? { Authorization: `Bearer ${token}` } : undefined
+        getAuthHeaders()
       );
+      await queryClient.invalidateQueries({ queryKey: ticketQueryKey });
       onBack();
     } catch {
       setError("ثبت تیکت انجام نشد. لطفاً دوباره تلاش کنید.");

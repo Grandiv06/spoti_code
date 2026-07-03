@@ -131,7 +131,7 @@ export function mapProfileResponseToSettings(value: unknown): Partial<ProfileSet
   const skills = parseSkills(row.skills ?? row.capabilities);
 
   return {
-    displayName: pickString(row, ["displayName", "fullName", "name", "occupation"]),
+    displayName: pickString(row, ["displayName", "occupation", "fullName", "name"]),
     bio: pickString(row, ["about", "bio"]),
     location: pickString(row, ["location"]),
     githubUrl: pickString(row, ["githubLink", "githubUrl"]),
@@ -141,7 +141,9 @@ export function mapProfileResponseToSettings(value: unknown): Partial<ProfileSet
     mbti: pickString(row, ["mbtiType", "mbti"]),
     skills,
     avatarImage: pickString(row, ["image", "avatar", "avatarImage"]),
-  };
+    role: pickString(row, ["role", "roleLabel"]),
+    joinDate: pickString(row, ["joinDate", "memberSince"]),
+  } as Partial<ProfileSettings> & { role?: string; joinDate?: string };
 }
 
 export function buildUpsertProfilePayload(settings: ProfileSettings): UpsertProfileDto {
@@ -150,7 +152,6 @@ export function buildUpsertProfilePayload(settings: ProfileSettings): UpsertProf
   const optionalFields: UpsertProfileDto = {
     occupation: settings.displayName.trim() || undefined,
     about: settings.bio.trim() || undefined,
-    mbtiType: settings.mbti.trim() || undefined,
     skills: settings.skills.length ? settings.skills.join(", ") : undefined,
     location: settings.location.trim() || undefined,
     image: settings.avatarImage?.trim() || undefined,

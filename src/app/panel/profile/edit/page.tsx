@@ -8,17 +8,10 @@ import { useProfileSettings } from "@/context/ProfileSettingsContext";
 import { fetchMyProfile, updateMyProfile, validateProfileSocials, type ProfileSocialField } from "@/lib/panel-profile";
 import { cn } from "@/lib/utils";
 import { SocialButton } from "@/components/social/SocialButton";
-import { ArrowRight, User, Camera, X, Plus, Check, ChevronDown } from "lucide-react";
+import { ArrowRight, User, Camera } from "lucide-react";
 import Image from "next/image";
 
 import { SkillSelect } from "@/components/social/SkillSelect";
-
-const MBTI_TYPES = [
-  "INTJ", "INTP", "ENTJ", "ENTP",
-  "INFJ", "INFP", "ENFJ", "ENFP",
-  "ISTJ", "ISFJ", "ESTJ", "ESFJ",
-  "ISTP", "ISFP", "ESTP", "ESFP"
-];
 
 const FRONTEND_SKILLS = [
   "HTML", "CSS", "JavaScript", "TypeScript", "React.js", "Next.js", 
@@ -40,13 +33,10 @@ function ProfileEditContent() {
   const { isAuthenticated, user: authUser } = useAuth();
   const { currentUser } = useSocial();
   const { settings, updateSettings } = useProfileSettings();
-  const [skillInput, setSkillInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saveError, setSaveError] = useState("");
   const [socialErrors, setSocialErrors] = useState<Partial<Record<ProfileSocialField, string>>>({});
-  const [isMbtiOpen, setIsMbtiOpen] = useState(false);
-  const mbtiRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -82,16 +72,6 @@ function ProfileEditContent() {
     };
   }, [isAuthenticated, authUser?.displayName]);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (mbtiRef.current && !mbtiRef.current.contains(event.target as Node)) {
-        setIsMbtiOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -101,18 +81,6 @@ function ProfileEditContent() {
       updateSettings({ avatarImage: result });
     };
     reader.readAsDataURL(file);
-  };
-
-  const handleAddSkill = (skill?: string) => {
-    const value = typeof skill === "string" ? skill : skillInput.trim();
-    if (value && !settings.skills.includes(value)) {
-      updateSettings({ skills: [...settings.skills, value] });
-      if (typeof skill !== "string") setSkillInput("");
-    }
-  };
-
-  const handleRemoveSkill = (skillToRemove: string) => {
-    updateSettings({ skills: settings.skills.filter((s) => s !== skillToRemove) });
   };
 
   const updateSkillsByCategory = (categorySkills: string[], newSelected: string[]) => {
@@ -214,61 +182,6 @@ function ProfileEditContent() {
                   rows={4}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#14161c] text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all resize-none"
                 />
-              </div>
-
-              <div className="grid grid-cols-1 gap-6">
-                <div className="space-y-3" ref={mbtiRef}>
-                  <label htmlFor="mbti" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">تایپ MBTI</label>
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setIsMbtiOpen((prev) => !prev)}
-                      className={cn(
-                        "relative flex items-center w-full px-4 py-3 rounded-xl border transition-all text-right",
-                        isMbtiOpen
-                          ? "border-primary ring-2 ring-primary/10 bg-white dark:bg-[#1c1e26]"
-                          : "border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-[#14161c] hover:border-gray-300 dark:hover:border-white/20"
-                      )}
-                    >
-                      <span className="flex-1 text-sm font-bold text-gray-900 dark:text-white">
-                        {settings.mbti || "انتخاب MBTI"}
-                      </span>
-                      <ChevronDown
-                        className={cn(
-                          "w-4 h-4 text-gray-400 transition-transform duration-200",
-                          isMbtiOpen && "rotate-180"
-                        )}
-                      />
-                    </button>
-
-                    {isMbtiOpen && (
-                      <div className="absolute z-50 w-full mt-2 py-2 overflow-auto max-h-60 rounded-2xl border border-gray-100 dark:border-white/[0.08] bg-white dark:bg-[#1c1e26] shadow-xl animate-in fade-in zoom-in-95 duration-200">
-                        {MBTI_TYPES.map((type) => {
-                          const isSelected = settings.mbti === type;
-                          return (
-                            <button
-                              key={type}
-                              type="button"
-                              onClick={() => {
-                                updateSettings({ mbti: type });
-                                setIsMbtiOpen(false);
-                              }}
-                              className={cn(
-                                "flex items-center justify-between w-full px-4 py-2.5 text-sm text-right transition-colors",
-                                isSelected
-                                  ? "bg-primary/5 text-primary font-bold"
-                                  : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.04]"
-                              )}
-                            >
-                              <span>{type}</span>
-                              {isSelected && <Check className="w-4 h-4" />}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
 
               <div className="space-y-6 pt-4 border-t border-gray-100 dark:border-white/[0.06]">

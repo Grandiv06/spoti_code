@@ -75,11 +75,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isOwnProfile }) => 
           <div className="pt-8 md:pt-28 flex-1 w-full">
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
               <div className="flex flex-col items-center md:items-start text-center md:text-right">
-                <h1 className="text-2xl md:text-4xl font-black text-gray-900 dark:text-gray-100 flex flex-col md:flex-row items-center gap-2 md:gap-4 transition-all">
+                <h1 className="text-2xl md:text-4xl font-black text-gray-900 dark:text-gray-100 transition-all">
                   {user.displayName}
-                  <span className="px-3 py-1 text-xs font-bold bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400 rounded-xl border border-green-200/50 dark:border-green-500/20 backdrop-blur-sm">
-                    {user.mbti}
-                  </span>
                 </h1>
 
                 <div className="flex items-center justify-center md:justify-start gap-4 mt-6 text-sm text-gray-600 dark:text-gray-400 flex-wrap">

@@ -3,12 +3,13 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { InputOTP } from "@/components/ui/input-otp";
+import OtpCodeDisplay from "@/components/auth/OtpCodeDisplay";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { apiPostNoMock } from "@/lib/api";
 import { extractTokensFromAuthResponse } from "@/lib/auth-tokens";
 import { useLoginByPhoneMutation } from "@/hooks/api/useAuthMutations";
-import { normalizeDigits, PHONE_ROLE_MAP, toIranIntlPhone } from "@/lib/phone-auth";
+import { normalizeDigits, PHONE_ROLE_MAP, toIranIntlPhone, extractOtpFromAuthResponse, extractAuthErrorMessage } from "@/lib/phone-auth";
 
 type AppRole = "admin" | "user" | "instructor";
 
@@ -101,18 +102,16 @@ export default function LoginForm() {
     const normalizedPhone = toIranIntlPhone(value);
 
     try {
-      const resendOtpPayload = {
+      const result = await apiPostNoMock<unknown>("/api/auth/resend-verification-code", {
         phoneNumber: normalizedPhone,
-      };
-      const result = await apiPostNoMock<{
-        data?: { otp?: string; phoneNumber?: string; secondsToExpire?: number };
-      }>("/api/auth/resend-verification-code", resendOtpPayload);
+      });
+      const { otp, secondsToExpire } = extractOtpFromAuthResponse(result);
       setPhone(normalizedPhone);
-      setSentOtp(result?.data?.otp || "");
-      setOtpExpiresIn(Number(result?.data?.secondsToExpire ?? 180));
+      setSentOtp(otp);
+      setOtpExpiresIn(secondsToExpire);
       setStep("otp");
-    } catch {
-      setError("ارسال کد تایید انجام نشد.");
+    } catch (error) {
+      setError(extractAuthErrorMessage(error, "ارسال کد تایید انجام نشد."));
     }
   };
 
@@ -214,16 +213,14 @@ export default function LoginForm() {
     setOtp("");
 
     try {
-      const result = await apiPostNoMock<{
-        data?: { otp?: string; phoneNumber?: string; secondsToExpire?: number };
-      }>("/api/auth/resend-verification-code", {
+      const result = await apiPostNoMock<unknown>("/api/auth/resend-verification-code", {
         phoneNumber: phone,
       });
-
-      setSentOtp(result?.data?.otp || "");
-      setOtpExpiresIn(Number(result?.data?.secondsToExpire ?? 180));
-    } catch {
-      setError("ارسال مجدد کد تایید انجام نشد.");
+      const { otp, secondsToExpire } = extractOtpFromAuthResponse(result);
+      setSentOtp(otp);
+      setOtpExpiresIn(secondsToExpire);
+    } catch (error) {
+      setError(extractAuthErrorMessage(error, "ارسال مجدد کد تایید انجام نشد."));
     }
   };
 
@@ -236,6 +233,7 @@ export default function LoginForm() {
         <p className="text-gray-500 dark:text-gray-400 font-medium text-sm leading-relaxed">
           کد ۶ رقمی ارسال شده به {phone} را وارد کنید
         </p>
+        <OtpCodeDisplay code={sentOtp} />
         {otpExpiresIn > 0 ? (
           <p className="text-emerald-600 dark:text-emerald-400 font-bold text-sm mt-2">
             زمان باقی‌مانده: {Math.floor(otpExpiresIn / 60).toString().padStart(2, "0")}:
@@ -251,12 +249,6 @@ export default function LoginForm() {
             ارسال مجدد کد
           </button>
         )}
-        {sentOtp && (
-          <p className="text-emerald-600 dark:text-emerald-400 font-bold text-sm mt-2">
-            کد OTP (تست): {sentOtp}
-          </p>
-        )}
-
         <form
           onSubmit={handleOtpSubmit}
           className="space-y-6 mt-8"
@@ -328,6 +320,9 @@ export default function LoginForm() {
         </h1>
         <p className="text-gray-500 dark:text-gray-400 font-medium text-sm leading-relaxed">
           برای استفاده از خدمات آکادمی، شماره موبایل خود را وارد کنید
+        </p>
+        <p className="text-gray-400 dark:text-gray-500 font-medium text-xs leading-relaxed mt-2">
+          با هر شماره موبایل معتبر می‌توانید وارد شوید؛ اگر حساب ندارید از صفحه ثبت‌نام استفاده کنید.
         </p>
 
       </div>

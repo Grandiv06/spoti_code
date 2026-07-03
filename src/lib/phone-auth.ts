@@ -21,3 +21,42 @@ export const PHONE_ROLE_MAP: Record<string, "admin" | "user" | "instructor"> = {
   "+989000000002": "instructor",
   "+989000000003": "user",
 };
+
+type AuthOtpPayload = {
+  otp?: string;
+  secondsToExpire?: number;
+  phoneNumber?: string;
+};
+
+type AuthApiResponse = {
+  data?: AuthOtpPayload;
+  otp?: string;
+  secondsToExpire?: number;
+};
+
+export function extractOtpFromAuthResponse(response: unknown): {
+  otp: string;
+  secondsToExpire: number;
+} {
+  const payload = response as AuthApiResponse;
+  const data = payload?.data;
+
+  return {
+    otp: String(data?.otp ?? payload?.otp ?? ""),
+    secondsToExpire: Number(data?.secondsToExpire ?? payload?.secondsToExpire ?? 180),
+  };
+}
+
+export function extractAuthErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message.trim()) {
+    const message = error.message.trim();
+    if (
+      !message.startsWith("<!DOCTYPE") &&
+      !message.startsWith("<html") &&
+      message.length < 200
+    ) {
+      return message;
+    }
+  }
+  return fallback;
+}

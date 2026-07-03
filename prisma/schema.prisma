@@ -36,12 +36,35 @@ enum AppUserRole {
 }
 
 model User {
-  id        String      @id
-  phone     String      @unique
-  fullName  String?
-  role      AppUserRole @default(USER)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  id          String             @id
+  phone       String             @unique
+  fullName    String?
+  role        AppUserRole        @default(USER)
+  enrollments CourseEnrollment[]
+  orders      UserOrder[]
+  tickets     SupportTicket[]
+  profile     UserProfile?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+}
+
+model UserProfile {
+  id                  String   @id
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  occupation          String?
+  about               String?
+  location            String?
+  githubLink          String?
+  linkedinLink        String?
+  mbtiType            String?
+  personalWebsiteLink String?
+  contacts            String?
+  skills              String?
+  image               String?
+  bannerImage         String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }
 
 model Instructor {
@@ -97,6 +120,7 @@ model Course {
   chapters           Json?
   faqs               Json?
   comments           Comment[]
+  enrollments        CourseEnrollment[]
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 
@@ -122,4 +146,63 @@ model Comment {
 
   @@index([courseId])
   @@index([parentId])
+}
+
+model CourseEnrollment {
+  id        String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, courseId])
+  @@index([userId])
+}
+
+model UserOrder {
+  id            String   @id
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type          String   @default("payment")
+  status        String   @default("pending")
+  amount        Int      @default(0)
+  description   String?
+  paymentMethod String?
+  trackingCode  String?
+  productTitle  String?
+  courseId      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId, status])
+}
+
+model SupportTicket {
+  id        String                 @id
+  userId    String
+  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  category  String                 @default("other")
+  status    String                 @default("open")
+  priority  String                 @default("medium")
+  messages  SupportTicketMessage[]
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+
+  @@index([userId, status])
+}
+
+model SupportTicketMessage {
+  id         String        @id
+  ticketId   String
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  senderType String        @default("user")
+  senderName String
+  body       String
+  createdAt  DateTime      @default(now())
+
+  @@index([ticketId])
 }

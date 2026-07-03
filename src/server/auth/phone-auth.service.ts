@@ -19,8 +19,18 @@ type SessionRecord = {
   expiresAt: number;
 };
 
-const otpChallenges = new Map<string, OtpChallenge>();
-const refreshSessions = new Map<string, SessionRecord>();
+const globalForAuth = globalThis as typeof globalThis & {
+  __otpChallenges?: Map<string, OtpChallenge>;
+  __refreshSessions?: Map<string, SessionRecord>;
+};
+
+const otpChallenges = globalForAuth.__otpChallenges ?? new Map<string, OtpChallenge>();
+const refreshSessions = globalForAuth.__refreshSessions ?? new Map<string, SessionRecord>();
+
+if (process.env.NODE_ENV !== "production") {
+  globalForAuth.__otpChallenges = otpChallenges;
+  globalForAuth.__refreshSessions = refreshSessions;
+}
 
 function normalizeDigits(value: string): string {
   const persian = "۰۱۲۳۴۵۶۷۸۹";
@@ -55,9 +65,28 @@ function createToken(prefix: string): string {
   return `${prefix}_${randomBytes(24).toString("hex")}`;
 }
 
+export function createAccessToken(userId: string): string {
+  return `access_${userId}_${randomBytes(16).toString("hex")}`;
+}
+
+export function parseUserIdFromAccessToken(token: string): string | null {
+  if (!token.startsWith("access_")) return null;
+
+  const body = token.slice("access_".length);
+  const separator = body.lastIndexOf("_");
+  if (separator <= 0) return null;
+
+  const userId = body.slice(0, separator).trim();
+  return userId || null;
+}
+
+function generateOtpCode(): string {
+  return String(Math.floor(100_000 + Math.random() * 900_000));
+}
+
 function storeOtpChallenge(phone: string, fullName?: string) {
   otpChallenges.set(phone, {
-    code: TEST_OTP_CODE,
+    code: generateOtpCode(),
     expiresAt: Date.now() + OTP_EXPIRY_SECONDS * 1000,
     fullName,
   });
@@ -65,8 +94,6 @@ function storeOtpChallenge(phone: string, fullName?: string) {
 
 function verifyOtpCode(phone: string, otp: string): boolean {
   const normalizedOtp = normalizeDigits(otp).replace(/[^0-9]/g, "");
-  if (normalizedOtp === TEST_OTP_CODE) return true;
-
   const challenge = otpChallenges.get(phone);
   if (!challenge) return false;
   if (Date.now() > challenge.expiresAt) return false;
@@ -113,7 +140,7 @@ async function upsertUser(phone: string, fullName?: string): Promise<User> {
 }
 
 function buildAuthResponse(user: User) {
-  const accessToken = createToken("access");
+  const accessToken = createAccessToken(user.id);
   const refreshToken = createToken("refresh");
 
   refreshSessions.set(refreshToken, {
@@ -135,9 +162,10 @@ function buildAuthResponse(user: User) {
 export async function sendVerificationCode(phoneInput: string, fullName?: string) {
   const phone = normalizeIranPhone(phoneInput);
   storeOtpChallenge(phone, fullName?.trim() || undefined);
+  const challenge = otpChallenges.get(phone);
 
   return {
-    otp: TEST_OTP_CODE,
+    otp: challenge?.code ?? TEST_OTP_CODE,
     phoneNumber: phone,
     secondsToExpire: OTP_EXPIRY_SECONDS,
   };
@@ -149,7 +177,6 @@ export async function registerByPhone(phoneInput: string, fullName?: string) {
     throw new Error("نام و نام خانوادگی الزامی است");
   }
 
-  await upsertUser(phone, fullName.trim());
   return sendVerificationCode(phone, fullName.trim());
 }
 
@@ -187,7 +214,7 @@ export async function refreshAuthToken(refreshToken?: string) {
   refreshSessions.set(nextRefreshToken, session);
 
   return {
-    accessToken: createToken("access"),
+    accessToken: createAccessToken(user.id),
     refreshToken: nextRefreshToken,
   };
 }

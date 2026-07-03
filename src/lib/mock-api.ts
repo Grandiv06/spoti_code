@@ -793,17 +793,27 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
   if (method === "get" && cleanPath === "/api/dashboard/overview") {
     return json({
       data: {
-        activeCourses: 3,
-        activeCoursesCount: 3,
+        user: {
+          id: "mock-user",
+          fullName: "کاربر تست",
+          phone: "+989000000003",
+        },
         enrolledCoursesCount: 3,
-        learningHours: 86,
-        totalLearningHours: 86,
-        completedCourses: 1,
-        completedCoursesCount: 1,
         myCommentsCount: 12,
         acceptedCommentsCount: 9,
         waitingCommentsCount: 3,
         hasActiveOrder: true,
+        labels: {
+          welcomeTitle: "خوش اومدی، کاربر تست! 👋",
+          welcomeSubtitle: "از داشبورد خودت می‌تونی به دوره‌ها و وضعیت یادگیریت دسترسی داشته باشی.",
+          enrolledCourses: "دوره‌های ثبت‌نامی",
+          myComments: "کامنت‌های من",
+          acceptedComments: "کامنت‌های تاییدشده",
+          waitingComments: "در انتظار بررسی",
+          activeOrder: "سفارش فعال",
+          activeOrderYes: "دارد",
+          activeOrderNo: "ندارد",
+        },
       },
     }) as T;
   }

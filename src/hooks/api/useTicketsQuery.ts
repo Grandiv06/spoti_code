@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGetNoMock } from "@/lib/api";
+import { getAuthHeaders } from "@/lib/auth-tokens";
 import { Ticket, formatTicketDate } from "@/app/panel/support/data";
 import { closeMyTicket } from "@/lib/panel-tickets";
 import { toTicket } from "@/lib/admin-tickets";
@@ -12,10 +13,9 @@ export function useTicketsQuery() {
   return useQuery<Ticket[]>({
     queryKey: ticketQueryKey,
     queryFn: async () => {
-      const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
       const result = await apiGetNoMock<{ data?: unknown }>(
         "/api/dashboard/my-tickets",
-        token ? { Authorization: `Bearer ${token}` } : undefined
+        getAuthHeaders()
       );
 
       const rawList = Array.isArray(result?.data)
