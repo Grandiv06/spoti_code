@@ -30,38 +30,81 @@ enum CourseStatus {
 }
 
 model Instructor {
-  id        String   @id
-  slug      String   @unique
-  name      String
-  avatar    String
-  courses   Course[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                   String   @id
+  slug                 String   @unique
+  name                 String
+  avatar               String
+  displayTitle         String?
+  shortBio             String?
+  fullBiography        String?
+  mainExpertise        String?
+  teachingStyle        String?
+  professionalBackground String?
+  verified             Boolean  @default(true)
+  coverImage           String?
+  yearsOfExperience    Int?
+  skills               Json?
+  experiences          Json?
+  certificates         Json?
+  projects             Json?
+  reviews              Json?
+  socials              Json?
+  publicVisibility     Json?
+  courses              Course[]
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
 
 model Course {
-  id               String         @id
-  slug             String         @unique
-  title            String
-  shortDescription String
-  description      String
-  category         CourseCategory
-  categoryTitle    String
-  instructorId     String
-  instructor       Instructor     @relation(fields: [instructorId], references: [id])
-  cover            String
-  thumbnail        String
-  difficulty       String
-  level            CourseLevel
-  durationHours    Int
-  studentsCount    Int            @default(0)
-  price            Int
-  rating           Float          @default(0)
-  status           CourseStatus   @default(draft)
-  revenue          BigInt         @default(0)
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  id                 String         @id
+  slug               String         @unique
+  title              String
+  shortDescription   String
+  description        String
+  aboutDescription   String?
+  category           CourseCategory
+  categoryTitle      String
+  instructorId       String
+  instructor         Instructor     @relation(fields: [instructorId], references: [id])
+  cover              String
+  thumbnail          String
+  difficulty         String
+  level              CourseLevel
+  durationHours      Int
+  studentsCount      Int            @default(0)
+  price              Int
+  rating             Float          @default(0)
+  status             CourseStatus   @default(draft)
+  revenue            BigInt         @default(0)
+  specialWord        String?
+  introVideo         String?
+  introVideoDuration String?
+  chapters           Json?
+  faqs               Json?
+  comments           Comment[]
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
 
   @@index([status])
   @@index([category])
+}
+
+model Comment {
+  id                String    @id
+  courseId          String
+  course            Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  parentId          String?
+  parent            Comment?  @relation("CommentThread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies           Comment[] @relation("CommentThread")
+  content           String
+  rating            Int?
+  authorId          String?
+  authorName        String
+  authorRole        String    @default("دانشجو")
+  authorAvatar      String    @default("/images/student1.jpg")
+  isInstructorReply Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+
+  @@index([courseId])
+  @@index([parentId])
 }

@@ -1,4 +1,6 @@
 import { PrismaClient, CourseCategory, CourseLevel, CourseStatus } from "@prisma/client";
+import { COURSE_CONTENT_BY_ID } from "./course-content";
+import { COMMENT_SEED, INSTRUCTOR_PROFILE_SEED } from "./instructor-profiles";
 
 const prisma = new PrismaClient();
 
@@ -141,20 +143,45 @@ const courses = [
   },
 ] as const;
 
+function withCourseContent(course: (typeof courses)[number]) {
+  const content = COURSE_CONTENT_BY_ID[course.id];
+  if (!content) return course;
+
+  return {
+    ...course,
+    aboutDescription: content.aboutDescription ?? course.description,
+    specialWord: content.specialWord,
+    introVideo: content.introVideo,
+    introVideoDuration: content.introVideoDuration,
+    chapters: content.chapters ?? [],
+    faqs: content.faqs ?? [],
+  };
+}
+
 async function main() {
   for (const instructor of instructors) {
+    const profile = INSTRUCTOR_PROFILE_SEED[instructor.id as keyof typeof INSTRUCTOR_PROFILE_SEED];
     await prisma.instructor.upsert({
       where: { id: instructor.id },
-      update: instructor,
-      create: instructor,
+      update: { ...instructor, ...profile },
+      create: { ...instructor, ...profile },
     });
   }
 
   for (const course of courses) {
+    const payload = withCourseContent(course);
     await prisma.course.upsert({
       where: { id: course.id },
-      update: course,
-      create: course,
+      update: payload,
+      create: payload,
+    });
+  }
+
+  for (const comment of COMMENT_SEED) {
+    await prisma.comment.upsert({
+      where: { id: comment.id },
+      update: comment,
+      create: comment,
     });
   }
 }

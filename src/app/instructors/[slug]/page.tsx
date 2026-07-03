@@ -16,14 +16,13 @@ import {
   Users,
 } from "lucide-react";
 import {
-  getCoursesForInstructor,
-  getInstructorStats,
-  getPublicInstructorBySlug,
+  getPublicInstructorProfile,
   getPublicInstructorSlugs,
-} from "@/lib/public-instructors";
+} from "@/server/services/instructor.service";
 
-export function generateStaticParams() {
-  return getPublicInstructorSlugs().map((slug) => ({ slug }));
+export async function generateStaticParams() {
+  const slugs = await getPublicInstructorSlugs();
+  return slugs.map((slug) => ({ slug }));
 }
 
 function SocialLink({
@@ -57,12 +56,13 @@ export default async function PublicInstructorProfilePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const instructor = getPublicInstructorBySlug(slug);
+  const profile = await getPublicInstructorProfile(slug);
 
-  if (!instructor) notFound();
+  if (!profile) notFound();
 
-  const courses = getCoursesForInstructor(instructor.slug);
-  const stats = getInstructorStats(instructor.slug);
+  const instructor = profile.data.instructor;
+  const courses = profile.data.courses;
+  const stats = profile.data.stats;
   const socialLinks = [
     instructor.socials?.github
       ? {
@@ -167,7 +167,7 @@ export default async function PublicInstructorProfilePage({
                   <HeroStat
                     icon={<Clock3 className="h-4 w-4" />}
                     label="ساعت آموزش"
-                    value="۲۴"
+                    value={stats.totalTeachingHours.toLocaleString("fa-IR")}
                     description="ساعت محتوای آموزشی"
                   />
                   <HeroStat

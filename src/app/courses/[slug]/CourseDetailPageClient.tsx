@@ -20,7 +20,7 @@ import {
   resolveCourseTeacher,
   resolveTeacherProfileHref,
 } from "@/lib/course-teacher";
-import { API_BASE_URL } from "@/lib/api-config";
+import { apiGetNoMock } from "@/lib/api";
 
 type CourseRecord = Record<string, unknown>;
 
@@ -111,33 +111,18 @@ export default function CourseDetailPageClient({ slug }: { slug: string }) {
       setCourseData(null);
 
       try {
-        const response = await fetch(`${API_BASE_URL}/api/courses/public/slug/${encodedSlug}`, {
-          cache: "no-store",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
+        const encodedSlug = encodeURIComponent(slug);
+        const payload = await apiGetNoMock<{ data?: unknown }>(
+          `/api/courses/public/slug/${encodedSlug}`
+        );
 
         if (!active) return;
 
-        if (response.status === 404) {
-          setCourseData(buildFallbackCourse(slug));
-          setError(null);
-          setNotFound(false);
-          return;
-        }
-
-        if (!response.ok) {
-          throw new Error(await response.text());
-        }
-
-        const payload = (await response.json()) as unknown;
         const coursePayload =
           payload && typeof payload === "object"
             ? ((payload as { data?: unknown }).data ?? payload)
             : null;
 
-        if (!active) return;
         if (coursePayload && typeof coursePayload === "object") {
           setCourseData(coursePayload as CourseRecord);
           setError(null);
@@ -146,11 +131,16 @@ export default function CourseDetailPageClient({ slug }: { slug: string }) {
         }
 
         setCourseData(null);
-        setCourseData(buildFallbackCourse(slug));
-        setError(null);
-        setNotFound(false);
-      } catch {
+        setNotFound(true);
+      } catch (requestError) {
         if (!active) return;
+        const message = requestError instanceof Error ? requestError.message : "";
+        if (message.includes("404") || message.toLowerCase().includes("not found")) {
+          setCourseData(null);
+          setNotFound(true);
+          setError(null);
+          return;
+        }
         setCourseData(buildFallbackCourse(slug));
         setNotFound(false);
         setError(null);

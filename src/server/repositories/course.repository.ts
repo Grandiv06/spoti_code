@@ -41,3 +41,20 @@ export async function findPublishedCourses({
 
   return { items, totalItems };
 }
+
+export async function findPublishedCourseBySlug(slug: string) {
+  return prisma.course.findFirst({
+    where: { slug, status: "published" },
+    include: { instructor: true },
+  });
+}
+
+export async function findPublishedCourseById(id: string) {
+  return prisma.course.findFirst({
+    where: {
+      status: "published",
+      OR: [{ id }, { slug: id }],
+    },
+    include: { instructor: true },
+  });
+}

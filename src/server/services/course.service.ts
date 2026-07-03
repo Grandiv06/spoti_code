@@ -1,10 +1,15 @@
 import type { CourseCategory } from "@prisma/client";
+import { toPublicCourseDetailDto } from "@/server/dto/public-course-detail.dto";
 import {
   toPublicCourseListItemDto,
   type PublicCourseListQueryDto,
   type PublicCourseListResponseDto,
 } from "@/server/dto/public-course.dto";
-import { findPublishedCourses } from "@/server/repositories/course.repository";
+import {
+  findPublishedCourseById,
+  findPublishedCourseBySlug,
+  findPublishedCourses,
+} from "@/server/repositories/course.repository";
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
@@ -45,4 +50,16 @@ export async function getPublicCourses(
       currentPage: page,
     },
   };
+}
+
+export async function getPublicCourseBySlug(slug: string) {
+  const course = await findPublishedCourseBySlug(slug.trim());
+  if (!course) return null;
+  return { data: toPublicCourseDetailDto(course) };
+}
+
+export async function getPublicCourseById(id: string) {
+  const course = await findPublishedCourseById(id.trim());
+  if (!course) return null;
+  return { data: toPublicCourseDetailDto(course) };
 }
