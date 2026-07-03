@@ -23,22 +23,29 @@ function normalizeLimit(value?: number) {
 
 export async function getCourseComments(
   courseIdOrSlug: string,
-  page = 1,
-  limit = DEFAULT_LIMIT
+  options: { page?: number; limit?: number; offset?: number } = {}
 ): Promise<CourseCommentListResponseDto | null> {
   const courseId = await findPublishedCourseId(courseIdOrSlug);
   if (!courseId) return null;
 
-  const normalizedPage = normalizePage(page);
-  const normalizedLimit = normalizeLimit(limit);
+  const normalizedPage = normalizePage(options.page);
+  const normalizedLimit = normalizeLimit(options.limit);
+  const normalizedOffset =
+    typeof options.offset === "number" && options.offset >= 0
+      ? Math.floor(options.offset)
+      : undefined;
 
   const { items, totalItems } = await findCourseCommentsByCourseId(
     courseId,
-    normalizedPage,
-    normalizedLimit
+    normalizedLimit,
+    normalizedOffset !== undefined
+      ? { offset: normalizedOffset }
+      : { page: normalizedPage }
   );
 
   const mappedItems = items.map(toCourseCommentListItemDto);
+  const skip =
+    normalizedOffset ?? (normalizedPage - 1) * normalizedLimit;
   const totalPages = Math.max(1, Math.ceil(totalItems / normalizedLimit));
 
   return {
@@ -51,6 +58,7 @@ export async function getCourseComments(
         itemsPerPage: normalizedLimit,
         totalPages,
         currentPage: normalizedPage,
+        offset: skip,
       },
     },
   };

@@ -71,11 +71,11 @@ interface CourseReviewsProps {
   totalReviews?: number | string;
 }
 
-const COMMENTS_PAGE = 1;
-const COMMENTS_LIMIT = 10;
+const INITIAL_COMMENTS_SIZE = 7;
+const LOAD_MORE_COMMENTS_SIZE = 4;
 
-const getCommentsPath = (courseId: string) =>
-  `/api/comments/course/${encodeURIComponent(courseId)}?page=${COMMENTS_PAGE}&limit=${COMMENTS_LIMIT}`;
+const getCommentsPath = (courseId: string, offset: number, limit: number) =>
+  `/api/comments/course/${encodeURIComponent(courseId)}?offset=${offset}&limit=${limit}`;
 
 const normalizeCommentsResponse = (response: { data?: unknown } | unknown) => {
   const data = response && typeof response === "object"
@@ -87,12 +87,28 @@ const normalizeCommentsResponse = (response: { data?: unknown } | unknown) => {
         data?: unknown;
         items?: unknown[];
         total?: number;
-        meta?: { total?: number };
+        meta?: {
+          total?: number;
+          totalItems?: number;
+          totalPages?: number;
+          currentPage?: number;
+          itemsPerPage?: number;
+        };
       };
   const nestedData = !Array.isArray(root) && root?.data ? root.data : undefined;
   const source = (nestedData ?? root) as
     | unknown[]
-    | { items?: unknown[]; total?: number; meta?: { total?: number } };
+    | {
+        items?: unknown[];
+        total?: number;
+        meta?: {
+          total?: number;
+          totalItems?: number;
+          totalPages?: number;
+          currentPage?: number;
+          itemsPerPage?: number;
+        };
+      };
 
   const items = Array.isArray(source)
     ? source
@@ -100,14 +116,25 @@ const normalizeCommentsResponse = (response: { data?: unknown } | unknown) => {
       ? source.items
       : [];
 
+  const meta = !Array.isArray(source) ? source.meta : undefined;
+
   const total =
     typeof (source as { total?: unknown })?.total === "number"
       ? (source as { total: number }).total
-      : typeof (source as { meta?: { total?: unknown } })?.meta?.total === "number"
-        ? (source as { meta: { total: number } }).meta.total
-        : items.length;
+      : typeof meta?.total === "number"
+        ? meta.total
+        : typeof meta?.totalItems === "number"
+          ? meta.totalItems
+          : items.length;
 
-  return { items, total };
+  const totalPages =
+    typeof meta?.totalPages === "number"
+      ? meta.totalPages
+      : Math.max(1, Math.ceil(total / (meta?.itemsPerPage ?? INITIAL_COMMENTS_SIZE)));
+
+  const currentPage = typeof meta?.currentPage === "number" ? meta.currentPage : 1;
+
+  return { items, total, totalPages, currentPage };
 };
 
 function formatCommentDate(raw: string): string {
@@ -185,13 +212,9 @@ function buildReviewsWithReplies(items: unknown[]): Review[] {
 
 function ReviewReplyBlock({ reply }: { reply: ReviewReply }) {
   return (
-    <div className="relative mt-4 md:mt-5 pr-0 sm:pr-6 md:pr-8">
-      <div
-        aria-hidden="true"
-        className="absolute right-0 top-3 hidden h-[calc(100%-0.75rem)] w-px bg-gradient-to-b from-primary/30 via-primary/15 to-transparent sm:block"
-      />
-      <div className="rounded-[1.25rem] border border-primary/20 bg-primary/5 p-4 dark:border-primary/25 dark:bg-primary/10 md:rounded-2xl md:p-5">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
+    <div className="relative mt-3 mr-11 md:mr-14 pr-4 md:pr-5 border-r-2 border-primary/20 dark:border-primary/30">
+      <div className="rounded-2xl border border-gray-200/80 bg-gray-50/80 px-4 py-3.5 dark:border-white/10 dark:bg-white/[0.03] md:px-5 md:py-4">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-black text-primary">
             <span className="material-symbols-outlined text-sm">school</span>
             پاسخ مدرس
@@ -201,7 +224,7 @@ function ReviewReplyBlock({ reply }: { reply: ReviewReply }) {
         <p className="text-sm font-medium leading-7 text-gray-700 dark:text-gray-200 md:text-[15px]">
           {reply.comment}
         </p>
-        <p className="mt-3 text-[11px] font-black text-primary/80">
+        <p className="mt-2.5 text-[11px] font-black text-gray-600 dark:text-gray-300">
           {reply.author}
           {reply.role ? ` • ${reply.role}` : ""}
         </p>
@@ -210,94 +233,78 @@ function ReviewReplyBlock({ reply }: { reply: ReviewReply }) {
   );
 }
 
-function ReviewCard({ review }: { review: Review }) {
+function ReviewCard({ review, isLast }: { review: Review; isLast?: boolean }) {
   return (
-    <div className="glass-panel rounded-[2rem] p-5 transition-all duration-300 hover:bg-white/40 dark:hover:bg-white/5 md:rounded-4xl md:p-6 lg:p-8">
-      <div className="flex flex-col gap-4 sm:flex-row md:gap-6">
-        <div className="flex shrink-0 items-center gap-3 border-b border-gray-100 pb-4 dark:border-gray-800 sm:border-b-0 sm:pb-0 md:gap-4">
-          {review.userId ? (
-            <Link
-              href={`/social/profile/${review.userId}`}
-              className="group/profile flex w-full shrink-0 items-center gap-3 sm:w-auto md:gap-4"
-            >
-              <div className="relative size-12 shrink-0 overflow-hidden rounded-xl border-2 border-white shadow-lg transition-transform group-hover/profile:scale-105 dark:border-gray-700 md:size-16 md:rounded-2xl">
-                <Image src={review.avatar} alt={review.author} fill className="object-cover" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <h4 className="truncate text-base font-bold text-gray-900 transition-colors group-hover/profile:text-primary dark:text-white md:text-lg">
-                  {review.author}
-                </h4>
-                <span className="block truncate text-[10px] font-bold text-primary md:text-sm">{review.role}</span>
-              </div>
-            </Link>
-          ) : (
-            <div className="flex w-full shrink-0 items-center gap-3 sm:w-auto md:gap-4">
-              <div className="relative size-12 shrink-0 overflow-hidden rounded-xl border-2 border-white shadow-lg dark:border-gray-700 md:size-16 md:rounded-2xl">
-                <Image src={review.avatar} alt={review.author} fill className="object-cover" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <h4 className="truncate text-base font-bold text-gray-900 dark:text-white md:text-lg">{review.author}</h4>
-                <span className="block truncate text-[10px] font-bold text-primary md:text-sm">{review.role}</span>
-              </div>
+    <article
+      className={`group px-4 py-5 transition-colors hover:bg-gray-50/60 dark:hover:bg-white/[0.02] md:px-6 md:py-6 ${
+        isLast ? "" : "border-b border-gray-100 dark:border-white/[0.06]"
+      }`}
+    >
+      <div className="flex items-start gap-3 md:gap-4">
+        {review.userId ? (
+          <Link
+            href={`/social/profile/${review.userId}`}
+            className="group/profile shrink-0"
+          >
+            <div className="relative size-11 overflow-hidden rounded-2xl border border-gray-200/80 shadow-sm transition-transform group-hover/profile:scale-105 dark:border-white/10 md:size-12">
+              <Image src={review.avatar} alt={review.author} fill className="object-cover" />
             </div>
-          )}
-        </div>
+          </Link>
+        ) : (
+          <div className="relative size-11 shrink-0 overflow-hidden rounded-2xl border border-gray-200/80 shadow-sm dark:border-white/10 md:size-12">
+            <Image src={review.avatar} alt={review.author} fill className="object-cover" />
+          </div>
+        )}
 
-        <div className="flex-1">
-          <p className="text-justify text-sm font-medium leading-relaxed text-gray-600 dark:text-gray-300 sm:text-right md:text-base">
-            {review.comment}
-          </p>
-          <span className="mt-3 block text-left text-[10px] text-gray-500 dark:text-gray-400 sm:text-right md:mt-5 md:text-xs">
-            {review.date}
-          </span>
+        <div className="min-w-0 flex-1">
+          <div className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 dark:border-white/10 dark:bg-white/[0.03] md:px-5 md:py-4">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                {review.userId ? (
+                  <Link
+                    href={`/social/profile/${review.userId}`}
+                    className="truncate text-sm font-black text-gray-900 transition-colors hover:text-primary dark:text-white md:text-base"
+                  >
+                    {review.author}
+                  </Link>
+                ) : (
+                  <h4 className="truncate text-sm font-black text-gray-900 dark:text-white md:text-base">
+                    {review.author}
+                  </h4>
+                )}
+                <span className="block truncate text-[10px] font-bold text-gray-500 dark:text-gray-400 md:text-xs">
+                  {review.role}
+                </span>
+              </div>
+              <span className="shrink-0 text-[10px] font-bold text-gray-400 dark:text-gray-500 md:text-xs">
+                {review.date}
+              </span>
+            </div>
+            <p className="text-justify text-sm font-medium leading-7 text-gray-600 dark:text-gray-300 md:text-[15px]">
+              {review.comment}
+            </p>
+          </div>
+
+          {review.reply ? <ReviewReplyBlock reply={review.reply} /> : null}
         </div>
       </div>
-
-      {review.reply ? <ReviewReplyBlock reply={review.reply} /> : null}
-    </div>
+    </article>
   );
 }
 
 function CommentsSkeleton() {
   return (
-    <div className="space-y-4 md:space-y-6" dir="rtl" aria-hidden="true">
-      <div className="glass-panel rounded-[2rem] md:rounded-4xl px-6 md:px-8 py-5 md:py-6 flex flex-col sm:flex-row items-center justify-between gap-4 mb-2">
-        <div className="flex items-center gap-3 md:gap-4 w-full sm:w-auto justify-center sm:justify-start">
-          <SkeletonBox className="size-10 md:size-12 shrink-0" rounded="rounded-xl md:rounded-2xl" />
-          <div className="space-y-2 text-center sm:text-right">
-            <SkeletonBox className="h-6 w-36 md:w-44 mx-auto sm:mx-0" />
-            <SkeletonBox className="h-3 w-20 md:w-24 mx-auto sm:mx-0" />
-          </div>
-        </div>
-        <SkeletonBox className="h-10 w-full sm:w-28 md:w-36" rounded="rounded-xl md:rounded-2xl" />
-      </div>
-
-      <div className="space-y-4 md:space-y-6">
-        {Array.from({ length: 3 }).map((_, index) => (
-          <div
-            key={index}
-            className="glass-panel rounded-[2rem] md:rounded-4xl p-5 md:p-6 lg:p-8"
-          >
-            <div className="flex flex-col sm:flex-row gap-4 md:gap-6">
-              <div className="flex items-center gap-3 md:gap-4 shrink-0 border-b sm:border-b-0 border-gray-100 dark:border-gray-800 pb-4 sm:pb-0">
-                <div className="flex items-center gap-3 md:gap-4 shrink-0 w-full sm:w-auto">
-                  <SkeletonBox className="size-12 md:size-16 shrink-0" rounded="rounded-xl md:rounded-2xl" />
-                  <div className="flex-1 min-w-0 space-y-2">
-                    <SkeletonBox className="h-5 w-32 md:w-40" />
-                    <SkeletonBox className="h-3 w-20 md:w-24" />
-                  </div>
-                </div>
-              </div>
-              <div className="flex-1 space-y-3 md:space-y-4">
-                <SkeletonBox className="h-4 w-full" />
-                <SkeletonBox className="h-4 w-11/12" />
-                <SkeletonBox className="h-4 w-3/4" />
-                <SkeletonBox className="h-3 w-24 ml-auto" />
-              </div>
+    <div className="divide-y divide-gray-100 dark:divide-white/[0.06]" dir="rtl" aria-hidden="true">
+      {Array.from({ length: 3 }).map((_, index) => (
+        <div key={index} className="px-4 py-5 md:px-6 md:py-6">
+          <div className="flex items-start gap-3 md:gap-4">
+            <SkeletonBox className="size-11 md:size-12 shrink-0" rounded="rounded-2xl" />
+            <div className="flex-1 space-y-3">
+              <SkeletonBox className="h-24 w-full" rounded="rounded-[1.35rem]" />
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -309,38 +316,65 @@ export default function CourseReviews({
 }: CourseReviewsProps) {
   const [liveReviews, setLiveReviews] = useState<Review[]>([]);
   const [liveTotalReviews, setLiveTotalReviews] = useState<number | string>(0);
+  const [hasMoreReviews, setHasMoreReviews] = useState(false);
   const [isLoadingReviews, setIsLoadingReviews] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({ comment: "" });
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchCourseComments = useCallback(async () => {
-    const res = await apiGetNoMock<{ data?: unknown }>(getCommentsPath(courseId));
-    const { items, total } = normalizeCommentsResponse(res);
+  const loadCourseComments = useCallback(
+    async (offset: number, limit: number, append = false) => {
+      const res = await apiGetNoMock<{ data?: unknown }>(getCommentsPath(courseId, offset, limit));
+      const { items, total } = normalizeCommentsResponse(res);
+      const mapped = buildReviewsWithReplies(items);
 
-    const mapped = buildReviewsWithReplies(items);
+      setLiveReviews((prev) => {
+        if (!append) return mapped;
 
-    setLiveReviews(mapped);
-    setLiveTotalReviews(total);
-  }, [courseId]);
+        const existingIds = new Set(prev.map((review) => review.id));
+        const nextItems = mapped.filter((review) => !existingIds.has(review.id));
+        return [...prev, ...nextItems];
+      });
+
+      const nextCount = append ? offset + mapped.length : mapped.length;
+      setLiveTotalReviews(total);
+      setHasMoreReviews(nextCount < total);
+    },
+    [courseId]
+  );
 
   useEffect(() => {
     const fetchComments = async () => {
       setIsLoadingReviews(true);
       try {
-        await fetchCourseComments();
+        await loadCourseComments(0, INITIAL_COMMENTS_SIZE, false);
       } catch {
         setLiveReviews(reviews);
         setLiveTotalReviews(totalReviews);
+        setHasMoreReviews(false);
       } finally {
         setIsLoadingReviews(false);
       }
     };
 
     fetchComments();
-  }, [fetchCourseComments, reviews, totalReviews]);
+  }, [loadCourseComments, reviews, totalReviews]);
+
+  const handleLoadMore = async () => {
+    if (isLoadingMore || !hasMoreReviews) return;
+
+    setIsLoadingMore(true);
+    try {
+      await loadCourseComments(liveReviews.length, LOAD_MORE_COMMENTS_SIZE, true);
+    } catch {
+      // Keep current list on pagination failure.
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -359,7 +393,9 @@ export default function CourseReviews({
       }
 
       await apiPostNoMock("/api/comments", requestBody);
-      await fetchCourseComments();
+      setIsLoadingReviews(true);
+      await loadCourseComments(0, INITIAL_COMMENTS_SIZE, false);
+      setIsLoadingReviews(false);
     } catch {
       // Keep modal open to allow retry on API failure.
       return;
@@ -387,29 +423,31 @@ export default function CourseReviews({
   }, [isModalOpen]);
 
   return (
-    <section className="space-y-4 md:space-y-6">
-      <div className="glass-panel rounded-[2rem] md:rounded-4xl px-6 md:px-8 py-5 md:py-6 flex flex-col sm:flex-row items-center justify-between gap-4 mb-2">
-        <div className="flex items-center gap-3 md:gap-4 w-full sm:w-auto text-center sm:text-right justify-center sm:justify-start">
-          <div className="size-10 md:size-12 rounded-xl md:rounded-2xl bg-gradient-to-br from-amber-100 dark:from-amber-900/30 to-white dark:to-gray-800 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-sm border border-amber-200/50 dark:border-amber-800/50 shrink-0">
-            <span className="material-symbols-outlined filled text-xl md:text-2xl">rate_review</span>
+    <section className="glass-panel overflow-hidden rounded-[2rem] border border-gray-200/80 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.08)] dark:border-white/[0.06] dark:shadow-none md:rounded-4xl">
+      <div className="border-b border-gray-200/80 px-5 py-5 dark:border-white/[0.06] md:px-8 md:py-6">
+        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+          <div className="flex w-full items-center justify-center gap-3 text-center sm:w-auto sm:justify-start sm:text-right md:gap-4">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-white/50 bg-gradient-to-br from-emerald-100 to-white text-primary shadow-sm dark:border-gray-700 dark:from-emerald-900/30 dark:to-gray-800 md:size-12 md:rounded-2xl">
+              <span className="material-symbols-outlined filled text-xl md:text-2xl">rate_review</span>
+            </div>
+            <div>
+              <h2 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white">
+                نظرات دانشجویان
+              </h2>
+              <span className="text-[10px] md:text-sm text-gray-600 dark:text-gray-400 mt-0.5 md:mt-1 block">
+                ({liveTotalReviews} نظر)
+              </span>
+            </div>
           </div>
-          <div>
-            <h2 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white">
-              نظرات دانشجویان
-            </h2>
-            <span className="text-[10px] md:text-sm text-gray-600 dark:text-gray-400 mt-0.5 md:mt-1 block">
-              ({liveTotalReviews} نظر)
-            </span>
-          </div>
+          <button
+            type="button"
+            onClick={() => setIsModalOpen(true)}
+            className="w-full sm:w-auto justify-center text-sm font-bold text-white bg-primary hover:bg-primary-dark dark:bg-primary dark:hover:bg-primary-dark px-4 md:px-5 py-2 md:py-2.5 rounded-xl md:rounded-2xl shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all flex items-center gap-2 cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-base md:text-lg">edit_square</span>
+            ثبت نظر
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setIsModalOpen(true)}
-          className="w-full sm:w-auto justify-center text-sm font-bold text-white bg-primary hover:bg-primary-dark dark:bg-primary dark:hover:bg-primary-dark px-4 md:px-5 py-2 md:py-2.5 rounded-xl md:rounded-2xl shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all flex items-center gap-2 cursor-pointer"
-        >
-          <span className="material-symbols-outlined text-base md:text-lg">edit_square</span>
-          ثبت نظر
-        </button>
       </div>
 
       {/* Modal ثبت نظر */}
@@ -465,9 +503,7 @@ export default function CourseReviews({
                           <svg
                             viewBox="0 0 24 24"
                             className={`size-6 md:size-7 transition-all duration-200 ${
-                              isFilled
-                                ? "text-amber-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.45)]"
-                                : "text-gray-300 dark:text-gray-600"
+                              isFilled ? "text-primary" : "text-gray-300 dark:text-gray-600"
                             }`}
                             fill={isFilled ? "currentColor" : "none"}
                             stroke="currentColor"
@@ -529,16 +565,42 @@ export default function CourseReviews({
         </div>
       )}
 
-      <div className="space-y-4 md:space-y-6">
-        {isLoadingReviews ? (
-          <CommentsSkeleton />
-        ) : liveReviews.length === 0 ? (
-          <div className="glass-panel rounded-[2rem] md:rounded-4xl p-6 text-center text-sm font-bold text-gray-500 dark:text-gray-400">
-            هنوز نظری برای این دوره ثبت نشده است.
-          </div>
-        ) : (
-          liveReviews.map((review) => <ReviewCard key={review.id} review={review} />)
-        )}
+      <div className="p-4 md:p-6">
+        <div className="overflow-hidden rounded-[1.5rem] border border-gray-200/70 bg-white/80 dark:border-white/10 dark:bg-white/[0.02] md:rounded-[1.75rem]">
+          {isLoadingReviews ? (
+            <CommentsSkeleton />
+          ) : liveReviews.length === 0 ? (
+            <div className="px-6 py-10 text-center text-sm font-bold text-gray-500 dark:text-gray-400">
+              هنوز نظری برای این دوره ثبت نشده است.
+            </div>
+          ) : (
+            <>
+              {liveReviews.map((review, index) => (
+                <ReviewCard
+                  key={review.id}
+                  review={review}
+                  isLast={index === liveReviews.length - 1 && !hasMoreReviews}
+                />
+              ))}
+
+              {hasMoreReviews ? (
+                <div className="border-t border-gray-100 px-4 py-4 dark:border-white/[0.06] md:px-6 md:py-5">
+                  <button
+                    type="button"
+                    onClick={handleLoadMore}
+                    disabled={isLoadingMore}
+                    className="mx-auto flex w-full max-w-sm items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-bold text-gray-700 shadow-sm transition-all hover:border-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-70 dark:border-white/10 dark:bg-white/[0.04] dark:text-gray-200 dark:hover:bg-white/[0.06]"
+                  >
+                    <span className="material-symbols-outlined text-lg">
+                      {isLoadingMore ? "progress_activity" : "expand_more"}
+                    </span>
+                    {isLoadingMore ? "در حال بارگذاری..." : "مشاهده نظرات بیشتر"}
+                  </button>
+                </div>
+              ) : null}
+            </>
+          )}
+        </div>
       </div>
     </section>
   );

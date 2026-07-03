@@ -37,6 +37,7 @@ export interface CourseCommentListMetaDto {
   itemsPerPage: number;
   totalPages: number;
   currentPage: number;
+  offset?: number;
 }
 
 export interface CourseCommentListResponseDto {

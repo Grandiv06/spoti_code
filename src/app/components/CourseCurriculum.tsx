@@ -118,12 +118,12 @@ export default function CourseCurriculum({
         <button
           type="button"
           onClick={showCurriculum}
-          className="w-full rounded-4xl px-8 py-8 flex items-center justify-between gap-4 bg-white dark:bg-[#1c1e26]/90 border border-gray-200/80 dark:border-white/[0.06] shadow-learning-card-light dark:shadow-learning-card-dark hover:bg-gray-50 dark:hover:bg-white/10 transition-all duration-300 group cursor-pointer"
+          className="glass-panel group flex w-full cursor-pointer items-center justify-between gap-4 overflow-hidden rounded-[2rem] border border-gray-200/80 px-5 py-5 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.08)] transition-all duration-300 hover:bg-gray-50/60 dark:border-white/[0.06] dark:shadow-none dark:hover:bg-white/[0.02] md:rounded-4xl md:px-8 md:py-6"
         >
-          <div className="flex items-center gap-4">
-            <span className="flex items-center justify-center size-14 rounded-3xl bg-primary/20 dark:bg-primary/30 text-primary group-hover:scale-110 transition-transform">
-              <span className="material-symbols-outlined filled text-3xl">toc</span>
-            </span>
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-white/50 bg-gradient-to-br from-emerald-100 to-white text-primary shadow-sm transition-transform group-hover:scale-105 dark:border-gray-700 dark:from-emerald-900/30 dark:to-gray-800 md:size-12 md:rounded-2xl">
+              <span className="material-symbols-outlined filled text-xl md:text-2xl">toc</span>
+            </div>
             <div className="text-right">
               <h2 className="text-xl font-black text-gray-900 dark:text-white">سرفصل‌های آموزشی</h2>
               <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -131,7 +131,7 @@ export default function CourseCurriculum({
               </span>
             </div>
           </div>
-          <span className="material-symbols-outlined text-primary text-3xl group-hover:translate-x-1 transition-transform">
+          <span className="material-symbols-outlined text-2xl text-gray-400 transition-transform group-hover:translate-y-0.5 dark:text-gray-500 md:text-3xl">
             expand_more
           </span>
         </button>
@@ -140,10 +140,12 @@ export default function CourseCurriculum({
   }
 
   return (
-    <section className="rounded-4xl overflow-hidden bg-white dark:bg-[#1c1e26]/90 border border-gray-200/80 dark:border-white/[0.06] shadow-learning-card-light dark:shadow-learning-card-dark">
-      <div className="px-8 py-6 flex flex-wrap items-center justify-between gap-4 border-b border-gray-200/80 dark:border-white/[0.06]">
-        <h2 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3">
-          <span className="material-symbols-outlined filled text-primary">toc</span>
+    <section className="glass-panel overflow-hidden rounded-[2rem] border border-gray-200/80 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.08)] dark:border-white/[0.06] dark:shadow-none md:rounded-4xl">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200/80 px-5 py-5 dark:border-white/[0.06] md:px-8 md:py-6">
+        <h2 className="flex items-center gap-3 text-xl font-black text-gray-900 dark:text-white md:text-2xl">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-white/50 bg-gradient-to-br from-emerald-100 to-white text-primary shadow-sm dark:border-gray-700 dark:from-emerald-900/30 dark:to-gray-800 md:size-12 md:rounded-2xl">
+            <span className="material-symbols-outlined filled text-xl md:text-2xl">toc</span>
+          </div>
           سرفصل‌های آموزشی
         </h2>
         <div className="flex flex-row-reverse items-center gap-3">
@@ -154,25 +156,25 @@ export default function CourseCurriculum({
           >
             بستن
           </button>
-          <span className="text-sm font-bold text-primary bg-primary/10 dark:bg-white/10 px-4 py-2 rounded-2xl shadow-sm">
+          <span className="rounded-2xl bg-gray-100 px-4 py-2 text-sm font-bold text-gray-600 shadow-sm dark:bg-white/5 dark:text-gray-300">
             {chapters.length} فصل
           </span>
-          <span className="text-sm font-bold text-primary bg-primary/10 dark:bg-white/10 px-4 py-2 rounded-2xl shadow-sm">
+          <span className="rounded-2xl bg-gray-100 px-4 py-2 text-sm font-bold text-gray-600 shadow-sm dark:bg-white/5 dark:text-gray-300">
             {totalLessons} جلسه
           </span>
         </div>
       </div>
 
-      <div className="p-6 space-y-6">
+      <div className="space-y-4 p-4 md:p-6">
         {chapters.map((chapter) => {
           const isOpen = openChapterId === chapter.id;
           return (
             <div
               key={chapter.id}
-              className={`rounded-3xl md:rounded-4xl overflow-hidden transition-all duration-300 group ${
+              className={`group overflow-hidden rounded-2xl border transition-all duration-300 md:rounded-3xl ${
                 isOpen
-                  ? "bg-gray-50 dark:bg-white/5 border border-gray-200/80 dark:border-white/[0.06] shadow-learning-card-light dark:shadow-learning-card-dark"
-                  : "bg-white dark:bg-white/[0.02] border border-gray-200/60 dark:border-transparent hover:bg-gray-50 dark:hover:bg-white/5 hover:border-gray-200/80 dark:hover:border-white/[0.06] hover:shadow-learning-card-light dark:hover:shadow-learning-card-dark"
+                  ? "border-gray-200/80 bg-gray-50/80 dark:border-white/[0.06] dark:bg-white/[0.03]"
+                  : "border-gray-200/60 bg-white hover:border-gray-200/80 hover:bg-gray-50/60 dark:border-white/[0.04] dark:bg-white/[0.02] dark:hover:border-white/[0.06] dark:hover:bg-white/[0.04]"
               }`}
             >
               <button
@@ -182,10 +184,10 @@ export default function CourseCurriculum({
               >
                 <div className="flex items-center gap-3 md:gap-4 lg:gap-6 w-[calc(100%-48px)]">
                   <span
-                    className={`shrink-0 flex items-center justify-center size-10 md:size-12 lg:size-14 rounded-xl md:rounded-2xl lg:rounded-3xl text-lg md:text-xl lg:text-2xl font-black transition-all ${
+                    className={`flex size-10 shrink-0 items-center justify-center rounded-xl text-lg font-black transition-all md:size-12 md:rounded-2xl md:text-xl lg:size-14 lg:rounded-3xl lg:text-2xl ${
                       isOpen
-                        ? "bg-primary text-white shadow-[0_0_20px_rgba(34,197,94,0.5)]"
-                        : "bg-gray-100 dark:bg-gray-800 shadow-md text-primary group-hover:text-primary-dark group-hover:scale-105 md:group-hover:scale-110"
+                        ? "bg-primary text-white"
+                        : "bg-gray-100 text-gray-700 group-hover:bg-gray-200 dark:bg-white/10 dark:text-gray-200 dark:group-hover:bg-white/15"
                     }`}
                   >
                     {chapter.number}
@@ -204,10 +206,10 @@ export default function CourseCurriculum({
                   </div>
                 </div>
                 <div
-                  className={`shrink-0 size-8 md:size-10 rounded-full flex items-center justify-center transition-all ${
+                  className={`flex size-8 shrink-0 items-center justify-center rounded-full transition-all md:size-10 ${
                     isOpen
-                      ? "bg-primary text-white shadow-[0_0_20px_rgba(34,197,94,0.5)]"
-                      : "bg-gray-100 dark:bg-white/10 group-hover:bg-primary group-hover:text-white"
+                      ? "bg-primary text-white"
+                      : "bg-gray-100 text-gray-500 group-hover:bg-gray-200 dark:bg-white/10 dark:text-gray-400 dark:group-hover:bg-white/15"
                   }`}
                 >
                   <span
@@ -221,8 +223,8 @@ export default function CourseCurriculum({
               </button>
 
               {isOpen && (
-                <div className="p-4 md:p-6 lg:p-8 bg-gray-50/80 dark:bg-white/5 backdrop-blur-sm border-t border-gray-200/80 dark:border-white/[0.06]">
-                  <ul className="space-y-4 border-r-2 border-primary/30 pr-6 mr-3">
+                <div className="border-t border-gray-200/80 bg-white/60 p-4 dark:border-white/[0.06] dark:bg-white/[0.02] md:p-6 lg:p-8">
+                  <ul className="mr-3 space-y-4 border-r-2 border-gray-200 pr-6 dark:border-white/10">
                     {chapter.lessons.map((lesson) => {
                       const playable = isLessonPlayable(lesson, coursePurchased);
                       const isActive = activeLessonId === lesson.id;

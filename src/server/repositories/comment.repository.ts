@@ -2,13 +2,18 @@ import { prisma } from "@/server/db/prisma";
 
 export async function findCourseCommentsByCourseId(
   courseId: string,
-  page: number,
-  limit: number
+  limit: number,
+  options?: { page?: number; offset?: number }
 ) {
   const where = {
     courseId,
     parentId: null,
   };
+
+  const skip =
+    typeof options?.offset === "number" && options.offset >= 0
+      ? options.offset
+      : ((options?.page ?? 1) - 1) * limit;
 
   const [items, totalItems] = await Promise.all([
     prisma.comment.findMany({
@@ -19,7 +24,7 @@ export async function findCourseCommentsByCourseId(
         },
       },
       orderBy: { createdAt: "desc" },
-      skip: (page - 1) * limit,
+      skip,
       take: limit,
     }),
     prisma.comment.count({ where }),

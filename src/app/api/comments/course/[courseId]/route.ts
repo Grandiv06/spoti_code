@@ -12,8 +12,14 @@ export async function GET(
     const { searchParams } = request.nextUrl;
     const page = Number(searchParams.get("page") ?? "1");
     const limit = Number(searchParams.get("limit") ?? "10");
+    const offsetParam = searchParams.get("offset");
+    const offset = offsetParam !== null ? Number(offsetParam) : undefined;
 
-    const result = await getCourseComments(decodeURIComponent(courseId), page, limit);
+    const result = await getCourseComments(decodeURIComponent(courseId), {
+      page,
+      limit,
+      offset: Number.isFinite(offset) ? offset : undefined,
+    });
 
     if (!result) {
       return NextResponse.json({ message: "دوره پیدا نشد" }, { status: 404 });

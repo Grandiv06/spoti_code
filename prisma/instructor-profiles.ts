@@ -137,29 +137,68 @@ export const INSTRUCTOR_PROFILE_SEED = {
   },
 } as const;
 
+const NEXTJS_COMMENT_AUTHORS = [
+  { id: "user-1", name: "سهراب امینی", role: "توسعه‌دهنده React", avatar: "/images/student1.jpg" },
+  { id: "user-2", name: "سارا رضایی", role: "توسعه‌دهنده فرانت‌اند", avatar: "/images/student2.jpg" },
+  { id: "user-3", name: "نیما حسینی", role: "متخصص دیتاساینس", avatar: "/images/student3.jpg" },
+  { id: "user-4", name: "نگار کریمی", role: "دانشجو", avatar: "/images/student1.jpg" },
+  { id: "user-5", name: "علی مرادی", role: "دانشجو", avatar: "/images/student2.jpg" },
+  { id: "user-6", name: "مریم جعفری", role: "توسعه‌دهنده Next.js", avatar: "/images/student3.jpg" },
+  { id: "user-7", name: "پارسا نوری", role: "دانشجوی برنامه‌نویسی", avatar: "/images/student1.jpg" },
+  { id: "user-8", name: "الهام رستمی", role: "فرانت‌اند دولوپر", avatar: "/images/student2.jpg" },
+  { id: "user-9", name: "کاوه احمدی", role: "دانشجو", avatar: "/images/student3.jpg" },
+  { id: "user-10", name: "نیلوفر صادقی", role: "جونیور دولوپر", avatar: "/images/student1.jpg" },
+  { id: "user-11", name: "رضا موسوی", role: "توسعه‌دهنده وب", avatar: "/images/student2.jpg" },
+  { id: "user-12", name: "حانیه کاظمی", role: "دانشجو", avatar: "/images/student3.jpg" },
+  { id: "user-13", name: "امیرحسین طاهری", role: "React Developer", avatar: "/images/student1.jpg" },
+  { id: "user-14", name: "سپیده باقری", role: "دانشجوی دوره", avatar: "/images/student2.jpg" },
+  { id: "user-15", name: "مهدی شریفی", role: "برنامه‌نویس فرانت", avatar: "/images/student3.jpg" },
+] as const;
+
+const NEXTJS_COMMENT_TEXTS = [
+  "پروژه‌های عملی این دوره باعث شد ترس من از کدنویسی بریزه. محتوا بسیار کاربردی و به‌روز است.",
+  "بهترین تصمیمی که برای آینده‌ام گرفتم شرکت در این دوره بود. منتورها واقعاً دلسوزانه کمک می‌کنند.",
+  "محتوای آموزشی بسیار به‌روز و با کیفیت است. پشتیبانی سریع هم یک مزیت بزرگ است.",
+  "بخش App Router و Server Components را دقیق و قابل‌فهم توضیح دادند. عالی بود.",
+  "برای کسی که React بلد است و می‌خواهد Next.js یاد بگیرد، این دوره کامل و کاربردی است.",
+  "تمرین‌ها مرحله‌به‌مرحله طراحی شده و حس پروژه واقعی می‌دهد.",
+  "از نظر کیفیت ویدیو و تدوین هم سطح دوره‌های خارجی است.",
+  "بعد از این دوره توانستم رزومه‌ام را برای موقعیت Next.js قوی‌تر کنم.",
+  "مبحث احراز هویت و deployment خیلی به‌دردم خورد.",
+  "گاهی سرعت توضیح در بخش‌های پیشرفته کمی بالا بود، ولی جزوه‌ها کمک کرد.",
+  "ساختار دوره منطقی است و از مفاهیم پایه تا پروژه نهایی پیش می‌رود.",
+  "پاسخ‌گویی تیم پشتیبانی در Q&A واقعاً سریع و دقیق بود.",
+  "پروژه نهایی دوره برای پورتفولیو عالی است.",
+  "اگر وقت محدود دارید، حتماً جلسات رایگان را ببینید؛ کیفیت کل دوره را نشان می‌دهد.",
+  "به‌عنوان کسی که از جاوااسکریپت آمده بودم، انتقال به Next.js در این دوره خیلی روان بود.",
+] as const;
+
+const NEXTJS_COMMENT_RATINGS = [5, 5, 4, 5, 5, 4, 5, 5, 5, 4, 5, 5, 5, 4, 5] as const;
+
+function buildNextjsComments() {
+  const baseDate = new Date("2026-06-01T10:00:00.000Z");
+
+  return NEXTJS_COMMENT_TEXTS.map((content, index) => {
+    const author = NEXTJS_COMMENT_AUTHORS[index];
+    const createdAt = new Date(baseDate);
+    createdAt.setDate(createdAt.getDate() - index * 3);
+
+    return {
+      id: `comment-nextjs-${index + 1}`,
+      courseId: "nextjs",
+      content,
+      rating: NEXTJS_COMMENT_RATINGS[index],
+      authorId: author.id,
+      authorName: author.name,
+      authorRole: author.role,
+      authorAvatar: author.avatar,
+      createdAt,
+    };
+  });
+}
+
 export const COMMENT_SEED = [
-  {
-    id: "comment-nextjs-1",
-    courseId: "nextjs",
-    content: "پروژه‌های عملی این دوره باعث شد ترس من از کدنویسی بریزه. محتوا بسیار کاربردی و به‌روز است.",
-    rating: 5,
-    authorId: "user-1",
-    authorName: "سهراب امینی",
-    authorRole: "توسعه‌دهنده React",
-    authorAvatar: "/images/student1.jpg",
-    createdAt: new Date("2026-05-12T09:00:00.000Z"),
-  },
-  {
-    id: "comment-nextjs-2",
-    courseId: "nextjs",
-    content: "بهترین تصمیمی که برای آینده‌ام گرفتم شرکت در این دوره بود. منتورها واقعاً دلسوزانه کمک می‌کنند.",
-    rating: 5,
-    authorId: "user-2",
-    authorName: "سارا رضایی",
-    authorRole: "توسعه‌دهنده فرانت‌اند",
-    authorAvatar: "/images/student2.jpg",
-    createdAt: new Date("2026-05-02T09:00:00.000Z"),
-  },
+  ...buildNextjsComments(),
   {
     id: "comment-nextjs-2-reply",
     courseId: "nextjs",
@@ -169,18 +208,18 @@ export const COMMENT_SEED = [
     authorRole: "مدرس",
     authorAvatar: "/images/inst1.jpg",
     isInstructorReply: true,
-    createdAt: new Date("2026-05-10T09:00:00.000Z"),
+    createdAt: new Date("2026-05-28T09:00:00.000Z"),
   },
   {
-    id: "comment-nextjs-3",
+    id: "comment-nextjs-10-reply",
     courseId: "nextjs",
-    content: "محتوای آموزشی بسیار به‌روز و با کیفیت هست. پشتیبانی ۲۴ ساعته واقعاً یک مزیت بزرگه.",
-    rating: 4,
-    authorId: "user-3",
-    authorName: "نیما حسینی",
-    authorRole: "متخصص دیتاساینس",
-    authorAvatar: "/images/student3.jpg",
-    createdAt: new Date("2026-04-19T09:00:00.000Z"),
+    parentId: "comment-nextjs-10",
+    content: "ممنون از بازخورد دقیق شما. در آپدیت بعدی سرعت بخش‌های پیشرفته را متعادل‌تر می‌کنیم.",
+    authorName: "امیررضا رضایی",
+    authorRole: "مدرس",
+    authorAvatar: "/images/inst1.jpg",
+    isInstructorReply: true,
+    createdAt: new Date("2026-05-15T11:00:00.000Z"),
   },
   {
     id: "comment-react-1",
