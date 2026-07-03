@@ -1,5 +1,4 @@
 import type { Course, Instructor } from "@prisma/client";
-import { toPublicCourseListItemDto } from "@/server/dto/public-course.dto";
 
 export interface PublicInstructorCourseCardDto {
   id: string;
@@ -79,11 +78,52 @@ export interface PublicInstructorStatsDto {
   totalTeachingHours: number;
 }
 
+export interface PublicInstructorStatLabelDto {
+  label: string;
+  description: string;
+  value?: string;
+}
+
+export interface PublicInstructorSectionLabelDto {
+  title: string;
+  description: string;
+}
+
+export interface PublicInstructorUILabelsDto {
+  hero: {
+    profileBadge: string;
+    verifiedBadge: string;
+    unverifiedBadge: string;
+  };
+  stats: {
+    teachingHours: PublicInstructorStatLabelDto;
+    courses: PublicInstructorStatLabelDto;
+    students: PublicInstructorStatLabelDto;
+    member: PublicInstructorStatLabelDto;
+  };
+  social: {
+    github: string;
+    linkedin: string;
+    telegram: string;
+    website: string;
+    email: string;
+    phone: string;
+  };
+  sections: {
+    about: PublicInstructorSectionLabelDto & { biographyTitle: string };
+    skills: PublicInstructorSectionLabelDto & { empty: string };
+    courses: PublicInstructorSectionLabelDto & { empty: string };
+    certificates: PublicInstructorSectionLabelDto & { badge: string; viewLink: string };
+    projects: PublicInstructorSectionLabelDto & { github: string; live: string };
+  };
+}
+
 export interface PublicInstructorProfileResponseDto {
   data: {
     instructor: PublicInstructorProfileDto;
     courses: PublicInstructorCourseCardDto[];
     stats: PublicInstructorStatsDto;
+    labels: PublicInstructorUILabelsDto;
   };
 }
 
@@ -136,8 +176,6 @@ export function toPublicInstructorProfileDto(instructor: Instructor): PublicInst
 export function toPublicInstructorCourseCardDto(
   course: CourseRow
 ): PublicInstructorCourseCardDto {
-  const listItem = toPublicCourseListItemDto(course);
-
   return {
     id: course.id,
     slug: course.slug,
@@ -148,7 +186,6 @@ export function toPublicInstructorCourseCardDto(
     studentsCount: course.studentsCount,
     rating: course.rating,
     price: course.price,
-    discountPrice: course.price,
     instructorSlug: course.instructor.slug,
   };
 }
@@ -167,5 +204,72 @@ export function buildInstructorStats(courses: CourseRow[]): PublicInstructorStat
     studentsCount,
     averageRating,
     totalTeachingHours,
+  };
+}
+
+export function buildPublicInstructorUILabels(): PublicInstructorUILabelsDto {
+  return {
+    hero: {
+      profileBadge: "پروفایل رسمی مدرس",
+      verifiedBadge: "مدرس تاییدشده اسپاتی‌کد",
+      unverifiedBadge: "مدرس اسپاتی‌کد",
+    },
+    stats: {
+      teachingHours: {
+        label: "ساعت آموزش",
+        description: "ساعت محتوای آموزشی",
+      },
+      courses: {
+        label: "دوره‌ها",
+        description: "دوره فعال",
+      },
+      students: {
+        label: "دانشجوها",
+        description: "نفر",
+      },
+      member: {
+        label: "مدرس اسپاتی‌کد",
+        value: "تایید شده",
+        description: "عضو تیم آموزشی",
+      },
+    },
+    social: {
+      github: "گیت‌هاب",
+      linkedin: "لینکدین",
+      telegram: "تلگرام",
+      website: "وب‌سایت شخصی",
+      email: "ایمیل عمومی",
+      phone: "شماره تماس",
+    },
+    sections: {
+      about: {
+        title: "درباره استاد و مهارت‌ها",
+        description: "نگاهی کامل‌تر به مسیر حرفه‌ای و تخصص‌های اصلی",
+        biographyTitle: "بیوگرافی کامل",
+      },
+      skills: {
+        title: "مهارت‌ها و تخصص‌ها",
+        description: "فناوری‌ها و حوزه‌هایی که این استاد به‌صورت تخصصی روی آن‌ها کار کرده است",
+        empty: "مهارتی برای نمایش ثبت نشده است.",
+      },
+      courses: {
+        title: "دوره‌های این استاد",
+        description: "همه دوره‌هایی که توسط این استاد منتشر یا تدریس شده‌اند",
+        empty: "هنوز دوره‌ای برای نمایش ثبت نشده است.",
+      },
+      certificates: {
+        title: "گواهی‌ها و دستاوردها",
+        description:
+          "اعتبارنامه‌ها، دوره‌های تخصصی و دستاوردهایی که مسیر حرفه‌ای استاد را پشتیبانی می‌کنند",
+        badge: "گواهی تخصصی",
+        viewLink: "مشاهده مرجع",
+      },
+      projects: {
+        title: "پروژه‌ها و نمونه‌کارها",
+        description: "چند نمونه از پروژه‌هایی که نگاه فنی و تجربه اجرایی این استاد را نشان می‌دهد",
+        github: "گیت‌هاب",
+        live: "نسخه آنلاین",
+      },
+    },
   };
 }

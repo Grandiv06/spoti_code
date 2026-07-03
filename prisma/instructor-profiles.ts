@@ -1,5 +1,10 @@
 export const INSTRUCTOR_PROFILE_SEED = {
   "INS-101": {
+    displayTitle: "مدرس ارشد فرانت‌اند و معماری وب",
+    shortBio:
+      "بیش از ۹ سال تجربه در ساخت محصولات SaaS، لید فنی تیم‌های فرانت‌اند و منتورینگ توسعه‌دهندگان در مسیر ورود به بازار کار.",
+    fullBiography:
+      "امیررضا رضایی در سال‌های اخیر روی طراحی و توسعه پنل‌های پیچیده، فروشگاه‌های آنلاین و ابزارهای داخلی برای تیم‌های محصول کار کرده است. تمرکز اصلی او روی ساخت تجربه‌های سریع، مقیاس‌پذیر و قابل نگهداری با React و Next.js است و در کنار توسعه محصول، سال‌ها سابقه منتورینگ و آموزش پروژه‌محور دارد.",
     mainExpertise: "React.js، Next.js، TypeScript و طراحی معماری مقیاس‌پذیر",
     teachingStyle:
       "سبک تدریس او عمیق، پروژه‌محور و نزدیک به شرایط واقعی شرکت‌هاست؛ هر مبحث با سناریوی واقعی، تمرین لایه‌لایه و بازخورد مهندسی جمع‌بندی می‌شود.",
@@ -61,6 +66,10 @@ export const INSTRUCTOR_PROFILE_SEED = {
     publicVisibility: { email: true, phone: false },
   },
   "INS-102": {
+    displayTitle: "مدرس React و توسعه رابط کاربری",
+    shortBio: "تمرکز مهرداد روی تبدیل مفاهیم پیچیده رابط کاربری به پروژه‌های قابل فهم و آماده بازار کار است.",
+    fullBiography:
+      "مهرداد حیدری سال‌ها روی توسعه رابط‌های کاربری برای محصولات B2B و B2C کار کرده و در آموزش React، الگوهای state management و ساخت design system تخصص دارد.",
     mainExpertise: "React، State Management، Design Systems",
     teachingStyle: "رویکرد او بر یادگیری مرحله‌ای، ساخت پروژه‌های قابل ارائه و توضیح چرایی تصمیم‌های فنی استوار است.",
     professionalBackground:
@@ -94,6 +103,11 @@ export const INSTRUCTOR_PROFILE_SEED = {
     publicVisibility: { email: false, phone: false },
   },
   "INS-103": {
+    displayTitle: "مدرس UI Styling و CSS Architecture",
+    shortBio:
+      "سارا روی آموزش استایل‌دهی مدرن، طراحی واکنش‌گرا و ساخت تجربه‌های تمیز و مقیاس‌پذیر برای وب تمرکز دارد.",
+    fullBiography:
+      "سارا محمدی با سابقه طراحی و پیاده‌سازی رابط‌های کاربری برای فروشگاه‌های آنلاین و محصولات محتوایی، مباحث CSS و طراحی واکنش‌گرا را به‌شکل عملی و پروژه‌ای آموزش می‌دهد.",
     mainExpertise: "CSS، طراحی واکنش‌گرا، Flexbox، Grid و سیستم‌های طراحی",
     verified: true,
     yearsOfExperience: 6,
@@ -115,6 +129,11 @@ export const INSTRUCTOR_PROFILE_SEED = {
     publicVisibility: { email: false, phone: false },
   },
   "INS-104": {
+    displayTitle: "مدرس مبانی توسعه وب",
+    shortBio:
+      "نیما روی آموزش اصول پایه توسعه وب برای کسانی تمرکز دارد که می‌خواهند مسیر برنامه‌نویسی را درست و اصولی شروع کنند.",
+    fullBiography:
+      "نیما علوی سال‌ها در تیم‌های محتوا و آموزش فنی فعالیت کرده و تجربه او در انتقال مفاهیم پایه، شروع مسیر یادگیری را برای هنرجویان ساده و حرفه‌ای می‌کند.",
     mainExpertise: "HTML، ساختار وب، فرم‌ها و استانداردهای دسترس‌پذیری",
     verified: true,
     yearsOfExperience: 5,

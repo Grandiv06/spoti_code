@@ -7,7 +7,6 @@ import CourseInstructor from "../../components/CourseInstructor";
 import CourseReviews from "../../components/CourseReviews";
 import CourseDetailClient from "../[id]/CourseDetailClient";
 import { SkeletonBox } from "@/components/ui/Skeleton";
-import { PUBLIC_INSTRUCTORS, PUBLIC_INSTRUCTOR_COURSES } from "@/lib/public-instructors";
 import {
   readCourseMediaUrl,
   resolveCourseTeacher,
@@ -17,44 +16,32 @@ import { apiGetNoMock } from "@/lib/api";
 
 type CourseRecord = Record<string, unknown>;
 
-const FALLBACK_PUBLIC_COURSE = PUBLIC_INSTRUCTOR_COURSES.find((course) => course.id === "nextjs") ?? PUBLIC_INSTRUCTOR_COURSES[0];
-const FALLBACK_PUBLIC_INSTRUCTOR =
-  PUBLIC_INSTRUCTORS.find((instructor) => instructor.slug === FALLBACK_PUBLIC_COURSE.instructorSlug) ?? PUBLIC_INSTRUCTORS[0];
-
 function buildFallbackCourse(slug: string): CourseRecord {
-  const fallbackTitle = FALLBACK_PUBLIC_COURSE?.title ?? "متخصص React و Next.js";
-  const fallbackPrice = FALLBACK_PUBLIC_COURSE?.price ?? 4500000;
-  const fallbackCover = FALLBACK_PUBLIC_COURSE?.image ?? "/images/course3.jpg";
-  const fallbackLevel = FALLBACK_PUBLIC_COURSE?.level ?? "پیشرفته";
-  const fallbackDuration = FALLBACK_PUBLIC_COURSE?.duration ?? "۶۵ ساعت";
-  const fallbackStudents = FALLBACK_PUBLIC_COURSE?.studentsCount ?? 1340;
-  const fallbackRating = FALLBACK_PUBLIC_COURSE?.rating ?? 4.9;
-
   return {
     id: slug,
     slug,
-    title: fallbackTitle,
-    name: fallbackTitle,
+    title: "متخصص React و Next.js",
+    name: "متخصص React و Next.js",
     category: "frontend",
     categoryTitle: "فرانت‌اند",
-    level: fallbackLevel,
-    difficulty: fallbackLevel,
-    duration: fallbackDuration,
-    hours: fallbackDuration.replace(/\s*ساعت\s*/g, ""),
-    price: fallbackPrice,
-    studentsCount: fallbackStudents,
-    rating: fallbackRating,
-    cover: fallbackCover,
-    thumbnail: fallbackCover,
-    instructorId: FALLBACK_PUBLIC_INSTRUCTOR.id,
-    instructorSlug: FALLBACK_PUBLIC_INSTRUCTOR.slug,
-    instructorName: FALLBACK_PUBLIC_INSTRUCTOR.fullName,
-    teacherName: FALLBACK_PUBLIC_INSTRUCTOR.fullName,
-    instructorAvatar: FALLBACK_PUBLIC_INSTRUCTOR.avatar,
-    shortDescription: FALLBACK_PUBLIC_INSTRUCTOR.shortBio,
-    description: FALLBACK_PUBLIC_INSTRUCTOR.fullBiography ?? FALLBACK_PUBLIC_INSTRUCTOR.shortBio,
-    aboutDescription: FALLBACK_PUBLIC_INSTRUCTOR.fullBiography ?? FALLBACK_PUBLIC_INSTRUCTOR.shortBio,
-    specialWord: fallbackTitle.includes("Next.js") ? "Next.js" : undefined,
+    level: "پیشرفته",
+    difficulty: "پیشرفته",
+    duration: "۶۵ ساعت",
+    hours: "۶۵",
+    price: 4_500_000,
+    studentsCount: 1340,
+    rating: 4.9,
+    cover: "/images/course3.jpg",
+    thumbnail: "/images/course3.jpg",
+    instructorId: "INS-101",
+    instructorSlug: "amirreza-rezaei",
+    instructorName: "امیررضا رضایی",
+    teacherName: "امیررضا رضایی",
+    instructorAvatar: "/images/inst1.jpg",
+    shortDescription: "مسیر صفر تا صد ورود به بازار کار جهانی با Next.js",
+    description: "در این دوره با SSR، App Router، معماری مدرن وب و ساخت محصول واقعی آشنا می‌شوید.",
+    aboutDescription: "در این دوره با SSR، App Router، معماری مدرن وب و ساخت محصول واقعی آشنا می‌شوید.",
+    specialWord: "Next.js",
     chapters: [],
     faqs: [],
     reviews: [],

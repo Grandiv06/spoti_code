@@ -1,5 +1,6 @@
 import {
   buildInstructorStats,
+  buildPublicInstructorUILabels,
   toPublicInstructorCourseCardDto,
   toPublicInstructorProfileDto,
   type PublicInstructorProfileResponseDto,
@@ -27,6 +28,7 @@ function buildPublicInstructorProfile(
       instructor: toPublicInstructorProfileDto(instructor),
       courses,
       stats,
+      labels: buildPublicInstructorUILabels(),
     },
   };
 }

@@ -1,5 +1,3 @@
-import { findPublicInstructorByName, getPublicInstructorById } from "./public-instructors";
-
 export type ResolvedCourseTeacher = {
   id?: string;
   slug?: string;
@@ -85,15 +83,8 @@ export function resolveTeacherProfileHref(
   instructorSlug?: string
 ): string | undefined {
   const slug = instructorSlug ?? teacher?.slug;
-  if (slug) return `/instructors/${slug}`;
-
-  const instructorById = teacher?.id ? getPublicInstructorById(teacher.id) : undefined;
-  if (instructorById?.slug) return `/instructors/${instructorById.slug}`;
-
-  const instructorByName = teacher?.fullName ? findPublicInstructorByName(teacher.fullName) : undefined;
-  if (instructorByName?.slug) return `/instructors/${instructorByName.slug}`;
-
-  if (teacher?.id) return `/teachers/${teacher.id}`;
+  if (slug) return `/instructors/${encodeURIComponent(slug)}`;
+  if (teacher?.id) return `/teachers/${encodeURIComponent(teacher.id)}`;
   return undefined;
 }
 
