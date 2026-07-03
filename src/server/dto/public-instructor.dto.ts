@@ -3,6 +3,7 @@ import { toPublicCourseListItemDto } from "@/server/dto/public-course.dto";
 
 export interface PublicInstructorCourseCardDto {
   id: string;
+  slug: string;
   title: string;
   image: string;
   level: string;
@@ -139,6 +140,7 @@ export function toPublicInstructorCourseCardDto(
 
   return {
     id: course.id,
+    slug: course.slug,
     title: course.title,
     image: course.cover,
     level: course.difficulty,

@@ -2,7 +2,9 @@ import { findPublicInstructorByName, getPublicInstructorById } from "./public-in
 
 export type ResolvedCourseTeacher = {
   id?: string;
+  slug?: string;
   fullName?: string;
+  displayTitle?: string;
   bio?: string;
   avatar?: string;
 };
@@ -26,15 +28,27 @@ export function resolveCourseTeacher(data: Record<string, unknown>): ResolvedCou
     const record = teacher as Record<string, unknown>;
     const resolved: ResolvedCourseTeacher = {
       id: readString(record.id),
+      slug: readString(record.slug),
       fullName: readString(record.fullName) ?? readString(record.name),
-      bio: readString(record.bio) ?? readString(record.shortBio),
+      displayTitle: readString(record.displayTitle),
+      bio:
+        readString(record.bio) ??
+        readString(record.shortBio) ??
+        readString(record.fullBiography),
       avatar:
         readFileUrl(record.avatar) ??
         readFileUrl(record.avatarFile) ??
         readFileUrl(record.resumeFile),
     };
 
-    if (resolved.id || resolved.fullName || resolved.bio || resolved.avatar) {
+    if (
+      resolved.id ||
+      resolved.slug ||
+      resolved.fullName ||
+      resolved.displayTitle ||
+      resolved.bio ||
+      resolved.avatar
+    ) {
       return resolved;
     }
   }
@@ -48,15 +62,19 @@ export function resolveCourseTeacher(data: Record<string, unknown>): ResolvedCou
   const flatBio =
     readString(data.instructorBio) ?? readString(data.teacherBio) ?? readString(data.authorBio);
   const flatId = readString(data.teacherId) ?? readString(data.instructorId);
+  const flatSlug = readString(data.instructorSlug);
+  const flatTitle = readString(data.instructorTitle) ?? readString(data.teacherTitle);
   const flatAvatar = readFileUrl(data.instructorAvatar) ?? readFileUrl(data.teacherAvatar);
 
-  if (!flatName && !flatBio && !flatAvatar && !flatId) {
+  if (!flatName && !flatBio && !flatAvatar && !flatId && !flatSlug && !flatTitle) {
     return null;
   }
 
   return {
     id: flatId,
+    slug: flatSlug,
     fullName: flatName,
+    displayTitle: flatTitle,
     bio: flatBio,
     avatar: flatAvatar,
   };
@@ -64,9 +82,10 @@ export function resolveCourseTeacher(data: Record<string, unknown>): ResolvedCou
 
 export function resolveTeacherProfileHref(
   teacher: ResolvedCourseTeacher | null,
-  publicInstructorSlug?: string
+  instructorSlug?: string
 ): string | undefined {
-  if (publicInstructorSlug) return `/instructors/${publicInstructorSlug}`;
+  const slug = instructorSlug ?? teacher?.slug;
+  if (slug) return `/instructors/${slug}`;
 
   const instructorById = teacher?.id ? getPublicInstructorById(teacher.id) : undefined;
   if (instructorById?.slug) return `/instructors/${instructorById.slug}`;

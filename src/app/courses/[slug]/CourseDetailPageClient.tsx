@@ -1,20 +1,13 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import AddToCartButton from "../../components/AddToCartButton";
 import CourseFAQ from "../../components/CourseFAQ";
+import CourseInstructor from "../../components/CourseInstructor";
 import CourseReviews from "../../components/CourseReviews";
 import CourseDetailClient from "../[id]/CourseDetailClient";
 import { SkeletonBox } from "@/components/ui/Skeleton";
-import {
-  findPublicInstructorByName,
-  getPublicInstructorById,
-  getPublicInstructorBySlug,
-  PUBLIC_INSTRUCTORS,
-  PUBLIC_INSTRUCTOR_COURSES,
-} from "@/lib/public-instructors";
+import { PUBLIC_INSTRUCTORS, PUBLIC_INSTRUCTOR_COURSES } from "@/lib/public-instructors";
 import {
   readCourseMediaUrl,
   resolveCourseTeacher,
@@ -176,24 +169,15 @@ export default function CourseDetailPageClient({ slug }: { slug: string }) {
   const discountPercent = typeof basePrice === "number" && typeof priceNumber === "number" && basePrice > 0 ? Math.round(((basePrice - priceNumber) / basePrice) * 100) : undefined;
 
   const courseTeacher = resolveCourseTeacher(data);
-
-  const instructorProfile =
-    getPublicInstructorBySlug(typeof data.instructorSlug === "string" ? data.instructorSlug : "") ??
-    getPublicInstructorById(courseTeacher?.id ?? (typeof data.instructorId === "string" ? data.instructorId : "")) ??
-    findPublicInstructorByName(courseTeacher?.fullName ?? "");
-
-  const instructorName = instructorProfile?.fullName ?? courseTeacher?.fullName;
-  const instructorTitle = instructorProfile?.displayTitle;
-  const instructorBio = instructorProfile?.shortBio ?? courseTeacher?.bio;
-  const instructorAvatar = instructorProfile?.avatar ?? courseTeacher?.avatar;
-  const instructorProfileHref = resolveTeacherProfileHref(courseTeacher, instructorProfile?.slug);
+  const instructorSlug =
+    courseTeacher?.slug ??
+    (typeof data.instructorSlug === "string" ? data.instructorSlug : undefined);
+  const instructorProfileHref = resolveTeacherProfileHref(courseTeacher, instructorSlug);
+  const instructorName = courseTeacher?.fullName ?? "مدرس دوره";
+  const instructorTitle = courseTeacher?.displayTitle;
+  const instructorBio = courseTeacher?.bio;
+  const instructorAvatar = courseTeacher?.avatar ?? "/images/inst1.jpg";
   const specialWord = typeof data.specialWord === "string" ? data.specialWord : undefined;
-  const studentsCount =
-    typeof data.studentsCount === "number"
-      ? data.studentsCount
-      : typeof data.students === "number"
-        ? data.students
-        : undefined;
   const totalLessonsFromChapters = chapters?.reduce((sum, chapter) => sum + chapter.lessons.length, 0);
   const mediaPreview = coverImage;
   const heroSpecialWord = specialWord ?? (typeof data.specialWords === "string" ? data.specialWords : undefined);
@@ -478,83 +462,13 @@ export default function CourseDetailPageClient({ slug }: { slug: string }) {
           {data.faqs || data.faq ? <CourseFAQ /> : null}
           {typeof data.id === "string" ? <CourseReviews courseId={String(data.id)} /> : null}
           {instructorName || instructorTitle || instructorBio || instructorAvatar ? (
-            <section className="glass-panel rounded-[2rem] md:rounded-4xl p-6 md:p-8 lg:p-12 glass-card-hover mt-2 md:mt-4">
-              <div className="flex items-center gap-3 md:gap-4 mb-6 md:mb-8">
-                <div className="size-10 md:size-12 rounded-xl md:rounded-2xl bg-gradient-to-br from-emerald-100 dark:from-emerald-900/30 to-white dark:to-gray-800 flex items-center justify-center text-primary shadow-sm border border-white/50 dark:border-gray-700 shrink-0">
-                  <span className="material-symbols-outlined filled text-xl md:text-2xl">person</span>
-                </div>
-                <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white">
-                  مدرس دوره
-                </h2>
-              </div>
-              {instructorProfileHref ? (
-                <Link
-                  href={instructorProfileHref}
-                  className="group flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-8 lg:gap-12 text-center md:text-right rounded-[1.75rem] border border-transparent p-2 -m-2 transition-all hover:border-primary/20 hover:bg-primary/[0.03]"
-                >
-                  <Image
-                    src={instructorAvatar ?? "/images/inst1.jpg"}
-                    alt={instructorName ?? "مدرس دوره"}
-                    width={160}
-                    height={160}
-                    className="size-32 md:size-40 rounded-[2rem] md:rounded-[2.5rem] object-cover shrink-0"
-                  />
-                  <div className="flex-1 w-full">
-                    <h3 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white mb-1 md:mb-2 group-hover:text-primary transition-colors">
-                      {instructorName ?? "مدرس دوره"}
-                    </h3>
-                    {instructorTitle ? (
-                      <span className="text-sm md:text-base text-primary font-bold block mb-3 md:mb-4">
-                        {instructorTitle}
-                      </span>
-                    ) : null}
-                    {instructorBio ? (
-                      <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 leading-relaxed font-medium mb-4 text-justify md:text-right line-clamp-3">
-                        {instructorBio}
-                      </p>
-                    ) : null}
-                    <span className="inline-flex items-center gap-2 text-sm font-black text-primary">
-                      مشاهده پروفایل استاد
-                      <span className="material-symbols-outlined text-[18px] rtl:rotate-180 group-hover:-translate-x-1 transition-transform">
-                        arrow_right_alt
-                      </span>
-                    </span>
-                  </div>
-                </Link>
-              ) : (
-                <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-8 lg:gap-12 text-center md:text-right">
-                  <Image
-                    src={instructorAvatar ?? "/images/inst1.jpg"}
-                    alt={instructorName ?? "مدرس دوره"}
-                    width={160}
-                    height={160}
-                    className="size-32 md:size-40 rounded-[2rem] md:rounded-[2.5rem] object-cover shrink-0"
-                  />
-                  <div className="flex-1 w-full">
-                    <h3 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white mb-1 md:mb-2">
-                      {instructorName ?? "مدرس دوره"}
-                    </h3>
-                    {instructorTitle ? (
-                      <span className="text-sm md:text-base text-primary font-bold block mb-3 md:mb-4">
-                        {instructorTitle}
-                      </span>
-                    ) : null}
-                    {instructorBio ? (
-                      <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 leading-relaxed font-medium text-justify md:text-right">
-                        {instructorBio}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              )}
-            </section>
-          ) : null}
-          {Array.isArray(data.students) || studentsCount ? (
-            <section className="glass-panel rounded-[2rem] md:rounded-4xl p-6 md:p-8 lg:p-12 glass-card-hover mt-2 md:mt-4">
-              <h2 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white">
-                دانشجویانی که در این دوره شرکت کردند
-              </h2>
-            </section>
+            <CourseInstructor
+              name={instructorName ?? "مدرس دوره"}
+              title={instructorTitle}
+              bio={instructorBio}
+              avatar={instructorAvatar ?? "/images/inst1.jpg"}
+              profileHref={instructorProfileHref}
+            />
           ) : null}
         </CourseDetailClient>
       </main>

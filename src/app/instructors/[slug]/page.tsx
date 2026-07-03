@@ -246,6 +246,7 @@ export default async function PublicInstructorProfilePage({
                   <div key={course.id} className="h-full">
                     <CourseCard
                       id={course.id}
+                      slug={course.slug}
                       title={course.title}
                       instructor={instructor.fullName}
                       instructorImg={instructor.avatar}
@@ -253,7 +254,7 @@ export default async function PublicInstructorProfilePage({
                       hours={course.duration.replace(/\s*ساعت$/, "").trim() || course.duration}
                       students={course.studentsCount}
                       price={course.discountPrice ?? course.price}
-                      viewHref={`/courses/${course.id}`}
+                      viewHref={`/courses/${course.slug}`}
                     />
                   </div>
                 ))}
