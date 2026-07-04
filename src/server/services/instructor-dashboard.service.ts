@@ -10,8 +10,24 @@ import {
   type UpdateInstructorProfilePageDto,
 } from "@/server/dto/instructor-profile-page.dto";
 import { prisma } from "@/server/db/prisma";
+import { ensureCourseApprovalSchema } from "@/server/services/course-approval-schema.service";
 
 const INSTRUCTOR_REVENUE_SHARE = 0.7;
+const DEFAULT_COURSE_COVER = "/images/course1.jpg";
+
+function resolvePersistableCover(nextCover: string, existingCover?: string | null) {
+  const trimmed = nextCover.trim();
+  if (trimmed && !trimmed.startsWith("blob:")) {
+    return trimmed;
+  }
+
+  const existing = (existingCover || "").trim();
+  if (existing && !existing.startsWith("blob:")) {
+    return existing;
+  }
+
+  return DEFAULT_COURSE_COVER;
+}
 
 type InstructorCourse = Course & {
   enrollments: Array<{ id: string }>;
@@ -138,21 +154,26 @@ function toInstructorIncome(value: bigint | number | null | undefined): number {
   return Math.round(toNumber(value) * INSTRUCTOR_REVENUE_SHARE);
 }
 
-function mapCourseStatus(status: Course["status"]) {
+function mapCourseStatus(status: Course["status"], approvalStatus?: string | null) {
+  if (approvalStatus === "pending" || approvalStatus === "rejected") return approvalStatus;
+  if (approvalStatus === "approved") return "published";
   return status === "published" ? "published" : "draft";
 }
 
-function courseToDashboardRow(course: InstructorCourse) {
+function courseToDashboardRow(course: InstructorCourse, approval?: { approvalStatus?: string | null; draftStep?: number | null }) {
+  const mappedStatus = mapCourseStatus(course.status, approval?.approvalStatus);
   return {
     id: course.id,
     courseId: course.id,
     slug: course.slug,
     title: course.title,
     name: course.title,
-    cover: course.cover,
-    thumbnail: course.thumbnail,
-    status: mapCourseStatus(course.status),
-    isPublished: course.status === "published",
+    cover: resolvePersistableCover(course.cover),
+    thumbnail: resolvePersistableCover(course.thumbnail, course.cover),
+    status: mappedStatus,
+    approvalStatus: approval?.approvalStatus ?? (course.status === "published" ? "approved" : "draft"),
+    draftStep: approval?.draftStep ?? 1,
+    isPublished: mappedStatus === "published",
     category: course.categoryTitle,
     categoryTitle: course.categoryTitle,
     studentsCount: resolveStudentsCount(course),
@@ -400,6 +421,7 @@ export async function getInstructorDashboardOverview(user: User) {
 
 export async function getInstructorDashboardCourses(user: User, limit?: number) {
   assertInstructor(user);
+  await ensureCourseApprovalSchema();
 
   const instructor = await resolveInstructorForUser(user);
   if (!instructor) {
@@ -411,7 +433,13 @@ export async function getInstructorDashboardCourses(user: User, limit?: number) 
   }
 
   const courses = await findInstructorCourses(instructor.id);
-  const rows = courses.map(courseToDashboardRow);
+  const approvalRows = await prisma.$queryRaw<Array<{ id: string; approvalStatus: string | null; draftStep: number | null }>>`
+    SELECT "id", "approvalStatus", "draftStep"
+    FROM "Course"
+    WHERE "instructorId" = ${instructor.id}
+  `;
+  const approvalById = new Map(approvalRows.map((row) => [row.id, row]));
+  const rows = courses.map((course) => courseToDashboardRow(course, approvalById.get(course.id)));
   const limitedRows = limit && limit > 0 ? rows.slice(0, limit) : rows;
 
   return {

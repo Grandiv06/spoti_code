@@ -50,6 +50,7 @@ export interface User {
   supportTicketsCount: number;
   lastCourseViewed: string;
   internalNotes?: string;
+  canPublishWithoutApproval?: boolean;
   purchasedCourses: PurchasedCourse[];
   recentTransactions: UserTransaction[];
   recentTickets: UserTicket[];

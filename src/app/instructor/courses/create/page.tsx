@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   DndContext,
   DragOverlay,
@@ -50,7 +50,7 @@ import CourseHero from "@/app/components/CourseHero";
 import CourseFAQ from "@/app/components/CourseFAQ";
 import CustomSelect from "@/components/ui/CustomSelect";
 import HighlightableTextareaWithBadges from "@/components/ui/HighlightableTextareaWithBadges";
-import { apiPostNoMock, apiPutNoMock } from "@/lib/api";
+import { apiGetNoMock, apiPatchNoMock, apiPostNoMock } from "@/lib/api";
 import {
   CreateCourseCategory,
   CreateCourseDifficulty,
@@ -447,10 +447,102 @@ function LessonDragOverlay({ lesson, isPaid }: LessonDragOverlayProps) {
   );
 }
 
+function clampWizardStep(value: number) {
+  if (!Number.isFinite(value)) return 1;
+  return Math.max(1, Math.min(5, Math.round(value)));
+}
+
+function readWizardStepFromParams(searchParams: Pick<URLSearchParams, "get">, fallback = 1) {
+  return clampWizardStep(Number(searchParams.get("step") ?? String(fallback)));
+}
+
+function normalizeCategoryForUi(category: unknown) {
+  const raw = typeof category === "string" ? category.trim() : "";
+  switch (raw.toLowerCase()) {
+    case "backend":
+      return "Backend";
+    case "devops":
+      return "DevOps";
+    case "mobile":
+      return "Mobile";
+    case "base":
+    case "ui/ux":
+      return "UI/UX";
+    case "frontend":
+    case "ai":
+    default:
+      return "Frontend";
+  }
+}
+
+function normalizeLevelForUi(level: unknown) {
+  const raw = typeof level === "string" ? level.trim().toLowerCase() : "";
+  if (raw === "elementary" || raw === "beginner") return "elementary";
+  if (raw === "advanced") return "advanced";
+  return "intermediate";
+}
+
+function normalizeCoverForUi(cover: unknown, fallback = "") {
+  const raw = typeof cover === "string" ? cover.trim() : "";
+  if (!raw || raw.startsWith("blob:")) return fallback;
+  return raw;
+}
+
+function normalizeIntroVideoForUi(introVideo: unknown, fallback = "") {
+  const raw = typeof introVideo === "string" ? introVideo.trim() : "";
+  if (!raw || raw.startsWith("blob:")) return fallback;
+  return raw;
+}
+
+function mergeDraftIntoWizardForm(
+  prev: WizardFormData,
+  draftData: Partial<WizardFormData> | null,
+  courseRow?: { category?: unknown; level?: unknown; cover?: unknown; thumbnail?: unknown; introVideo?: unknown }
+): WizardFormData {
+  if (!draftData) return prev;
+
+  return {
+    ...prev,
+    ...draftData,
+    category: normalizeCategoryForUi(draftData.category ?? courseRow?.category ?? prev.category),
+    level: normalizeLevelForUi(draftData.level ?? courseRow?.level ?? prev.level),
+    cover: normalizeCoverForUi(
+      draftData.cover ?? courseRow?.cover ?? courseRow?.thumbnail ?? prev.cover,
+      prev.cover
+    ),
+    introVideo: normalizeIntroVideoForUi(
+      draftData.introVideo ?? courseRow?.introVideo ?? prev.introVideo,
+      prev.introVideo
+    ),
+  };
+}
+
+const WIZARD_FIELD_CLASS =
+  "bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] rounded-2xl text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] focus:border-primary/50 focus:ring-2 focus:ring-primary/15 focus:outline-none transition-all";
+
+const WIZARD_FIELD_SM_CLASS =
+  "bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] rounded-xl text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-primary/50 focus:ring-2 focus:ring-primary/15 focus:outline-none transition-all";
+
+const WIZARD_PANEL_CLASS =
+  "rounded-2xl border border-gray-100/80 dark:border-white/[0.08] bg-gradient-to-b from-gray-50/90 via-gray-50/40 to-transparent dark:from-white/[0.05] dark:via-white/[0.02] dark:to-transparent";
+
+const WIZARD_DROPZONE_CLASS =
+  "border border-dashed border-gray-200/80 dark:border-white/10 rounded-2xl bg-gray-50/60 dark:bg-white/[0.03] hover:border-primary/35 hover:bg-primary/[0.04] dark:hover:bg-primary/[0.06] transition-all";
+
 export default function CreateCourseWizardPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const draftCourseId = searchParams.get("draftCourseId");
   const { addCourse, profile, updateCourse, showToast } = useInstructorData();
-  const [step, setStep] = useState(1);
+  const loadedDraftIdRef = useRef<string | null>(null);
+  const userChangedStepRef = useRef(false);
+  const userEditedFormRef = useRef(false);
+  const heroTitleTouchedRef = useRef(false);
+  const markFormEdited = () => {
+    userEditedFormRef.current = true;
+  };
+  const [step, setStep] = useState(() => readWizardStepFromParams(searchParams));
+  const [maxReachedStep, setMaxReachedStep] = useState(() => readWizardStepFromParams(searchParams));
   const [createdCourseId, setCreatedCourseId] = useState<string | null>(null);
   const [isSavingStep1, setIsSavingStep1] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -478,13 +570,13 @@ export default function CreateCourseWizardPage() {
     isPaid: "paid", // free or paid
     cover: "",
     introVideo: "",
-    shortDescription: "مسیر صفر تا صد ورود به بازار کار جهانی، یادگیری عمیق هوک‌ها، SSR و معماری مدرن وب.",
+    shortDescription: "",
     
     // Step 2: Hero Titles & Highlights
     heroTitle: "",
     specialWords: {
-      highlighted: ["React"] as string[],
-      underlined: ["Next.js"] as string[],
+      highlighted: [] as string[],
+      underlined: [] as string[],
       color: "green"
     },
 
@@ -517,19 +609,99 @@ export default function CreateCourseWizardPage() {
     ]
   });
 
-  // Default values sync
-  useEffect(() => {
-    if (!formData.heroTitle && formData.title) {
-      setFormData(prev => ({ ...prev, heroTitle: prev.title }));
+  const syncStepToUrl = (nextStep: number, courseIdOverride?: string | null) => {
+    const courseId = courseIdOverride ?? draftCourseId ?? createdCourseId;
+    if (!courseId) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("draftCourseId", courseId);
+    params.set("step", String(clampWizardStep(nextStep)));
+    const nextQuery = params.toString();
+    if (nextQuery === searchParams.toString()) return;
+
+    router.replace(`/instructor/courses/create?${nextQuery}`, { scroll: false });
+  };
+
+  const goToStep = (nextStep: number, fromUser = false, courseIdOverride?: string | null) => {
+    const clamped = clampWizardStep(nextStep);
+    if (fromUser) {
+      userChangedStepRef.current = true;
     }
-  }, [formData.heroTitle, formData.title]);
+    setStep(clamped);
+    syncStepToUrl(clamped, courseIdOverride);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    if (!draftCourseId) {
+      loadedDraftIdRef.current = null;
+      userChangedStepRef.current = false;
+      userEditedFormRef.current = false;
+      setMaxReachedStep(1);
+      return;
+    }
+    if (loadedDraftIdRef.current === draftCourseId) return;
+
+    userEditedFormRef.current = false;
+    heroTitleTouchedRef.current = false;
+
+    const requestedStep = readWizardStepFromParams(searchParams);
+    let cancelled = false;
+
+    apiGetNoMock<unknown>(`/api/instructor-dashboard/courses/${encodeURIComponent(draftCourseId)}/draft`)
+      .then((response) => {
+        if (cancelled || !response || typeof response !== "object") return;
+        const root = response as { data?: unknown };
+        const data = root.data && typeof root.data === "object" ? (root.data as Record<string, unknown>) : {};
+        const draftData = data.draftData && typeof data.draftData === "object" ? (data.draftData as Partial<WizardFormData>) : null;
+        loadedDraftIdRef.current = draftCourseId;
+        setCreatedCourseId(String(data.id ?? data.courseId ?? draftCourseId));
+        const draftStep = clampWizardStep(Number(data.draftStep ?? requestedStep));
+        setMaxReachedStep((prev) => Math.max(prev, draftStep, requestedStep));
+        if (!userChangedStepRef.current) {
+          setStep(requestedStep);
+        }
+        if (!userEditedFormRef.current && draftData) {
+          const mergedCover = normalizeCoverForUi(
+            draftData.cover ?? data.cover ?? data.thumbnail
+          );
+          const mergedIntroVideo = normalizeIntroVideoForUi(
+            draftData.introVideo ?? data.introVideo
+          );
+          if (mergedCover) {
+            setCoverProgress(100);
+          }
+          if (mergedIntroVideo) {
+            setVideoProgress(100);
+          }
+          setFormData((prev) =>
+            mergeDraftIntoWizardForm(prev, draftData, {
+              category: data.category,
+              level: data.level,
+              cover: data.cover,
+              thumbnail: data.thumbnail,
+              introVideo: data.introVideo,
+            })
+          );
+        }
+      })
+      .catch(() => {
+        showToast("دریافت پیش‌نویس دوره انجام نشد.", "error");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // Only reload draft when switching courses, not when step query changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftCourseId]);
 
   // Upload Progress Simulators
   const [coverProgress, setCoverProgress] = useState(0);
   const [coverFile, setCoverFile] = useState<File | null>(null);
-  const coverObjectUrlRef = React.useRef<string | null>(null);
   const [videoProgress, setVideoProgress] = useState(0);
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const videoObjectUrlRef = useRef<string | null>(null);
 
   // Dynamic Item Inputs
   const [newObj, setNewObj] = useState("");
@@ -656,24 +828,26 @@ export default function CreateCourseWizardPage() {
   };
 
   const mapCategoryToApi = (category: string): CreateCourseCategory => {
-    switch (category) {
-      case "Backend":
+    switch (category.trim().toLowerCase()) {
+      case "backend":
         return CreateCourseCategory.BACKEND;
-      case "DevOps":
+      case "devops":
         return CreateCourseCategory.DEVOPS;
-      case "Mobile":
+      case "mobile":
         return CreateCourseCategory.MOBILE;
-      case "UI/UX":
+      case "base":
+      case "ui/ux":
         return CreateCourseCategory.BASE;
-      case "Frontend":
+      case "frontend":
       default:
         return CreateCourseCategory.FRONTEND;
     }
   };
 
   const mapLevelToApi = (level: string): CreateCourseDifficulty => {
-    switch (level) {
+    switch (level.trim().toLowerCase()) {
       case "elementary":
+      case "beginner":
         return CreateCourseDifficulty.BEGINNER;
       case "advanced":
         return CreateCourseDifficulty.ADVANCED;
@@ -736,67 +910,109 @@ export default function CreateCourseWizardPage() {
   const extractCourseId = (value: unknown) => {
     if (!value || typeof value !== "object") return "";
     const record = value as Record<string, unknown>;
-    const candidate = record.id ?? record.courseId ?? record.slug ?? record._id;
+    const nested = record.data && typeof record.data === "object" ? (record.data as Record<string, unknown>) : record;
+    const candidate = nested.id ?? nested.courseId ?? nested.slug ?? nested._id;
     return typeof candidate === "string" ? candidate : "";
   };
 
-  // Mock uploads
-  const handleCoverUploadSimulate = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const buildCourseDraftPayload = (currentStep = step) => ({
+    courseId: createdCourseId ?? undefined,
+    step: currentStep,
+    title: formData.title,
+    category: mapCategoryToApi(formData.category),
+    level: mapLevelToLocal(mapLevelToApi(formData.level)),
+    language: formData.language,
+    duration: formData.duration,
+    price: formData.isPaid === "free" ? 0 : formData.price,
+    isPaid: formData.isPaid,
+    cover: formData.cover,
+    introVideo: formData.introVideo,
+    shortDescription: formData.shortDescription,
+    heroTitle: formData.heroTitle,
+    specialWords: formData.specialWords,
+    aboutTitle: formData.aboutTitle,
+    aboutDescription: formData.aboutDescription,
+    aboutHighlights: formData.aboutHighlights,
+    features: formData.features,
+    chapters: formData.chapters,
+    faqs: formData.faqs,
+  });
+
+  const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (coverObjectUrlRef.current) {
-        URL.revokeObjectURL(coverObjectUrlRef.current);
-        coverObjectUrlRef.current = null;
+    if (!file) return;
+
+    markFormEdited();
+    setCoverFile(file);
+    setCoverProgress(10);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      if (result) {
+        setFormData((prev) => ({
+          ...prev,
+          cover: result,
+        }));
       }
-      setCoverFile(file);
-      const previewUrl = URL.createObjectURL(file);
-      coverObjectUrlRef.current = previewUrl;
-      setFormData((prev) => ({
-        ...prev,
-        cover: previewUrl,
-      }));
-      setCoverProgress(10);
-      const interval = setInterval(() => {
-        setCoverProgress((prev) => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            return 100;
-          }
-          return prev + 15;
-        });
-      }, 80);
+      setCoverProgress(100);
+    };
+    reader.onerror = () => {
+      showToast("بارگذاری تصویر کاور انجام نشد.", "error");
+      setCoverProgress(0);
+      setCoverFile(null);
+    };
+    reader.readAsDataURL(file);
+
+    const interval = window.setInterval(() => {
+      setCoverProgress((prev) => {
+        if (prev >= 90) {
+          window.clearInterval(interval);
+          return prev;
+        }
+        return prev + 15;
+      });
+    }, 80);
+  };
+
+  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    markFormEdited();
+    if (videoObjectUrlRef.current) {
+      URL.revokeObjectURL(videoObjectUrlRef.current);
+      videoObjectUrlRef.current = null;
     }
+
+    setVideoFile(file);
+    setVideoProgress(10);
+    const previewUrl = URL.createObjectURL(file);
+    videoObjectUrlRef.current = previewUrl;
+
+    const interval = window.setInterval(() => {
+      setVideoProgress((prev) => {
+        if (prev >= 90) {
+          window.clearInterval(interval);
+          setFormData((prevData) => ({
+            ...prevData,
+            introVideo: previewUrl,
+          }));
+          return 100;
+        }
+        return prev + 10;
+      });
+    }, 100);
   };
 
   useEffect(() => {
     return () => {
-      if (coverObjectUrlRef.current) {
-        URL.revokeObjectURL(coverObjectUrlRef.current);
-        coverObjectUrlRef.current = null;
+      if (videoObjectUrlRef.current) {
+        URL.revokeObjectURL(videoObjectUrlRef.current);
+        videoObjectUrlRef.current = null;
       }
     };
   }, []);
-
-  const handleVideoUploadSimulate = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setVideoFile(file);
-      setVideoProgress(10);
-      const interval = setInterval(() => {
-        setVideoProgress((prev) => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            setFormData((prevData) => ({
-              ...prevData,
-              introVideo: "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4",
-            }));
-            return 100;
-          }
-          return prev + 10;
-        });
-      }, 100);
-    }
-  };
 
   // Feature actions
   const addOrUpdateFeature = () => {
@@ -1386,102 +1602,92 @@ export default function CreateCourseWizardPage() {
   };
 
   // Navigation handlers
-  const persistInitialCourse = async () => {
+  const persistCourseDraft = async (currentStep = step): Promise<string | null> => {
+    const response = await apiPostNoMock<unknown>(
+      "/api/instructor-dashboard/courses/drafts",
+      buildCourseDraftPayload(currentStep)
+    );
+    const apiCourseId = extractCourseId(response);
+    const courseId = apiCourseId || createdCourseId;
     const payload = buildStep1CoursePayload();
 
-    if (createdCourseId) {
-      await apiPutNoMock(`/api/courses/${createdCourseId}/admin`, {
-        title: payload.title,
-        price: payload.price,
+    if (courseId) {
+      setCreatedCourseId(courseId);
+      updateCourse(courseId, {
+        id: courseId,
+        title: formData.title,
         slug: payload.slug,
-        category: payload.category,
-        difficulty: payload.difficulty,
-        time: payload.time,
-        mockStudentsCount: payload.mockStudentsCount,
-        priceType: payload.priceType,
-        thumbnailFileId: payload.thumbnailFileId,
-      });
-
-      updateCourse(createdCourseId, {
-        title: payload.title,
-        slug: payload.slug,
+        status: "draft",
         category: mapCategoryToLocal(payload.category),
         level: mapLevelToLocal(payload.difficulty),
-        price: payload.price,
-        description: formData.aboutDescription,
+        language: formData.language,
         shortDescription: formData.shortDescription,
-        publicDescription: formData.shortDescription,
+        description: formData.aboutDescription,
+        price: payload.price,
         introText: formData.shortDescription,
+        objectives: formData.aboutHighlights,
+        heroTitle: formData.heroTitle || formData.title,
+        aboutTitle: formData.aboutTitle,
+        aboutDescription: formData.aboutDescription,
+        aboutHighlights: formData.aboutHighlights,
+        features: formData.features,
+        faqs: formData.faqs,
+        specialWords: formData.specialWords,
+        cover: formData.cover,
       });
-
-      showToast("اطلاعات اولیه دوره با موفقیت بروزرسانی شد.", "success");
-      return true;
+    } else {
+      const localCourseId = addCourse({
+        title: formData.title,
+        slug: payload.slug,
+        status: "draft",
+        category: mapCategoryToLocal(payload.category),
+        level: mapLevelToLocal(payload.difficulty),
+        language: formData.language,
+        shortDescription: formData.shortDescription,
+        description: formData.aboutDescription,
+        price: payload.price,
+        cover: formData.cover,
+      });
+      setCreatedCourseId(localCourseId);
+      showToast("پیش‌نویس دوره ذخیره شد.", "success");
+      return localCourseId;
     }
 
-    const createdCourse = await apiPostNoMock<unknown>("/api/courses/admin", payload);
-    const apiCourseId = extractCourseId(createdCourse);
-    const courseId = addCourse({
-      id: apiCourseId || undefined,
-      title: payload.title,
-      slug: payload.slug,
-      status: "draft",
-      category: mapCategoryToLocal(payload.category),
-      level: mapLevelToLocal(payload.difficulty),
-      language: formData.language,
-      shortDescription: formData.shortDescription,
-      description: formData.aboutDescription,
-      price: payload.price,
-      introText: formData.shortDescription,
-      objectives: formData.aboutHighlights,
-      prerequisites: ["تسلط بر مبانی مرتبط با دوره"],
-      targetAudience: ["علاقه‌مندان به یادگیری عمیق توسعه وب"],
-      heroTitle: formData.heroTitle || payload.title,
-      aboutTitle: formData.aboutTitle,
-      aboutDescription: formData.aboutDescription,
-      aboutHighlights: formData.aboutHighlights,
-      features: formData.features,
-      faqs: formData.faqs,
-      specialWords: formData.specialWords,
-      visibility: "public",
-      cover: formData.cover,
-    });
-
-    setCreatedCourseId(apiCourseId || courseId);
-    showToast("اطلاعات اولیه دوره با موفقیت ثبت شد.", "success");
-    return true;
+    showToast("پیش‌نویس دوره ذخیره شد.", "success");
+    return courseId;
   };
 
   const handleNext = async () => {
     if (!validateStep(step)) return;
 
-    if (step === 1) {
-      try {
-        setIsSavingStep1(true);
-        const ok = await persistInitialCourse();
-        if (!ok) return;
-      } catch (error) {
-        console.error("Failed to persist initial course", error);
-        showToast("ثبت اطلاعات اولیه دوره انجام نشد. دوباره تلاش کنید.", "error");
-        return;
-      } finally {
-        setIsSavingStep1(false);
+    try {
+      setIsSavingStep1(true);
+      const savedCourseId = await persistCourseDraft(step);
+      if (!savedCourseId) return;
+      if (step === 1 && !heroTitleTouchedRef.current && !formData.heroTitle.trim()) {
+        setFormData((prev) => ({ ...prev, heroTitle: prev.title }));
       }
+      const nextStep = step + 1;
+      setMaxReachedStep((prev) => Math.max(prev, nextStep));
+      goToStep(nextStep, true, savedCourseId);
+    } catch (error) {
+      console.error("Failed to persist course draft", error);
+      showToast("ذخیره پیش‌نویس دوره انجام نشد. دوباره تلاش کنید.", "error");
+      return;
+    } finally {
+      setIsSavingStep1(false);
     }
-
-    setStep((s) => s + 1);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleBack = () => {
     if (step > 1) {
-      setStep((s) => s - 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      goToStep(step - 1, true);
     }
   };
 
-  const handleSubmitWizard = (status: "published" | "draft" | "pending") => {
+  const handleSubmitWizard = async (status: "published" | "draft" | "pending") => {
     if (!validateStep(1) || !validateStep(2) || !validateStep(3) || !validateStep(4)) {
-      setStep(1);
+      goToStep(1, true);
       return;
     }
 
@@ -1523,13 +1729,49 @@ export default function CreateCourseWizardPage() {
       specialWords: formData.specialWords
     };
 
-    if (createdCourseId) {
-      updateCourse(createdCourseId, finalCoursePayload);
-    } else {
-      const newCourseId = addCourse(finalCoursePayload);
-      setCreatedCourseId(newCourseId);
+    try {
+      setIsSavingStep1(true);
+      const response = await apiPostNoMock<unknown>(
+        "/api/instructor-dashboard/courses/drafts",
+        buildCourseDraftPayload(5)
+      );
+      const apiCourseId = extractCourseId(response);
+      const courseId = apiCourseId || createdCourseId;
+
+      if (!courseId) {
+        throw new Error("شناسه دوره از سرور دریافت نشد.");
+      }
+
+      if (status === "pending" || status === "published") {
+        const publishResponse = await apiPatchNoMock<unknown>(
+          `/api/instructor-dashboard/courses/${encodeURIComponent(courseId)}/publish`,
+          {}
+        );
+        const publishedRecord =
+          publishResponse && typeof publishResponse === "object" && "data" in publishResponse
+            ? ((publishResponse as { data?: Record<string, unknown> }).data ?? {})
+            : {};
+        const nextStatus = publishedRecord.status === "published" ? "published" : "pending";
+        updateCourse(courseId, { ...finalCoursePayload, status: nextStatus });
+        showToast(
+          nextStatus === "published"
+            ? "دوره با موفقیت منتشر شد."
+            : "دوره برای بررسی و تایید ادمین ارسال شد.",
+          "success"
+        );
+      } else {
+        updateCourse(courseId, { ...finalCoursePayload, status: "draft" });
+        showToast("دوره به عنوان پیش‌نویس ذخیره شد.", "success");
+      }
+
+      setCreatedCourseId(courseId);
+      router.push("/instructor/courses");
+    } catch (error) {
+      console.error("Failed to submit course wizard", error);
+      showToast(error instanceof Error ? error.message : "ثبت نهایی دوره انجام نشد.", "error");
+    } finally {
+      setIsSavingStep1(false);
     }
-    router.push("/instructor/courses");
   };
 
   // Total lessons count
@@ -1573,30 +1815,38 @@ export default function CreateCourseWizardPage() {
             { stepNum: 3, label: "جزئیات و محتوای دوره", desc: "ویژگی‌ها، توضیحات و سوالات" },
             { stepNum: 4, label: "ویدیوها و جلسات", desc: "مدیریت سرفصل و فایل‌ها" },
             { stepNum: 5, label: "بررسی نهایی", desc: "پیش‌نمایش کلی و انتشار" },
-          ].map((item) => (
+          ].map((item) => {
+            const isActive = step === item.stepNum;
+            const isReachable = item.stepNum <= maxReachedStep;
+            const isVisited = isReachable && !isActive;
+
+            return (
             <button
               key={item.stepNum}
-              onClick={() => validateStep(step) && step > item.stepNum && setStep(item.stepNum)}
-              disabled={step < item.stepNum}
+              onClick={() => {
+                if (!isReachable || isActive) return;
+                goToStep(item.stepNum, true);
+              }}
+              disabled={!isReachable}
               className="relative z-10 flex flex-col items-center gap-2.5 cursor-pointer focus:outline-none disabled:cursor-not-allowed group shrink-0"
             >
               <div
                 className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm transition-all duration-300 ${
-                  step === item.stepNum
+                  isActive
                     ? "bg-primary text-background-dark shadow-[0_0_20px_rgba(34,197,94,0.4)] scale-110 z-20"
-                    : step > item.stepNum
+                    : isVisited
                     ? "bg-[#e6fbf0] dark:bg-[#132d21] text-primary border border-primary/20 z-10"
                     : "bg-gray-100 dark:bg-[#252833] text-gray-400 dark:text-gray-600 border border-transparent z-10"
                 }`}
               >
-                {step > item.stepNum ? <Check className="w-5 h-5" /> : item.stepNum}
+                {isVisited ? <Check className="w-5 h-5" /> : item.stepNum}
               </div>
               <div className="text-center max-w-[120px]">
                 <span
                   className={`text-xs block transition-all duration-300 ${
-                    step === item.stepNum
+                    isActive
                       ? "text-primary font-black scale-105 origin-top"
-                      : step > item.stepNum
+                      : isVisited
                       ? "text-gray-800 dark:text-gray-200 font-bold"
                       : "text-gray-400 dark:text-gray-600 font-medium"
                   }`}
@@ -1605,9 +1855,9 @@ export default function CreateCourseWizardPage() {
                 </span>
                 <span 
                   className={`text-[9px] font-bold block mt-1 transition-all duration-300 ${
-                    step === item.stepNum
+                    isActive
                       ? "text-primary/70 dark:text-primary/60 font-black"
-                      : step > item.stepNum
+                      : isVisited
                       ? "text-gray-500 dark:text-gray-400"
                       : "text-gray-400/60 dark:text-gray-600"
                   }`}
@@ -1616,7 +1866,8 @@ export default function CreateCourseWizardPage() {
                 </span>
               </div>
             </button>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -1671,7 +1922,10 @@ export default function CreateCourseWizardPage() {
                     <label className="text-xs font-bold text-gray-700 dark:text-gray-300">سطح آموزشی دوره</label>
                     <CustomSelect
                       value={formData.level}
-                      onChange={(value) => setFormData((p) => ({ ...p, level: value }))}
+                      onChange={(value) => {
+                        markFormEdited();
+                        setFormData((p) => ({ ...p, level: value }));
+                      }}
                       options={[
                         { value: "elementary", label: "مقدماتی" },
                         { value: "intermediate", label: "متوسط" },
@@ -1686,7 +1940,10 @@ export default function CreateCourseWizardPage() {
                     <label className="text-xs font-bold text-gray-700 dark:text-gray-300">دسته‌بندی اصلی</label>
                     <CustomSelect
                       value={formData.category}
-                      onChange={(value) => setFormData((p) => ({ ...p, category: value }))}
+                      onChange={(value) => {
+                        markFormEdited();
+                        setFormData((p) => ({ ...p, category: value }));
+                      }}
                       options={[
                         { value: "Frontend", label: "Frontend (فرانت‌اند)" },
                         { value: "Backend", label: "Backend (بک‌اند)" },
@@ -1780,7 +2037,7 @@ export default function CreateCourseWizardPage() {
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={handleCoverUploadSimulate}
+                      onChange={handleCoverUpload}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                     />
                     {coverProgress === 0 ? (
@@ -1818,12 +2075,9 @@ export default function CreateCourseWizardPage() {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
+                            markFormEdited();
                             setCoverProgress(0);
                             setCoverFile(null);
-                            if (coverObjectUrlRef.current) {
-                              URL.revokeObjectURL(coverObjectUrlRef.current);
-                              coverObjectUrlRef.current = null;
-                            }
                             setFormData((p) => ({ ...p, cover: "" }));
                           }}
                           className="absolute top-2 left-2 p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors z-30 cursor-pointer"
@@ -1858,14 +2112,18 @@ export default function CreateCourseWizardPage() {
                     type="text"
                     placeholder="مثال: متخصص React و Next.js"
                     value={formData.heroTitle}
-                    onChange={(e) => setFormData(p => ({ ...p, heroTitle: e.target.value }))}
-                    className={`px-4 py-2.5 bg-gray-50 dark:bg-white/5 border ${errors.heroTitle ? "border-red-500" : "border-gray-200/60 dark:border-white/5"} rounded-xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-right`}
+                    onChange={(e) => {
+                      heroTitleTouchedRef.current = true;
+                      markFormEdited();
+                      setFormData((p) => ({ ...p, heroTitle: e.target.value }));
+                    }}
+                    className={`px-4 py-2.5 ${WIZARD_FIELD_CLASS} text-xs font-bold text-right ${errors.heroTitle ? "border-red-500 ring-2 ring-red-500/15" : ""}`}
                   />
                   {errors.heroTitle && <span className="text-[10px] text-red-500 font-bold">{errors.heroTitle}</span>}
                 </div>
 
                 {/* Title highlights (Special Words) */}
-                <div className="p-3 bg-gray-50/50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5 space-y-3">
+                <div className={`p-4 ${WIZARD_PANEL_CLASS} space-y-3`}>
                   <span className="text-xs font-black text-gray-900 dark:text-white block">کلمات ویژه عنوان (Special Words)</span>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1878,7 +2136,7 @@ export default function CreateCourseWizardPage() {
                           placeholder="کلمه"
                           value={newHighlightWord}
                           onChange={(e) => setNewHighlightWord(e.target.value)}
-                          className="w-full px-3 py-2 bg-white dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-xl text-[10px] font-bold focus:border-primary focus:outline-none transition-all text-right"
+                          className={`w-full px-3 py-2 ${WIZARD_FIELD_SM_CLASS} text-[10px] font-bold text-right`}
                         />
                         <button
                           type="button"
@@ -1909,7 +2167,7 @@ export default function CreateCourseWizardPage() {
                           placeholder="کلمه"
                           value={newUnderlineWord}
                           onChange={(e) => setNewUnderlineWord(e.target.value)}
-                          className="w-full px-3 py-2 bg-white dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-xl text-[10px] font-bold focus:border-primary focus:outline-none transition-all text-right"
+                          className={`w-full px-3 py-2 ${WIZARD_FIELD_SM_CLASS} text-[10px] font-bold text-right`}
                         />
                         <button
                           type="button"
@@ -1949,7 +2207,7 @@ export default function CreateCourseWizardPage() {
                           className={`px-3 py-1.5 rounded-xl text-[10px] font-bold flex items-center gap-1.5 border transition-all cursor-pointer ${
                             formData.specialWords.color === col.val
                               ? "border-primary bg-primary/10 text-primary"
-                              : "border-transparent bg-white dark:bg-white/5 text-gray-500 hover:border-gray-200"
+                              : `border-transparent ${WIZARD_FIELD_SM_CLASS} px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:border-gray-200/80 dark:hover:border-white/10`
                           }`}
                         >
                           <span className={`w-3.5 h-3.5 rounded-full ${col.class}`} />
@@ -1968,7 +2226,7 @@ export default function CreateCourseWizardPage() {
                     placeholder="توضیح کوتاهی که در هیرو بالای صفحه قرار می‌گیرد..."
                     value={formData.shortDescription}
                     onChange={(e) => setFormData((p) => ({ ...p, shortDescription: e.target.value }))}
-                    className={`px-4 py-2.5 bg-gray-50 dark:bg-white/5 border ${errors.shortDescription ? "border-red-500" : "border-gray-200/60 dark:border-white/5"} rounded-xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-right leading-relaxed`}
+                    className={`px-4 py-2.5 ${WIZARD_FIELD_CLASS} text-xs font-bold text-right leading-relaxed ${errors.shortDescription ? "border-red-500 ring-2 ring-red-500/15" : ""}`}
                   />
                   {errors.shortDescription && <span className="text-[10px] text-red-500 font-bold">{errors.shortDescription}</span>}
                 </div>
@@ -1976,11 +2234,11 @@ export default function CreateCourseWizardPage() {
                 {/* Intro Video Upload (Mock) */}
                 <div className="flex flex-col gap-3">
                   <label className="text-xs font-bold text-gray-700 dark:text-gray-300">ویدیوی معرفی دوره</label>
-                  <div className="relative border-2 border-dashed border-gray-200/60 dark:border-white/5 rounded-2xl p-4 flex flex-col items-center justify-center bg-gray-50/50 dark:bg-white/5 min-h-[130px] text-center hover:border-primary/50 transition-colors">
+                  <div className={`relative ${WIZARD_DROPZONE_CLASS} p-5 flex flex-col items-center justify-center min-h-[130px] text-center`}>
                     <input
                       type="file"
                       accept="video/*"
-                      onChange={handleVideoUploadSimulate}
+                      onChange={handleVideoUpload}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                     />
                     {videoProgress === 0 ? (
@@ -2013,8 +2271,13 @@ export default function CreateCourseWizardPage() {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
+                            markFormEdited();
                             setVideoProgress(0);
                             setVideoFile(null);
+                            if (videoObjectUrlRef.current) {
+                              URL.revokeObjectURL(videoObjectUrlRef.current);
+                              videoObjectUrlRef.current = null;
+                            }
                             setFormData((p) => ({ ...p, introVideo: "" }));
                           }}
                           className="absolute top-2 left-2 p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors z-30 cursor-pointer"
@@ -2572,27 +2835,29 @@ export default function CreateCourseWizardPage() {
               <button
                 type="button"
                 onClick={handleNext}
-                disabled={step === 1 && isSavingStep1}
+                disabled={isSavingStep1}
                 className="flex items-center gap-1.5 px-6 py-3.5 bg-primary hover:bg-primary-hover disabled:bg-primary/60 disabled:hover:scale-100 disabled:cursor-not-allowed text-white text-xs font-bold rounded-2xl transition-all shadow-md shadow-primary/20 hover:scale-[1.02] cursor-pointer select-none"
               >
-                <span>{step === 1 && isSavingStep1 ? "در حال ثبت..." : "مرحله بعدی"}</span>
+                <span>{isSavingStep1 ? "در حال ذخیره..." : "مرحله بعدی"}</span>
                 <ArrowLeft className="w-4 h-4" />
               </button>
             ) : (
               <div className="flex gap-3">
                 <button
                   type="button"
-                  onClick={() => handleSubmitWizard("draft")}
-                  className="px-5 py-3.5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-2xl hover:border-primary hover:text-primary transition-all cursor-pointer"
+                  disabled={isSavingStep1}
+                  onClick={() => void handleSubmitWizard("draft")}
+                  className="px-5 py-3.5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-2xl hover:border-primary hover:text-primary transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  ذخیره به عنوان پیش‌نویس
+                  {isSavingStep1 ? "در حال ذخیره..." : "ذخیره به عنوان پیش‌نویس"}
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleSubmitWizard("pending")}
-                  className="px-6 py-3.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-2xl transition-all shadow-md shadow-primary/20 hover:scale-[1.02] cursor-pointer"
+                  disabled={isSavingStep1}
+                  onClick={() => void handleSubmitWizard("pending")}
+                  className="px-6 py-3.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-2xl transition-all shadow-md shadow-primary/20 hover:scale-[1.02] cursor-pointer disabled:bg-primary/60 disabled:hover:scale-100 disabled:cursor-not-allowed"
                 >
-                  ارسال برای بررسی و انتشار
+                  {isSavingStep1 ? "در حال ارسال..." : "ارسال برای بررسی و انتشار"}
                 </button>
               </div>
             )}
@@ -2656,6 +2921,8 @@ export default function CreateCourseWizardPage() {
                   coverImage={formData.cover}
                   introVideo={formData.introVideo}
                   specialWords={formData.specialWords}
+                  disableFallbackVideo
+                  missingVideoMessage="ویدیوی معرفی را بارگذاری کنید تا پیش‌نمایش پخش شود."
                 />
               </div>
             )}
@@ -2867,6 +3134,8 @@ export default function CreateCourseWizardPage() {
                   coverImage={formData.cover}
                   introVideo={formData.introVideo}
                   specialWords={formData.specialWords}
+                  disableFallbackVideo
+                  missingVideoMessage="ویدیوی معرفی را بارگذاری کنید تا پیش‌نمایش پخش شود."
                 />
 
                 {/* 2. Grid body */}

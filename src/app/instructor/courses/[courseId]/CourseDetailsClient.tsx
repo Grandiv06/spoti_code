@@ -38,7 +38,8 @@ import {
   CheckCircle2,
   MoreVertical
 } from "lucide-react";
-import { useInstructorData, Lesson } from "@/context/InstructorDataContext";
+import { useInstructorData, type Course, type Chapter, type Lesson } from "@/context/InstructorDataContext";
+import { apiGetNoMock } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import InstructorQuestionsBoard from "@/components/instructor/InstructorQuestionsBoard";
 import CourseCard from "@/app/components/CourseCard";
@@ -116,6 +117,169 @@ const COURSE_ID_ALIASES: Record<string, string> = {
   typescript: "CRS-407",
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function parseJsonValue(value: unknown): unknown {
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+  return value;
+}
+
+function mapApiCategory(value: unknown): CourseCategory {
+  const raw = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (raw === "backend") return "Backend";
+  if (raw === "devops") return "DevOps";
+  if (raw === "mobile") return "Mobile";
+  if (raw === "base" || raw === "ui/ux") return "UI/UX";
+  return "Frontend";
+}
+
+function mapApiLevel(value: unknown): CourseLevel {
+  if (value === "elementary" || value === "advanced") return value;
+  return "intermediate";
+}
+
+function mapApiStatus(value: unknown, approvalStatus?: unknown): CourseStatus {
+  const approval = typeof approvalStatus === "string" ? approvalStatus : "";
+  if (approval === "pending") return "pending";
+  if (approval === "approved" || value === "published") return "published";
+  if (value === "inactive") return "inactive";
+  return "draft";
+}
+
+function mapApiLessons(rawLessons: unknown): Lesson[] {
+  if (!Array.isArray(rawLessons)) return [];
+  return rawLessons.map((item, index) => {
+    const row = isRecord(item) ? item : {};
+    const type = row.type;
+    return {
+      id: String(row.id ?? `LES-${index + 1}`),
+      title: String(row.title ?? "درس بدون عنوان"),
+      type:
+        type === "pdf" || type === "text" || type === "exercise" || type === "quiz"
+          ? type
+          : "video",
+      duration: String(row.duration ?? "10:00"),
+      isFree: row.isFree === true || row.access === "free",
+      status: row.status === "draft" || row.status === "locked" ? row.status : "published",
+    };
+  });
+}
+
+function mapApiChapters(value: unknown): Chapter[] {
+  const parsed = parseJsonValue(value);
+  if (!Array.isArray(parsed)) return [];
+  return parsed.map((item, index) => {
+    const row = isRecord(item) ? item : {};
+    const lessons = mapApiLessons(row.lessons);
+    return {
+      id: String(row.id ?? `CHP-${index + 1}`),
+      title: String(row.title ?? "فصل بدون عنوان"),
+      duration: String(row.duration ?? `${lessons.length} جلسه`),
+      lessons,
+    };
+  });
+}
+
+function mapInstructorCourseApiToCourse(payload: unknown): Course | null {
+  const root = isRecord(payload) && isRecord(payload.data) ? payload.data : isRecord(payload) ? payload : null;
+  if (!root) return null;
+
+  const draftData = isRecord(parseJsonValue(root.draftData)) ? (parseJsonValue(root.draftData) as Record<string, unknown>) : {};
+  const specialWordsRaw = parseJsonValue(root.specialWord ?? draftData.specialWords);
+  const specialWords = isRecord(specialWordsRaw)
+    ? {
+        highlighted: Array.isArray(specialWordsRaw.highlighted)
+          ? specialWordsRaw.highlighted.map((item) => String(item))
+          : [],
+        underlined: Array.isArray(specialWordsRaw.underlined)
+          ? specialWordsRaw.underlined.map((item) => String(item))
+          : [],
+        color: String(specialWordsRaw.color ?? "green"),
+      }
+    : { highlighted: [] as string[], underlined: [] as string[], color: "green" };
+
+  const faqsRaw = parseJsonValue(root.faqs ?? draftData.faqs);
+  const faqs = Array.isArray(faqsRaw)
+    ? faqsRaw
+        .map((item, index) => {
+          const row = isRecord(item) ? item : {};
+          return {
+            id: String(row.id ?? `faq-${index + 1}`),
+            question: String(row.question ?? ""),
+            answer: String(row.answer ?? ""),
+          };
+        })
+        .filter((item) => item.question && item.answer)
+    : [];
+
+  const featuresRaw = Array.isArray(draftData.features) ? draftData.features : [];
+  const features = featuresRaw
+    .map((item, index) => {
+      const row = isRecord(item) ? item : {};
+      return {
+        id: String(row.id ?? `feat-${index + 1}`),
+        title: String(row.title ?? ""),
+        icon: String(row.icon ?? "all_inclusive"),
+        color: String(row.color ?? "primary"),
+      };
+    })
+    .filter((item) => item.title);
+
+  const courseId = String(root.id ?? root.courseId ?? "");
+  if (!courseId) return null;
+
+  const cover = String(root.cover ?? root.thumbnail ?? "/images/course1.jpg");
+  const introVideo = String(root.introVideo ?? draftData.introVideo ?? "").trim();
+
+  return {
+    id: courseId,
+    title: String(root.title ?? "دوره بدون عنوان"),
+    slug: String(root.slug ?? courseId),
+    cover: cover.startsWith("blob:") ? "/images/course1.jpg" : cover,
+    introVideo: introVideo && !introVideo.startsWith("blob:") ? introVideo : undefined,
+    status: mapApiStatus(root.status, root.approvalStatus),
+    category: mapApiCategory(root.categoryTitle ?? root.category),
+    level: mapApiLevel(root.level),
+    language: String(draftData.language ?? "فارسی"),
+    shortDescription: String(root.shortDescription ?? ""),
+    description: String(root.description ?? root.aboutDescription ?? ""),
+    price: Number(root.price ?? 0),
+    instructorId: String(root.instructorId ?? ""),
+    studentsCount: 0,
+    rating: 0,
+    reviewsCount: 0,
+    revenue: 0,
+    completionRate: 0,
+    chapters: mapApiChapters(root.chapters ?? draftData.chapters),
+    reviews: [],
+    questions: [],
+    createdAt: String(root.createdAt ?? ""),
+    updatedAt: String(root.updatedAt ?? ""),
+    introText: String(draftData.shortDescription ?? root.shortDescription ?? ""),
+    objectives: Array.isArray(draftData.aboutHighlights)
+      ? draftData.aboutHighlights.map((item) => String(item))
+      : [],
+    heroTitle: String(draftData.heroTitle ?? root.title ?? ""),
+    aboutTitle: String(draftData.aboutTitle ?? "درباره این دوره"),
+    aboutDescription: String(root.aboutDescription ?? root.description ?? draftData.aboutDescription ?? ""),
+    aboutHighlights: Array.isArray(draftData.aboutHighlights)
+      ? draftData.aboutHighlights.map((item) => String(item))
+      : [],
+    features,
+    faqs,
+    specialWords,
+    visibility: "public",
+  };
+}
+
 export default function CourseDetailsPage() {
   const params = useParams();
   const router = useRouter();
@@ -125,7 +289,7 @@ export default function CourseDetailsPage() {
 
   const {
     courses,
-    questions,
+    upsertCourseSilent,
     updateCourse,
     addChapter,
     updateChapter,
@@ -134,8 +298,38 @@ export default function CourseDetailsPage() {
     updateLesson,
     deleteLesson,
     replyToReview,
-    replyToQuestion
   } = useInstructorData();
+
+  const [isLoadingCourse, setIsLoadingCourse] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadCourse = async () => {
+      setIsLoadingCourse(true);
+      try {
+        const response = await apiGetNoMock<unknown>(
+          `/api/instructor-dashboard/courses/${encodeURIComponent(canonicalCourseId)}/draft`
+        );
+        if (cancelled) return;
+        const mapped = mapInstructorCourseApiToCourse(response);
+        if (!mapped) return;
+        upsertCourseSilent(mapped);
+      } catch {
+        // Keep any locally cached course as fallback.
+      } finally {
+        if (!cancelled) {
+          setIsLoadingCourse(false);
+        }
+      }
+    };
+
+    void loadCourse();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canonicalCourseId, upsertCourseSilent]);
 
   // Find targeted course
   const course = useMemo(() => {
@@ -214,7 +408,6 @@ export default function CourseDetailsPage() {
 
   // State for Question Reply Box
   const [activeQuestionId, setActiveQuestionId] = useState("");
-  const [questionReplyText, setQuestionReplyText] = useState("");
   const [studentProgressFilter, setStudentProgressFilter] = useState("all");
   const [studentDateSort, setStudentDateSort] = useState("newest");
 
@@ -302,6 +495,15 @@ export default function CourseDetailsPage() {
     }
   }, [course]);
 
+  if (isLoadingCourse && !course) {
+    return (
+      <div className="max-w-[1200px] mx-auto py-12 text-center animate-pulse">
+        <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-white/10 mx-auto mb-4" />
+        <div className="h-5 w-48 bg-gray-200 dark:bg-white/10 rounded mx-auto" />
+      </div>
+    );
+  }
+
   if (!course) {
     return (
       <div className="max-w-[1200px] mx-auto py-12 text-center">
@@ -313,9 +515,6 @@ export default function CourseDetailsPage() {
       </div>
     );
   }
-
-  // Filter course-specific questions
-  const courseQuestions = questions.filter((q) => q.courseId === course.id);
 
   // Calculations
   const lessonsCount = course.chapters.reduce((sum, ch) => sum + ch.lessons.length, 0);
@@ -500,14 +699,6 @@ export default function CourseDetailsPage() {
       replyToReview(course.id, reviewId, reviewReplyText.trim());
       setReviewReplyText("");
       setActiveReviewReplyId("");
-    }
-  };
-
-  // Handle Question Reply Submit
-  const handleQuestionReplySubmit = (qstId: string) => {
-    if (questionReplyText.trim()) {
-      replyToQuestion(qstId, questionReplyText.trim());
-      setQuestionReplyText("");
     }
   };
 

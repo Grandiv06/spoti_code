@@ -192,6 +192,7 @@ function normalizeUser(raw: unknown, index: number): User {
       findByKeys(row, ["internalAdminNote", "internalNotes", "internalNote", "notes", "adminNote"]),
       ""
     ),
+    canPublishWithoutApproval: findByKeys(row, ["canPublishWithoutApproval", "canPublishDirectly"]) === true,
     purchasedCourses: [],
     recentTransactions: [],
     recentTickets: [],
@@ -226,6 +227,7 @@ export type AdminUserUpdateInput = {
   status: User["status"];
   role: ApplicationMainRole;
   internalNotes: string;
+  canPublishWithoutApproval?: boolean;
 };
 
 function normalizePhoneForApi(phone: string): string {
@@ -254,6 +256,9 @@ export function buildAdminUserUpdatePayload(input: AdminUserUpdateInput): Record
   const note = input.internalNotes.trim();
   if (note) {
     payload.internalAdminNote = note;
+  }
+  if (input.canPublishWithoutApproval !== undefined) {
+    payload.canPublishWithoutApproval = input.canPublishWithoutApproval;
   }
 
   return payload;

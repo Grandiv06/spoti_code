@@ -1,6 +1,8 @@
 import type { User } from "@prisma/client";
 import { AuthError } from "@/server/auth/request-auth";
 import { prisma } from "@/server/db/prisma";
+import { countPendingCourseRequests } from "@/server/services/instructor-course-draft.service";
+import { ensureCourseApprovalSchema } from "@/server/services/course-approval-schema.service";
 
 type MonthlyPoint = {
   label: string;
@@ -87,6 +89,7 @@ function buildMonthlyRevenue(orders: Array<{ amount: number; status: string; cre
 
 export async function getAdminDashboardOverview(adminUser: User) {
   assertAdmin(adminUser);
+  await ensureCourseApprovalSchema();
 
   const now = new Date();
   const todayStart = startOfDay(now);
@@ -102,6 +105,8 @@ export async function getAdminDashboardOverview(adminUser: User) {
     enrollments,
     orders,
     tickets,
+    pendingReviewRequestRows,
+    pendingCourseRequests,
   ] = await Promise.all([
     prisma.user.findMany({
       select: { id: true, role: true, createdAt: true },
@@ -153,7 +158,17 @@ export async function getAdminDashboardOverview(adminUser: User) {
       },
       orderBy: { updatedAt: "desc" },
     }),
+    prisma.$queryRaw<Array<{ count: number | bigint | string }>>`
+      SELECT COUNT(*) as "count"
+      FROM "Comment"
+      WHERE "parentId" IS NULL
+        AND "rating" IS NOT NULL
+        AND "approvalStatus" = 'pending'
+    `,
+    countPendingCourseRequests(),
   ]);
+  const pendingReviewRequests = Number(pendingReviewRequestRows[0]?.count ?? 0);
+  const totalPendingRequests = pendingReviewRequests + pendingCourseRequests;
 
   const currentMonthRevenue = orders
     .filter((order) => isPaidStatus(order.status) && order.createdAt >= currentMonthStart)
@@ -243,6 +258,11 @@ export async function getAdminDashboardOverview(adminUser: User) {
       updatedAt: formatDate(ticket.updatedAt),
       status: mapTicketStatus(ticket.status),
     })),
+    pendingRequests: {
+      totalPending: totalPendingRequests,
+      reviewRequestsPending: pendingReviewRequests,
+      courseRequestsPending: pendingCourseRequests,
+    },
     totalPaidOrders: paidOrders.length,
     totalEnrollments: enrollments.length,
   };

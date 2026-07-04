@@ -57,6 +57,7 @@ export default function EditUserModal({
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"فعال" | "غیرفعال" | "معلق">("فعال");
   const [role, setRole] = useState<ApplicationMainRole>(ApplicationMainRoles.USER);
+  const [canPublishWithoutApproval, setCanPublishWithoutApproval] = useState(false);
   const [internalNotes, setInternalNotes] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -72,11 +73,14 @@ export default function EditUserModal({
 
   useEffect(() => {
     if (user && isOpen) {
+      // The modal owns an editable draft copy of the loaded user record.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setName(user.name);
       setPhone(user.phone);
       setEmail(user.email);
       setStatus(user.status);
       setRole(user.role);
+      setCanPublishWithoutApproval(Boolean(user.canPublishWithoutApproval));
       setInternalNotes(user.internalNotes || "");
       setErrors({});
     }
@@ -114,7 +118,7 @@ export default function EditUserModal({
     try {
       const updatedUser = await updateMutation.mutateAsync({
         userId,
-        input: { name, phone, email, status, role, internalNotes },
+        input: { name, phone, email, status, role, internalNotes, canPublishWithoutApproval },
       });
       onSave({ ...user, ...updatedUser });
     } catch (err) {
@@ -253,6 +257,35 @@ export default function EditUserModal({
                 />
               </div>
             </div>
+
+            {role === ApplicationMainRoles.INSTRUCTOR ? (
+              <div className="rounded-2xl border border-primary/15 bg-primary/5 p-4">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="text-xs font-black text-gray-900 dark:text-white">مجوز انتشار مستقیم دوره</p>
+                    <p className="mt-1 text-[10px] font-bold leading-5 text-gray-500 dark:text-gray-400">
+                      اگر فعال باشد، این مدرس بعد از کلیک روی انتشار نیازی به تایید ادمین ندارد و دوره مستقیم منتشر می‌شود.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCanPublishWithoutApproval((current) => !current)}
+                    className={`relative h-9 w-16 shrink-0 rounded-full border transition ${
+                      canPublishWithoutApproval
+                        ? "border-primary bg-primary"
+                        : "border-gray-200 bg-gray-100 dark:border-white/10 dark:bg-black/20"
+                    }`}
+                    aria-pressed={canPublishWithoutApproval}
+                  >
+                    <span
+                      className={`absolute top-1 h-7 w-7 rounded-full bg-white shadow transition ${
+                        canPublishWithoutApproval ? "right-8" : "right-1"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            ) : null}
 
             <div className="space-y-2">
               <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block">یادداشت داخلی ادمین</label>

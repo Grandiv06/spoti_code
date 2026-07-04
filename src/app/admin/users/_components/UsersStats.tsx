@@ -4,7 +4,6 @@ import {
   UserCheck, 
   UserX, 
   UserMinus, 
-  Sparkles, 
   Wallet 
 } from "lucide-react";
 import { User } from "./types";
@@ -19,7 +18,6 @@ export default function UsersStats({ users }: UsersStatsProps) {
   const activeUsers = users.filter((u) => u.status === "فعال").length;
   const inactiveUsers = users.filter((u) => u.status === "غیرفعال").length;
   const suspendedUsers = users.filter((u) => u.status === "معلق").length;
-  const proUsers = users.filter((u) => u.plan === "Pro").length;
   const totalLTV = users.reduce((sum, u) => sum + u.ltv, 0);
 
   const stats = [
@@ -56,14 +54,6 @@ export default function UsersStats({ users }: UsersStatsProps) {
       bgGlow: "bg-amber-500/5",
     },
     {
-      label: "کاربران Pro",
-      value: toPersianDigits(proUsers),
-      desc: "اشتراک فعال حرفه‌ای",
-      icon: <Sparkles className="w-5 h-5 text-purple-400" />,
-      color: "from-purple-500/10 to-pink-500/5 border-purple-500/20",
-      bgGlow: "bg-purple-500/5",
-    },
-    {
       label: "مجموع درآمد (LTV)",
       value: formatPrice(totalLTV),
       desc: "ارزش چرخه عمر کل",
@@ -75,7 +65,7 @@ export default function UsersStats({ users }: UsersStatsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
       {stats.map((stat, i) => (
         <div
           key={i}

@@ -33,6 +33,12 @@ export type AdminDashboardTicket = {
   status: string;
 };
 
+export type AdminDashboardRequestsSummary = {
+  totalPending: number;
+  reviewRequestsPending: number;
+  courseRequestsPending: number;
+};
+
 export type AdminDashboardViewModel = {
   kpis: AdminDashboardKpi[];
   monthlyRevenue: AdminDashboardPoint[];
@@ -40,6 +46,7 @@ export type AdminDashboardViewModel = {
   salesByCategory: AdminDashboardPoint[];
   recentOrders: AdminDashboardOrder[];
   ticketsData: AdminDashboardTicket[];
+  pendingRequests: AdminDashboardRequestsSummary;
   revenueTrend: string;
   newUsersToday: string;
   conversionRateToday: string;
@@ -67,6 +74,7 @@ const CHANNEL_KEYS = ["channelData", "channels", "acquisitionChannels", "traffic
 const SALES_KEYS = ["salesByCategory", "categorySales", "salesPerCategory", "salesByType"];
 const TICKET_KEYS = ["ticketsData", "recentTickets", "tickets", "supportTickets"];
 const ORDER_KEYS = ["recentOrders", "orders", "salesOrders"];
+const REQUEST_SUMMARY_KEYS = ["pendingRequests", "requestsSummary", "adminRequests", "requestSummary"];
 
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -298,6 +306,27 @@ function mapTickets(source: unknown): AdminDashboardTicket[] {
   });
 }
 
+function mapRequestsSummary(source: unknown): AdminDashboardRequestsSummary {
+  const raw = unwrapResponse(source);
+  if (!isRecord(raw)) {
+    return { totalPending: 0, reviewRequestsPending: 0, courseRequestsPending: 0 };
+  }
+
+  const reviewRequestsPending =
+    toNumber(findByKeys(raw, ["reviewRequestsPending", "reviewsPending", "pendingReviews", "reviewRequests"])) ?? 0;
+  const courseRequestsPending =
+    toNumber(findByKeys(raw, ["courseRequestsPending", "coursesPending", "pendingCourses", "courseRequests"])) ?? 0;
+  const totalPending =
+    toNumber(findByKeys(raw, ["totalPending", "pendingCount", "total", "count"])) ??
+    reviewRequestsPending + courseRequestsPending;
+
+  return {
+    totalPending: Math.max(0, Math.round(totalPending)),
+    reviewRequestsPending: Math.max(0, Math.round(reviewRequestsPending)),
+    courseRequestsPending: Math.max(0, Math.round(courseRequestsPending)),
+  };
+}
+
 function buildKpis(source: unknown): AdminDashboardKpi[] {
   const totalUsers = findByKeys(source, ["totalUsers", "usersCount", "usersTotal", "totalUsersCount"]);
   const activeUsers = findByKeys(source, ["activeUsers", "dailyActiveUsers", "activeUsersCount", "usersActive"]);
@@ -342,6 +371,7 @@ export function normalizeAdminDashboardOverview(response: unknown): AdminDashboa
   const salesSource = findByKeys(payload, SALES_KEYS);
   const ticketSource = findByKeys(payload, TICKET_KEYS);
   const orderSource = findByKeys(payload, ORDER_KEYS);
+  const requestSummarySource = findByKeys(payload, REQUEST_SUMMARY_KEYS);
   const revenueTrend = formatDelta(findByKeys(payload, ["revenueGrowth", "monthlyRevenueGrowth", "revenueDelta"]));
 
   return {
@@ -351,6 +381,7 @@ export function normalizeAdminDashboardOverview(response: unknown): AdminDashboa
     salesByCategory: mapPointSeries(salesSource),
     recentOrders: mapOrders(orderSource),
     ticketsData: mapTickets(ticketSource),
+    pendingRequests: mapRequestsSummary(requestSummarySource),
     revenueTrend,
     newUsersToday: formatCount(findByKeys(payload, ["newUsersToday", "dailyNewUsers", "todayNewUsers", "newSignupsToday"])),
     conversionRateToday: formatPercent(findByKeys(payload, ["conversionRateToday", "todayConversionRate", "conversionRate"])),

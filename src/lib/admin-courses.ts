@@ -118,6 +118,11 @@ function normalizeCategory(value: unknown): Course["category"] {
 }
 
 function normalizeStatus(source: UnknownRecord): Course["status"] {
+  const approvalStatus = normalizeString(findByKeys(source, ["approvalStatus", "reviewStatus", "publishApprovalStatus"]), "").toLowerCase();
+  if (["pending", "review", "underreview"].includes(approvalStatus)) return "در انتظار بررسی";
+  if (["rejected"].includes(approvalStatus)) return "غیرفعال";
+  if (["draft"].includes(approvalStatus)) return "پیش‌نویس";
+
   const isPublished = findByKeys(source, ["isPublished", "published"]);
   if (typeof isPublished === "boolean") return isPublished ? "منتشر شده" : "پیش‌نویس";
 

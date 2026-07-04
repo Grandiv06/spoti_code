@@ -5,13 +5,12 @@ const statCardClasses = [
   "col-span-1",
   "col-span-1",
   "col-span-1",
-  "col-span-1",
   "col-span-2 md:col-span-3 xl:col-span-1",
 ];
 
 export default function UsersStatsSkeleton() {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-8 animate-pulse">
+    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-8 animate-pulse">
       {statCardClasses.map((colClass, index) => (
         <div
           key={index}
@@ -25,7 +24,7 @@ export default function UsersStatsSkeleton() {
             <div>
               <div
                 className={`rounded-full bg-gray-200 dark:bg-white/10 mb-1 ${
-                  index === 5 ? "h-5 w-28" : "h-7 w-14"
+                  index === 4 ? "h-5 w-28" : "h-7 w-14"
                 }`}
               />
               <div className="h-[10px] w-24 rounded-full bg-gray-100 dark:bg-white/5" />

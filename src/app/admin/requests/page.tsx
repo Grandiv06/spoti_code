@@ -13,12 +13,12 @@ const requestSections = [
     isActive: true,
   },
   {
-    href: "#",
+    href: "/admin/requests/courses",
     title: "تایید ثبت دوره",
     description: "درخواست‌هایی که مدرس برای ثبت یا انتشار دوره ارسال می‌کند در این بخش بررسی می‌شود.",
     icon: BookOpenCheck,
-    badge: "به‌زودی",
-    isActive: false,
+    badge: "فعال",
+    isActive: true,
   },
 ];
 

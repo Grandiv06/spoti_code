@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { apiGetNoMock, apiPatchNoMock, apiPutNoMock } from "@/lib/api";
 import { buildQaRepliesFromSource, dedupeQaReplies, mergeQaReplies } from "@/lib/course-qa";
 
@@ -220,6 +220,7 @@ interface InstructorDataContextType {
   isLoading: boolean;
   showToast: (message: string, type?: "success" | "error" | "info") => void;
   addCourse: (course: Partial<Course>) => string;
+  upsertCourseSilent: (course: Course) => void;
   updateCourse: (courseId: string, updates: Partial<Course>) => void;
   deleteCourse: (courseId: string) => void;
   addChapter: (courseId: string, title: string) => void;
@@ -903,27 +904,10 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
       }
     };
 
-    const loadQuestions = async () => {
-      try {
-        const response = await apiGetNoMock<unknown>("/api/instructor-dashboard/questions");
-        const normalizedQuestions = extractQaArray(response).map(normalizeStudentQuestion);
-        if (!cancelled) {
-          syncQuestions(normalizedQuestions);
-        }
-      } catch {
-        // Keep the last loaded questions available if the backend is unreachable.
-      }
-    };
-
-    loadInstructorProfile();
-    loadQuestions();
-    const questionsIntervalId = window.setInterval(() => {
-      void loadQuestions();
-    }, 8000);
+    void loadInstructorProfile();
 
     return () => {
       cancelled = true;
-      window.clearInterval(questionsIntervalId);
     };
   }, []);
 
@@ -1003,6 +987,18 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
     syncCourses(updated);
     showToast("اطلاعات دوره با موفقیت ویرایش شد.", "success");
   };
+
+  const upsertCourseSilent = useCallback((record: Course) => {
+    setCourses((prev) => {
+      const prepared = normalizeCourseRecord(record);
+      const exists = prev.some((course) => course.id === prepared.id);
+      const updated = exists
+        ? prev.map((course) => (course.id === prepared.id ? { ...course, ...prepared } : course))
+        : [prepared, ...prev];
+      localStorage.setItem("spoticode_inst_courses", JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
 
   const deleteCourse = (courseId: string) => {
     const deleted = courses.filter((c) => c.id !== courseId);
@@ -1308,6 +1304,7 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
         isLoading,
         showToast,
         addCourse,
+        upsertCourseSilent,
         updateCourse,
         deleteCourse,
         addChapter,

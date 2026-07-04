@@ -326,7 +326,7 @@ export default function InstructorCoursesPage() {
                 <button
                   onClick={() => {
                     if (isPublishedLike(c.status)) {
-                      router.push(`/instructor/courses/${c.id}`);
+                      router.push(`/instructor/courses/${encodeURIComponent(c.id)}`);
                       return;
                     }
                     if (c.status === "pending") {

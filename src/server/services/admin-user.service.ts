@@ -1,7 +1,9 @@
 import { randomBytes } from "crypto";
-import type { AppUserRole, User } from "@prisma/client";
+import { Prisma, type AppUserRole, type User } from "@prisma/client";
 import { AuthError } from "@/server/auth/request-auth";
 import { prisma } from "@/server/db/prisma";
+import { ensureCourseApprovalSchema } from "@/server/services/course-approval-schema.service";
+import { resolveInstructorForUser } from "@/server/services/instructor-dashboard.service";
 
 type AdminUsersQuery = {
   search?: string;
@@ -28,6 +30,7 @@ type AdminUserPayload = {
   internalAdminNote?: unknown;
   internalNotes?: unknown;
   nationalCode?: unknown;
+  canPublishWithoutApproval?: unknown;
 };
 
 const PAID_STATUSES = ["success", "paid", "completed", "successful"];
@@ -222,11 +225,30 @@ function mapAdminUser(user: NonNullable<AdminUserRecord>) {
     lastCourseViewed: latestEnrollment?.course.title || "—",
     internalAdminNote: user.internalAdminNote || "",
     internalNotes: user.internalAdminNote || "",
+    canPublishWithoutApproval: false,
     avatarColor: hashToGradientSeed(user.id),
     purchasedCourses: user.enrollments.map(mapCourse),
     recentTransactions: user.orders.slice(0, 5).map(mapTransaction),
     recentTickets: user.tickets.slice(0, 5).map(mapTicket),
   };
+}
+
+async function attachInstructorPublishPermissions<T extends { id: string; role: string }>(users: T[]): Promise<T[]> {
+  const instructorUserIds = users.filter((user) => user.role === "INSTRUCTOR").map((user) => user.id);
+  if (instructorUserIds.length === 0) return users;
+
+  await ensureCourseApprovalSchema();
+  const rows = await prisma.$queryRaw<Array<{ id: string; canPublishWithoutApproval: boolean | number | null }>>`
+    SELECT "id", "canPublishWithoutApproval"
+    FROM "Instructor"
+    WHERE "id" IN (${Prisma.join(instructorUserIds)})
+  `;
+  const permissions = new Map(rows.map((row) => [row.id, row.canPublishWithoutApproval === true || row.canPublishWithoutApproval === 1]));
+
+  return users.map((user) => ({
+    ...user,
+    canPublishWithoutApproval: permissions.get(user.id) ?? false,
+  }));
 }
 
 function matchesSearch(user: ReturnType<typeof mapAdminUser>, query: AdminUsersQuery) {
@@ -259,7 +281,9 @@ export async function getAdminUsers(adminUser: User, query: AdminUsersQuery = {}
     orderBy: { createdAt: "desc" },
   });
 
-  const mappedUsers = users.map(mapAdminUser).filter((user) => matchesSearch(user, query));
+  const mappedUsers = (await attachInstructorPublishPermissions(users.map(mapAdminUser))).filter((user) =>
+    matchesSearch(user, query)
+  );
   const start = (page - 1) * limit;
 
   return {
@@ -275,7 +299,9 @@ export async function getAdminUsers(adminUser: User, query: AdminUsersQuery = {}
 export async function getAdminUserOverview(adminUser: User, userId: string) {
   assertAdmin(adminUser);
   const user = await findAdminUserById(userId);
-  return user ? mapAdminUser(user) : null;
+  if (!user) return null;
+  const [mapped] = await attachInstructorPublishPermissions([mapAdminUser(user)]);
+  return mapped;
 }
 
 export async function getAdminUserCourses(adminUser: User, userId: string) {
@@ -383,7 +409,8 @@ export async function createAdminUser(adminUser: User, input: AdminUserPayload) 
     include: adminUserInclude,
   });
 
-  return mapAdminUser(user);
+  const [mapped] = await attachInstructorPublishPermissions([mapAdminUser(user)]);
+  return mapped;
 }
 
 export async function updateAdminUser(adminUser: User, userId: string, input: AdminUserPayload) {
@@ -427,5 +454,17 @@ export async function updateAdminUser(adminUser: User, userId: string, input: Ad
     include: adminUserInclude,
   });
 
-  return mapAdminUser(user);
+  if (input.canPublishWithoutApproval !== undefined && user.role === "INSTRUCTOR") {
+    await ensureCourseApprovalSchema();
+    const instructor = await resolveInstructorForUser(user);
+    await prisma.$executeRaw`
+      UPDATE "Instructor"
+      SET "canPublishWithoutApproval" = ${input.canPublishWithoutApproval === true},
+          "updatedAt" = ${new Date()}
+      WHERE "id" = ${instructor?.id ?? user.id}
+    `;
+  }
+
+  const [mapped] = await attachInstructorPublishPermissions([mapAdminUser(user)]);
+  return mapped;
 }

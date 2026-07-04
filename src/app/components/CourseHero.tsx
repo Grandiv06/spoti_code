@@ -132,16 +132,24 @@ export default function CourseHero({
   };
 
   const handleToggle = () => {
-    if (disableFallbackVideo && !videoUrl) return;
+    const resolvedUrl = introVideo || (disableFallbackVideo ? "" : TEST_VIDEO_URL);
+    if (!resolvedUrl) return;
+
     if (!isVideoExpanded && !videoError) {
-      videoRef.current?.play().catch(() => {
-        // Keep the player open if autoplay is blocked.
-      });
-    } else {
-      videoRef.current?.pause();
+      setVideoUrl(resolvedUrl);
+      setIsVideoExpanded(true);
       setShowControls(true);
+      window.requestAnimationFrame(() => {
+        videoRef.current?.play().catch(() => {
+          // Keep the player open if autoplay is blocked.
+        });
+      });
+      return;
     }
-    setIsVideoExpanded((prev) => !prev);
+
+    videoRef.current?.pause();
+    setShowControls(true);
+    setIsVideoExpanded(false);
   };
 
   // Helper to render title words with brand custom highlight & underline

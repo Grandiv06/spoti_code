@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   ArrowUpRight,
   BellRing,
@@ -155,6 +156,11 @@ export default function AdminDashboardPage() {
     salesByCategory: [],
     recentOrders: [],
     ticketsData: [],
+    pendingRequests: {
+      totalPending: 0,
+      reviewRequestsPending: 0,
+      courseRequestsPending: 0,
+    },
     revenueTrend: "—",
     newUsersToday: "—",
     conversionRateToday: "—",
@@ -165,6 +171,7 @@ export default function AdminDashboardPage() {
   const orderStartIndex = (safeOrderPage - 1) * rowsPerPage;
   const orderEndIndex = Math.min(orderStartIndex + rowsPerPage, dashboard.recentOrders.length);
   const paginatedRecentOrders = dashboard.recentOrders.slice(orderStartIndex, orderEndIndex);
+  const hasPendingRequests = dashboard.pendingRequests.totalPending > 0;
   const kpiIcons = [UserRound, Waves, Coins, TrendingDown];
 
   return (
@@ -206,6 +213,37 @@ export default function AdminDashboardPage() {
         <DashboardSkeleton />
       ) : (
         <>
+          {hasPendingRequests ? (
+            <section className="mb-8 rounded-[2rem] border border-amber-200 bg-amber-50 p-5 shadow-sm dark:border-amber-500/20 dark:bg-amber-500/10">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-500 text-white shadow-lg shadow-amber-500/20">
+                    <BellRing className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <h2 className="text-base font-black text-gray-900 dark:text-white">درخواست جدید برای بررسی دارید</h2>
+                      <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-amber-700 shadow-sm dark:bg-white/10 dark:text-amber-200">
+                        {dashboard.pendingRequests.totalPending.toLocaleString("fa-IR")} درخواست
+                      </span>
+                    </div>
+                    <p className="text-xs font-bold leading-6 text-amber-800/80 dark:text-amber-100/80">
+                      {dashboard.pendingRequests.reviewRequestsPending.toLocaleString("fa-IR")} درخواست تایید نمایش نظر و{" "}
+                      {dashboard.pendingRequests.courseRequestsPending.toLocaleString("fa-IR")} درخواست انتشار دوره منتظر تصمیم ادمین است.
+                    </p>
+                  </div>
+                </div>
+
+                <Link
+                  href="/admin/requests"
+                  className="inline-flex h-11 items-center justify-center rounded-2xl bg-amber-500 px-5 text-xs font-black text-white shadow-lg shadow-amber-500/20 transition hover:bg-amber-600"
+                >
+                  مشاهده درخواست‌ها
+                </Link>
+              </div>
+            </section>
+          ) : null}
+
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-8">
             {dashboard.kpis.map((kpi, index) => {
               const KpiIcon = kpiIcons[index] ?? UserRound;

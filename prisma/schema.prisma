@@ -94,6 +94,7 @@ model Instructor {
   reviews              Json?
   socials              Json?
   publicVisibility     Json?
+  canPublishWithoutApproval Boolean @default(false)
   courses              Course[]
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
@@ -125,12 +126,20 @@ model Course {
   introVideoDuration String?
   chapters           Json?
   faqs               Json?
+  draftData          Json?
+  draftStep          Int            @default(1)
+  approvalStatus     String         @default("draft")
+  submittedAt        DateTime?
+  approvedAt         DateTime?
+  rejectedAt         DateTime?
+  approvalNote       String?
   comments           Comment[]
   enrollments        CourseEnrollment[]
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 
   @@index([status])
+  @@index([approvalStatus])
   @@index([category])
 }
 
