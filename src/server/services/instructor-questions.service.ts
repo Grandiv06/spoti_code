@@ -11,6 +11,13 @@ import {
 import { prisma } from "@/server/db/prisma";
 import { assertInstructor, resolveInstructorForUser } from "@/server/services/instructor-dashboard.service";
 
+export type InstructorQuestionFilterInput = {
+  status?: string;
+  courseId?: string;
+  search?: string;
+  sort?: string;
+};
+
 async function requireInstructorRecord(user: User) {
   assertInstructor(user);
 
@@ -31,13 +38,51 @@ function canManageAllInstructorQuestions(user: User) {
   return user.role === "ADMIN" || user.id === "USR-INST-001" || user.phone === "+989000000002";
 }
 
-export async function getInstructorQuestions(user: User) {
+function normalizeStatusFilter(value?: string) {
+  return value === "answered" || value === "new" ? value : "all";
+}
+
+function normalizeSort(value?: string) {
+  return value === "oldest" ? "oldest" : "newest";
+}
+
+function questionMatchesStatus(
+  comment: { replies: Array<{ isInstructorReply: boolean }> },
+  status: string
+) {
+  if (status === "all") return true;
+  const answered = comment.replies.some((reply) => reply.isInstructorReply);
+  return status === "answered" ? answered : !answered;
+}
+
+function questionMatchesSearch(
+  comment: {
+    content: string;
+    authorName: string;
+    course: { title: string };
+  },
+  search?: string
+) {
+  const query = search?.trim().toLowerCase();
+  if (!query) return true;
+  return (
+    comment.content.toLowerCase().includes(query) ||
+    comment.authorName.toLowerCase().includes(query) ||
+    comment.course.title.toLowerCase().includes(query)
+  );
+}
+
+export async function getInstructorQuestions(user: User, filters: InstructorQuestionFilterInput = {}) {
   const instructor = await requireInstructorRecord(user);
+  const status = normalizeStatusFilter(filters.status);
+  const sort = normalizeSort(filters.sort);
+  const courseId = filters.courseId && filters.courseId !== "all" ? filters.courseId : undefined;
 
   const comments = await prisma.comment.findMany({
     where: {
       parentId: null,
       rating: null,
+      courseId,
       course: instructor ? { instructorId: instructor.id } : undefined,
     },
     include: {
@@ -53,11 +98,25 @@ export async function getInstructorQuestions(user: User) {
       },
     },
     orderBy: {
-      createdAt: "desc",
+      createdAt: sort === "oldest" ? "asc" : "desc",
     },
   });
 
-  return toInstructorQuestionsResponseDto(comments);
+  const filtered = comments.filter(
+    (comment) =>
+      questionMatchesStatus(comment, status) &&
+      questionMatchesSearch(comment, filters.search)
+  );
+  const response = toInstructorQuestionsResponseDto(filtered);
+  const allQuestions = toInstructorQuestionsResponseDto(comments);
+  const sortedItems = sort === "oldest" ? [...response.items].reverse() : response.items;
+
+  return {
+    ...response,
+    items: sortedItems,
+    courses: allQuestions.courses,
+    stats: allQuestions.stats,
+  };
 }
 
 export async function answerInstructorQuestion(

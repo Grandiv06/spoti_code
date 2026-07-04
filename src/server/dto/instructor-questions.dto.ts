@@ -41,6 +41,10 @@ export type InstructorQuestionDto = {
 
 export type InstructorQuestionsResponseDto = {
   items: InstructorQuestionDto[];
+  courses: Array<{
+    id: string;
+    title: string;
+  }>;
   stats: {
     total: number;
     new: number;
@@ -233,6 +237,9 @@ export function toInstructorQuestionsResponseDto(comments: CommentWithReplies[])
 
   return {
     items,
+    courses: Array.from(
+      new Map(items.map((item) => [item.courseId, { id: item.courseId, title: item.courseTitle }])).values()
+    ),
     stats: {
       total: items.length,
       new: items.filter((item) => item.status === "new").length,

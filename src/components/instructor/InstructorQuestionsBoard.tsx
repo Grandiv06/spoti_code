@@ -1,9 +1,12 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { FileText, HelpCircle, Paperclip, Search, User, Send, Loader2, Download, ArrowRight, X, ChevronLeft, MessageSquare } from "lucide-react";
+import { FileText, HelpCircle, Paperclip, Search, User, Send, Loader2, Download, ArrowRight, X, ChevronLeft, MessageSquare, Filter, BookOpen, ArrowUpDown } from "lucide-react";
 import { useInstructorData, type StudentQuestion } from "@/context/InstructorDataContext";
+import { apiGetNoMock } from "@/lib/api";
+import { mapCourseQaList } from "@/lib/course-qa";
 import { cn } from "@/lib/utils";
+import CustomSelect from "@/components/ui/CustomSelect";
 
 type QuestionChatMessage = {
   id: string;
@@ -117,7 +120,7 @@ function resolveAnswerTargetQuestion(questions: StudentQuestion[]): StudentQuest
   return target;
 }
 
-function groupQuestionsIntoThreads(questions: StudentQuestion[]): QuestionThread[] {
+function groupQuestionsIntoThreads(questions: StudentQuestion[], sort: "newest" | "oldest" = "newest"): QuestionThread[] {
   const grouped = new Map<string, StudentQuestion[]>();
 
   for (const question of questions) {
@@ -161,7 +164,10 @@ function groupQuestionsIntoThreads(questions: StudentQuestion[]): QuestionThread
         primaryQuestionId: answerTarget.id,
       } satisfies QuestionThread;
     })
-    .sort((a, b) => b.latestStudentMessageMs - a.latestStudentMessageMs || b.updatedAtMs - a.updatedAtMs);
+    .sort((a, b) => {
+      const newest = b.latestStudentMessageMs - a.latestStudentMessageMs || b.updatedAtMs - a.updatedAtMs;
+      return sort === "oldest" ? -newest : newest;
+    });
 }
 
 function dedupeChatMessages(messages: QuestionChatMessage[]): QuestionChatMessage[] {
@@ -243,6 +249,55 @@ type Props = {
 };
 
 const THREADS_PAGE_SIZE = 6;
+
+type QuestionStats = {
+  total: number;
+  new: number;
+  answered: number;
+};
+
+type QuestionCourseOption = {
+  id: string;
+  title: string;
+};
+
+const statusFilterOptions = [
+  { value: "all", label: "همه وضعیت‌ها" },
+  { value: "new", label: "جدید" },
+  { value: "answered", label: "پاسخ داده شده" },
+];
+
+const sortFilterOptions = [
+  { value: "newest", label: "جدیدترین" },
+  { value: "oldest", label: "قدیمی‌ترین" },
+];
+
+const filterSelectClassName =
+  "h-full [&>div]:h-full [&_button]:h-full [&_button]:min-h-[46px] [&_button]:text-xs [&_button]:px-4";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function unwrapPayload(value: unknown): unknown {
+  if (isRecord(value) && "data" in value) return value.data;
+  return value;
+}
+
+function buildQuestionsQuery(input: {
+  status: string;
+  courseId: string;
+  search: string;
+  sort: string;
+}) {
+  const params = new URLSearchParams();
+  if (input.status !== "all") params.set("status", input.status);
+  if (input.courseId !== "all") params.set("courseId", input.courseId);
+  if (input.search.trim()) params.set("search", input.search.trim());
+  if (input.sort !== "newest") params.set("sort", input.sort);
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
 
 function ThreadPagination({
   currentPage,
@@ -331,14 +386,16 @@ function ThreadPagination({
 }
 
 export default function InstructorQuestionsBoard({ showHero = true, filterCourseId, className }: Props) {
-  const { questions, replyToQuestion } = useInstructorData();
-  const sourceQuestions = useMemo(
-    () => (filterCourseId ? questions.filter((q) => q.courseId === filterCourseId) : questions),
-    [questions, filterCourseId]
-  );
+  const { replyToQuestion } = useInstructorData();
+  const [boardQuestions, setBoardQuestions] = useState<StudentQuestion[]>([]);
+  const [questionStats, setQuestionStats] = useState<QuestionStats>({ total: 0, new: 0, answered: 0 });
+  const [questionCourses, setQuestionCourses] = useState<QuestionCourseOption[]>([]);
 
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [courseFilter, setCourseFilter] = useState("all");
+  const [sortFilter, setSortFilter] = useState("newest");
   const [threadPage, setThreadPage] = useState(1);
 
   // --- Telegram Q&A Chat States & Helpers ---
@@ -387,9 +444,77 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const effectiveCourseFilter = filterCourseId || courseFilter;
+
+  const courseFilterOptions = useMemo(
+    () => [
+      { value: "all", label: "همه دوره‌های ثبت‌شده" },
+      ...questionCourses.map((course) => ({ value: course.id, label: course.title })),
+    ],
+    [questionCourses]
+  );
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 350);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [search]);
+
+  const loadBoardQuestions = React.useCallback(
+    async (options?: { silent?: boolean }) => {
+      try {
+        const response = await apiGetNoMock<unknown>(
+          `/api/instructor-dashboard/questions${buildQuestionsQuery({
+            status: statusFilter,
+            courseId: effectiveCourseFilter,
+            search: debouncedSearch,
+            sort: sortFilter,
+          })}`
+        );
+        const payload = unwrapPayload(response);
+        const record = isRecord(payload) ? payload : {};
+        const mappedQuestions = mapCourseQaList(response) as StudentQuestion[];
+        const stats = isRecord(record.stats) ? record.stats : {};
+        const courses = Array.isArray(record.courses) ? record.courses : [];
+
+        setBoardQuestions(mappedQuestions);
+        setQuestionStats({
+          total: typeof stats.total === "number" ? stats.total : mappedQuestions.length,
+          new: typeof stats.new === "number" ? stats.new : mappedQuestions.filter((question) => question.status === "new").length,
+          answered: typeof stats.answered === "number" ? stats.answered : mappedQuestions.filter((question) => question.status === "answered").length,
+        });
+        setQuestionCourses(
+          courses
+            .map((course) =>
+              isRecord(course)
+                ? { id: String(course.id ?? ""), title: String(course.title ?? "") }
+                : null
+            )
+            .filter((course): course is QuestionCourseOption => Boolean(course?.id && course.title))
+        );
+      } catch (error) {
+        if (!options?.silent) {
+          console.error(error);
+        }
+      }
+    },
+    [debouncedSearch, effectiveCourseFilter, sortFilter, statusFilter]
+  );
+
+  useEffect(() => {
+    void loadBoardQuestions();
+    const intervalId = window.setInterval(() => {
+      void loadBoardQuestions({ silent: true });
+    }, 8000);
+
+    return () => window.clearInterval(intervalId);
+  }, [loadBoardQuestions]);
+
   const questionThreads = useMemo(
-    () => groupQuestionsIntoThreads(sourceQuestions),
-    [sourceQuestions]
+    () => groupQuestionsIntoThreads(boardQuestions, sortFilter === "oldest" ? "oldest" : "newest"),
+    [boardQuestions, sortFilter]
   );
 
   const activeThread = useMemo(
@@ -518,6 +643,7 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
         textToSend,
         attachments.length ? attachments : undefined
       );
+      await loadBoardQuestions({ silent: true });
       loadThreadChat(activeThread);
       setTimeout(scrollToBottom, 100);
     } catch (err) {
@@ -659,53 +785,17 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
     );
   };
 
-  const stats = useMemo(() => {
-    const total = questionThreads.length;
-    const pending = questionThreads.filter((thread) => thread.status === "new").length;
-    const answered = questionThreads.filter((thread) => thread.status === "answered").length;
-    return { total, pending, answered };
-  }, [questionThreads]);
-
-  const filteredThreads = useMemo(() => {
-    let result = [...questionThreads];
-
-    if (statusFilter !== "all") {
-      result = result.filter((thread) => thread.status === statusFilter);
-    }
-
-    if (search.trim()) {
-      const q = search.toLowerCase().trim();
-      result = result.filter(
-        (thread) =>
-          thread.title.toLowerCase().includes(q) ||
-          thread.studentName.toLowerCase().includes(q) ||
-          thread.courseTitle.toLowerCase().includes(q) ||
-          thread.lessonTitles.some((lessonTitle) => lessonTitle.toLowerCase().includes(q)) ||
-          thread.questions.some(
-            (question) =>
-              question.title.toLowerCase().includes(q) ||
-              question.text.toLowerCase().includes(q) ||
-              (question.description || "").toLowerCase().includes(q)
-          )
-      );
-    }
-
-    return result.sort(
-      (a, b) => b.latestStudentMessageMs - a.latestStudentMessageMs || b.updatedAtMs - a.updatedAtMs
-    );
-  }, [questionThreads, search, statusFilter]);
-
-  const totalThreadPages = Math.max(1, Math.ceil(filteredThreads.length / THREADS_PAGE_SIZE));
+  const totalThreadPages = Math.max(1, Math.ceil(questionThreads.length / THREADS_PAGE_SIZE));
   const safeThreadPage = Math.min(threadPage, totalThreadPages);
 
   const paginatedThreads = useMemo(() => {
     const start = (safeThreadPage - 1) * THREADS_PAGE_SIZE;
-    return filteredThreads.slice(start, start + THREADS_PAGE_SIZE);
-  }, [filteredThreads, safeThreadPage]);
+    return questionThreads.slice(start, start + THREADS_PAGE_SIZE);
+  }, [questionThreads, safeThreadPage]);
 
   useEffect(() => {
     setThreadPage(1);
-  }, [search, statusFilter]);
+  }, [debouncedSearch, effectiveCourseFilter, sortFilter, statusFilter]);
 
   useEffect(() => {
     if (threadPage > totalThreadPages) {
@@ -730,46 +820,66 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
         </div>
       </section>}
 
-      <section className="mb-7 rounded-[1.75rem] border border-gray-100 bg-white p-5 shadow-sm dark:border-white/5 dark:bg-[#1c1e26] md:p-6">
-        <div className="grid gap-4 xl:grid-cols-[1fr_auto] xl:items-center">
-          <div className="relative w-full xl:max-w-md">
-            <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+      <section className="mb-7 rounded-3xl border border-gray-100 bg-white p-6 shadow-md dark:border-white/5 dark:bg-[#1c1e26]">
+        <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-2 xl:grid-cols-5">
+          <div className="relative group md:col-span-2 xl:col-span-2">
+            <Search className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-primary" />
             <input
               type="text"
               placeholder="جستجو در سوالات، دانشجویان یا عنوان دوره‌ها..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-12 w-full rounded-2xl border border-gray-200/70 bg-gray-50 pr-12 pl-4 text-sm font-semibold text-gray-800 outline-none transition focus:border-primary dark:border-white/10 dark:bg-white/5 dark:text-white"
+              className="h-full min-h-[46px] w-full rounded-2xl border border-gray-100 bg-gray-50 py-3.5 pr-11 pl-3 text-xs font-bold text-gray-900 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-white/10 dark:bg-white/5 dark:text-white"
             />
           </div>
 
-          <div className="flex flex-wrap justify-end gap-2">
-            {[
-              { id: "all", label: "همه سوالات", count: stats.total },
-              { id: "new", label: "جدید", count: stats.pending, color: "text-rose-500" },
-              { id: "answered", label: "پاسخ داده شده", count: stats.answered, color: "text-emerald-500" },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setStatusFilter(tab.id)}
-                className={cn(
-                  "inline-flex h-11 cursor-pointer items-center gap-2 rounded-xl border px-4 text-xs font-black transition",
-                  statusFilter === tab.id
-                    ? "border-primary/20 bg-primary/10 text-primary"
-                    : "border-transparent bg-gray-50 text-gray-600 hover:bg-gray-100 dark:bg-white/5 dark:text-gray-400 dark:hover:bg-white/10"
-                )}
-              >
-                <span>{tab.label}</span>
-                <span className={cn("rounded-md bg-gray-200/60 px-1.5 py-0.5 text-[10px] font-black dark:bg-white/10", tab.color)}>
-                  {tab.count.toLocaleString("fa-IR")}
-                </span>
-              </button>
-            ))}
-          </div>
+          <CustomSelect
+            options={statusFilterOptions}
+            value={statusFilter}
+            onChange={setStatusFilter}
+            placeholder="وضعیت"
+            size="md"
+            className={filterSelectClassName}
+            icon={<Filter className="h-4 w-4" />}
+          />
+
+          {!filterCourseId ? (
+            <CustomSelect
+              options={courseFilterOptions}
+              value={courseFilter}
+              onChange={setCourseFilter}
+              placeholder="دوره"
+              size="md"
+              className={filterSelectClassName}
+              icon={<BookOpen className="h-4 w-4" />}
+            />
+          ) : null}
+
+          <CustomSelect
+            options={sortFilterOptions}
+            value={sortFilter}
+            onChange={setSortFilter}
+            placeholder="مرتب‌سازی"
+            size="md"
+            className={filterSelectClassName}
+            icon={<ArrowUpDown className="h-4 w-4" />}
+          />
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-black">
+          <span className="rounded-lg bg-primary/10 px-3 py-1 text-primary">
+            همه سوالات: {questionStats.total.toLocaleString("fa-IR")}
+          </span>
+          <span className="rounded-lg bg-rose-500/10 px-3 py-1 text-rose-500">
+            جدید: {questionStats.new.toLocaleString("fa-IR")}
+          </span>
+          <span className="rounded-lg bg-emerald-500/10 px-3 py-1 text-emerald-500">
+            پاسخ داده شده: {questionStats.answered.toLocaleString("fa-IR")}
+          </span>
         </div>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr] xl:grid-cols-[1.6fr_1fr] items-stretch lg:max-h-[calc(100vh-220px)]">
+      <div className="grid items-start gap-6 lg:grid-cols-[1.3fr_1fr]">
         {/* Left pane: Active Chat Detail */}
         <div className={cn("lg:block lg:min-h-0", selectedThreadId ? "block" : "hidden lg:block")}>
           {activeThread ? (
@@ -1045,20 +1155,30 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
 
         {/* Right pane: Thread List */}
         <div className={cn("lg:block lg:min-h-0", selectedThreadId ? "hidden lg:block" : "block")}>
-          {filteredThreads.length === 0 ? (
-            <section className="flex flex-col items-center justify-center rounded-[2rem] border border-gray-100 bg-white p-12 text-center shadow-sm dark:border-white/5 dark:bg-[#1c1e26] max-h-[calc(100vh-220px)]">
-              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <HelpCircle className="h-8 w-8" />
+          <div className="flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm dark:border-white/5 dark:bg-[#1c1e26] sm:rounded-3xl lg:sticky lg:top-6">
+            <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-3.5 dark:border-white/5">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <HelpCircle className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-black text-gray-900 dark:text-white">لیست سوالات دانشجویان</p>
+                  <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500">برای مشاهده و پاسخ انتخاب کنید</p>
+                </div>
               </div>
-              <h3 className="mb-2 text-lg font-black text-gray-900 dark:text-white">هیچ سوالی یافت نشد</h3>
-              <p className="max-w-sm text-sm font-semibold leading-7 text-gray-400">
-                سوالی مطابق فیلترها یا عبارت جستجوی فعلی پیدا نشد.
-              </p>
-            </section>
-          ) : (
-            <div className="flex max-h-[calc(100vh-220px)] flex-col rounded-[2rem] border border-gray-100 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-[#1c1e26] sm:p-5">
-              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
-              {paginatedThreads.map((thread) => {
+              <span className="shrink-0 rounded-full border border-gray-100 bg-gray-50 px-2.5 py-1 text-[10px] font-black text-gray-600 dark:border-white/10 dark:bg-black/20 dark:text-gray-300">
+                {questionThreads.length.toLocaleString("fa-IR")}
+              </span>
+            </div>
+
+            {questionThreads.length === 0 ? (
+              <div className="px-4 py-10 text-center">
+                <p className="text-xs font-bold text-gray-400">سوالی مطابق فیلترها یا عبارت جستجوی فعلی پیدا نشد.</p>
+              </div>
+            ) : (
+              <>
+                <div className="min-h-0 max-h-[min(48vh,420px)] flex-1 space-y-2 overflow-y-auto overscroll-contain px-3 py-3 [scrollbar-color:rgba(156,163,175,0.45)_transparent] [scrollbar-width:thin] lg:max-h-[calc(100vh-12rem)] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 dark:[&::-webkit-scrollbar-thumb]:bg-white/15">
+                {paginatedThreads.map((thread) => {
                 const isActive = thread.id === selectedThreadId;
                 const snippet = getThreadSnippet(thread);
 
@@ -1071,7 +1191,7 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
                       setPendingAttachments([]);
                     }}
                     className={cn(
-                      "group relative rounded-[1.75rem] border p-5 shadow-sm transition duration-300 cursor-pointer flex flex-col gap-3",
+                      "group relative flex cursor-pointer flex-col gap-2 rounded-[1.5rem] border p-4 shadow-sm transition duration-300",
                       isActive
                         ? "border-primary/20 bg-primary/5 dark:bg-primary/5"
                         : "border-gray-100 bg-white hover:border-primary/20 hover:bg-primary/5 dark:border-white/5 dark:bg-[#1c1e26]"
@@ -1079,19 +1199,19 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-primary/20 bg-primary/10">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-primary/20 bg-primary/10">
                           {thread.avatar ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={thread.avatar} alt={thread.studentName} className="h-full w-full object-cover" />
                           ) : (
-                            <User className="h-5 w-5 text-primary" />
+                            <User className="h-4 w-4 text-primary" />
                           )}
                         </div>
                         <div className="text-right">
-                          <h4 className="text-sm font-black text-gray-900 dark:text-white group-hover:text-primary transition-colors">
+                          <h4 className="text-[13px] font-black text-gray-900 transition-colors group-hover:text-primary dark:text-white">
                             {thread.studentName}
                           </h4>
-                          <p className="text-[10px] font-semibold text-gray-400 mt-0.5">
+                          <p className="mt-0.5 text-[9px] font-semibold text-gray-400">
                             {thread.updatedAt}
                           </p>
                         </div>
@@ -1099,7 +1219,7 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
 
                       <span
                         className={cn(
-                          "rounded-lg px-2.5 py-1 text-[10px] font-black",
+                          "rounded-lg px-2 py-0.5 text-[9px] font-black",
                           thread.status === "new" && "bg-rose-500/10 text-rose-400",
                           thread.status === "answered" && "bg-emerald-500/10 text-emerald-400"
                         )}
@@ -1110,31 +1230,32 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
                     </div>
 
                     <div className="text-right">
-                      <h3 className="text-sm font-black text-gray-900 dark:text-white group-hover:text-primary transition-colors truncate">
+                      <h3 className="truncate text-[13px] font-black text-gray-900 transition-colors group-hover:text-primary dark:text-white">
                         {thread.courseTitle}
                       </h3>
-                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                      <p className="mt-0.5 line-clamp-1 text-[11px] leading-6 text-gray-500 dark:text-gray-400">
                         {snippet}
                       </p>
                     </div>
 
-                    <div className="mt-1 pt-3 border-t border-gray-50 dark:border-gray-800 flex items-center justify-end gap-2">
-                      <div className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-800/80 flex items-center justify-center text-gray-400 group-hover:text-primary group-hover:bg-primary/10 transition-colors shadow-sm">
-                        <ChevronLeft className="w-4 h-4 text-right" />
+                    <div className="flex items-center justify-end gap-2 border-t border-gray-50 pt-2 dark:border-gray-800">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-50 text-gray-400 shadow-sm transition-colors group-hover:bg-primary/10 group-hover:text-primary dark:bg-gray-800/80">
+                        <ChevronLeft className="h-3.5 w-3.5 text-right" />
                       </div>
                     </div>
                   </div>
                 );
-              })}
-              </div>
-              <ThreadPagination
-                currentPage={safeThreadPage}
-                totalPages={totalThreadPages}
-                totalItems={filteredThreads.length}
-                onPageChange={setThreadPage}
-              />
-            </div>
-          )}
+                })}
+                </div>
+                <ThreadPagination
+                  currentPage={safeThreadPage}
+                  totalPages={totalThreadPages}
+                  totalItems={questionThreads.length}
+                  onPageChange={setThreadPage}
+                />
+              </>
+            )}
+          </div>
         </div>
       </div>
 

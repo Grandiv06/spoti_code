@@ -7,7 +7,13 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const user = await requireAuthUser(request);
-    const data = await getInstructorQuestions(user);
+    const { searchParams } = request.nextUrl;
+    const data = await getInstructorQuestions(user, {
+      status: searchParams.get("status") ?? undefined,
+      courseId: searchParams.get("courseId") ?? undefined,
+      search: searchParams.get("search") ?? undefined,
+      sort: searchParams.get("sort") ?? undefined,
+    });
     return NextResponse.json({ data });
   } catch (error) {
     if (error instanceof AuthError) {

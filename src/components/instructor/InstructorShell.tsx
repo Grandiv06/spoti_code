@@ -165,12 +165,6 @@ export default function InstructorShell({ children }: { children: React.ReactNod
                 <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">مدیریت دوره‌های آموزشی، محتوا، نظرات و آمار عملکرد</p>
               </div>
             </div>
-            <Link
-              href="/"
-              className="px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-[10px] font-black text-gray-700 dark:text-gray-200 hover:border-primary transition-all cursor-pointer"
-            >
-              مشاهده سایت اصلی
-            </Link>
           </div>
         </header>
 
