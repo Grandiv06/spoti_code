@@ -1,6 +1,7 @@
 type UnknownRecord = Record<string, unknown>;
 
 export type DashboardOverview = {
+  instructorName: string;
   totalCourses: number;
   students: number;
   revenue: number;
@@ -17,6 +18,7 @@ export type DashboardCourseRow = {
   category: string;
   studentsCount: number;
   revenue: number;
+  updatedAt: string;
 };
 
 function isRecord(value: unknown): value is UnknownRecord {
@@ -50,9 +52,25 @@ export function extractApiList(value: unknown): UnknownRecord[] {
   return [];
 }
 
+function toFiniteNumber(value: unknown): number {
+  const numberValue = Number(value ?? 0);
+  return Number.isFinite(numberValue) ? numberValue : 0;
+}
+
+function readNestedString(source: UnknownRecord, path: string[]): string {
+  let current: unknown = source;
+  for (const key of path) {
+    if (!isRecord(current)) return "";
+    current = current[key];
+  }
+
+  return typeof current === "string" ? current.trim() : "";
+}
+
 export function normalizeOverview(raw: UnknownRecord | null): DashboardOverview {
   if (!raw) {
     return {
+      instructorName: "",
       totalCourses: 0,
       students: 0,
       revenue: 0,
@@ -62,21 +80,22 @@ export function normalizeOverview(raw: UnknownRecord | null): DashboardOverview 
     };
   }
 
-  const avgRaw = Number(raw.avgCourseStars ?? raw.avgRating ?? 0);
+  const avgRaw = toFiniteNumber(raw.avgCourseStars ?? raw.avgRating);
 
   return {
-    totalCourses: Number(raw.coursesCount ?? raw.totalCourses ?? 0),
-    students: Number(raw.studentsCount ?? raw.totalStudents ?? 0),
-    revenue: Number(raw.totalIncome ?? raw.totalRevenue ?? 0),
+    instructorName: readNestedString(raw, ["instructor", "fullName"]) || readNestedString(raw, ["instructor", "name"]),
+    totalCourses: toFiniteNumber(raw.coursesCount ?? raw.totalCourses),
+    students: toFiniteNumber(raw.studentsCount ?? raw.totalStudents),
+    revenue: toFiniteNumber(raw.totalIncome ?? raw.totalRevenue),
     avgRating: clampAvgRating(avgRaw),
-    unreadComments: Number(raw.unreadCommentsCount ?? 0),
-    newQuestions: Number(raw.unreadQasCount ?? raw.newQuestions ?? 0),
+    unreadComments: toFiniteNumber(raw.unreadCommentsCount),
+    newQuestions: toFiniteNumber(raw.unreadQasCount ?? raw.newQuestions),
   };
 }
 
 function clampAvgRating(value: number): string {
   if (!Number.isFinite(value) || value <= 0) return "0";
-  return value.toFixed(1);
+  return Math.min(value, 5).toFixed(1);
 }
 
 function resolveCourseStatus(row: UnknownRecord): DashboardCourseRow["status"] {
@@ -108,8 +127,9 @@ export function normalizeCourseRow(row: UnknownRecord, idx: number): DashboardCo
     title: String(row.title ?? row.name ?? "بدون عنوان"),
     status: resolveCourseStatus(row),
     category: String(row.category ?? row.categoryTitle ?? "عمومی"),
-    studentsCount: Number(row.studentsCount ?? row.students ?? row.mockStudentsCount ?? 0),
-    revenue: Number(row.revenue ?? row.totalRevenue ?? row.income ?? 0),
+    studentsCount: toFiniteNumber(row.studentsCount ?? row.students),
+    revenue: toFiniteNumber(row.revenue ?? row.totalRevenue ?? row.income),
+    updatedAt: typeof row.updatedAt === "string" ? row.updatedAt : "",
   };
 }
 

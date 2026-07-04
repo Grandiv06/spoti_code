@@ -21,10 +21,19 @@ export async function fetchCourseSteps(courseId: string): Promise<unknown> {
   );
 }
 
-export async function fetchCourseLessonById(lessonId: string): Promise<unknown> {
+export async function fetchCourseLearningPage(courseId: string): Promise<unknown> {
+  const encodedId = encodeURIComponent(courseId);
+  return apiGetNoMock<unknown>(
+    `/api/dashboard/my-courses/${encodedId}/learning`,
+    getAuthHeaders()
+  );
+}
+
+export async function fetchCourseLessonById(courseId: string, lessonId: string): Promise<unknown> {
+  const encodedCourseId = encodeURIComponent(courseId);
   const encodedId = encodeURIComponent(lessonId);
   return apiGetNoMock<unknown>(
-    `/api/courses/steps/lessons/${encodedId}`,
+    `/api/dashboard/my-courses/${encodedCourseId}/learning/lessons/${encodedId}`,
     getAuthHeaders()
   );
 }
@@ -37,10 +46,11 @@ export async function fetchPublicCourseById(courseId: string): Promise<unknown> 
   );
 }
 
-export async function completeCourseLesson(lessonId: string): Promise<unknown> {
+export async function completeCourseLesson(courseId: string, lessonId: string): Promise<unknown> {
+  const encodedCourseId = encodeURIComponent(courseId);
   const encodedId = encodeURIComponent(lessonId);
   return apiPostNoMock<unknown>(
-    `/api/courses/lessons/${encodedId}/complete`,
+    `/api/dashboard/my-courses/${encodedCourseId}/learning/lessons/${encodedId}/complete`,
     undefined,
     getAuthHeaders()
   );

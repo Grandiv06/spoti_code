@@ -3,11 +3,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { FileText, HelpCircle, Paperclip, Search, User, Send, Loader2, Download, ArrowRight, X, ChevronLeft, MessageSquare } from "lucide-react";
 import { useInstructorData, type StudentQuestion } from "@/context/InstructorDataContext";
-import {
-  fetchLessonChatMessages,
-  resolveReplyTargetQaId,
-  type LessonChatMessage,
-} from "@/lib/course-qa";
 import { cn } from "@/lib/utils";
 
 type QuestionChatMessage = {
@@ -15,6 +10,9 @@ type QuestionChatMessage = {
   role: "instructor" | "student";
   senderName: string;
   text: string;
+  courseTitle?: string;
+  lessonId?: string;
+  lessonTitle?: string;
   errorText?: string;
   attachments?: StudentQuestion["attachments"];
   createdAt: string;
@@ -29,12 +27,12 @@ type QuestionThread = {
   avatar?: string;
   courseId: string;
   courseTitle: string;
-  lessonId?: string;
-  lessonTitle?: string;
+  lessonTitles: string[];
   status: "new" | "answered";
   createdAt: string;
   updatedAt: string;
   updatedAtMs: number;
+  latestStudentMessageMs: number;
   title: string;
   questions: StudentQuestion[];
   primaryQuestionId: string;
@@ -60,6 +58,15 @@ function getQuestionActivityMs(question: StudentQuestion): number {
   return latest;
 }
 
+function getQuestionLatestStudentMessageMs(question: StudentQuestion): number {
+  let latest = parseActivityTimestamp(question.createdAt, question.createdAtIso);
+  for (const reply of question.replies) {
+    if (reply.role !== "student") continue;
+    latest = Math.max(latest, parseActivityTimestamp(reply.createdAt, reply.createdAtIso));
+  }
+  return latest;
+}
+
 function formatActivityLabel(ms: number, fallback: string): string {
   if (ms > 0) return new Date(ms).toLocaleDateString("fa-IR");
   return fallback;
@@ -69,10 +76,18 @@ function parseQuestionTimestamp(value: string, iso?: string): number {
   return parseActivityTimestamp(value, iso);
 }
 
+function compareQuestionsByCreatedAt(a: StudentQuestion, b: StudentQuestion): number {
+  const aMs = parseQuestionTimestamp(a.createdAt, a.createdAtIso);
+  const bMs = parseQuestionTimestamp(b.createdAt, b.createdAtIso);
+  if (aMs > 0 && bMs > 0 && aMs !== bMs) return aMs - bMs;
+  if (aMs > 0 && bMs === 0) return -1;
+  if (aMs === 0 && bMs > 0) return 1;
+  return 0;
+}
+
 function getQuestionThreadKey(question: StudentQuestion): string {
-  const lessonKey = question.lessonId || question.lessonTitle || "general";
   const studentKey = question.studentId || question.studentName;
-  return `${question.courseId}::${lessonKey}::${studentKey}`;
+  return `${question.courseId}::${studentKey}`;
 }
 
 function resolveAnswerTargetQuestion(questions: StudentQuestion[]): StudentQuestion {
@@ -114,16 +129,19 @@ function groupQuestionsIntoThreads(questions: StudentQuestion[]): QuestionThread
 
   return Array.from(grouped.entries())
     .map(([id, threadQuestions]) => {
-      const sorted = [...threadQuestions].sort(
-        (a, b) =>
-          parseQuestionTimestamp(a.createdAt, a.createdAtIso) -
-          parseQuestionTimestamp(b.createdAt, b.createdAtIso)
-      );
+      const sorted = [...threadQuestions].sort(compareQuestionsByCreatedAt);
       const first = sorted[0];
       const answerTarget = resolveAnswerTargetQuestion(sorted);
       const latestActivityMs = sorted.reduce(
         (max, question) => Math.max(max, getQuestionActivityMs(question)),
         0
+      );
+      const latestStudentMessageMs = sorted.reduce(
+        (max, question) => Math.max(max, getQuestionLatestStudentMessageMs(question)),
+        0
+      );
+      const lessonTitles = Array.from(
+        new Set(sorted.map((question) => question.lessonTitle).filter(Boolean) as string[])
       );
 
       return {
@@ -132,18 +150,18 @@ function groupQuestionsIntoThreads(questions: StudentQuestion[]): QuestionThread
         avatar: first.avatar,
         courseId: first.courseId,
         courseTitle: first.courseTitle,
-        lessonId: first.lessonId,
-        lessonTitle: first.lessonTitle,
+        lessonTitles,
         status: sorted.some((item) => item.status === "new") ? "new" : "answered",
         createdAt: first.createdAt,
-        updatedAt: formatActivityLabel(latestActivityMs, answerTarget.createdAt),
+        updatedAt: formatActivityLabel(latestStudentMessageMs || latestActivityMs, answerTarget.createdAt),
         updatedAtMs: latestActivityMs,
+        latestStudentMessageMs,
         title: first.title,
         questions: sorted,
         primaryQuestionId: answerTarget.id,
       } satisfies QuestionThread;
     })
-    .sort((a, b) => b.updatedAtMs - a.updatedAtMs);
+    .sort((a, b) => b.latestStudentMessageMs - a.latestStudentMessageMs || b.updatedAtMs - a.updatedAtMs);
 }
 
 function dedupeChatMessages(messages: QuestionChatMessage[]): QuestionChatMessage[] {
@@ -153,6 +171,13 @@ function dedupeChatMessages(messages: QuestionChatMessage[]): QuestionChatMessag
     ordered.push(message);
   }
   return ordered;
+}
+
+function compareChatMessages(a: QuestionChatMessage, b: QuestionChatMessage): number {
+  const aSort = a.sortMs > 0 ? a.sortMs : Number.MAX_SAFE_INTEGER;
+  const bSort = b.sortMs > 0 ? b.sortMs : Number.MAX_SAFE_INTEGER;
+  if (aSort !== bSort) return aSort - bSort;
+  return a.sequence - b.sequence;
 }
 
 function buildThreadChatMessages(thread: QuestionThread): QuestionChatMessage[] {
@@ -165,6 +190,9 @@ function buildThreadChatMessages(thread: QuestionThread): QuestionChatMessage[] 
       role: "student",
       senderName: question.studentName,
       text: question.description || question.text,
+      courseTitle: question.courseTitle,
+      lessonId: question.lessonId,
+      lessonTitle: question.lessonTitle,
       errorText: question.errorText,
       attachments: question.attachments,
       createdAt: question.createdAt,
@@ -179,6 +207,9 @@ function buildThreadChatMessages(thread: QuestionThread): QuestionChatMessage[] 
         role: reply.role,
         senderName: reply.senderName,
         text: reply.text,
+        courseTitle: question.courseTitle,
+        lessonId: question.lessonId,
+        lessonTitle: question.lessonTitle,
         attachments: reply.attachments,
         createdAt: reply.createdAt,
         createdAtIso: reply.createdAtIso,
@@ -188,15 +219,13 @@ function buildThreadChatMessages(thread: QuestionThread): QuestionChatMessage[] 
     });
   });
 
-  return dedupeChatMessages(messages).sort((a, b) => {
-    if (a.sortMs !== b.sortMs) return a.sortMs - b.sortMs;
-    return a.sequence - b.sequence;
-  });
+  return dedupeChatMessages(messages).sort(compareChatMessages);
 }
 
 function getThreadSnippet(thread: QuestionThread): string {
   const messages = buildThreadChatMessages(thread);
-  const lastMessage = messages[messages.length - 1];
+  const studentMessages = messages.filter((message) => message.role === "student");
+  const lastMessage = studentMessages[studentMessages.length - 1] ?? messages[messages.length - 1];
   return lastMessage?.text || thread.title;
 }
 
@@ -301,21 +330,6 @@ function ThreadPagination({
   );
 }
 
-function mapLessonChatToBoardMessages(messages: LessonChatMessage[]): QuestionChatMessage[] {
-  return messages.map((message, index) => ({
-    id: message.id,
-    role: message.role,
-    senderName: message.senderName,
-    text: message.text,
-    errorText: message.errorText,
-    attachments: message.attachments,
-    createdAt: message.createdAt,
-    createdAtIso: message.createdAtIso,
-    sortMs: parseActivityTimestamp(message.createdAt, message.createdAtIso) || index,
-    sequence: index,
-  }));
-}
-
 export default function InstructorQuestionsBoard({ showHero = true, filterCourseId, className }: Props) {
   const { questions, replyToQuestion } = useInstructorData();
   const sourceQuestions = useMemo(
@@ -366,8 +380,6 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [imageLightboxUrl, setImageLightboxUrl] = useState("");
   const [threadChatMessages, setThreadChatMessages] = useState<QuestionChatMessage[]>([]);
-  const [threadLessonChat, setThreadLessonChat] = useState<LessonChatMessage[]>([]);
-  const [threadChatLoading, setThreadChatLoading] = useState(false);
 
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
@@ -386,56 +398,18 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
   );
 
   const loadThreadChat = React.useCallback(
-    async (thread: QuestionThread, options?: { silent?: boolean }) => {
-      if (!thread.courseId || !thread.lessonId) {
-        setThreadLessonChat([]);
-        setThreadChatMessages(buildThreadChatMessages(thread));
-        return;
-      }
-
-      const studentId = thread.questions.find((question) => question.studentId)?.studentId;
-      if (!studentId) {
-        setThreadLessonChat([]);
-        setThreadChatMessages(buildThreadChatMessages(thread));
-        return;
-      }
-
-      if (!options?.silent) setThreadChatLoading(true);
-      try {
-        const chat = await fetchLessonChatMessages({
-          courseId: thread.courseId,
-          lessonId: thread.lessonId,
-          endpoint: "instructor",
-          userId: studentId,
-          studentName: thread.studentName,
-        });
-        setThreadLessonChat(chat.messages);
-        setThreadChatMessages(mapLessonChatToBoardMessages(chat.messages));
-      } catch {
-        setThreadLessonChat([]);
-        setThreadChatMessages(buildThreadChatMessages(thread));
-      } finally {
-        if (!options?.silent) setThreadChatLoading(false);
-      }
+    (thread: QuestionThread) => {
+      setThreadChatMessages(buildThreadChatMessages(thread));
     },
     []
   );
 
   React.useEffect(() => {
     if (!activeThread) {
-      setThreadLessonChat([]);
       setThreadChatMessages([]);
       return;
     }
-    void loadThreadChat(activeThread);
-  }, [activeThread, loadThreadChat]);
-
-  React.useEffect(() => {
-    if (!activeThread) return;
-    const intervalId = window.setInterval(() => {
-      void loadThreadChat(activeThread, { silent: true });
-    }, 12000);
-    return () => window.clearInterval(intervalId);
+    loadThreadChat(activeThread);
   }, [activeThread, loadThreadChat]);
 
   const activeChatMessages = threadChatMessages.length
@@ -443,12 +417,13 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
     : activeThread
       ? buildThreadChatMessages(activeThread)
       : [];
+  const lastActiveMessageId = activeChatMessages[activeChatMessages.length - 1]?.id;
 
   React.useEffect(() => {
     if (selectedThreadId) {
       setTimeout(scrollToBottom, 100);
     }
-  }, [selectedThreadId, activeChatMessages.length, activeChatMessages[activeChatMessages.length - 1]?.id]);
+  }, [selectedThreadId, activeChatMessages.length, lastActiveMessageId]);
 
   const toDataUrl = (file: File) =>
     new Promise<string>((resolve, reject) => {
@@ -538,17 +513,12 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
         })
       );
 
-      const targetQaId = resolveReplyTargetQaId(
-        threadLessonChat,
-        activeThread.primaryQuestionId
-      );
-
       await replyToQuestion(
-        targetQaId,
+        activeThread.primaryQuestionId,
         textToSend,
         attachments.length ? attachments : undefined
       );
-      await loadThreadChat(activeThread, { silent: true });
+      loadThreadChat(activeThread);
       setTimeout(scrollToBottom, 100);
     } catch (err) {
       console.error(err);
@@ -710,7 +680,7 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
           thread.title.toLowerCase().includes(q) ||
           thread.studentName.toLowerCase().includes(q) ||
           thread.courseTitle.toLowerCase().includes(q) ||
-          (thread.lessonTitle || "").toLowerCase().includes(q) ||
+          thread.lessonTitles.some((lessonTitle) => lessonTitle.toLowerCase().includes(q)) ||
           thread.questions.some(
             (question) =>
               question.title.toLowerCase().includes(q) ||
@@ -720,7 +690,9 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
       );
     }
 
-    return result.sort((a, b) => b.updatedAtMs - a.updatedAtMs);
+    return result.sort(
+      (a, b) => b.latestStudentMessageMs - a.latestStudentMessageMs || b.updatedAtMs - a.updatedAtMs
+    );
   }, [questionThreads, search, statusFilter]);
 
   const totalThreadPages = Math.max(1, Math.ceil(filteredThreads.length / THREADS_PAGE_SIZE));
@@ -848,10 +820,12 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
                   {/* Course & Lesson context banner */}
                   <div className="bg-primary/5 dark:bg-primary/5 border-b border-gray-100 dark:border-gray-800/50 px-4 py-2 flex flex-wrap gap-2 text-right">
                     <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">دوره: {activeThread.courseTitle}</span>
-                    {activeThread.lessonTitle && (
+                    {activeThread.lessonTitles.length > 0 && (
                       <>
                         <span className="text-[10px] text-gray-300 dark:text-gray-700">•</span>
-                        <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">جلسه: {activeThread.lessonTitle}</span>
+                        <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">
+                          {activeThread.lessonTitles.length.toLocaleString("fa-IR")} باکس درس
+                        </span>
                       </>
                     )}
                   </div>
@@ -879,7 +853,7 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
                               <div className="min-w-0 text-right">
                                 <div
                                   className={cn(
-                                    "relative px-3.5 py-2.5 shadow-sm",
+                                    "group/message relative px-3.5 py-2.5 shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg",
                                     isGrouped
                                       ? "rounded-2xl"
                                       : isInstructor
@@ -890,6 +864,19 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
                                       : "bg-gray-900 text-white shadow-black/20 ring-1 ring-gray-800 dark:bg-[#0f1115] dark:ring-white/10"
                                   )}
                                 >
+                                  {message.lessonTitle ? (
+                                    <div
+                                      className={cn(
+                                        "mb-0 flex max-h-0 max-w-full translate-y-1 items-center overflow-hidden rounded-full px-2.5 py-0 text-[10px] font-black opacity-0 blur-[1px] transition-all duration-300 ease-out group-hover/message:mb-2 group-hover/message:max-h-8 group-hover/message:translate-y-0 group-hover/message:py-1 group-hover/message:opacity-100 group-hover/message:blur-0",
+                                        isInstructor
+                                          ? "bg-emerald-100/90 text-emerald-700 shadow-sm shadow-emerald-900/5 dark:bg-emerald-500/10 dark:text-emerald-200"
+                                          : "bg-white/10 text-gray-200 shadow-sm shadow-black/10"
+                                      )}
+                                      title={message.lessonId ? `شناسه درس: ${message.lessonId}` : undefined}
+                                    >
+                                      <span className="truncate">بخش دوره: {message.lessonTitle}</span>
+                                    </div>
+                                  ) : null}
                                   <div
                                     className={cn(
                                       "text-[13px] leading-[1.75]",
@@ -1124,20 +1111,14 @@ export default function InstructorQuestionsBoard({ showHero = true, filterCourse
 
                     <div className="text-right">
                       <h3 className="text-sm font-black text-gray-900 dark:text-white group-hover:text-primary transition-colors truncate">
-                        {thread.lessonTitle || thread.title}
+                        {thread.courseTitle}
                       </h3>
                       <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
                         {snippet}
                       </p>
                     </div>
 
-                    <div className="mt-1 pt-3 border-t border-gray-50 dark:border-gray-800 flex items-center justify-between gap-2 flex-wrap">
-                      <span className="text-[9px] font-bold text-gray-400">
-                        {thread.courseTitle}
-                        {thread.questions.length > 1
-                          ? ` • ${thread.questions.length.toLocaleString("fa-IR")} پیام`
-                          : ""}
-                      </span>
+                    <div className="mt-1 pt-3 border-t border-gray-50 dark:border-gray-800 flex items-center justify-end gap-2">
                       <div className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-800/80 flex items-center justify-center text-gray-400 group-hover:text-primary group-hover:bg-primary/10 transition-colors shadow-sm">
                         <ChevronLeft className="w-4 h-4 text-right" />
                       </div>

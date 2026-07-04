@@ -5,10 +5,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Globe, Github, Linkedin, Plus, Send, Sparkles, Trash2 } from "lucide-react";
 import { useInstructorData } from "@/context/InstructorDataContext";
+import { apiGetNoMock } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const EMPTY_PROFILE = {
   displayName: "",
+  headline: "",
+  bio: "",
   fullBiography: "",
   skills: [] as string[],
   socials: {
@@ -18,6 +21,52 @@ const EMPTY_PROFILE = {
     telegram: "",
   },
 };
+
+type EditFormState = typeof EMPTY_PROFILE;
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function unwrapApiPayload(value: unknown): unknown {
+  let current = value;
+  for (let i = 0; i < 3; i += 1) {
+    if (!isRecord(current) || !("data" in current) || current.data == null) break;
+    current = current.data;
+  }
+  return current;
+}
+
+function readString(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+function readStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => String(item).trim()).filter(Boolean);
+}
+
+function normalizeEditForm(value: unknown): EditFormState | null {
+  const payload = unwrapApiPayload(value);
+  const form = isRecord(payload) && isRecord(payload.form) ? payload.form : payload;
+  if (!isRecord(form)) return null;
+  const socials = isRecord(form.socials) ? form.socials : {};
+
+  return {
+    displayName: readString(form.displayName),
+    headline: readString(form.headline),
+    bio: readString(form.bio),
+    fullBiography: readString(form.fullBiography),
+    skills: readStringArray(form.skills),
+    socials: {
+      linkedin: readString(socials.linkedin),
+      website: readString(socials.website),
+      github: readString(socials.github),
+      telegram: readString(socials.telegram),
+    },
+  };
+}
 
 function normalizeUrl(value: string) {
   const trimmed = value.trim();
@@ -41,6 +90,7 @@ export default function InstructorProfileEditPage() {
   const { profile, updateProfile, showToast } = useInstructorData();
   const [mounted, setMounted] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [skillInput, setSkillInput] = useState("");
   const [form, setForm] = useState(EMPTY_PROFILE);
@@ -52,6 +102,8 @@ export default function InstructorProfileEditPage() {
   useEffect(() => {
     setForm({
       displayName: profile.displayName || profile.name || "",
+      headline: profile.headline || profile.specialty || "",
+      bio: profile.bio || "",
       fullBiography: profile.fullBiography || "",
       skills: [...(profile.skills || [])],
       socials: {
@@ -63,12 +115,40 @@ export default function InstructorProfileEditPage() {
     });
   }, [profile]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadEditForm = async () => {
+      setLoading(true);
+      try {
+        const response = await apiGetNoMock<unknown>("/api/instructor-dashboard/profile/edit");
+        const remoteForm = normalizeEditForm(response);
+        if (!cancelled && remoteForm) {
+          setForm(remoteForm);
+        }
+      } catch {
+        if (!cancelled) {
+          setError("دریافت اطلاعات فرم ویرایش از بک‌اند انجام نشد.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    loadEditForm();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const counts = useMemo(
     () => ({
+      bio: form.bio.length,
       fullBiography: form.fullBiography.length,
       skills: form.skills.length,
     }),
-    [form.fullBiography, form.skills]
+    [form.bio, form.fullBiography, form.skills]
   );
 
   const addSkill = () => {
@@ -109,10 +189,13 @@ export default function InstructorProfileEditPage() {
 
     setSaving(true);
     try {
-      updateProfile({
+      await updateProfile({
         ...profile,
         name: form.displayName.trim(),
         displayName: form.displayName.trim(),
+        specialty: form.headline.trim(),
+        headline: form.headline.trim(),
+        bio: form.bio.trim(),
         fullBiography: form.fullBiography.trim(),
         skills: Array.from(new Set(form.skills.map((skill) => skill.trim()).filter(Boolean))),
         socials: {
@@ -161,6 +244,26 @@ export default function InstructorProfileEditPage() {
                 className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-right text-sm text-white outline-none transition-all placeholder:text-gray-500 focus:border-primary/40 focus:ring-2 focus:ring-primary/10"
                 placeholder="مثلاً استاد رضایی"
               />
+            </Field>
+
+            <Field label="عنوان تخصصی">
+              <input
+                value={form.headline}
+                onChange={(e) => setForm((prev) => ({ ...prev, headline: e.target.value }))}
+                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-right text-sm text-white outline-none transition-all placeholder:text-gray-500 focus:border-primary/40 focus:ring-2 focus:ring-primary/10"
+                placeholder="مثلاً مدرس ارشد فرانت‌اند و معماری وب"
+              />
+            </Field>
+
+            <Field label="معرفی کوتاه">
+              <textarea
+                value={form.bio}
+                onChange={(e) => setForm((prev) => ({ ...prev, bio: e.target.value }))}
+                rows={4}
+                className="w-full rounded-[1.5rem] border border-white/10 bg-white/5 px-4 py-4 text-right text-sm leading-8 text-white outline-none transition-all placeholder:text-gray-500 focus:border-primary/40 focus:ring-2 focus:ring-primary/10 resize-y"
+                placeholder="یک معرفی کوتاه برای نمایش در بالای پروفایل..."
+              />
+              <div className="mt-2 text-left text-[11px] font-bold text-gray-400">{counts.bio} کاراکتر</div>
             </Field>
 
             <Field label="بیوگرافی کامل">
@@ -271,14 +374,14 @@ export default function InstructorProfileEditPage() {
               <button
                 type="button"
                 onClick={handleSave}
-                disabled={saving}
+                disabled={saving || loading}
                 className={cn(
                   "inline-flex w-full items-center justify-center gap-2 rounded-[1.4rem] px-5 py-4 text-sm font-black text-white transition-colors",
-                  saving ? "bg-primary/70" : "bg-primary hover:bg-primary-hover"
+                  saving || loading ? "bg-primary/70" : "bg-primary hover:bg-primary-hover"
                 )}
               >
                 <Check className="h-4 w-4" />
-                {saving ? "در حال ذخیره..." : "ذخیره تغییرات"}
+                {loading ? "در حال دریافت اطلاعات..." : saving ? "در حال ذخیره..." : "ذخیره تغییرات"}
               </button>
               <button
                 type="button"

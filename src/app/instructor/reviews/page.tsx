@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Search, MessageSquare, Star, Loader2, Filter, BookOpen, ArrowUpDown } from "lucide-react";
-import { apiGetNoMock, apiRequest } from "@/lib/api";
+import { Search, MessageSquare, Star, Loader2, Filter, BookOpen, ArrowUpDown, Pencil, Trash2 } from "lucide-react";
+import { apiDeleteNoMock, apiGetNoMock, apiPatchNoMock } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import CustomSelect from "@/components/ui/CustomSelect";
 import InstructorReviewList from "./_components/InstructorReviewList";
@@ -32,6 +32,22 @@ type InstructorReview = {
   parentId?: string;
   reply?: ReviewReply;
 };
+
+type ReviewStats = {
+  total: number;
+  answered: number;
+  pending: number;
+};
+
+type ReviewCourseOption = {
+  id: string;
+  title: string;
+};
+
+type PendingReplyAction =
+  | { type: "edit" }
+  | { type: "delete" }
+  | null;
 
 const statusFilterOptions = [
   { value: "all", label: "همه وضعیت‌ها" },
@@ -103,11 +119,38 @@ function normalizeCreatedAt(value: unknown): { label: string; timestamp: number 
   return { label: "", timestamp: 0 };
 }
 
+function unwrapPayload(value: unknown): unknown {
+  if (isRecord(value) && "data" in value) return value.data;
+  return value;
+}
+
+function unwrapRecordPayload(value: unknown): ApiRecord {
+  const payload = unwrapPayload(value);
+  return isRecord(payload) ? payload : {};
+}
+
+function buildReviewsQuery(input: {
+  status: string;
+  rating: string;
+  courseId: string;
+  search: string;
+  sort: string;
+}) {
+  const params = new URLSearchParams();
+  if (input.status !== "all") params.set("status", input.status);
+  if (input.rating !== "all") params.set("rating", input.rating);
+  if (input.courseId !== "all") params.set("courseId", input.courseId);
+  if (input.search.trim()) params.set("search", input.search.trim());
+  if (input.sort !== "newest") params.set("sort", input.sort);
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
 function normalizeComment(record: unknown, index: number): InstructorReview {
   const row = isRecord(record) ? record : {};
   const author = isRecord(row.author) ? row.author : isRecord(row.user) ? row.user : isRecord(row.student) ? row.student : {};
   const reply = isRecord(row.reply) ? row.reply : isRecord(row.answer) ? row.answer : undefined;
-  const createdAt = normalizeCreatedAt(row.createdAt ?? row.createdAtAt ?? row.date ?? row.timestamp);
+  const createdAt = normalizeCreatedAt(row.createdAtIso ?? row.isoCreatedAt ?? row.createdAt ?? row.createdAtAt ?? row.date ?? row.timestamp);
 
   const commentText = normalizeString(row.content ?? row.comment ?? row.text ?? row.body ?? row.description, "");
   const replyText = reply ? normalizeString(reply.content ?? reply.text ?? reply.answer ?? reply.body, "") : "";
@@ -139,25 +182,17 @@ function normalizeComment(record: unknown, index: number): InstructorReview {
       ? {
           reply: {
             text: replyText,
-            createdAt: normalizeCreatedAt((reply && (reply.createdAt ?? reply.date)) ?? row.replyCreatedAt ?? row.updatedAt).label,
+            createdAt: normalizeCreatedAt((reply && (reply.createdAtIso ?? reply.createdAt ?? reply.date)) ?? row.replyCreatedAt ?? row.updatedAt).label,
           },
         }
       : {}),
   };
 }
 
-function buildReplyPayload(review: InstructorReview, content: string) {
-  return {
-    content,
-    commentableType: "course" as const,
-    commentableId: review.courseId,
-    parentId: review.parentId || review.id,
-    rating: review.rating,
-  };
-}
-
 export default function InstructorReviewsPage() {
   const [reviews, setReviews] = useState<InstructorReview[]>([]);
+  const [reviewStats, setReviewStats] = useState<ReviewStats>({ total: 0, answered: 0, pending: 0 });
+  const [reviewCourses, setReviewCourses] = useState<ReviewCourseOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
@@ -167,97 +202,97 @@ export default function InstructorReviewsPage() {
   const [sortFilter, setSortFilter] = useState("newest");
   const [selectedReviewId, setSelectedReviewId] = useState("");
   const [replyText, setReplyText] = useState("");
+  const [editReplyText, setEditReplyText] = useState("");
+  const [editingReplyId, setEditingReplyId] = useState("");
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
+  const [isDeletingReply, setIsDeletingReply] = useState(false);
+  const [pendingReplyAction, setPendingReplyAction] = useState<PendingReplyAction>(null);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
   const courseFilterOptions = useMemo(() => {
-    const courseMap = new Map<string, string>();
-    for (const review of reviews) {
-      if (review.courseId && review.courseId !== "unknown-course" && review.courseTitle) {
-        courseMap.set(review.courseId, review.courseTitle);
-      }
-    }
-
     return [
       { value: "all", label: "همه دوره‌های ثبت‌شده" },
-      ...Array.from(courseMap.entries()).map(([value, label]) => ({ value, label })),
+      ...reviewCourses.map((course) => ({ value: course.id, label: course.title })),
     ];
-  }, [reviews]);
+  }, [reviewCourses]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 350);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [search]);
 
   useEffect(() => {
     let cancelled = false;
 
-    const loadReviews = async () => {
-      setIsLoading(true);
+    const loadReviews = async (options?: { silent?: boolean }) => {
+      if (!options?.silent) setIsLoading(true);
       setLoadError("");
       try {
-        const response = await apiGetNoMock<unknown>("/api/instructor-dashboard/my-comments");
-        const nextReviews = unwrapList(response).map(normalizeComment);
+        const response = await apiGetNoMock<unknown>(
+          `/api/instructor-dashboard/reviews${buildReviewsQuery({
+            status: statusFilter,
+            rating: ratingFilter,
+            courseId: courseFilter,
+            search: debouncedSearch,
+            sort: sortFilter,
+          })}`
+        );
+        const payload = unwrapRecordPayload(response);
+        const nextReviews = unwrapList(payload.items ?? response).map(normalizeComment);
+        const stats = isRecord(payload.stats) ? payload.stats : {};
+        const courses = Array.isArray(payload.courses) ? payload.courses : [];
         if (!cancelled) {
           setReviews(nextReviews);
+          setReviewStats({
+            total: typeof stats.total === "number" ? stats.total : nextReviews.length,
+            answered: typeof stats.answered === "number" ? stats.answered : nextReviews.filter((review) => Boolean(review.reply)).length,
+            pending: typeof stats.pending === "number" ? stats.pending : nextReviews.filter((review) => !review.reply).length,
+          });
+          setReviewCourses(
+            courses
+              .map((course) => (isRecord(course) ? { id: normalizeString(course.id), title: normalizeString(course.title) } : null))
+              .filter((course): course is ReviewCourseOption => Boolean(course?.id && course.title))
+          );
           setSelectedReviewId((current) => current || nextReviews[0]?.id || "");
         }
       } catch (error) {
         console.error(error);
         if (!cancelled) setLoadError("بارگذاری نظرات انجام نشد.");
       } finally {
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled && !options?.silent) setIsLoading(false);
       }
     };
 
     loadReviews();
+    const intervalId = window.setInterval(() => {
+      void loadReviews({ silent: true });
+    }, 10000);
 
     return () => {
       cancelled = true;
+      window.clearInterval(intervalId);
     };
-  }, []);
-
-  const filteredReviews = useMemo(() => {
-    const filtered = reviews.filter((review) => {
-      const isAnswered = Boolean(review.reply);
-      if (statusFilter === "answered" && !isAnswered) return false;
-      if (statusFilter === "pending" && isAnswered) return false;
-      if (ratingFilter !== "all" && review.rating !== Number(ratingFilter)) return false;
-      if (courseFilter !== "all" && review.courseId !== courseFilter) return false;
-      if (!search.trim()) return true;
-
-      const q = search.trim().toLowerCase();
-      return (
-        review.studentName.toLowerCase().includes(q) ||
-        review.comment.toLowerCase().includes(q) ||
-        review.courseTitle.toLowerCase().includes(q)
-      );
-    });
-
-    return filtered.sort((a, b) =>
-      sortFilter === "newest"
-        ? b.createdAtTimestamp - a.createdAtTimestamp
-        : a.createdAtTimestamp - b.createdAtTimestamp
-    );
-  }, [reviews, statusFilter, ratingFilter, courseFilter, search, sortFilter]);
+  }, [statusFilter, ratingFilter, courseFilter, debouncedSearch, sortFilter]);
 
   useEffect(() => {
-    if (filteredReviews.length === 0) {
+    if (reviews.length === 0) {
       setSelectedReviewId("");
       return;
     }
 
-    if (!filteredReviews.some((review) => review.id === selectedReviewId)) {
-      setSelectedReviewId(filteredReviews[0].id);
+    if (!reviews.some((review) => review.id === selectedReviewId)) {
+      setSelectedReviewId(reviews[0].id);
     }
-  }, [filteredReviews, selectedReviewId]);
+  }, [reviews, selectedReviewId]);
 
-  const stats = useMemo(() => {
-    const total = reviews.length;
-    const answered = reviews.filter((review) => Boolean(review.reply)).length;
-    const pending = total - answered;
-    return { total, answered, pending };
-  }, [reviews]);
-
-  const active = filteredReviews.find((review) => review.id === selectedReviewId) || null;
+  const active = reviews.find((review) => review.id === selectedReviewId) || null;
 
   const listItems = useMemo(
     () =>
-      filteredReviews.map((review) => ({
+      reviews.map((review) => ({
         id: review.id,
         studentName: review.studentName,
         avatar: review.avatar,
@@ -267,7 +302,7 @@ export default function InstructorReviewsPage() {
         courseTitle: review.courseTitle,
         hasReply: Boolean(review.reply),
       })),
-    [filteredReviews]
+    [reviews]
   );
 
   const handleSubmitReply = async () => {
@@ -275,23 +310,14 @@ export default function InstructorReviewsPage() {
 
     try {
       setIsSubmittingReply(true);
-      await apiRequest("post", "/api/comments/reply/admin", {
-        body: buildReplyPayload(active, replyText.trim()),
-      });
+      const response = await apiPatchNoMock<unknown>(
+        `/api/instructor-dashboard/reviews/${encodeURIComponent(active.id)}/reply`,
+        { content: replyText.trim() }
+      );
+      const updatedReview = normalizeComment(unwrapPayload(response), 0);
 
-      const now = new Date();
       setReviews((prev) =>
-        prev.map((review) =>
-          review.id === active.id
-            ? {
-                ...review,
-                reply: {
-                  text: replyText.trim(),
-                  createdAt: now.toLocaleDateString("fa-IR"),
-                },
-              }
-            : review
-        )
+        prev.map((review) => (review.id === active.id ? updatedReview : review))
       );
       setReplyText("");
     } catch (error) {
@@ -301,6 +327,108 @@ export default function InstructorReviewsPage() {
       setIsSubmittingReply(false);
     }
   };
+
+  const handleStartEditReply = () => {
+    if (!active?.reply) return;
+    setEditingReplyId(active.id);
+    setEditReplyText(active.reply.text);
+    setLoadError("");
+  };
+
+  const handleCancelEditReply = () => {
+    setEditingReplyId("");
+    setEditReplyText("");
+  };
+
+  const requestSaveEditedReply = () => {
+    if (!active || !active.reply || !editReplyText.trim() || isSubmittingReply) return;
+    setPendingReplyAction({ type: "edit" });
+  };
+
+  const saveEditedReply = async () => {
+    if (!active || !active.reply || !editReplyText.trim() || isSubmittingReply) return;
+
+    try {
+      setIsSubmittingReply(true);
+      const response = await apiPatchNoMock<unknown>(
+        `/api/instructor-dashboard/reviews/${encodeURIComponent(active.id)}/reply`,
+        { content: editReplyText.trim() }
+      );
+      const updatedReview = normalizeComment(unwrapPayload(response), 0);
+
+      setReviews((prev) =>
+        prev.map((review) => (review.id === active.id ? updatedReview : review))
+      );
+      handleCancelEditReply();
+    } catch (error) {
+      console.error(error);
+      setLoadError("ویرایش پاسخ انجام نشد. دوباره تلاش کنید.");
+    } finally {
+      setIsSubmittingReply(false);
+    }
+  };
+
+  const requestDeleteReply = () => {
+    if (!active?.reply || isDeletingReply) return;
+    setPendingReplyAction({ type: "delete" });
+  };
+
+  const deleteReply = async () => {
+    if (!active?.reply || isDeletingReply) return;
+
+    try {
+      setIsDeletingReply(true);
+      const response = await apiDeleteNoMock<unknown>(
+        `/api/instructor-dashboard/reviews/${encodeURIComponent(active.id)}/reply`
+      );
+      const updatedReview = normalizeComment(unwrapPayload(response), 0);
+
+      setReviews((prev) =>
+        prev.map((review) => (review.id === active.id ? updatedReview : review))
+      );
+      handleCancelEditReply();
+    } catch (error) {
+      console.error(error);
+      setLoadError("حذف پاسخ انجام نشد. دوباره تلاش کنید.");
+    } finally {
+      setIsDeletingReply(false);
+    }
+  };
+
+  const closeReplyActionModal = () => {
+    if (isSubmittingReply || isDeletingReply) return;
+    setPendingReplyAction(null);
+  };
+
+  const confirmReplyAction = async () => {
+    if (pendingReplyAction?.type === "edit") {
+      await saveEditedReply();
+      setPendingReplyAction(null);
+      return;
+    }
+
+    if (pendingReplyAction?.type === "delete") {
+      await deleteReply();
+      setPendingReplyAction(null);
+    }
+  };
+
+  const actionModalCopy =
+    pendingReplyAction?.type === "edit"
+      ? {
+          title: "تایید ویرایش پاسخ",
+          description: "آیا مطمئن هستید که می‌خواهید متن پاسخ مدرس را ویرایش کنید؟",
+          confirmLabel: "بله، ویرایش شود",
+          confirmClassName: "bg-primary text-white hover:bg-primary-hover",
+        }
+      : pendingReplyAction?.type === "delete"
+        ? {
+            title: "تایید حذف پاسخ",
+            description: "آیا مطمئن هستید که می‌خواهید پاسخ مدرس را حذف کنید؟ این نظر دوباره بدون پاسخ نمایش داده می‌شود.",
+            confirmLabel: "بله، حذف شود",
+            confirmClassName: "bg-rose-500 text-white hover:bg-rose-600",
+          }
+        : null;
 
   return (
     <div className="mx-auto max-w-[1320px] pb-20 text-right animate-in fade-in duration-500" dir="rtl">
@@ -378,13 +506,13 @@ export default function InstructorReviewsPage() {
           ) : (
             <>
               <span className="rounded-lg bg-primary/10 px-3 py-1 text-primary">
-                کل نظرات: {stats.total.toLocaleString("fa-IR")}
+                کل نظرات: {reviewStats.total.toLocaleString("fa-IR")}
               </span>
               <span className="rounded-lg bg-emerald-500/10 px-3 py-1 text-emerald-500">
-                پاسخ داده‌شده: {stats.answered.toLocaleString("fa-IR")}
+                پاسخ داده‌شده: {reviewStats.answered.toLocaleString("fa-IR")}
               </span>
               <span className="rounded-lg bg-amber-500/10 px-3 py-1 text-amber-500">
-                بدون پاسخ: {stats.pending.toLocaleString("fa-IR")}
+                بدون پاسخ: {reviewStats.pending.toLocaleString("fa-IR")}
               </span>
             </>
           )}
@@ -426,8 +554,60 @@ export default function InstructorReviewsPage() {
 
               {active.reply ? (
                 <div className="mt-4 rounded-2xl border border-primary/20 bg-primary/5 p-4">
-                  <p className="mb-1 text-[10px] font-black text-primary">پاسخ مدرس</p>
-                  <p className="text-xs font-semibold leading-7 text-gray-700 dark:text-gray-200">{active.reply.text}</p>
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <p className="text-[10px] font-black text-primary">پاسخ مدرس</p>
+                    {editingReplyId !== active.id ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleStartEditReply}
+                          className="inline-flex items-center gap-1 rounded-lg bg-white/80 px-2.5 py-1.5 text-[10px] font-black text-gray-600 transition hover:text-primary dark:bg-white/10 dark:text-gray-300"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          ویرایش
+                        </button>
+                        <button
+                          type="button"
+                          onClick={requestDeleteReply}
+                          disabled={isDeletingReply}
+                          className="inline-flex items-center gap-1 rounded-lg bg-rose-500/10 px-2.5 py-1.5 text-[10px] font-black text-rose-500 transition hover:bg-rose-500/15 disabled:opacity-60"
+                        >
+                          {isDeletingReply ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                          حذف
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                  {editingReplyId === active.id ? (
+                    <div className="space-y-3">
+                      <textarea
+                        rows={4}
+                        value={editReplyText}
+                        onChange={(event) => setEditReplyText(event.target.value)}
+                        className="w-full rounded-2xl border border-primary/20 bg-white/80 p-4 text-xs font-semibold leading-7 text-gray-700 outline-none focus:border-primary dark:bg-black/20 dark:text-white"
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={requestSaveEditedReply}
+                          disabled={isSubmittingReply || !editReplyText.trim()}
+                          className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-black text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {isSubmittingReply && <Loader2 className="h-4 w-4 animate-spin" />}
+                          ذخیره ویرایش
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCancelEditReply}
+                          className="rounded-xl border border-gray-200 px-4 py-2.5 text-xs font-black text-gray-500 transition hover:bg-white dark:border-white/10 dark:hover:bg-white/5"
+                        >
+                          انصراف
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs font-semibold leading-7 text-gray-700 dark:text-gray-200">{active.reply.text}</p>
+                  )}
                 </div>
               ) : (
                 <div className="mt-4 space-y-3">
@@ -466,11 +646,45 @@ export default function InstructorReviewsPage() {
               onSelect={(reviewId) => {
                 setSelectedReviewId(reviewId);
                 setReplyText("");
+                handleCancelEditReply();
               }}
             />
           )}
         </div>
       </div>
+
+      {actionModalCopy ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl border border-gray-100 bg-white p-6 text-right shadow-2xl dark:border-white/10 dark:bg-[#1c1e26]">
+            <h3 className="text-lg font-black text-gray-900 dark:text-white">{actionModalCopy.title}</h3>
+            <p className="mt-2 text-sm font-semibold leading-7 text-gray-500 dark:text-gray-400">
+              {actionModalCopy.description}
+            </p>
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeReplyActionModal}
+                disabled={isSubmittingReply || isDeletingReply}
+                className="rounded-xl border border-gray-200 px-4 py-2.5 text-xs font-black text-gray-500 transition hover:bg-gray-50 disabled:opacity-60 dark:border-white/10 dark:hover:bg-white/5"
+              >
+                انصراف
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmReplyAction()}
+                disabled={isSubmittingReply || isDeletingReply}
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-black transition disabled:cursor-not-allowed disabled:opacity-60",
+                  actionModalCopy.confirmClassName
+                )}
+              >
+                {(isSubmittingReply || isDeletingReply) && <Loader2 className="h-4 w-4 animate-spin" />}
+                {actionModalCopy.confirmLabel}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

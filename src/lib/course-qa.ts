@@ -125,7 +125,16 @@ function normalizeReply(
     .map(normalizeAttachment)
     .filter(Boolean) as CourseQaAttachment[];
   const createdAt = formatDate(
-    value.createdAt ?? value.date ?? value.timestamp ?? value.answeredAt ?? value.updatedAt
+    value.createdAtIso ??
+      value.isoCreatedAt ??
+      value.timestampIso ??
+      value.answeredAtIso ??
+      value.updatedAtIso ??
+      value.createdAt ??
+      value.date ??
+      value.timestamp ??
+      value.answeredAt ??
+      value.updatedAt
   );
   const text = readString(
     value.text ??
@@ -304,12 +313,19 @@ function appendAnswerFieldReplies(
     readString(source.lastAnswer),
   ].filter(Boolean);
 
-  let next = [...replies];
+  const next = [...replies];
   for (const answerText of answerCandidates) {
     if (next.some((reply) => reply.role === "instructor" && reply.text.trim() === answerText.trim())) {
       continue;
     }
-    const answerDate = formatDate(source.answeredAt ?? source.updatedAt ?? source.createdAt);
+    const answerDate = formatDate(
+      source.answeredAtIso ??
+        source.updatedAtIso ??
+        source.createdAtIso ??
+        source.answeredAt ??
+        source.updatedAt ??
+        source.createdAt
+    );
     next.push({
       senderName: readString(source.instructorName ?? source.teacherName, fallbackInstructorName),
       role: "instructor",
@@ -372,7 +388,9 @@ export function mapCourseQaRecord(raw: unknown, index: number, fallbackCourseTit
   const source = nestedQuestion ?? row;
   const questionText = readString(source.question ?? source.text ?? source.description ?? source.body);
   const split = splitQuestionContent(questionText);
-  const createdAt = formatDate(source.createdAt ?? source.date ?? source.askedAt);
+  const createdAt = formatDate(
+    source.createdAtIso ?? source.isoCreatedAt ?? source.createdAt ?? source.date ?? source.askedAt
+  );
 
   const repliesWithAnswer = buildQaRepliesFromSource(source, "مدرس دوره", row !== source ? [row] : []);
 
@@ -869,6 +887,60 @@ export async function fetchLessonChatMessages(options: {
   };
 }
 
+export async function fetchLearningLessonChatMessages(options: {
+  courseId: string;
+  lessonId: string;
+  studentName?: string;
+}): Promise<LessonChatResult> {
+  const encodedCourseId = encodeURIComponent(options.courseId);
+  const encodedLessonId = encodeURIComponent(options.lessonId);
+  const response = await apiGetNoMock<unknown>(
+    `/api/dashboard/my-courses/${encodedCourseId}/learning/lessons/${encodedLessonId}/qa`,
+    getAuthHeaders()
+  );
+  const payload = extractLessonChatPayload(response);
+  const studentName = options.studentName || "دانشجو";
+  const messages = payload.items
+    .map((item, index) =>
+      mapLessonChatItem(item, index, {
+        instructorName: payload.instructorName,
+        studentName,
+      })
+    )
+    .filter(Boolean) as LessonChatMessage[];
+
+  return {
+    messages,
+    instructorName: payload.instructorName,
+  };
+}
+
+export async function fetchLearningCourseChatMessages(options: {
+  courseId: string;
+  studentName?: string;
+}): Promise<LessonChatResult> {
+  const encodedCourseId = encodeURIComponent(options.courseId);
+  const response = await apiGetNoMock<unknown>(
+    `/api/dashboard/my-courses/${encodedCourseId}/learning/qa`,
+    getAuthHeaders()
+  );
+  const payload = extractLessonChatPayload(response);
+  const studentName = options.studentName || "دانشجو";
+  const messages = payload.items
+    .map((item, index) =>
+      mapLessonChatItem(item, index, {
+        instructorName: payload.instructorName,
+        studentName,
+      })
+    )
+    .filter(Boolean) as LessonChatMessage[];
+
+  return {
+    messages,
+    instructorName: payload.instructorName,
+  };
+}
+
 export function resolveReplyTargetQaId(
   messages: LessonChatMessage[],
   fallbackQaId: string
@@ -900,4 +972,45 @@ export async function createCourseQuestion(input: {
   const mapped = mapCourseQaList(response);
   if (mapped[0]) return mapped[0];
   return mapCourseQaRecord(unwrapResponse(response), 0);
+}
+
+export async function createLearningCourseQuestion(input: {
+  courseId: string;
+  lessonId: string;
+  question: string;
+  attachments?: CourseQaAttachment[];
+}): Promise<CourseLearningQuestion> {
+  const encodedCourseId = encodeURIComponent(input.courseId);
+  const response = await apiPostNoMock<unknown>(
+    `/api/dashboard/my-courses/${encodedCourseId}/learning/qa`,
+    {
+      lessonId: input.lessonId,
+      question: input.question,
+      ...(input.attachments?.length ? { attachments: input.attachments } : {}),
+    },
+    getAuthHeaders()
+  );
+  const payload = unwrapResponse(response);
+  const record = isRecord(payload) ? payload : {};
+  const items = Array.isArray(record.items) ? record.items : extractList(payload);
+  const lastUserMessage = [...items].reverse().find((item) => {
+    if (!isRecord(item)) return false;
+    return readString(item.senderType) !== "instructor";
+  });
+  const message = isRecord(lastUserMessage) ? lastUserMessage : {};
+
+  return {
+    id: readString(message.qaId ?? message.id, `qa-${Date.now()}`),
+    studentName: "شما",
+    title: input.question.split("\n")[0] || "سوال جدید",
+    text: input.question,
+    description: input.question,
+    courseId: input.courseId,
+    courseTitle: "",
+    lessonId: input.lessonId,
+    createdAt: readString(message.createdAt, new Date().toISOString()),
+    createdAtIso: readString(message.createdAt, new Date().toISOString()),
+    status: "new",
+    replies: [],
+  };
 }

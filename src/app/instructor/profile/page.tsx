@@ -21,17 +21,20 @@ import { useInstructorData } from "@/context/InstructorDataContext";
 const inputFallbackAvatar = "/images/inst1.jpg";
 
 export default function InstructorProfilePage() {
-  const { profile, courses } = useInstructorData();
+  const { profile, profileCourses } = useInstructorData();
   const skills = profile.skills ?? [];
   const fullBiography = profile.fullBiography ?? "";
 
-  const stats = useMemo(() => {
-    const publishedCourses = courses.filter((course) => course.status === "published").length;
-    const totalStudents = courses.reduce((sum, course) => sum + Number(course.studentsCount ?? 0), 0);
-    const activeCourses = courses.filter((course) => course.status !== "inactive").length;
+  const publishedCourses = useMemo(
+    () => profileCourses.filter((course) => course.status === "published"),
+    [profileCourses]
+  );
 
-    return { publishedCourses, totalStudents, activeCourses };
-  }, [courses]);
+  const stats = useMemo(() => {
+    const totalStudents = publishedCourses.reduce((sum, course) => sum + Number(course.studentsCount ?? 0), 0);
+
+    return { publishedCourses: publishedCourses.length, totalStudents };
+  }, [publishedCourses]);
 
   const socialLinks = [
     profile.socials?.linkedin
@@ -209,9 +212,9 @@ export default function InstructorProfilePage() {
               title="دوره‌های این استاد"
               description="همه دوره‌هایی که توسط این استاد منتشر یا تدریس شده‌اند"
             />
-            {courses.length > 0 ? (
+            {publishedCourses.length > 0 ? (
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                {courses.map((course) => (
+                {publishedCourses.map((course) => (
                   <div key={course.id} className="h-full rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-4">
                     <div className="mb-4 aspect-[16/10] overflow-hidden rounded-[1.35rem] border border-white/10 bg-white/5">
                       <Image

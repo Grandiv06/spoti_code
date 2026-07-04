@@ -31,6 +31,19 @@ import {
   type DashboardCourseRow,
 } from "@/app/instructor/dashboard/_lib/instructor-dashboard-data";
 
+const formatCurrency = (val: number) => val.toLocaleString("fa-IR") + " تومان";
+const formatPersian = (val: string | number) => val.toLocaleString("fa-IR");
+
+function formatActivityDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "تاریخ نامشخص";
+
+  return new Intl.DateTimeFormat("fa-IR", {
+    month: "long",
+    day: "numeric",
+  }).format(date);
+}
+
 export default function InstructorDashboardPage() {
   const router = useRouter();
 
@@ -99,6 +112,19 @@ export default function InstructorDashboardPage() {
   }, []);
 
   const recentCourses = useMemo(() => apiCourses.slice(0, 4), [apiCourses]);
+  const recentActivities = useMemo(
+    () =>
+      apiCourses
+        .filter((course) => course.updatedAt)
+        .slice(0, 4)
+        .map((course) => ({
+          id: course.id,
+          title: `دوره «${course.title}» به‌روزرسانی شد`,
+          date: formatActivityDate(course.updatedAt),
+        })),
+    [apiCourses]
+  );
+  const dashboardName = profileName ?? overview?.instructorName ?? null;
 
   const stats = useMemo(() => {
     const base = overview ?? normalizeOverview(null);
@@ -116,9 +142,6 @@ export default function InstructorDashboardPage() {
       newQuestions: base.newQuestions,
     };
   }, [overview, apiCourses]);
-
-  const formatCurrency = (val: number) => val.toLocaleString("fa-IR") + " تومان";
-  const formatPersian = (val: string | number) => val.toLocaleString("fa-IR");
 
   const statusLabel = (status: DashboardCourseRow["status"]) => {
     if (status === "published") return "منتشر شده";
@@ -154,8 +177,8 @@ export default function InstructorDashboardPage() {
 
               <div className="text-center md:text-right">
                 <h1 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white mb-2">
-                  {profileName ? (
-                    <>سلام، استاد {profileName} عزیز! 👋</>
+                  {dashboardName ? (
+                    <>سلام، استاد {dashboardName} عزیز! 👋</>
                   ) : (
                     <>سلام، استاد عزیز! 👋</>
                   )}
@@ -368,6 +391,23 @@ export default function InstructorDashboardPage() {
 
             {overviewLoading || coursesLoading ? (
               <ActivityTimelineSkeleton />
+            ) : recentActivities.length > 0 ? (
+              <div className="space-y-4">
+                {recentActivities.map((activity) => (
+                  <div
+                    key={activity.id}
+                    className="flex items-start gap-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 p-4"
+                  >
+                    <div className="mt-1 w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_0_4px_rgba(36,180,126,0.12)] shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-black text-gray-800 dark:text-gray-100 leading-6">
+                        {activity.title}
+                      </p>
+                      <p className="text-[10px] font-bold text-gray-400 mt-1">{activity.date}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : (
               <div className="text-center py-10">
                 <p className="text-sm font-bold text-gray-400">فعالیتی ثبت نشده است.</p>

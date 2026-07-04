@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { apiGet, apiRequest } from "@/lib/api";
+import { apiGetNoMock, apiPatchNoMock, apiPutNoMock } from "@/lib/api";
 import { buildQaRepliesFromSource, dedupeQaReplies, mergeQaReplies } from "@/lib/course-qa";
 
 // --- TYPES ---
@@ -211,6 +211,7 @@ export interface Toast {
 
 interface InstructorDataContextType {
   courses: Course[];
+  profileCourses: Course[];
   questions: StudentQuestion[];
   transactions: SaleTransaction[];
   payouts: PayoutRequest[];
@@ -241,7 +242,7 @@ interface InstructorDataContextType {
     }[]
   ) => Promise<void>;
   requestPayout: (amount: number, shaba: string) => boolean;
-  updateProfile: (profile: InstructorProfile) => void;
+  updateProfile: (profile: InstructorProfile) => Promise<void>;
 }
 
 type CourseStatus = Course["status"];
@@ -254,10 +255,19 @@ const normalizeCourseStatus = (status: unknown): CourseStatus => {
   return "draft";
 };
 
-const normalizeCourseRecord = (course: Course): Course => ({
-  ...course,
-  status: normalizeCourseStatus(course.status),
-});
+const normalizeCourseCategory = (value: unknown): Course["category"] => {
+  const raw = normalizeString(value).toLowerCase();
+  if (raw === "backend") return "Backend";
+  if (raw === "devops") return "DevOps";
+  if (raw === "mobile") return "Mobile";
+  if (raw === "ui/ux") return "UI/UX";
+  return "Frontend";
+};
+
+const normalizeCourseLevel = (value: unknown): Course["level"] => {
+  if (value === "elementary" || value === "intermediate" || value === "advanced") return value;
+  return "intermediate";
+};
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -270,6 +280,130 @@ function normalizeString(value: unknown, fallback = ""): string {
   if (typeof value === "number" && Number.isFinite(value)) return String(value);
   return fallback;
 }
+
+function normalizeNumber(value: unknown, fallback = 0): number {
+  const numberValue = Number(value ?? fallback);
+  return Number.isFinite(numberValue) ? numberValue : fallback;
+}
+
+function unwrapApiPayload(value: unknown): unknown {
+  let current = value;
+  for (let i = 0; i < 3; i += 1) {
+    if (!isRecord(current) || !("data" in current) || current.data == null) break;
+    current = current.data;
+  }
+  return current;
+}
+
+function extractApiArray(value: unknown, keys: string[]): unknown[] {
+  const payload = unwrapApiPayload(value);
+  if (Array.isArray(payload)) return payload;
+  if (!isRecord(payload)) return [];
+
+  for (const key of keys) {
+    const candidate = payload[key];
+    if (Array.isArray(candidate)) return candidate;
+  }
+
+  return [];
+}
+
+function parseStringList(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+  if (typeof value !== "string") return [];
+
+  const trimmed = value.trim();
+  if (!trimmed) return [];
+  if (trimmed.startsWith("[")) {
+    try {
+      const parsed = JSON.parse(trimmed) as unknown;
+      if (Array.isArray(parsed)) return parseStringList(parsed);
+    } catch {
+      // Fall back to comma-separated parsing.
+    }
+  }
+
+  return trimmed.split(",").map((item) => item.trim()).filter(Boolean);
+}
+
+function normalizeInstructorProfile(raw: unknown): InstructorProfile | null {
+  if (!isRecord(raw)) return null;
+  const socials = isRecord(raw.socials) ? raw.socials : {};
+  const publicVisibility = isRecord(raw.publicVisibility) ? raw.publicVisibility : {};
+
+  return {
+    ...initialProfile,
+    name: normalizeString(raw.name ?? raw.fullName ?? raw.displayName, initialProfile.name),
+    displayName: normalizeString(raw.displayName ?? raw.fullName ?? raw.name, initialProfile.displayName),
+    specialty: normalizeString(raw.specialty ?? raw.headline ?? raw.displayTitle, initialProfile.specialty),
+    headline: normalizeString(raw.headline ?? raw.specialty ?? raw.displayTitle, initialProfile.headline),
+    location: normalizeString(raw.location, ""),
+    email: normalizeString(raw.email, ""),
+    phone: normalizeString(raw.phone, ""),
+    bio: normalizeString(raw.bio ?? raw.shortBio, ""),
+    fullBiography: normalizeString(raw.fullBiography, ""),
+    teachingStyle: normalizeString(raw.teachingStyle, ""),
+    professionalBackground: normalizeString(raw.professionalBackground, ""),
+    avatar: normalizeString(raw.avatar, initialProfile.avatar),
+    coverImage: normalizeString(raw.coverImage, ""),
+    yearsOfExperience: normalizeString(raw.yearsOfExperience, ""),
+    skills: parseStringList(raw.skills),
+    socials: {
+      linkedin: normalizeString(socials.linkedin, ""),
+      github: normalizeString(socials.github, ""),
+      telegram: normalizeString(socials.telegram, ""),
+      website: normalizeString(socials.website, ""),
+    },
+    publicVisibility: {
+      email: publicVisibility.email === true,
+      phone: publicVisibility.phone === true,
+      socials: publicVisibility.socials !== false,
+    },
+  };
+}
+
+function normalizeApiCourseRecord(raw: unknown, index: number): Course {
+  const row = isRecord(raw) ? raw : {};
+  const id = normalizeString(row.id ?? row.courseId, `course-${index + 1}`);
+  const title = normalizeString(row.title ?? row.name, "دوره بدون عنوان");
+
+  return normalizeCourseRecord({
+    id,
+    title,
+    slug: normalizeString(row.slug, id),
+    cover: normalizeString(row.cover ?? row.thumbnail, "/images/course3.jpg"),
+    introVideo: normalizeString(row.introVideo) || undefined,
+    status: normalizeCourseStatus(row.status),
+    category: normalizeCourseCategory(row.category),
+    level: normalizeCourseLevel(row.level),
+    language: normalizeString(row.language, "فارسی"),
+    shortDescription: normalizeString(row.shortDescription, ""),
+    description: normalizeString(row.description, ""),
+    price: normalizeNumber(row.price),
+    discountPrice: row.discountPrice === undefined ? undefined : normalizeNumber(row.discountPrice),
+    instructorId: normalizeString(row.instructorId, ""),
+    studentsCount: normalizeNumber(row.studentsCount ?? row.students),
+    rating: normalizeNumber(row.rating),
+    reviewsCount: normalizeNumber(row.reviewsCount),
+    revenue: normalizeNumber(row.revenue),
+    completionRate: normalizeNumber(row.completionRate),
+    chapters: Array.isArray(row.chapters) ? (row.chapters as Chapter[]) : [],
+    reviews: Array.isArray(row.reviews) ? (row.reviews as CourseReview[]) : [],
+    questions: Array.isArray(row.questions) ? (row.questions as StudentQuestion[]) : [],
+    createdAt: normalizeString(row.createdAt, ""),
+    updatedAt: normalizeString(row.updatedAt, ""),
+    aboutDescription: normalizeString(row.aboutDescription) || undefined,
+    publicDescription: normalizeString(row.publicDescription) || undefined,
+    visibility: row.visibility === "private" || row.visibility === "unlisted" ? row.visibility : "public",
+  });
+}
+
+const normalizeCourseRecord = (course: Course): Course => ({
+  ...course,
+  status: normalizeCourseStatus(course.status),
+  category: normalizeCourseCategory(course.category),
+  level: normalizeCourseLevel(course.level),
+});
 
 function extractQaArray(value: unknown): unknown[] {
   const candidates = [value];
@@ -304,16 +438,6 @@ function formatQaDate(value: unknown): { label: string; iso?: string } {
 
 function dedupeQuestionReplies(replies: StudentQuestion["replies"]): StudentQuestion["replies"] {
   return dedupeQaReplies(replies) as StudentQuestion["replies"];
-}
-
-function mergeQuestionsList(local: StudentQuestion[], remote: StudentQuestion[]): StudentQuestion[] {
-  const map = new Map<string, StudentQuestion>();
-  for (const question of local) map.set(question.id, question);
-  for (const question of remote) {
-    const existing = map.get(question.id);
-    map.set(question.id, existing ? mergeStudentQuestion(existing, question) : question);
-  }
-  return Array.from(map.values());
 }
 
 function normalizeQaStatus(value: unknown): StudentQuestion["status"] {
@@ -379,7 +503,9 @@ function normalizeStudentQuestion(raw: unknown, index: number): StudentQuestion 
   const attachments = extractQaArray(source.attachments ?? source.files ?? source.questionFiles)
     .map(normalizeQaAttachment)
     .filter(Boolean) as NonNullable<StudentQuestion["attachments"]>;
-  const questionCreatedAt = formatQaDate(source.createdAt ?? source.date ?? source.askedAt);
+  const questionCreatedAt = formatQaDate(
+    source.createdAtIso ?? source.isoCreatedAt ?? source.createdAt ?? source.date ?? source.askedAt
+  );
 
   return {
     id: normalizeString(source.id ?? row.id ?? source.qaId ?? source.questionId, `QST-${String(index + 1).padStart(3, "0")}`),
@@ -635,78 +761,6 @@ const initialCourses: Course[] = [
   },
 ];
 
-const initialQuestions: StudentQuestion[] = [
-  {
-    id: "QST-001",
-    studentName: "علیرضا رضایی",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=150&auto=format&fit=crop",
-    title: "خطای Hydration در استفاده از useState و localStorage",
-    text: "سلام استاد وقت بخیر. من در پروژه‌ام مقدار اولیه useState را از localStorage می‌خوانم ولی با خطای Hydration Mismatch مواجه می‌شوم. چطور می‌توانم این مشکل را حل کنم؟",
-    description: "سلام استاد وقت بخیر. من در پروژه‌ام مقدار اولیه useState را از localStorage می‌خوانم ولی با خطای Hydration Mismatch مواجه می‌شوم. چطور می‌توانم این مشکل را حل کنم؟",
-    errorText: "Hydration failed because the initial UI does not match what was rendered on the server.",
-    courseId: "CRS-410",
-    courseTitle: "متخصص React و Next.js",
-    lessonId: "LES-410-1",
-    lessonTitle: "فولدر استراکچر جدید و سیستم Routing",
-    createdAt: "1404/02/15",
-    status: "new",
-    replies: [
-      {
-        senderName: "علیرضا رضایی",
-        role: "student",
-        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=150&auto=format&fit=crop",
-        text: "تصویر خطا را هم ضمیمه کردم. مقدار سمت کلاینت با سرور همخوانی ندارد چون در سرور localStorage وجود ندارد.",
-        createdAt: "1404/02/15",
-      },
-    ],
-  },
-  {
-    id: "QST-002",
-    studentName: "سارا احمدی",
-    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=150&auto=format&fit=crop",
-    title: "عدم شناسایی متغیرهای محیطی در Server Actions",
-    text: "سلام خسته نباشید. متغیرهای محیطی که در فایل env.local قرار دادم در داخل Server Actionها لود نمی‌شوند و undefined برمی‌گردانند. علت چیست؟",
-    description: "سلام خسته نباشید. متغیرهای محیطی که در فایل env.local قرار دادم در داخل Server Actionها لود نمی‌شوند و undefined برمی‌گردانند. علت چیست؟",
-    courseId: "CRS-410",
-    courseTitle: "متخصص React و Next.js",
-    lessonId: "LES-410-2",
-    lessonTitle: "مفهوم Server Actions در ری‌اکت ۱۹",
-    createdAt: "1404/02/12",
-    status: "answered",
-    replies: [
-      {
-        senderName: "سارا احمدی",
-        role: "student",
-        avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=150&auto=format&fit=crop",
-        text: "متغیرها در کلاینت با پیشوند NEXT_PUBLIC به درستی کار می‌کنند ولی در اکشن‌ها که سمت سرور هستند خیر.",
-        createdAt: "1404/02/12",
-      },
-      {
-        senderName: "اصغر رضایی",
-        role: "instructor",
-        avatar: "",
-        text: "سلام سارا جان. به یاد داشته باش که متغیرهای سرور در Next.js نیازی به پیشوند NEXT_PUBLIC ندارند اما دقت کن که سرور اکشن شما در حین بیلد فراخوانی نشود. همچنین مطمئن شو که اسم فایل دقیقاً .env.local باشد و سرور را بعد از تغییر متغیرها حتماً یکبار ری‌استارت کرده باشی. اگر مشکل حل نشد کدت رو بفرست.",
-        createdAt: "1404/02/13",
-      },
-    ],
-  },
-  {
-    id: "QST-003",
-    studentName: "علیرضا رضایی",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=150&auto=format&fit=crop",
-    title: "ادامه مشکل Hydration بعد از ریفرش",
-    text: "بعد از اعمال پیشنهاد شما، با ریفرش صفحه دوباره خطای Hydration برمی‌گردد.",
-    description: "بعد از اعمال پیشنهاد شما، با ریفرش صفحه دوباره خطای Hydration برمی‌گردد.",
-    courseId: "CRS-410",
-    courseTitle: "متخصص React و Next.js",
-    lessonId: "LES-410-1",
-    lessonTitle: "فولدر استراکچر جدید و سیستم Routing",
-    createdAt: "1404/02/16",
-    status: "new",
-    replies: [],
-  },
-];
-
 const initialTransactions: SaleTransaction[] = [
   {
     id: "TRX-98231",
@@ -787,9 +841,10 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
     const stored = readStoredValue<Course[]>("spoticode_inst_courses", initialCourses);
     return stored.map(normalizeCourseRecord);
   });
-  const [questions, setQuestions] = useState<StudentQuestion[]>(() =>
-    readStoredValue<StudentQuestion[]>("spoticode_inst_questions", initialQuestions)
+  const [profileCourses, setProfileCourses] = useState<Course[]>(() =>
+    courses.filter((course) => course.status === "published")
   );
+  const [questions, setQuestions] = useState<StudentQuestion[]>([]);
   const [transactions] = useState<SaleTransaction[]>(() =>
     readStoredValue<SaleTransaction[]>("spoticode_inst_transactions", initialTransactions)
   );
@@ -811,7 +866,6 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
   const syncQuestions = (updater: StudentQuestion[] | ((prev: StudentQuestion[]) => StudentQuestion[])) => {
     setQuestions((prev) => {
       const next = typeof updater === "function" ? updater(prev) : updater;
-      localStorage.setItem("spoticode_inst_questions", JSON.stringify(next));
       return next;
     });
   };
@@ -829,27 +883,47 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
   useEffect(() => {
     let cancelled = false;
 
-    const loadQuestions = async () => {
-      const endpoints = ["/api/instructor-dashboard/my-qas", "/api/qas/instructor"] as const;
+    const loadInstructorProfile = async () => {
+      try {
+        const response = await apiGetNoMock<unknown>("/api/instructor-dashboard/profile");
+        const payload = unwrapApiPayload(response);
+        if (!isRecord(payload) || cancelled) return;
 
-      for (const endpoint of endpoints) {
-        try {
-          const response = await apiGet<unknown>(endpoint);
-          const normalizedQuestions = extractQaArray(response).map(normalizeStudentQuestion);
-          if (!cancelled) {
-            syncQuestions((prev) => mergeQuestionsList(prev, normalizedQuestions));
-          }
-          return;
-        } catch {
-          // Try the next endpoint.
+        const remoteProfile = normalizeInstructorProfile(payload.profile ?? payload.instructor);
+        const remoteCourses = extractApiArray(payload.courses, ["courses", "items"]).map(normalizeApiCourseRecord);
+
+        if (remoteProfile) {
+          syncProfile(remoteProfile);
         }
+        if (Array.isArray(payload.courses)) {
+          setProfileCourses(remoteCourses);
+        }
+      } catch {
+        // Keep cached/local instructor data available when the backend is unreachable.
       }
     };
 
+    const loadQuestions = async () => {
+      try {
+        const response = await apiGetNoMock<unknown>("/api/instructor-dashboard/questions");
+        const normalizedQuestions = extractQaArray(response).map(normalizeStudentQuestion);
+        if (!cancelled) {
+          syncQuestions(normalizedQuestions);
+        }
+      } catch {
+        // Keep the last loaded questions available if the backend is unreachable.
+      }
+    };
+
+    loadInstructorProfile();
     loadQuestions();
+    const questionsIntervalId = window.setInterval(() => {
+      void loadQuestions();
+    }, 8000);
 
     return () => {
       cancelled = true;
+      window.clearInterval(questionsIntervalId);
     };
   }, []);
 
@@ -1132,12 +1206,14 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
     );
 
     try {
-      const response = await apiRequest<unknown>("patch", `/api/qas/${questionId}/answer`, {
-        body: {
+      const response = await apiPatchNoMock<unknown>(
+        `/api/instructor-dashboard/questions/${encodeURIComponent(questionId)}/answer`,
+        {
           answer: text,
+          ...(attachments?.length ? { attachments } : {}),
           ...(answerFileIds?.length ? { answerFileIds } : {}),
-        },
-      });
+        }
+      );
 
       const records = extractQaArray(response);
       const normalizedResponse = records.length
@@ -1195,8 +1271,27 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
   };
 
   // Profile update
-  const updateProfile = (newProfile: InstructorProfile) => {
-    syncProfile(newProfile);
+  const updateProfile = async (newProfile: InstructorProfile) => {
+    const response = await apiPutNoMock<unknown>("/api/instructor-dashboard/profile/edit", {
+      displayName: newProfile.displayName || newProfile.name,
+      headline: newProfile.headline || newProfile.specialty,
+      bio: newProfile.bio,
+      fullBiography: newProfile.fullBiography,
+      skills: newProfile.skills,
+      socials: newProfile.socials,
+    });
+    const payload = unwrapApiPayload(response);
+    const remoteProfile = isRecord(payload)
+      ? normalizeInstructorProfile(payload.profile ?? payload.form ?? payload.instructor)
+      : null;
+    const remoteCourses = isRecord(payload)
+      ? extractApiArray(payload.courses, ["courses", "items"]).map(normalizeApiCourseRecord)
+      : [];
+
+    syncProfile(remoteProfile ?? newProfile);
+    if (isRecord(payload) && Array.isArray(payload.courses)) {
+      setProfileCourses(remoteCourses);
+    }
     showToast("پروفایل مدرس با موفقیت بروزرسانی شد.", "success");
   };
 
@@ -1204,6 +1299,7 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
     <InstructorDataContext.Provider
       value={{
         courses,
+        profileCourses,
         questions,
         transactions,
         payouts,

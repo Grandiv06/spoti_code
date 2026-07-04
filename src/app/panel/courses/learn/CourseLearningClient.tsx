@@ -4,24 +4,22 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import CustomVideoPlayer from "@/components/panel/CustomVideoPlayer";
-import { Copy, Download, Loader2, MonitorPlay, Paperclip, SearchCheck, ShieldCheck, UploadCloud, X, Send, FileText, Image as ImageIcon, ArrowRight, MessageSquare, ChevronLeft } from "lucide-react";
+import { Copy, Download, Loader2, MonitorPlay, Paperclip, ShieldCheck, UploadCloud, X, Send, FileText, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   completeCourseLesson,
+  fetchCourseLearningPage,
   fetchCourseLessonById,
-  fetchCourseSteps,
-  fetchPublicCourseById,
   findFirstUnlockedLessonId,
   mapStepsToChapters,
   mergeLessonDetail,
-  readCourseId,
   readCourseMeta,
   unwrapApiData,
 } from "@/lib/course-learning";
 import {
   buildCourseQuestionText,
-  createCourseQuestion,
-  fetchLessonChatMessages,
+  createLearningCourseQuestion,
+  fetchLearningCourseChatMessages,
   hasInstructorReply,
   mergeLessonChatMessages,
   type LessonChatMessage,
@@ -60,112 +58,15 @@ type LearningCourseData = {
   };
 };
 
-// Mock Data with different course types
-const getCourseData = (id: string) => {
-  const courses: Record<string, LearningCourseData> = {
-    react: {
-      id: "react",
-      title: "مسترکلاس ری‌اکت",
-      instructor: "سروش مشایخی",
-      progress: 45,
-      playerType: "internal", // Internal video player
-      chapters: [
-        {
-          id: "ch1",
-          title: "فصل اول: مقدمه و مفاهیم پایه",
-          lessons: [
-            {
-              id: "l1",
-              title: "معرفی دوره و پیش‌نیازها",
-              duration: "12:30",
-              isWatched: true,
-              isCompleted: true,
-              isLocked: false,
-              videoUrl: "#",
-              description: "در این جلسه به معرفی کامل دوره، پیش‌نیازهای لازم برای شروع، و ابزارهایی که در طول دوره نیاز داریم می‌پردازیم.",
-              attachments: [{ name: "اسلایدهای معرفی دوره.pdf", size: "2.4 MB" }],
-            },
-          ],
-        },
-      ],
-    },
-    javascript: {
-      id: "javascript",
-      title: "آموزش جامع جاوا اسکریپت",
-      instructor: "سروش مشایخی",
-      progress: 80,
-      playerType: "spotplayer", // SpotPlayer (Token based)
-      licenseKey: "SP-7294-X821-M932-K105",
-      downloadLinks: {
-        windows: "https://spotplayer.ir/download/windows",
-        android: "https://spotplayer.ir/download/android",
-        mac: "https://spotplayer.ir/download/mac",
-      },
-      chapters: [
-        {
-          id: "ch1",
-          title: "دسترسی به محتوای دوره",
-          lessons: [
-            {
-              id: "l_spot",
-              title: "دریافت لایسنس و مشاهده در اسپات پلیر",
-              duration: "نامحدود",
-              isWatched: false,
-              isCompleted: false,
-              isLocked: false,
-              description: "این دوره با استفاده از قفل نرم‌افزاری اسپات پلیر محافظت شده است. برای مشاهده ویدیوها، ابتدا نرم‌افزار متناسب با سیستم‌عامل خود را دانلود کرده و سپس از کلید لایسنس زیر برای فعال‌سازی دوره استفاده کنید.",
-              attachments: [],
-            },
-          ],
-        },
-      ],
-    },
-    html: {
-      id: "html",
-      title: "طراحی رابط کاربری مدرن",
-      instructor: "نازنین",
-      progress: 10,
-      playerType: "internal",
-      chapters: [
-        {
-          id: "ch1",
-          title: "مبانی طراحی UI",
-          lessons: [
-            {
-              id: "l_ui_1",
-              title: "رنگ‌شناسی و تایپوگرافی",
-              duration: "20:00",
-              isWatched: false,
-              isCompleted: false,
-              isLocked: false,
-              videoUrl: "#",
-              description: "بررسی اصول انتخاب پالت رنگی و فونت مناسب برای پروژه‌های وب.",
-              attachments: [],
-            },
-          ],
-        },
-      ],
-    },
-  };
-  return (
-    courses[id] ||
-    ({
-      css: courses.html,
-      nextjs: courses.react,
-      typescript: courses.javascript,
-    }[id]) ||
-    courses.react
-  );
-};
+const createEmptyCourseData = (id: string): LearningCourseData => ({
+  id,
+  title: "در حال بارگذاری دوره",
+  instructor: "",
+  progress: 0,
+  playerType: "internal",
+  chapters: [],
+});
 
-type QuestionAttachment = {
-  id: string;
-  name: string;
-  size: number;
-  type: string;
-  previewUrl?: string;
-  caption?: string;
-};
 type ComposerBlock =
   | {
       id: string;
@@ -273,7 +174,7 @@ export default function CourseLearningClient() {
     searchParams.get("courseId")?.trim() ||
     (typeof params.courseId === "string" ? params.courseId : "") ||
     "react";
-  const fallbackCourseData = useMemo(() => getCourseData(courseId), [courseId]);
+  const fallbackCourseData = useMemo(() => createEmptyCourseData(courseId), [courseId]);
 
   const [courseData, setCourseData] = useState<LearningCourseData>(fallbackCourseData);
   const [courseLoading, setCourseLoading] = useState(true);
@@ -284,7 +185,9 @@ export default function CourseLearningClient() {
   const [completingLesson, setCompletingLesson] = useState(false);
   const [completeError, setCompleteError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("description");
-  const [expandedChapters, setExpandedChapters] = useState<string[]>([courseData.chapters[0].id]);
+  const [expandedChapters, setExpandedChapters] = useState<string[]>(
+    courseData.chapters[0]?.id ? [courseData.chapters[0].id] : []
+  );
   const [isCopied, setIsCopied] = useState(false);
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
   const [isSubmittingQuestion, setIsSubmittingQuestion] = useState(false);
@@ -310,7 +213,7 @@ export default function CourseLearningClient() {
     if (!lessonId) return;
     setLessonLoading(true);
     try {
-      const response = await fetchCourseLessonById(lessonId);
+      const response = await fetchCourseLessonById(courseId, lessonId);
       const detail = unwrapApiData(response);
       if (detail && typeof detail === "object") {
         const merged = mergeLessonDetail(
@@ -327,17 +230,13 @@ export default function CourseLearningClient() {
           detail
         );
         setActiveLessonDetail(merged);
-        const lessonCourseId = readCourseId(detail, "");
-        if (lessonCourseId) {
-          setResolvedCourseId((prev) => lessonCourseId || prev);
-        }
       }
     } catch {
       if (baseLesson) setActiveLessonDetail(baseLesson);
     } finally {
       setLessonLoading(false);
     }
-  }, []);
+  }, [courseId]);
 
   useEffect(() => {
     let active = true;
@@ -347,43 +246,34 @@ export default function CourseLearningClient() {
       setCourseLoadError(null);
 
       try {
-        const [stepsResponse, courseResponse] = await Promise.allSettled([
-          fetchCourseSteps(courseId),
-          fetchPublicCourseById(courseId),
-        ]);
+        const response = await fetchCourseLearningPage(courseId);
 
         if (!active) return;
 
-        const stepsPayload =
-          stepsResponse.status === "fulfilled" ? unwrapApiData(stepsResponse.value) : null;
-        const coursePayload =
-          courseResponse.status === "fulfilled" ? unwrapApiData(courseResponse.value) : null;
-
-        const chapters = mapStepsToChapters(stepsPayload);
-        const metaSource =
+        const coursePayload = unwrapApiData(response);
+        const courseRecord =
           coursePayload && typeof coursePayload === "object"
             ? (coursePayload as Record<string, unknown>)
             : {};
-        const meta = readCourseMeta(metaSource);
 
-        const nextResolvedCourseId =
-          meta.id ||
-          readCourseId(stepsPayload, "") ||
-          readCourseId(coursePayload, "") ||
-          courseId;
+        const chapters = mapStepsToChapters(courseRecord.chapters);
+        const meta = readCourseMeta(courseRecord);
+
+        const nextResolvedCourseId = meta.id || courseId;
 
         const nextCourse: LearningCourseData = {
           id: nextResolvedCourseId,
-          title: meta.title || fallbackCourseData.title,
-          instructor: meta.instructor || fallbackCourseData.instructor,
-          progress: meta.progress || fallbackCourseData.progress,
-          playerType: meta.playerType || fallbackCourseData.playerType,
-          chapters: chapters.length > 0 ? chapters : fallbackCourseData.chapters,
-          licenseKey: meta.licenseKey ?? fallbackCourseData.licenseKey,
-          downloadLinks: meta.downloadLinks ?? fallbackCourseData.downloadLinks,
+          title: meta.title || "دوره بدون عنوان",
+          instructor: meta.instructor || "نامشخص",
+          progress: meta.progress,
+          playerType: meta.playerType,
+          chapters,
+          licenseKey: meta.licenseKey,
+          downloadLinks: meta.downloadLinks,
         };
 
         setCourseData(nextCourse);
+        setExpandedChapters(nextCourse.chapters[0]?.id ? [nextCourse.chapters[0].id] : []);
         setResolvedCourseId(nextResolvedCourseId);
 
         const firstLessonId =
@@ -401,12 +291,10 @@ export default function CourseLearningClient() {
       } catch {
         if (!active) return;
         setCourseData(fallbackCourseData);
-        setCourseLoadError("بارگذاری دوره از سرور انجام نشد. داده‌های نمایشی نمایش داده می‌شود.");
-        const firstLesson = fallbackCourseData.chapters[0]?.lessons[0];
-        if (firstLesson) {
-          setActiveLessonId(firstLesson.id);
-          setActiveLessonDetail(firstLesson);
-        }
+        setExpandedChapters([]);
+        setActiveLessonId("");
+        setActiveLessonDetail(null);
+        setCourseLoadError("بارگذاری دوره از سرور انجام نشد.");
       } finally {
         if (active) setCourseLoading(false);
       }
@@ -468,7 +356,14 @@ export default function CourseLearningClient() {
     setCompleteError(null);
     setCompletingLesson(true);
     try {
-      await completeCourseLesson(activeLessonId);
+      const response = await completeCourseLesson(courseData.id || courseId, activeLessonId);
+      const payload = unwrapApiData(response);
+      if (payload && typeof payload === "object") {
+        const nextProgress = Number((payload as Record<string, unknown>).progress);
+        if (Number.isFinite(nextProgress)) {
+          setCourseData((prev) => ({ ...prev, progress: Math.max(prev.progress, nextProgress) }));
+        }
+      }
       markLessonCompletedInState(activeLessonId);
     } catch {
       setCompleteError("ثبت تکمیل درس انجام نشد. لطفاً دوباره تلاش کنید.");
@@ -506,17 +401,20 @@ export default function CourseLearningClient() {
     }
   }, [activeTab, lessonChatMessages]);
 
+  useEffect(() => {
+    setLessonChatMessages([]);
+  }, [courseData.id]);
+
   const loadLessonChat = useCallback(async (options?: { silent?: boolean }) => {
     const chatCourseId = resolvedCourseId || courseData.id;
-    if (!chatCourseId || !activeLessonId) return;
+    if (!chatCourseId) return;
     if (!options?.silent) {
       setQaLoading(true);
     }
     setQaError(null);
     try {
-      const chat = await fetchLessonChatMessages({
+      const chat = await fetchLearningCourseChatMessages({
         courseId: chatCourseId,
-        lessonId: activeLessonId,
         studentName: "شما",
       });
       setLessonChatMessages((prev) => mergeLessonChatMessages(prev, chat.messages));
@@ -530,7 +428,7 @@ export default function CourseLearningClient() {
         setQaLoading(false);
       }
     }
-  }, [activeLessonId, courseData.id, resolvedCourseId]);
+  }, [courseData.id, resolvedCourseId]);
 
   const appendMessageToChat = useCallback((message: LessonChatMessage) => {
     setLessonChatMessages((prev) => {
@@ -556,12 +454,6 @@ export default function CourseLearningClient() {
     }, 12000);
     return () => window.clearInterval(intervalId);
   }, [activeTab, courseLoading, loadLessonChat]);
-
-  useEffect(() => {
-    if (activeTab !== "qa") return;
-    setLessonChatMessages([]);
-    void loadLessonChat();
-  }, [activeLessonId, activeTab, loadLessonChat]);
 
   React.useEffect(() => {
     composerBlocks.forEach((block) => {
@@ -647,16 +539,6 @@ export default function CourseLearningClient() {
     );
   };
 
-  const addTextBlockAfter = (blockId: string) => {
-    const newBlock: ComposerBlock = { id: makeBlockId(), type: "text", content: "" };
-    setComposerBlocks((prev) => {
-      const idx = prev.findIndex((block) => block.id === blockId);
-      if (idx === -1) return [...prev, newBlock];
-      return [...prev.slice(0, idx + 1), newBlock, ...prev.slice(idx + 1)];
-    });
-    focusBlock(newBlock.id);
-  };
-
   const addCodeBlockAfter = (blockId: string) => {
     const newBlock: ComposerBlock = { id: makeBlockId(), type: "code", content: "", language: "ts" };
     setComposerBlocks((prev) => {
@@ -720,9 +602,19 @@ export default function CourseLearningClient() {
     const messageText = composerPayload.trim();
     const now = new Date();
     try {
-      const created = await createCourseQuestion({
+      const attachments = pendingAttachments.map((item) => ({
+        id: item.id,
+        name: item.file.name,
+        size: item.file.size,
+        type: item.file.type || "application/octet-stream",
+        previewUrl: item.previewUrl,
+        caption: item.caption,
+      }));
+      const created = await createLearningCourseQuestion({
+        courseId: resolvedCourseId || courseData.id || courseId,
         lessonId: activeLessonId,
         question: buildCourseQuestionText({ description: messageText }),
+        attachments,
       });
 
       if (created.courseId) {
@@ -853,7 +745,6 @@ export default function CourseLearningClient() {
   const tabs = [
     { id: "description", label: "توضیحات" },
     { id: "attachments", label: "فایل‌های پیوست" },
-    { id: "comments", label: "نظرات" },
     { id: "qa", label: "پرسش و پاسخ" },
   ];
 
@@ -917,9 +808,20 @@ export default function CourseLearningClient() {
         description: questionDescription.trim(),
         errorText: questionErrorText.trim() || undefined,
       });
-      const created = await createCourseQuestion({
+      const attachments = await Promise.all(
+        selectedFiles.map(async (file, index) => ({
+          id: `question-file-${Date.now()}-${index}`,
+          name: file.name,
+          size: file.size,
+          type: file.type || "application/octet-stream",
+          previewUrl: file.type.startsWith("image/") ? await toDataUrl(file) : undefined,
+        }))
+      );
+      const created = await createLearningCourseQuestion({
+        courseId: resolvedCourseId || courseData.id || courseId,
         lessonId: activeLessonId,
         question: questionText,
+        attachments,
       });
 
       if (created.courseId) {
@@ -1158,13 +1060,6 @@ export default function CourseLearningClient() {
                       <p className="text-sm font-medium">فایلی برای این جلسه ضمیمه نشده است.</p>
                     </div>
                   )}
-                </div>
-              )}
-
-              {activeTab === "comments" && (
-                <div className="flex flex-col items-center justify-center py-10 text-gray-400">
-                  <span className="material-symbols-outlined text-4xl mb-2 opacity-50">forum</span>
-                  <p className="text-sm font-medium">بخش نظرات در حال به‌روزرسانی است.</p>
                 </div>
               )}
 
