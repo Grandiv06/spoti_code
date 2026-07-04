@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
       email: searchParams.get("email") ?? undefined,
       phoneNumber: searchParams.get("phoneNumber") ?? undefined,
       nationalCode: searchParams.get("nationalCode") ?? undefined,
+      role: searchParams.get("role") ?? undefined,
       page: readNumber(searchParams.get("page")),
       limit: readNumber(searchParams.get("limit")),
     });

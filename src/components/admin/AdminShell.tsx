@@ -20,6 +20,7 @@ const navItems = [
   { href: "/admin/discount-codes", label: "کدهای تخفیف", icon: "sell" },
   { href: "/admin/orders", label: "سفارش‌ها", icon: "receipt_long" },
   { href: "/admin/tickets", label: "تیکت‌ها", icon: "support_agent" },
+  { href: "/admin/requests", label: "مدیریت درخواست‌ها", icon: "approval" },
   { href: "/admin/settings", label: "تنظیمات", icon: "settings" },
 ];
 
@@ -157,12 +158,6 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                 <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">مدیریت کاربران، فروش و محتوای آموزشی</p>
               </div>
             </div>
-            <Link
-              href="/panel"
-              className="px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-[10px] font-black text-gray-700 dark:text-gray-200 hover:border-primary transition-all"
-            >
-              مشاهده پنل کاربر
-            </Link>
           </div>
         </header>
 

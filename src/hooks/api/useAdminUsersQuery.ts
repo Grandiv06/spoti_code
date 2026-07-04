@@ -18,6 +18,7 @@ function buildAdminUsersPath(params: AdminUsersQueryParams) {
   if (params.email?.trim()) query.set("email", params.email.trim());
   if (params.phoneNumber?.trim()) query.set("phoneNumber", params.phoneNumber.trim());
   if (params.nationalCode?.trim()) query.set("nationalCode", params.nationalCode.trim());
+  if (params.role?.trim() && params.role !== "all") query.set("role", params.role.trim());
   if (params.page != null) query.set("page", String(params.page));
   if (params.limit != null) query.set("limit", String(params.limit));
 
@@ -30,9 +31,10 @@ export function useAdminUsersQuery(params: AdminUsersQueryParams = {}) {
   const email = params.email?.trim() || undefined;
   const phoneNumber = params.phoneNumber?.trim() || undefined;
   const nationalCode = params.nationalCode?.trim() || undefined;
+  const role = params.role?.trim() && params.role !== "all" ? params.role.trim() : undefined;
   const page = params.page;
   const limit = params.limit;
-  const queryParams = { search, email, phoneNumber, nationalCode, page, limit };
+  const queryParams = { search, email, phoneNumber, nationalCode, role, page, limit };
 
   return useQuery({
     queryKey: adminUsersQueryKey(queryParams),

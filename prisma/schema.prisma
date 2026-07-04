@@ -148,10 +148,12 @@ model Comment {
   authorRole        String    @default("دانشجو")
   authorAvatar      String    @default("/images/student1.jpg")
   isInstructorReply Boolean   @default(false)
+  approvalStatus    String    @default("approved")
   createdAt         DateTime  @default(now())
 
   @@index([courseId])
   @@index([parentId])
+  @@index([approvalStatus])
 }
 
 model CourseEnrollment {

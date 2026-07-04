@@ -1,3 +1,5 @@
+import type { User } from "@prisma/client";
+import { AuthError } from "@/server/auth/request-auth";
 import {
   toCourseCommentListItemDto,
   type CreateCourseCommentInputDto,
@@ -5,6 +7,7 @@ import {
 } from "@/server/dto/course-comment.dto";
 import {
   createCourseComment,
+  findRootCourseComment,
   findCourseCommentsByCourseId,
   findPublishedCourseId,
 } from "@/server/repositories/comment.repository";
@@ -65,6 +68,20 @@ export async function getCourseComments(
 }
 
 export async function createPublicCourseComment(input: CreateCourseCommentInputDto) {
+  return createPublicCourseCommentForUser(input);
+}
+
+function readAuthorRole(user?: User | null) {
+  if (user?.role === "ADMIN") return "ادمین";
+  if (user?.role === "INSTRUCTOR") return "مدرس";
+  return "دانشجو";
+}
+
+function canCreateStandaloneCourseReview(user?: User | null) {
+  return user?.role !== "ADMIN" && user?.role !== "INSTRUCTOR";
+}
+
+export async function createPublicCourseCommentForUser(input: CreateCourseCommentInputDto, user?: User | null) {
   if (input.commentableType !== "course") {
     throw new Error("نوع نظر پشتیبانی نمی‌شود");
   }
@@ -72,13 +89,29 @@ export async function createPublicCourseComment(input: CreateCourseCommentInputD
   const courseId = await findPublishedCourseId(input.commentableId);
   if (!courseId) return null;
 
+  const parentId = typeof input.parentId === "string" && input.parentId.trim() ? input.parentId.trim() : undefined;
+
+  if (!parentId && !canCreateStandaloneCourseReview(user)) {
+    throw new AuthError("ادمین و مدرس امکان ثبت نظر مستقل برای دوره را ندارند و فقط می‌توانند به نظرها پاسخ دهند.", 403);
+  }
+
+  if (parentId) {
+    const parent = await findRootCourseComment(parentId, courseId);
+    if (!parent) {
+      throw new AuthError("نظر اصلی برای پاسخ پیدا نشد", 404);
+    }
+  }
+
   const comment = await createCourseComment({
     courseId,
     content: input.content.trim(),
-    rating: input.rating,
-    authorName: "کاربر اسپاتی‌کد",
-    authorRole: "دانشجو",
+    parentId,
+    rating: parentId ? undefined : input.rating,
+    authorId: user?.id,
+    authorName: user?.fullName?.trim() || "کاربر اسپاتی‌کد",
+    authorRole: readAuthorRole(user),
     authorAvatar: "/images/student1.jpg",
+    isInstructorReply: user?.role === "ADMIN" || user?.role === "INSTRUCTOR",
   });
 
   return {

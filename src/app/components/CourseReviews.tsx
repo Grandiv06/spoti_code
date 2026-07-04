@@ -6,6 +6,7 @@ import { useCallback, useState, useEffect } from "react";
 import type { CreateCommentDto } from "@/types/api-dtos";
 import { apiPostNoMock, apiGetNoMock } from "@/lib/api";
 import { SkeletonBox } from "@/components/ui/Skeleton";
+import { useAuth } from "@/context/AuthContext";
 
 export interface ReviewReply {
   author: string;
@@ -314,6 +315,7 @@ export default function CourseReviews({
   reviews = MOCK_REVIEWS,
   totalReviews = "۱۲۸",
 }: CourseReviewsProps) {
+  const { user } = useAuth();
   const [liveReviews, setLiveReviews] = useState<Review[]>([]);
   const [liveTotalReviews, setLiveTotalReviews] = useState<number | string>(0);
   const [hasMoreReviews, setHasMoreReviews] = useState(false);
@@ -324,6 +326,7 @@ export default function CourseReviews({
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const cannotCreateStandaloneReview = user?.role === "admin" || user?.role === "instructor";
 
   const loadCourseComments = useCallback(
     async (offset: number, limit: number, append = false) => {
@@ -378,6 +381,7 @@ export default function CourseReviews({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (cannotCreateStandaloneReview) return;
     if (!formData.comment.trim() || isSubmitting) return;
 
     setIsSubmitting(true);
@@ -441,13 +445,26 @@ export default function CourseReviews({
           </div>
           <button
             type="button"
-            onClick={() => setIsModalOpen(true)}
-            className="w-full sm:w-auto justify-center text-sm font-bold text-white bg-primary hover:bg-primary-dark dark:bg-primary dark:hover:bg-primary-dark px-4 md:px-5 py-2 md:py-2.5 rounded-xl md:rounded-2xl shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all flex items-center gap-2 cursor-pointer"
+            onClick={() => {
+              if (!cannotCreateStandaloneReview) setIsModalOpen(true);
+            }}
+            disabled={cannotCreateStandaloneReview}
+            title={
+              cannotCreateStandaloneReview
+                ? "ادمین و مدرس فقط می‌توانند در پاسخ به نظرها پیام ثبت کنند."
+                : undefined
+            }
+            className="w-full sm:w-auto justify-center text-sm font-bold text-white bg-primary hover:bg-primary-dark dark:bg-primary dark:hover:bg-primary-dark px-4 md:px-5 py-2 md:py-2.5 rounded-xl md:rounded-2xl shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:bg-primary disabled:hover:shadow-primary/25"
           >
             <span className="material-symbols-outlined text-base md:text-lg">edit_square</span>
             ثبت نظر
           </button>
         </div>
+        {cannotCreateStandaloneReview ? (
+          <p className="mt-3 rounded-2xl border border-amber-500/15 bg-amber-500/10 px-4 py-3 text-center text-xs font-bold leading-6 text-amber-600 dark:text-amber-300 sm:text-right">
+            ادمین و مدرس نمی‌توانند برای دوره نظر مستقل ثبت کنند؛ فقط امکان پاسخ به نظرهای کاربران برای آن‌ها فعال است.
+          </p>
+        ) : null}
       </div>
 
       {/* Modal ثبت نظر */}

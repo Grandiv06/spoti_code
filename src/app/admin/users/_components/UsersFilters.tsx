@@ -1,5 +1,5 @@
 import React from "react";
-import { Search, SlidersHorizontal, Trash2, ArrowUpDown, Check } from "lucide-react";
+import { Search, SlidersHorizontal, Trash2, ArrowUpDown, Check, UserCog } from "lucide-react";
 import CustomSelect from "@/components/ui/CustomSelect";
 
 const usersSortSelectClassName =
@@ -10,6 +10,8 @@ interface UsersFiltersProps {
   setSearchQuery: (query: string) => void;
   statusFilter: string;
   setStatusFilter: (status: string) => void;
+  roleFilter: string;
+  setRoleFilter: (role: string) => void;
   sortBy: string;
   setSortBy: (sort: string) => void;
   onClearFilters: () => void;
@@ -23,6 +25,8 @@ export default function UsersFilters({
   setSearchQuery,
   statusFilter,
   setStatusFilter,
+  roleFilter,
+  setRoleFilter,
   sortBy,
   setSortBy,
   onClearFilters,
@@ -40,6 +44,13 @@ export default function UsersFilters({
     { label: "جدیدترین عضوها", value: "newest" },
     { label: "بیشترین ارزش خرید (LTV)", value: "highest_ltv" },
     { label: "بیشترین تعداد دوره‌ها", value: "highest_courses" },
+  ];
+
+  const roleOptions = [
+    { label: "همه نوع کاربران", value: "all" },
+    { label: "ادمین", value: "ADMIN" },
+    { label: "مدرس", value: "INSTRUCTOR" },
+    { label: "کاربر عادی", value: "USER" },
   ];
 
   return (
@@ -96,7 +107,7 @@ export default function UsersFilters({
         }`}
       >
         <div className={`${isFiltersExpanded ? "overflow-visible" : "overflow-hidden"} space-y-5`}>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Status Filter */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-gray-400 dark:text-gray-500 block">
@@ -121,6 +132,22 @@ export default function UsersFilters({
                   );
                 })}
               </div>
+            </div>
+
+            {/* Role Selection */}
+            <div className="space-y-2 relative z-30">
+              <label className="text-xs font-bold text-gray-400 dark:text-gray-500 block">
+                نوع کاربر
+              </label>
+              <CustomSelect
+                options={roleOptions}
+                value={roleFilter}
+                onChange={setRoleFilter}
+                placeholder="نوع کاربر"
+                size="sm"
+                icon={<UserCog className="w-4 h-4" />}
+                className={usersSortSelectClassName}
+              />
             </div>
 
             {/* Sorting Selection */}

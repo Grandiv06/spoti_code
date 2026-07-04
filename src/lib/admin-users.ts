@@ -14,6 +14,7 @@ export type AdminUsersQueryParams = {
   email?: string;
   phoneNumber?: string;
   nationalCode?: string;
+  role?: string;
   page?: number;
   limit?: number;
 };

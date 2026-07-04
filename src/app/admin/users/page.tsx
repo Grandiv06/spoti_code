@@ -45,6 +45,7 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [roleFilter, setRoleFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
   const [selectedEditUserId, setSelectedEditUserId] = useState<string | null>(null);
@@ -63,6 +64,7 @@ export default function AdminUsersPage() {
 
   const { data, isPending, isFetching, isError, error, refetch } = useAdminUsersQuery({
     search: debouncedSearchQuery || undefined,
+    role: roleFilter !== "all" ? roleFilter : undefined,
   });
   const createUserMutation = useCreateAdminUserMutation();
 
@@ -88,12 +90,13 @@ export default function AdminUsersPage() {
   };
 
   const hasActiveFilters = useMemo(() => {
-    return searchQuery !== "" || statusFilter !== "all";
-  }, [searchQuery, statusFilter]);
+    return searchQuery !== "" || statusFilter !== "all" || roleFilter !== "all";
+  }, [roleFilter, searchQuery, statusFilter]);
 
   const handleClearFilters = () => {
     setSearchQuery("");
     setStatusFilter("all");
+    setRoleFilter("all");
     setSortBy("newest");
     showToast("فیلترها با موفقیت پاک شدند.", "info");
   };
@@ -208,6 +211,8 @@ export default function AdminUsersPage() {
         setSearchQuery={setSearchQuery}
         statusFilter={statusFilter}
         setStatusFilter={setStatusFilter}
+        roleFilter={roleFilter}
+        setRoleFilter={setRoleFilter}
         sortBy={sortBy}
         setSortBy={setSortBy}
         onClearFilters={handleClearFilters}

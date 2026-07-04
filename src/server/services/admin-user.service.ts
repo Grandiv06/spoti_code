@@ -8,6 +8,7 @@ type AdminUsersQuery = {
   email?: string;
   phoneNumber?: string;
   nationalCode?: string;
+  role?: string;
   page?: number;
   limit?: number;
 };
@@ -70,6 +71,12 @@ function normalizeRole(value: unknown): AppUserRole {
   if (normalized === "ADMIN" || normalized === "SUPER_ADMIN" || normalized === "SUPERADMIN") return "ADMIN";
   if (normalized === "INSTRUCTOR") return "INSTRUCTOR";
   return "USER";
+}
+
+function normalizeRoleFilter(value: unknown): AppUserRole | undefined {
+  const raw = String(value ?? "").trim();
+  if (!raw || raw === "all") return undefined;
+  return normalizeRole(raw);
 }
 
 function normalizeStatus(input: AdminUserPayload): string | undefined {
@@ -245,7 +252,9 @@ export async function getAdminUsers(adminUser: User, query: AdminUsersQuery = {}
 
   const page = Math.max(1, query.page ?? 1);
   const limit = Math.min(100, Math.max(1, query.limit ?? 50));
+  const role = normalizeRoleFilter(query.role);
   const users = await prisma.user.findMany({
+    where: role ? { role } : undefined,
     include: adminUserInclude,
     orderBy: { createdAt: "desc" },
   });
