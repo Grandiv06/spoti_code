@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   ArrowUpRight,
   BellRing,
@@ -12,6 +13,7 @@ import {
   Waves,
 } from "lucide-react";
 import { DonutChannels, HorizontalBars, MiniAreaChart, StatusPill } from "@/components/admin/AdminCharts";
+import AdminTablePagination from "@/components/admin/AdminTablePagination";
 import { useAdminDashboardOverview } from "@/hooks/api/useAdminDashboardOverview";
 import type { AdminDashboardViewModel } from "@/lib/admin-dashboard";
 
@@ -144,6 +146,8 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
 
 export default function AdminDashboardPage() {
   const { data, isPending, isError, error, refetch } = useAdminDashboardOverview();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
   const emptyDashboard: AdminDashboardViewModel = {
     kpis: [],
     monthlyRevenue: [],
@@ -156,6 +160,11 @@ export default function AdminDashboardPage() {
     conversionRateToday: "—",
   };
   const dashboard = data ?? emptyDashboard;
+  const totalOrderPages = Math.max(1, Math.ceil(dashboard.recentOrders.length / rowsPerPage));
+  const safeOrderPage = Math.min(currentPage, totalOrderPages);
+  const orderStartIndex = (safeOrderPage - 1) * rowsPerPage;
+  const orderEndIndex = Math.min(orderStartIndex + rowsPerPage, dashboard.recentOrders.length);
+  const paginatedRecentOrders = dashboard.recentOrders.slice(orderStartIndex, orderEndIndex);
   const kpiIcons = [UserRound, Waves, Coins, TrendingDown];
 
   return (
@@ -288,7 +297,7 @@ export default function AdminDashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {dashboard.recentOrders.map((order) => (
+                  {paginatedRecentOrders.map((order) => (
                     <tr key={order.id} className="border-b border-gray-100 text-gray-700 dark:border-white/10 dark:text-gray-200">
                       <td className="py-3 pr-2 font-semibold">{order.id}</td>
                       <td className="py-3">{order.user}</td>
@@ -303,6 +312,16 @@ export default function AdminDashboardPage() {
                 </tbody>
               </table>
             </div>
+            {dashboard.recentOrders.length > 0 ? (
+              <AdminTablePagination
+                totalItems={dashboard.recentOrders.length}
+                currentPage={safeOrderPage}
+                rowsPerPage={rowsPerPage}
+                onPageChange={setCurrentPage}
+                onRowsPerPageChange={setRowsPerPage}
+                itemLabel="سفارش"
+              />
+            ) : null}
 
             <div className="mt-4 flex items-center justify-between rounded-2xl border border-emerald-200/70 bg-emerald-50 p-3 text-xs text-emerald-700 dark:border-emerald-500/20 dark:bg-primary/10 dark:text-emerald-300">
               <span className="inline-flex items-center gap-1">

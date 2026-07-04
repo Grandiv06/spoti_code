@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ShoppingCart, Download, Search, CheckCircle2, X, Hash, Calendar, User, BookOpen, Wallet, Clock3, BadgeCheck, Receipt, Filter } from "lucide-react";
 import { StatusPill } from "@/components/admin/AdminCharts";
+import AdminTablePagination from "@/components/admin/AdminTablePagination";
 import type { AdminOrderItem } from "@/lib/admin-orders";
 import CustomSelect from "@/components/ui/CustomSelect";
 import { AdminOrdersStatsSkeleton, AdminOrdersTableSkeleton } from "./_components/AdminOrdersSkeletons";
@@ -63,6 +64,8 @@ export default function AdminOrdersPage() {
   const [debouncedFilters, setDebouncedFilters] = useState<OrderFilters>(defaultOrderFilters);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<OrderItem | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -114,6 +117,14 @@ export default function AdminOrdersPage() {
       totalAmount,
     };
   }, [orders]);
+  const totalOrderPages = Math.max(1, Math.ceil(orders.length / rowsPerPage));
+  const safeOrderPage = Math.min(currentPage, totalOrderPages);
+  const orderStartIndex = (safeOrderPage - 1) * rowsPerPage;
+  const orderEndIndex = Math.min(orderStartIndex + rowsPerPage, orders.length);
+  const paginatedOrders = useMemo(
+    () => orders.slice(orderStartIndex, orderEndIndex),
+    [orderEndIndex, orderStartIndex, orders]
+  );
 
   return (
     <div className="max-w-[1400px] mx-auto px-2 md:px-4 pb-20 animate-in fade-in duration-700" dir="rtl">
@@ -193,7 +204,7 @@ export default function AdminOrdersPage() {
       {isLoadingOrders ? (
         <AdminOrdersTableSkeleton />
       ) : showOrdersContent ? (
-        <div className="overflow-x-auto rounded-3xl border border-gray-100 dark:border-white/5 bg-white dark:bg-[#1c1e26] shadow-md p-4 md:p-6">
+        <div className="rounded-3xl border border-gray-100 dark:border-white/5 bg-white dark:bg-[#1c1e26] shadow-md p-4 md:p-6">
           {orders.length === 0 ? (
             <div className="py-16 text-center">
               <p className="text-xs font-black text-gray-500 dark:text-gray-400">
@@ -201,44 +212,56 @@ export default function AdminOrdersPage() {
               </p>
             </div>
           ) : (
-            <table className="w-full border-collapse text-[12px] font-bold min-w-[880px]">
-              <thead>
-                <tr className="border-b border-gray-100 dark:border-white/5 text-gray-400 text-right">
-                  <th className="py-3 px-3 font-black">شناسه سفارش</th>
-                  <th className="py-3 px-3 font-black">کاربر</th>
-                  <th className="py-3 px-3 font-black">عنوان دوره</th>
-                  <th className="py-3 px-3 font-black">مبلغ (تومان)</th>
-                  <th className="py-3 px-3 font-black">تاریخ ثبت</th>
-                  <th className="py-3 px-3 font-black">وضعیت</th>
-                  <th className="py-3 px-3 font-black">عملیات</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                {orders.map((order) => (
-                  <tr key={order.id} className="text-gray-700 dark:text-gray-300 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
-                    <td className="py-3 px-3 font-black">{order.id}</td>
-                    <td className="py-3 px-3">{order.user}</td>
-                    <td className="py-3 px-3">{order.course}</td>
-                    <td className="py-3 px-3">{order.amount}</td>
-                    <td className="py-3 px-3">{order.date}</td>
-                    <td className="py-3 px-3">
-                      <StatusPill status={order.status} />
-                    </td>
-                    <td className="py-3 px-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setSelectedOrder(order)}
-                          className="rounded-lg border border-gray-200 dark:border-white/10 px-2.5 py-1 text-[10px] font-black"
-                        >
-                          جزئیات
-                        </button>
-                      </div>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-[12px] font-bold min-w-[880px]">
+                <thead>
+                  <tr className="border-b border-gray-100 dark:border-white/5 text-gray-400 text-right">
+                    <th className="py-3 px-3 font-black">شناسه سفارش</th>
+                    <th className="py-3 px-3 font-black">کاربر</th>
+                    <th className="py-3 px-3 font-black">عنوان دوره</th>
+                    <th className="py-3 px-3 font-black">مبلغ (تومان)</th>
+                    <th className="py-3 px-3 font-black">تاریخ ثبت</th>
+                    <th className="py-3 px-3 font-black">وضعیت</th>
+                    <th className="py-3 px-3 font-black">عملیات</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+                  {paginatedOrders.map((order) => (
+                    <tr key={order.id} className="text-gray-700 dark:text-gray-300 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
+                      <td className="py-3 px-3 font-black">{order.id}</td>
+                      <td className="py-3 px-3">{order.user}</td>
+                      <td className="py-3 px-3">{order.course}</td>
+                      <td className="py-3 px-3">{order.amount}</td>
+                      <td className="py-3 px-3">{order.date}</td>
+                      <td className="py-3 px-3">
+                        <StatusPill status={order.status} />
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setSelectedOrder(order)}
+                            className="rounded-lg border border-gray-200 dark:border-white/10 px-2.5 py-1 text-[10px] font-black"
+                          >
+                            جزئیات
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
+          {orders.length > 0 ? (
+            <AdminTablePagination
+              totalItems={orders.length}
+              currentPage={safeOrderPage}
+              rowsPerPage={rowsPerPage}
+              onPageChange={setCurrentPage}
+              onRowsPerPageChange={setRowsPerPage}
+              itemLabel="سفارش"
+            />
+          ) : null}
         </div>
       ) : null}
 

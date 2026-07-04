@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Eye, Edit3, Inbox, Copy, Check } from "lucide-react";
 import { User } from "./types";
 import { UserStatusBadge } from "./Badges";
 import { toPersianDigits, formatPrice, formatPhone, formatPersianDate } from "./utils";
 import { toEnglishDigits } from "@/lib/digits";
+import AdminTablePagination from "@/components/admin/AdminTablePagination";
 
 function CopyUserIdButton({ userId }: { userId: string }) {
   const [copied, setCopied] = useState(false);
@@ -48,6 +49,17 @@ export default function UsersTable({
   onEditUser,
   onClearFilters,
 }: UsersTableProps) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const totalPages = Math.max(1, Math.ceil(users.length / rowsPerPage));
+  const safePage = Math.min(currentPage, totalPages);
+  const startIndex = (safePage - 1) * rowsPerPage;
+  const endIndex = Math.min(startIndex + rowsPerPage, users.length);
+  const paginatedUsers = useMemo(
+    () => users.slice(startIndex, endIndex),
+    [endIndex, startIndex, users]
+  );
+
   if (users.length === 0) {
     return (
       <div className="bg-white dark:bg-[#1c1e26] rounded-3xl border border-gray-100 dark:border-white/5 p-12 text-center shadow-sm">
@@ -80,7 +92,7 @@ export default function UsersTable({
   };
 
   return (
-    <div className="bg-white dark:bg-[#1c1e26] rounded-3xl border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden transition-all duration-300">
+    <div className="bg-white dark:bg-[#1c1e26] rounded-3xl border border-gray-100 dark:border-white/5 shadow-sm transition-all duration-300">
       <div className="overflow-x-auto w-full">
         <table className="w-full text-right border-collapse text-sm min-w-[960px]">
           <thead>
@@ -96,7 +108,7 @@ export default function UsersTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-            {users.map((user) => (
+            {paginatedUsers.map((user) => (
               <tr
                 key={user.id}
                 onClick={() => onShowDetails(user)}
@@ -194,6 +206,14 @@ export default function UsersTable({
           </tbody>
         </table>
       </div>
+      <AdminTablePagination
+        totalItems={users.length}
+        currentPage={safePage}
+        rowsPerPage={rowsPerPage}
+        onPageChange={setCurrentPage}
+        onRowsPerPageChange={setRowsPerPage}
+        itemLabel="کاربر"
+      />
     </div>
   );
 }

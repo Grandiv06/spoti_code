@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { Course } from "./types";
 import CourseStatusBadge from "./CourseStatusBadge";
+import AdminTablePagination from "@/components/admin/AdminTablePagination";
 import {
   Eye,
   Edit2,
@@ -28,6 +29,17 @@ export default function CoursesTable({
   onShowStats,
   onClearFilters,
 }: CoursesTableProps) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const totalPages = Math.max(1, Math.ceil(courses.length / rowsPerPage));
+  const safePage = Math.min(currentPage, totalPages);
+  const startIndex = (safePage - 1) * rowsPerPage;
+  const endIndex = Math.min(startIndex + rowsPerPage, courses.length);
+  const paginatedCourses = useMemo(
+    () => courses.slice(startIndex, endIndex),
+    [courses, endIndex, startIndex]
+  );
+
   const formatRevenue = (value: number) => {
     return `${value.toLocaleString("fa-IR")} تومان`;
   };
@@ -72,7 +84,7 @@ export default function CoursesTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-            {courses.map((course) => (
+            {paginatedCourses.map((course) => (
               <tr
                 key={course.id}
                 className="group hover:bg-gray-50/40 dark:hover:bg-black/10 transition-colors duration-250 text-xs text-gray-800 dark:text-gray-200"
@@ -134,7 +146,7 @@ export default function CoursesTable({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
-        {courses.map((course) => (
+        {paginatedCourses.map((course) => (
           <div
             key={course.id}
             className="rounded-3xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-md p-5 flex flex-col justify-between gap-4 relative overflow-hidden"
@@ -211,6 +223,16 @@ export default function CoursesTable({
             </div>
           </div>
         ))}
+      </div>
+      <div className="mt-4 rounded-3xl border border-gray-100 bg-white shadow-md dark:border-white/5 dark:bg-[#1c1e26] lg:mt-0 lg:rounded-t-none lg:border-t-0">
+        <AdminTablePagination
+          totalItems={courses.length}
+          currentPage={safePage}
+          rowsPerPage={rowsPerPage}
+          onPageChange={setCurrentPage}
+          onRowsPerPageChange={setRowsPerPage}
+          itemLabel="دوره"
+        />
       </div>
     </div>
   );

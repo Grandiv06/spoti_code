@@ -48,6 +48,7 @@ import {
   useAdminUserTransactionsQuery,
   useUpdateAdminUserInternalNoteMutation,
 } from "@/hooks/api/useAdminUserDetailQueries";
+import AdminTablePagination from "@/components/admin/AdminTablePagination";
 
 interface Toast {
   id: string;
@@ -355,11 +356,18 @@ interface UserTransactionsTabProps {
 
 export function UserTransactionsTab({ transactions, isLoading, isError, onRetry, showToast }: UserTransactionsTabProps) {
   const [filter, setFilter] = useState<"all" | "موفق" | "ناموفق" | "در انتظار">("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
   const filtered = transactions.filter((t) => {
     if (filter === "all") return true;
     return t.status === filter;
   });
+  const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
+  const safePage = Math.min(currentPage, totalPages);
+  const startIndex = (safePage - 1) * rowsPerPage;
+  const endIndex = Math.min(startIndex + rowsPerPage, filtered.length);
+  const paginatedTransactions = filtered.slice(startIndex, endIndex);
 
   if (isLoading) {
     return <UserTransactionsTabSkeleton />;
@@ -421,7 +429,7 @@ export function UserTransactionsTab({ transactions, isLoading, isError, onRetry,
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                  {filtered.map((t) => (
+                  {paginatedTransactions.map((t) => (
                     <tr key={t.id} className="text-gray-800 dark:text-gray-300 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
                       <td className="py-4 pr-2 font-mono text-[10px] font-bold text-gray-500">{toPersianDigits(t.id)}</td>
                       <td className="py-4 font-bold text-gray-900 dark:text-white">{t.productTitle || "—"}</td>
@@ -457,7 +465,7 @@ export function UserTransactionsTab({ transactions, isLoading, isError, onRetry,
 
             {/* Mobile Cards View */}
             <div className="block md:hidden space-y-3.5">
-              {filtered.map((t) => (
+              {paginatedTransactions.map((t) => (
                 <div 
                   key={t.id} 
                   className="p-4 rounded-2xl bg-gray-50/20 dark:bg-black/15 border border-gray-100/50 dark:border-white/5 space-y-3"
@@ -493,6 +501,15 @@ export function UserTransactionsTab({ transactions, isLoading, isError, onRetry,
                 </div>
               ))}
             </div>
+
+            <AdminTablePagination
+              totalItems={filtered.length}
+              currentPage={safePage}
+              rowsPerPage={rowsPerPage}
+              onPageChange={setCurrentPage}
+              onRowsPerPageChange={setRowsPerPage}
+              itemLabel="تراکنش"
+            />
           </div>
         )}
       </div>

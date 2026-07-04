@@ -6,6 +6,7 @@ import { apiDeleteNoMock, apiGetNoMock, apiPostNoMock, apiPutNoMock } from "@/li
 import { normalizeAdminDiscountsResponse } from "@/lib/admin-discounts";
 import { sanitizeNumericInput } from "@/lib/digits";
 import CustomSelect from "@/components/ui/CustomSelect";
+import AdminTablePagination from "@/components/admin/AdminTablePagination";
 
 type DiscountType = "percentage" | "fixed";
 type ScopeType = "all" | "specific";
@@ -156,6 +157,8 @@ export default function AdminDiscountCodesPage() {
   const [createNotice, setCreateNotice] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [editNotice, setEditNotice] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [actionNotice, setActionNotice] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
   useEffect(() => {
     const fetchDiscounts = async () => {
@@ -213,6 +216,14 @@ export default function AdminDiscountCodesPage() {
       used,
     };
   }, [discounts]);
+  const totalDiscountPages = Math.max(1, Math.ceil(discounts.length / rowsPerPage));
+  const safeDiscountPage = Math.min(currentPage, totalDiscountPages);
+  const discountStartIndex = (safeDiscountPage - 1) * rowsPerPage;
+  const discountEndIndex = Math.min(discountStartIndex + rowsPerPage, discounts.length);
+  const paginatedDiscounts = useMemo(
+    () => discounts.slice(discountStartIndex, discountEndIndex),
+    [discountEndIndex, discountStartIndex, discounts]
+  );
 
   const validate = (state: DiscountFormState) => {
     const nextErrors: Record<string, string> = {};
@@ -684,53 +695,63 @@ export default function AdminDiscountCodesPage() {
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] text-right text-xs font-bold">
-              <thead className="text-gray-500 dark:text-gray-400">
-                <tr className="border-b border-gray-100 dark:border-white/10">
-                  <th className="py-3 px-2">کد</th>
-                  <th className="py-3 px-2">عنوان</th>
-                  <th className="py-3 px-2">نوع تخفیف</th>
-                  <th className="py-3 px-2">مقدار</th>
-                  <th className="py-3 px-2">دوره‌ها</th>
-                  <th className="py-3 px-2">نوع اعمال</th>
-                  <th className="py-3 px-2">استفاده شده</th>
-                  <th className="py-3 px-2">تاریخ انقضا</th>
-                  <th className="py-3 px-2">وضعیت</th>
-                  <th className="py-3 px-2">عملیات</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-white/10">
-                {discounts.map((item) => (
-                  <tr key={item.id} className="text-gray-700 dark:text-gray-200">
-                    <td className="py-3 px-2 font-black">{item.code}</td>
-                    <td className="py-3 px-2">{item.title}</td>
-                    <td className="py-3 px-2">{item.discountType === "percentage" ? "درصدی" : "مبلغ ثابت"}</td>
-                    <td className="py-3 px-2">{formatValue(item)}</td>
-                    <td className="py-3 px-2">{renderCourseLabel(item)}</td>
-                    <td className="py-3 px-2">{applyTypeLabel[item.applyType]}</td>
-                    <td className="py-3 px-2">{item.usedCount.toLocaleString("fa-IR")}</td>
-                    <td className="py-3 px-2">{item.endAt ? new Date(item.endAt).toLocaleString("fa-IR") : "-"}</td>
-                    <td className="py-3 px-2">{statusBadge(item)}</td>
-                    <td className="py-3 px-2">
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => openEdit(item)} className="h-8 px-2 rounded-lg border border-gray-200 dark:border-white/10 text-[11px] inline-flex items-center gap-1">
-                          <Pencil className="w-3.5 h-3.5" />
-                          ویرایش
-                        </button>
-                        <button onClick={() => void toggleActive(item)} className="h-8 px-2 rounded-lg border border-gray-200 dark:border-white/10 text-[11px]">
-                          {item.isEnabled ? "غیرفعال کردن" : "فعال کردن"}
-                        </button>
-                        <button onClick={() => void removeCode(item)} className="h-8 px-2 rounded-lg border border-rose-500/30 text-rose-300 text-[11px] inline-flex items-center gap-1">
-                          <Trash2 className="w-3.5 h-3.5" />
-                          حذف
-                        </button>
-                      </div>
-                    </td>
+          <div className="rounded-2xl border border-gray-100 dark:border-white/10">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[980px] text-right text-xs font-bold">
+                <thead className="text-gray-500 dark:text-gray-400">
+                  <tr className="border-b border-gray-100 dark:border-white/10">
+                    <th className="py-3 px-2">کد</th>
+                    <th className="py-3 px-2">عنوان</th>
+                    <th className="py-3 px-2">نوع تخفیف</th>
+                    <th className="py-3 px-2">مقدار</th>
+                    <th className="py-3 px-2">دوره‌ها</th>
+                    <th className="py-3 px-2">نوع اعمال</th>
+                    <th className="py-3 px-2">استفاده شده</th>
+                    <th className="py-3 px-2">تاریخ انقضا</th>
+                    <th className="py-3 px-2">وضعیت</th>
+                    <th className="py-3 px-2">عملیات</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-white/10">
+                  {paginatedDiscounts.map((item) => (
+                    <tr key={item.id} className="text-gray-700 dark:text-gray-200">
+                      <td className="py-3 px-2 font-black">{item.code}</td>
+                      <td className="py-3 px-2">{item.title}</td>
+                      <td className="py-3 px-2">{item.discountType === "percentage" ? "درصدی" : "مبلغ ثابت"}</td>
+                      <td className="py-3 px-2">{formatValue(item)}</td>
+                      <td className="py-3 px-2">{renderCourseLabel(item)}</td>
+                      <td className="py-3 px-2">{applyTypeLabel[item.applyType]}</td>
+                      <td className="py-3 px-2">{item.usedCount.toLocaleString("fa-IR")}</td>
+                      <td className="py-3 px-2">{item.endAt ? new Date(item.endAt).toLocaleString("fa-IR") : "-"}</td>
+                      <td className="py-3 px-2">{statusBadge(item)}</td>
+                      <td className="py-3 px-2">
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => openEdit(item)} className="h-8 px-2 rounded-lg border border-gray-200 dark:border-white/10 text-[11px] inline-flex items-center gap-1">
+                            <Pencil className="w-3.5 h-3.5" />
+                            ویرایش
+                          </button>
+                          <button onClick={() => void toggleActive(item)} className="h-8 px-2 rounded-lg border border-gray-200 dark:border-white/10 text-[11px]">
+                            {item.isEnabled ? "غیرفعال کردن" : "فعال کردن"}
+                          </button>
+                          <button onClick={() => void removeCode(item)} className="h-8 px-2 rounded-lg border border-rose-500/30 text-rose-300 text-[11px] inline-flex items-center gap-1">
+                            <Trash2 className="w-3.5 h-3.5" />
+                            حذف
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <AdminTablePagination
+              totalItems={discounts.length}
+              currentPage={safeDiscountPage}
+              rowsPerPage={rowsPerPage}
+              onPageChange={setCurrentPage}
+              onRowsPerPageChange={setRowsPerPage}
+              itemLabel="کد"
+            />
           </div>
         )}
       </section>
