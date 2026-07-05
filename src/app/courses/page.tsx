@@ -213,7 +213,7 @@ export default function CoursesPage() {
           {/* Toolbar: Filters & Search */}
           <div className="flex flex-col-reverse lg:flex-row lg:items-center justify-between gap-6">
             {/* Minimal Filters */}
-            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide w-full lg:w-auto pb-2 lg:pb-0">
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide w-full lg:w-auto px-1 py-1.5 -my-1.5">
               {categories.map((cat) => {
                 const isActive = activeFilter === cat.id;
                 return (
@@ -221,16 +221,18 @@ export default function CoursesPage() {
                     key={cat.id}
                     onClick={() => setActiveFilter(cat.id)}
                     className={`
-                      group relative flex items-center gap-2 px-6 py-3 rounded-full overflow-hidden transition-all duration-300 outline-none cursor-pointer shrink-0 border
+                      group relative isolate flex items-center gap-2 px-6 py-3 rounded-full transition-all duration-300 outline-none cursor-pointer shrink-0 border
                       ${
                         isActive
-                          ? "bg-primary border-primary text-[#0d1c15] shadow-[0_4px_20px_-5px_rgba(34,197,94,0.4)]"
-                          : "bg-white dark:bg-[#1C1F26] border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 hover:border-gray-300 dark:hover:border-white/20 shadow-sm"
+                          ? "bg-primary border-primary text-[#0d1c15] ring-2 ring-primary/35"
+                          : "bg-white dark:bg-[#1C1F26] border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 hover:border-gray-300 dark:hover:border-white/20"
                       }
                     `}
                   >
                     {isActive && (
-                      <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/30 to-white/0 translate-x-[-100%] animate-[shimmer_2s_infinite]"></div>
+                      <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-full">
+                        <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/0 via-white/30 to-white/0 -translate-x-full animate-[shimmer_2s_infinite]" />
+                      </div>
                     )}
                     <span
                       className={`material-symbols-outlined text-[18px] relative z-10 transition-transform duration-300 ${isActive ? "" : "opacity-60 group-hover:opacity-100"}`}

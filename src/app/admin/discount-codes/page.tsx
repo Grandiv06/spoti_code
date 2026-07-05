@@ -64,10 +64,10 @@ const emptyForm = (): DiscountFormState => ({
   isEnabled: true,
 });
 
-const applyTypeLabel: Record<ApplyType, string> = {
-  user: "توسط کاربر",
+const applyTypeTableTitle: Record<ApplyType, string> = {
+  user: "توسط کاربر با وارد کردن کد",
   admin: "اعمال خودکار توسط ادمین",
-  both: "هر دو",
+  both: "هر دو روش",
 };
 
 const discountTypeOptions = [
@@ -406,10 +406,76 @@ export default function AdminDiscountCodesPage() {
 
   const statusBadge = (item: DiscountCodeItem) => {
     const status = getStatus(item);
-    if (status === "active") return <span className="rounded-full px-2 py-1 text-[10px] font-bold bg-emerald-500/15 text-emerald-300">فعال</span>;
-    if (status === "disabled") return <span className="rounded-full px-2 py-1 text-[10px] font-bold bg-gray-500/20 text-gray-300">غیرفعال</span>;
-    return <span className="rounded-full px-2 py-1 text-[10px] font-bold bg-rose-500/20 text-rose-300">منقضی‌شده</span>;
+    if (status === "active") {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-black text-emerald-600 dark:text-emerald-400">
+          <span className="size-1.5 rounded-full bg-emerald-500" />
+          فعال
+        </span>
+      );
+    }
+    if (status === "disabled") {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-xl border border-gray-200 bg-gray-100 px-2.5 py-1 text-[11px] font-black text-gray-600 dark:border-white/10 dark:bg-black/20 dark:text-gray-400">
+          <span className="size-1.5 rounded-full bg-gray-400" />
+          غیرفعال
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 rounded-xl border border-rose-500/20 bg-rose-500/10 px-2.5 py-1 text-[11px] font-black text-rose-600 dark:text-rose-400">
+        <span className="size-1.5 rounded-full bg-rose-500" />
+        منقضی‌شده
+      </span>
+    );
   };
+
+  const applyTypeBadge = (applyType: ApplyType) => {
+    if (applyType === "admin") {
+      return (
+        <span
+          title={applyTypeTableTitle.admin}
+          className="inline-flex items-center gap-1 rounded-lg border border-violet-500/15 bg-violet-500/10 px-2 py-0.5 text-[10px] font-black text-violet-600 whitespace-nowrap dark:text-violet-300"
+        >
+          <Activity className="h-3 w-3 shrink-0" />
+          خودکار
+        </span>
+      );
+    }
+    if (applyType === "both") {
+      return (
+        <span
+          title={applyTypeTableTitle.both}
+          className="inline-flex items-center gap-1 rounded-lg border border-amber-500/15 bg-amber-500/10 px-2 py-0.5 text-[10px] font-black text-amber-600 whitespace-nowrap dark:text-amber-300"
+        >
+          <TicketPercent className="h-3 w-3 shrink-0" />
+          ترکیبی
+        </span>
+      );
+    }
+    return (
+      <span
+        title={applyTypeTableTitle.user}
+        className="inline-flex items-center gap-1 rounded-lg border border-sky-500/15 bg-sky-500/10 px-2 py-0.5 text-[10px] font-black text-sky-600 whitespace-nowrap dark:text-sky-300"
+      >
+        <UserCog className="h-3 w-3 shrink-0" />
+        دستی
+      </span>
+    );
+  };
+
+  const discountTypeBadge = (type: DiscountType) =>
+    type === "percentage" ? (
+      <span className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-black text-gray-600 whitespace-nowrap dark:border-white/10 dark:bg-black/20 dark:text-gray-300">
+        <Percent className="h-3 w-3 shrink-0" />
+        درصدی
+      </span>
+    ) : (
+      <span className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-black text-gray-600 whitespace-nowrap dark:border-white/10 dark:bg-black/20 dark:text-gray-300">
+        <BadgePercent className="h-3 w-3 shrink-0" />
+        ثابت
+      </span>
+    );
 
   const formatValue = (item: DiscountCodeItem) =>
     item.discountType === "percentage"
@@ -418,16 +484,44 @@ export default function AdminDiscountCodesPage() {
 
   const renderCourseLabel = (item: DiscountCodeItem) => {
     if (item.scope === "all") {
-      return <span className="rounded-full px-2 py-1 text-[10px] font-bold bg-blue-500/20 text-blue-300">همه دوره‌ها</span>;
+      return (
+        <span
+          title="همه دوره‌ها"
+          className="inline-flex items-center gap-1 rounded-lg border border-blue-500/15 bg-blue-500/10 px-2 py-0.5 text-[10px] font-black text-blue-600 whitespace-nowrap dark:text-blue-300"
+        >
+          <BookOpen className="h-3 w-3 shrink-0" />
+          همه
+        </span>
+      );
     }
     if (item.selectedCourseIds.length <= 2) {
       const names = item.selectedCourseIds
         .map((id) => courses.find((c) => c.id === id)?.title)
         .filter(Boolean)
         .join("، ");
-      return <span className="text-xs text-gray-200">{names}</span>;
+      return (
+        <span className="line-clamp-2 text-xs font-semibold text-gray-600 dark:text-gray-300" title={names}>
+          {names}
+        </span>
+      );
     }
-    return <span className="text-xs text-gray-200">{item.selectedCourseIds.length.toLocaleString("fa-IR")} دوره</span>;
+    return (
+      <span className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-black text-gray-600 whitespace-nowrap dark:border-white/10 dark:bg-black/20 dark:text-gray-300">
+        <BookOpen className="h-3 w-3 shrink-0" />
+        {item.selectedCourseIds.length.toLocaleString("fa-IR")} دوره
+      </span>
+    );
+  };
+
+  const formatExpiryDate = (value: string) => {
+    if (!value) return "—";
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return "—";
+    return parsed.toLocaleDateString("fa-IR", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
   };
 
   return (
@@ -611,65 +705,108 @@ export default function AdminDiscountCodesPage() {
         </form>
       </section>
 
-      <section className="rounded-3xl border border-gray-100 dark:border-white/5 bg-white dark:bg-[#1c1e26] p-5 md:p-6 shadow-md">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-black text-gray-900 dark:text-white">لیست کدهای تخفیف</h2>
+      <section className="mb-8">
+        <div className="mb-5 flex items-center justify-between px-1">
+          <div>
+            <h2 className="text-lg font-black text-gray-900 dark:text-white">لیست کدهای تخفیف</h2>
+            <p className="mt-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+              مدیریت، ویرایش و وضعیت کدهای تخفیف ثبت‌شده
+            </p>
+          </div>
+          {!isLoadingDiscounts && discounts.length > 0 ? (
+            <span className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-1.5 text-xs font-black text-gray-600 dark:border-white/10 dark:bg-black/20 dark:text-gray-300">
+              {discounts.length.toLocaleString("fa-IR")} کد
+            </span>
+          ) : null}
         </div>
 
         {isLoadingDiscounts ? (
-          <div className="rounded-2xl border border-dashed border-gray-300 dark:border-white/15 p-10 text-center">
+          <div className="rounded-3xl border border-dashed border-gray-200 bg-white p-12 text-center dark:border-white/10 dark:bg-[#1c1e26]">
             <p className="text-sm font-bold text-gray-500 dark:text-gray-300">در حال دریافت کدهای تخفیف از سرور...</p>
           </div>
         ) : discounts.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-300 dark:border-white/15 p-10 text-center">
-            <p className="text-sm font-bold text-gray-500 dark:text-gray-300 mb-4">هنوز کد تخفیفی ساخته نشده است</p>
-            <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="h-10 px-4 rounded-xl bg-primary text-white text-xs font-bold inline-flex items-center gap-2">
-              <Plus className="w-4 h-4" />
+          <div className="rounded-3xl border border-dashed border-gray-200 bg-white p-12 text-center dark:border-white/10 dark:bg-[#1c1e26]">
+            <p className="mb-4 text-sm font-bold text-gray-500 dark:text-gray-300">هنوز کد تخفیفی ساخته نشده است</p>
+            <button
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-xs font-bold text-white"
+            >
+              <Plus className="h-4 w-4" />
               ساخت اولین کد تخفیف
             </button>
           </div>
         ) : (
-          <div className="rounded-2xl border border-gray-100 dark:border-white/10">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[980px] text-right text-xs font-bold">
-                <thead className="text-gray-500 dark:text-gray-400">
-                  <tr className="border-b border-gray-100 dark:border-white/10">
-                    <th className="py-3 px-2">کد</th>
-                    <th className="py-3 px-2">عنوان</th>
-                    <th className="py-3 px-2">نوع تخفیف</th>
-                    <th className="py-3 px-2">مقدار</th>
-                    <th className="py-3 px-2">دوره‌ها</th>
-                    <th className="py-3 px-2">نوع اعمال</th>
-                    <th className="py-3 px-2">استفاده شده</th>
-                    <th className="py-3 px-2">تاریخ انقضا</th>
-                    <th className="py-3 px-2">وضعیت</th>
-                    <th className="py-3 px-2">عملیات</th>
+          <div className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm dark:border-white/5 dark:bg-[#1c1e26]">
+            <div className="overflow-x-auto w-full">
+              <table className="w-full min-w-[1040px] border-collapse text-right text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50/50 text-[11px] font-black text-gray-400 dark:border-white/5 dark:bg-black/10 dark:text-gray-500">
+                    <th className="px-6 py-4">کد</th>
+                    <th className="px-4 py-4">عنوان</th>
+                    <th className="px-4 py-4">نوع</th>
+                    <th className="px-4 py-4">مقدار</th>
+                    <th className="px-4 py-4">دوره‌ها</th>
+                    <th className="px-4 py-4">نوع اعمال</th>
+                    <th className="px-4 py-4 text-center">استفاده</th>
+                    <th className="px-4 py-4">انقضا</th>
+                    <th className="px-4 py-4">وضعیت</th>
+                    <th className="px-6 py-4 text-center">عملیات</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-white/10">
+                <tbody className="divide-y divide-gray-100 dark:divide-white/5">
                   {paginatedDiscounts.map((item) => (
-                    <tr key={item.id} className="text-gray-700 dark:text-gray-200">
-                      <td className="py-3 px-2 font-black">{item.code}</td>
-                      <td className="py-3 px-2">{item.title}</td>
-                      <td className="py-3 px-2">{item.discountType === "percentage" ? "درصدی" : "مبلغ ثابت"}</td>
-                      <td className="py-3 px-2">{formatValue(item)}</td>
-                      <td className="py-3 px-2">{renderCourseLabel(item)}</td>
-                      <td className="py-3 px-2">{applyTypeLabel[item.applyType]}</td>
-                      <td className="py-3 px-2">{item.usedCount.toLocaleString("fa-IR")}</td>
-                      <td className="py-3 px-2">{item.endAt ? new Date(item.endAt).toLocaleString("fa-IR") : "-"}</td>
-                      <td className="py-3 px-2">{statusBadge(item)}</td>
-                      <td className="py-3 px-2">
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => openEdit(item)} className="h-8 px-2 rounded-lg border border-gray-200 dark:border-white/10 text-[11px] inline-flex items-center gap-1">
-                            <Pencil className="w-3.5 h-3.5" />
-                            ویرایش
+                    <tr
+                      key={item.id}
+                      className="group text-xs text-gray-800 transition-colors duration-200 hover:bg-gray-50/40 dark:text-gray-200 dark:hover:bg-black/10"
+                    >
+                      <td className="px-6 py-4">
+                        <span className="inline-flex rounded-xl border border-primary/20 bg-primary/5 px-2.5 py-1.5 font-mono text-[11px] font-black text-primary">
+                          {item.code}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="line-clamp-2 max-w-[160px] font-black text-gray-900 dark:text-white">
+                          {item.title}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">{discountTypeBadge(item.discountType)}</td>
+                      <td className="px-4 py-4 font-black text-gray-900 dark:text-white">{formatValue(item)}</td>
+                      <td className="px-4 py-4 max-w-[140px]">{renderCourseLabel(item)}</td>
+                      <td className="px-4 py-4">{applyTypeBadge(item.applyType)}</td>
+                      <td className="px-4 py-4 text-center">
+                        <span className="inline-flex min-w-8 items-center justify-center rounded-xl bg-gray-100 px-2.5 py-1 font-black text-gray-800 dark:bg-black/20 dark:text-gray-200">
+                          {item.usedCount.toLocaleString("fa-IR")}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap font-semibold text-gray-500 dark:text-gray-400">
+                        {formatExpiryDate(item.endAt)}
+                      </td>
+                      <td className="px-4 py-4">{statusBadge(item)}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-center gap-1.5 opacity-90 transition-opacity group-hover:opacity-100">
+                          <button
+                            type="button"
+                            onClick={() => openEdit(item)}
+                            className="rounded-xl bg-gray-50 p-2 text-gray-600 transition-all hover:scale-105 hover:bg-amber-500/10 hover:text-amber-500 dark:bg-black/20 dark:text-gray-400 dark:hover:text-amber-400"
+                            title="ویرایش"
+                          >
+                            <Pencil className="h-4 w-4" />
                           </button>
-                          <button onClick={() => void toggleActive(item)} className="h-8 px-2 rounded-lg border border-gray-200 dark:border-white/10 text-[11px]">
-                            {item.isEnabled ? "غیرفعال کردن" : "فعال کردن"}
+                          <button
+                            type="button"
+                            onClick={() => void toggleActive(item)}
+                            className="rounded-xl bg-gray-50 p-2 text-gray-600 transition-all hover:scale-105 hover:bg-indigo-500/10 hover:text-indigo-500 dark:bg-black/20 dark:text-gray-400 dark:hover:text-indigo-400"
+                            title={item.isEnabled ? "غیرفعال کردن" : "فعال کردن"}
+                          >
+                            {item.isEnabled ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
                           </button>
-                          <button onClick={() => void removeCode(item)} className="h-8 px-2 rounded-lg border border-rose-500/30 text-rose-300 text-[11px] inline-flex items-center gap-1">
-                            <Trash2 className="w-3.5 h-3.5" />
-                            حذف
+                          <button
+                            type="button"
+                            onClick={() => void removeCode(item)}
+                            className="rounded-xl bg-gray-50 p-2 text-gray-600 transition-all hover:scale-105 hover:bg-rose-500/10 hover:text-rose-500 dark:bg-black/20 dark:text-gray-400 dark:hover:text-rose-400"
+                            title="حذف"
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
                       </td>

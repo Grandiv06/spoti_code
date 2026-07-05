@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from "react";
 import { Eye, Edit3, Inbox, Copy, Check } from "lucide-react";
 import { User } from "./types";
-import { UserStatusBadge } from "./Badges";
+import { UserRoleBadge, UserStatusBadge } from "./Badges";
 import { toPersianDigits, formatPrice, formatPhone, formatPersianDate } from "./utils";
 import { toEnglishDigits } from "@/lib/digits";
 import AdminTablePagination from "@/components/admin/AdminTablePagination";
@@ -133,9 +133,9 @@ export default function UsersTable({
                       <span className="font-black text-gray-900 dark:text-white text-sm truncate">
                         {user.name}
                       </span>
-                      <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium truncate mt-0.5" dir="ltr">
-                        {user.email}
-                      </span>
+                      <div className="mt-0.5">
+                        <UserRoleBadge role={user.role} />
+                      </div>
                     </div>
                   </div>
                 </td>
