@@ -102,6 +102,23 @@ type FeatureModel = {
   color: string;
 };
 
+const DEFAULT_COURSE_FEATURES: FeatureModel[] = [
+  { id: "feat-1", title: "دسترسی همیشگی به دوره و آپدیت‌ها", icon: "all_inclusive", color: "primary" },
+  { id: "feat-2", title: "مدرک معتبر و قابل ترجمه", icon: "workspace_premium", color: "blue-500" },
+  { id: "feat-3", title: "پشتیبانی اختصاصی در داشبورد دانشجو", icon: "forum", color: "purple-500" },
+];
+
+const LOCKED_FEATURE_IDS = new Set(DEFAULT_COURSE_FEATURES.map((feature) => feature.id));
+
+function isLockedFeature(id: string) {
+  return LOCKED_FEATURE_IDS.has(id);
+}
+
+function mergeFeaturesWithLocked(features: FeatureModel[]) {
+  const customFeatures = features.filter((feature) => !isLockedFeature(feature.id));
+  return [...DEFAULT_COURSE_FEATURES, ...customFeatures];
+}
+
 type FAQModel = {
   id: string;
   question: string;
@@ -169,7 +186,7 @@ function buildChaptersWithLessonMeta(
 type LessonRowActions = {
   onStartEditTitle: (lessonId: string) => void;
   onChangeTitle: (chapterId: string, lessonId: string, value: string) => void;
-  onEndEditTitle: () => void;
+  onEndEditTitle: (lessonId: string) => void;
   onStartEditDuration: (lessonId: string) => void;
   onChangeDuration: (chapterId: string, lessonId: string, value: string) => void;
   onEndEditDuration: () => void;
@@ -259,20 +276,23 @@ function SortableLessonRow({
             autoFocus
             value={lesson.title}
             onChange={(e) => actions.onChangeTitle(chapterId, lesson.id, e.target.value)}
-            onBlur={actions.onEndEditTitle}
+            onBlur={() => actions.onEndEditTitle(lesson.id)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") actions.onEndEditTitle();
+              if (e.key === "Enter") actions.onEndEditTitle(lesson.id);
             }}
-            className="h-7 px-2 rounded-md border border-blue-500/40 bg-white dark:bg-white/5 text-[9px] font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20 min-w-0"
+            placeholder="عنوان جلسه"
+            className="h-7 min-w-[8rem] flex-1 px-2 rounded-md border border-blue-500/40 bg-white dark:bg-white/5 text-[9px] font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
           />
         ) : (
           <button
             type="button"
             onClick={() => actions.onStartEditTitle(lesson.id)}
-            className="text-[9px] font-bold hover:text-primary transition-colors cursor-text truncate max-w-[13rem] text-right"
-            title={lesson.title}
+            className={`text-[9px] font-bold hover:text-primary transition-colors cursor-text truncate max-w-[13rem] text-right ${
+              lesson.title.trim() ? "" : "text-gray-400 dark:text-gray-500 italic"
+            }`}
+            title={lesson.title.trim() || "ویرایش عنوان جلسه"}
           >
-            {lesson.title}
+            {lesson.title.trim() || "عنوان جلسه"}
           </button>
         )}
       </div>
@@ -560,6 +580,9 @@ function mergeDraftIntoWizardForm(
       draftData.introVideo ?? courseRow?.introVideo ?? prev.introVideo,
       prev.introVideo
     ),
+    features: mergeFeaturesWithLocked(
+      Array.isArray(draftData.features) ? draftData.features : prev.features
+    ),
   };
 }
 
@@ -628,31 +651,14 @@ export default function CreateCourseWizardPage() {
 
     // Step 3: Details & Accordions
     aboutTitle: "درباره این دوره",
-    aboutDescription: "این دوره حاصل تجربه‌ی سال‌ها کار بر روی پروژه‌های بزرگ مقیاس است. هدف ما صرفاً آموزش سینتکس نیست، بلکه انتقال طرز تفکر مهندسی است. در طول این مسیر، شما با چالش‌های واقعی روبرو می‌شوید. از بهینه‌سازی پرفورمنس گرفته تا مدیریت وضعیت‌های پیچیده و پیاده‌سازی سکیوریتی.",
-    aboutHighlights: ["طرز تفکر مهندسی", "پروژه‌های بزرگ مقیاس"] as string[],
-    
-    features: [
-      { id: "feat-1", title: "دسترسی همیشگی به دوره و آپدیت‌ها", icon: "all_inclusive", color: "primary" },
-      { id: "feat-2", title: "مدرک معتبر و قابل ترجمه", icon: "workspace_premium", color: "blue-500" },
-      { id: "feat-3", title: "پشتیبانی اختصاصی در تلگرام", icon: "forum", color: "purple-500" }
-    ],
-    
-    chapters: [
-      {
-        id: "chap-1",
-        title: "مبانی و مفاهیم پایه‌ای",
-        subtitle: "شروع قدرتمند با جاوااسکریپت مدرن",
-        number: "۰۱",
-        lessons: [
-          { id: "les-1-1", title: "آشنایی با اکوسیستم React", duration: "۱۲:۲۰", type: "video", access: "free" },
-          { id: "les-1-2", title: "نصب و راه‌اندازی پروژه", duration: "۱۸:۴۵", type: "video", access: "locked" }
-        ]
-      }
-    ],
-    
-    faqs: [
-      { id: "faq-1", question: "آیا پیش‌نیازی برای این دوره لازم است؟", answer: "بله، آشنایی با HTML، CSS و جاوااسکریپت پایه ضروری است." }
-    ]
+    aboutDescription: "",
+    aboutHighlights: [] as string[],
+
+    features: [...DEFAULT_COURSE_FEATURES],
+
+    chapters: [],
+
+    faqs: [],
   });
 
   const syncStepToUrl = (nextStep: number, courseIdOverride?: string | null) => {
@@ -1028,7 +1034,7 @@ export default function CreateCourseWizardPage() {
     aboutTitle: source.aboutTitle,
     aboutDescription: source.aboutDescription,
     aboutHighlights: source.aboutHighlights,
-    features: source.features,
+    features: mergeFeaturesWithLocked(source.features),
     chapters:
       overrides?.chapters !== undefined
         ? overrides.chapters
@@ -1046,6 +1052,38 @@ export default function CreateCourseWizardPage() {
         lessons: chapter.lessons.map((lesson) =>
           lesson.id === lessonId ? { ...lesson, videoUrl: url } : lesson
         ),
+      })),
+    }));
+  };
+
+  const applyLessonDescription = (lessonId: string, description: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      chapters: prev.chapters.map((chapter) => ({
+        ...chapter,
+        lessons: chapter.lessons.map((lesson) =>
+          lesson.id === lessonId ? { ...lesson, description } : lesson
+        ),
+      })),
+    }));
+  };
+
+  const applyLessonAttachments = (lessonId: string, files: LessonAttachmentModel[]) => {
+    const attachments = files.filter((file) => file.url && !file.url.startsWith("blob:"));
+    setFormData((prev) => ({
+      ...prev,
+      chapters: prev.chapters.map((chapter) => ({
+        ...chapter,
+        lessons: chapter.lessons.map((lesson) => {
+          if (lesson.id !== lessonId) return lesson;
+          const nextLesson = { ...lesson };
+          if (attachments.length > 0) {
+            nextLesson.attachments = attachments;
+          } else {
+            delete nextLesson.attachments;
+          }
+          return nextLesson;
+        }),
       })),
     }));
   };
@@ -1114,11 +1152,17 @@ export default function CreateCourseWizardPage() {
       }
     }
 
+    const mergedChapters = buildChaptersWithLessonMeta(
+      nextChapters,
+      lessonDescriptionMap,
+      nextLessonFileMap
+    );
+
     if (uploaded) {
       setFormData((prev) => ({
         ...prev,
         introVideo: nextIntroVideo,
-        chapters: nextChapters,
+        chapters: mergedChapters,
       }));
       if (Object.keys(nextLessonFileMap).length > 0) {
         setLessonFileMap(nextLessonFileMap);
@@ -1128,7 +1172,7 @@ export default function CreateCourseWizardPage() {
     return uploaded
       ? {
           introVideo: nextIntroVideo,
-          chapters: buildChaptersWithLessonMeta(nextChapters, lessonDescriptionMap, nextLessonFileMap),
+          chapters: mergedChapters,
         }
       : {};
   };
@@ -1219,6 +1263,8 @@ export default function CreateCourseWizardPage() {
   // Feature actions
   const addOrUpdateFeature = () => {
     if (!featTitle.trim()) return;
+    if (editingFeatId && isLockedFeature(editingFeatId)) return;
+    markFormEdited();
 
     if (editingFeatId) {
       setFormData(prev => ({
@@ -1239,10 +1285,14 @@ export default function CreateCourseWizardPage() {
   };
 
   const deleteFeature = (id: string) => {
+    if (isLockedFeature(id)) return;
+    markFormEdited();
     setFormData(prev => ({ ...prev, features: prev.features.filter(f => f.id !== id) }));
   };
 
   const editFeature = (feat: { id: string; title: string; icon: string }) => {
+    if (isLockedFeature(feat.id)) return;
+    markFormEdited();
     setFeatTitle(feat.title);
     setFeatIcon(feat.icon);
     setEditingFeatId(feat.id);
@@ -1311,6 +1361,18 @@ export default function CreateCourseWizardPage() {
       ),
     }));
     setEditingLessonTitleId(newLes.id);
+  };
+
+  const endEditChapterTitle = (chapterId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      chapters: prev.chapters.map((chapter) =>
+        chapter.id === chapterId && !chapter.title.trim()
+          ? { ...chapter, title: "سرفصل جدید" }
+          : chapter
+      ),
+    }));
+    setEditingChapterTitleId(null);
   };
 
   const updateChapterTitleInline = (chapId: string, value: string) => {
@@ -1631,10 +1693,25 @@ export default function CreateCourseWizardPage() {
     }));
   };
 
+  const endEditLessonTitle = (lessonId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      chapters: prev.chapters.map((chapter) => ({
+        ...chapter,
+        lessons: chapter.lessons.map((lesson) =>
+          lesson.id === lessonId && !lesson.title.trim()
+            ? { ...lesson, title: "جلسه جدید" }
+            : lesson
+        ),
+      })),
+    }));
+    setEditingLessonTitleId(null);
+  };
+
   const lessonRowActions: LessonRowActions = {
     onStartEditTitle: (lessonId) => setEditingLessonTitleId(lessonId),
     onChangeTitle: updateLessonTitleInline,
-    onEndEditTitle: () => setEditingLessonTitleId(null),
+    onEndEditTitle: endEditLessonTitle,
     onStartEditDuration: (lessonId) => setEditingLessonDurationId(lessonId),
     onChangeDuration: updateLessonDurationInline,
     onEndEditDuration: () => setEditingLessonDurationId(null),
@@ -1684,9 +1761,10 @@ export default function CreateCourseWizardPage() {
       lessonAttachmentFilesRef.current[lessonId][newEntries[index].id] = file;
     });
 
+    let workingFiles = [...current, ...newEntries];
     setLessonFileMap((prev) => ({
       ...prev,
-      [lessonId]: [...(prev[lessonId] || []), ...newEntries],
+      [lessonId]: workingFiles,
     }));
     setLessonFilesError("");
 
@@ -1698,32 +1776,32 @@ export default function CreateCourseWizardPage() {
           const uploadedUrl = await uploadCourseMediaFile(createdCourseId, file, "attachment", lessonId);
           URL.revokeObjectURL(entry.url);
           delete lessonAttachmentFilesRef.current[lessonId]?.[entry.id];
-          setLessonFileMap((prev) => ({
-            ...prev,
-            [lessonId]: (prev[lessonId] || []).map((item) =>
-              item.id === entry.id ? { ...item, url: uploadedUrl } : item
-            ),
-          }));
+          workingFiles = workingFiles.map((item) =>
+            item.id === entry.id ? { ...item, url: uploadedUrl } : item
+          );
         } catch (error) {
           showToast(error instanceof Error ? error.message : "آپلود فایل ضمیمه انجام نشد.", "error");
         }
       }
+      setLessonFileMap((prev) => ({ ...prev, [lessonId]: workingFiles }));
+      applyLessonAttachments(lessonId, workingFiles);
     }
   };
 
   const removeLessonFile = (lessonId: string, fileId: string) => {
+    markFormEdited();
+    const list = lessonFileMap[lessonId] || [];
+    const target = list.find((f) => f.id === fileId);
+    if (target?.url?.startsWith("blob:")) URL.revokeObjectURL(target.url);
+    delete lessonAttachmentFilesRef.current[lessonId]?.[fileId];
+    const nextList = list.filter((f) => f.id !== fileId);
     setLessonFileMap((prev) => {
-      const list = prev[lessonId] || [];
-      const target = list.find((f) => f.id === fileId);
-      if (target?.url?.startsWith("blob:")) URL.revokeObjectURL(target.url);
-      delete lessonAttachmentFilesRef.current[lessonId]?.[fileId];
-      const nextList = list.filter((f) => f.id !== fileId);
       const copy = { ...prev };
       if (nextList.length) copy[lessonId] = nextList;
       else delete copy[lessonId];
       return copy;
     });
-    markFormEdited();
+    applyLessonAttachments(lessonId, nextList);
   };
 
   // FAQ actions
@@ -1952,7 +2030,12 @@ export default function CreateCourseWizardPage() {
     }
 
     // Map wizard chapters to DB schema chapter/lessons
-    const formattedChapters: Course["chapters"] = formData.chapters.map((chap) => ({
+    const chaptersWithMeta = buildChaptersWithLessonMeta(
+      formData.chapters,
+      lessonDescriptionMap,
+      lessonFileMap
+    );
+    const formattedChapters: Course["chapters"] = chaptersWithMeta.map((chap) => ({
       id: chap.id,
       title: chap.title,
       duration: `${chap.lessons.length} جلسه`,
@@ -1963,6 +2046,9 @@ export default function CreateCourseWizardPage() {
         duration: les.duration,
         isFree: les.access === "free",
         status: "published" as const,
+        ...(les.videoUrl ? { videoUrl: les.videoUrl } : {}),
+        ...(les.description ? { description: les.description } : {}),
+        ...(les.attachments?.length ? { attachments: les.attachments } : {}),
       })),
     }));
 
@@ -2611,7 +2697,7 @@ export default function CreateCourseWizardPage() {
                     <div className="flex flex-col gap-2">
                       <input
                         type="text"
-                        placeholder="عنوان ویژگی (مثال: پشتیبانی اختصاصی تلگرام)"
+                        placeholder="عنوان ویژگی (مثال: پشتیبانی اختصاصی در داشبورد دانشجو)"
                         value={featTitle}
                         onChange={(e) => setFeatTitle(e.target.value)}
                         className="px-4 py-2.5 bg-white dark:bg-[#1a1c23] border border-gray-200/70 dark:border-white/10 rounded-xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-right"
@@ -2667,12 +2753,20 @@ export default function CreateCourseWizardPage() {
                           <span>{feat.title}</span>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
-                          <button type="button" onClick={() => editFeature(feat)} className="inline-flex size-8 items-center justify-center rounded-lg text-blue-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                          <button type="button" onClick={() => openDeleteConfirm("حذف ویژگی", "آیا مطمئن هستید که می‌خواهید این ویژگی حذف شود؟", () => deleteFeature(feat.id))} className="inline-flex size-8 items-center justify-center rounded-lg text-red-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {isLockedFeature(feat.id) ? (
+                            <span className="inline-flex size-8 items-center justify-center rounded-lg text-gray-300 dark:text-gray-600" title="ویژگی پیش‌فرض">
+                              <span className="material-symbols-outlined text-[18px]">lock</span>
+                            </span>
+                          ) : (
+                            <>
+                              <button type="button" onClick={() => editFeature(feat)} className="inline-flex size-8 items-center justify-center rounded-lg text-blue-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button type="button" onClick={() => openDeleteConfirm("حذف ویژگی", "آیا مطمئن هستید که می‌خواهید این ویژگی حذف شود؟", () => deleteFeature(feat.id))} className="inline-flex size-8 items-center justify-center rounded-lg text-red-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -2923,19 +3017,25 @@ export default function CreateCourseWizardPage() {
                                   autoFocus
                                   value={chap.title}
                                   onChange={(e) => updateChapterTitleInline(chap.id, e.target.value)}
-                                  onBlur={() => setEditingChapterTitleId(null)}
+                                  onBlur={() => endEditChapterTitle(chap.id)}
                                   onKeyDown={(e) => {
-                                    if (e.key === "Enter") setEditingChapterTitleId(null);
+                                    if (e.key === "Enter") endEditChapterTitle(chap.id);
                                   }}
-                                  className="h-8 px-2 rounded-lg border border-blue-500/40 bg-white dark:bg-white/5 text-[10px] font-black text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                  placeholder="عنوان سرفصل"
+                                  className="h-8 min-w-[8rem] px-2 rounded-lg border border-blue-500/40 bg-white dark:bg-white/5 text-[10px] font-black text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                                 />
                               ) : (
                                 <button
                                   type="button"
                                   onClick={() => setEditingChapterTitleId(chap.id)}
-                                  className="text-[10px] font-black text-gray-900 dark:text-white hover:text-primary transition-colors cursor-text"
+                                  className={`text-[10px] font-black hover:text-primary transition-colors cursor-text ${
+                                    chap.title.trim()
+                                      ? "text-gray-900 dark:text-white"
+                                      : "text-gray-400 dark:text-gray-500 italic"
+                                  }`}
+                                  title={chap.title.trim() || "ویرایش عنوان سرفصل"}
                                 >
-                                  {chap.title}
+                                  {chap.title.trim() || "عنوان سرفصل"}
                                 </button>
                               )}
                             </div>
@@ -3551,10 +3651,12 @@ export default function CreateCourseWizardPage() {
                 type="button"
                 onClick={() => {
                   markFormEdited();
+                  const trimmed = lessonDescriptionEditor.value.trim();
                   setLessonDescriptionMap((prev) => ({
                     ...prev,
-                    [lessonDescriptionEditor.lessonId]: lessonDescriptionEditor.value.trim(),
+                    [lessonDescriptionEditor.lessonId]: trimmed,
                   }));
+                  applyLessonDescription(lessonDescriptionEditor.lessonId, trimmed);
                   setLessonDescriptionEditor({ open: false, lessonId: "", value: "" });
                 }}
                 className="px-4 py-2.5 rounded-xl bg-primary text-background-dark font-black text-sm"
