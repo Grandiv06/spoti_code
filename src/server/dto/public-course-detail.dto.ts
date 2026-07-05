@@ -289,8 +289,11 @@ function toInstructorDetailDto(instructor: Instructor): PublicCourseInstructorDe
   };
 }
 
-export function toPublicCourseDetailDto(course: CourseWithInstructor): PublicCourseDetailDto {
-  const base = toPublicCourseListItemDto(course);
+export function toPublicCourseDetailDto(
+  course: CourseWithInstructor,
+  enrichedBase?: PublicCourseListItemDto
+): PublicCourseDetailDto {
+  const base = enrichedBase ?? toPublicCourseListItemDto(course);
   const instructor = toInstructorDetailDto(course.instructor);
   const draftData = parseDraftData(course.draftData);
   const durationLabel = formatDurationLabel(course.durationHours);

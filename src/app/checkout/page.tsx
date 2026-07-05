@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
@@ -10,10 +10,16 @@ import { apiPostNoMock } from "@/lib/api";
 import { getAuthHeaders } from "@/lib/auth-tokens";
 import { formatCartPriceLabel } from "@/lib/cart-price";
 
-const DISCOUNT_CODES: Record<string, number> = {
-  SPOTI10: 0.1,
-  NEWUSER15: 0.15,
-  WELCOME20: 0.2,
+type DiscountPreview = {
+  subtotal: number;
+  discountAmount: number;
+  total: number;
+  applied: {
+    code: string;
+    title: string;
+    applyType: "user" | "admin" | "both";
+    discountAmount: number;
+  } | null;
 };
 
 function CheckoutItemImage({ src, alt }: { src: string; alt: string }) {
@@ -37,15 +43,41 @@ export default function CheckoutPage() {
   const [discountCode, setDiscountCode] = useState("");
   const [appliedCode, setAppliedCode] = useState<string | null>(null);
   const [discountError, setDiscountError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<DiscountPreview | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [successTrackingCode, setSuccessTrackingCode] = useState<string | null>(null);
 
   const isStaff = user?.role === "admin" || user?.role === "instructor";
-  const discountRate = appliedCode ? DISCOUNT_CODES[appliedCode] ?? 0 : 0;
-  const subtotal = getTotalPrice();
-  const discountAmount = Math.round(subtotal * discountRate);
-  const total = Math.max(subtotal - discountAmount, 0);
+  const courseIds = useMemo(() => cart.map((item) => item.id), [cart]);
+  const subtotal = appliedCode ? (preview?.subtotal ?? getTotalPrice()) : getTotalPrice();
+  const discountAmount = appliedCode ? (preview?.discountAmount ?? 0) : 0;
+  const total = appliedCode ? (preview?.total ?? subtotal) : subtotal;
+
+  const loadPreview = useCallback(
+    async (manualCode: string) => {
+      if (courseIds.length === 0) return;
+
+      setIsPreviewLoading(true);
+      try {
+        const response = await apiPostNoMock<{ data?: DiscountPreview }>(
+          "/api/discounts/preview",
+          {
+            courseIds,
+            discountCode: manualCode,
+          },
+          isAuthenticated ? getAuthHeaders() : undefined
+        );
+        setPreview(response?.data ?? null);
+      } catch {
+        setPreview(null);
+      } finally {
+        setIsPreviewLoading(false);
+      }
+    },
+    [courseIds, isAuthenticated]
+  );
 
   useEffect(() => {
     setCartOpen(false);
@@ -60,15 +92,42 @@ export default function CheckoutPage() {
     [subtotal, discountAmount, total]
   );
 
-  const handleApplyDiscount = () => {
+  const handleApplyDiscount = async () => {
     const normalized = discountCode.trim().toUpperCase();
-    if (normalized && DISCOUNT_CODES[normalized]) {
-      setAppliedCode(normalized);
+    if (!normalized) {
+      setAppliedCode(null);
+      setPreview(null);
       setDiscountError(null);
       return;
     }
-    setAppliedCode(null);
-    setDiscountError("کد تخفیف معتبر نیست");
+
+    setDiscountError(null);
+    try {
+      const response = await apiPostNoMock<{ data?: DiscountPreview; message?: string }>(
+        "/api/discounts/preview",
+        {
+          courseIds,
+          discountCode: normalized,
+        },
+        isAuthenticated ? getAuthHeaders() : undefined
+      );
+
+      const nextPreview = response?.data;
+      if (!nextPreview?.applied || nextPreview.discountAmount <= 0) {
+        setAppliedCode(null);
+        setPreview(nextPreview ?? null);
+        setDiscountError("کد تخفیف معتبر نیست");
+        return;
+      }
+
+      setAppliedCode(normalized);
+      setPreview(nextPreview);
+      setDiscountError(null);
+    } catch (error) {
+      setAppliedCode(null);
+      setPreview(null);
+      setDiscountError(error instanceof Error ? error.message : "کد تخفیف معتبر نیست");
+    }
   };
 
   const handleCompletePurchase = async () => {
@@ -252,6 +311,9 @@ export default function CheckoutPage() {
                 </div>
                 {appliedCode ? (
                   <p className="mt-2 text-xs font-bold text-emerald-500">کد {appliedCode} با موفقیت اعمال شد.</p>
+                ) : null}
+                {isPreviewLoading ? (
+                  <p className="mt-2 text-xs font-bold text-gray-400">در حال محاسبه تخفیف...</p>
                 ) : null}
                 {discountError ? (
                   <p className="mt-2 text-xs font-bold text-red-500">{discountError}</p>

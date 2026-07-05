@@ -437,6 +437,75 @@ async function main() {
       });
     }
   }
+
+  const discountCodes = [
+    {
+      id: "DSC-TEST-USER-20",
+      title: "کد تست کاربر — ۲۰٪ همه دوره‌ها",
+      code: "TESTUSER20",
+      discountType: "percentage" as const,
+      discountValue: 20,
+      scope: "all" as const,
+      applyType: "user" as const,
+      isEnabled: true,
+      startsAt: new Date("2026-01-01T00:00:00.000Z"),
+      expiresAt: new Date("2026-12-31T23:59:59.000Z"),
+      globalUsageLimit: 1000,
+      perUserUsageLimit: 3,
+      usedCount: 0,
+    },
+    {
+      id: "DSC-TEST-AUTO-15",
+      title: "تخفیف خودکار ادمین — ۱۵٪ همه دوره‌ها",
+      code: "AUTOALL15",
+      discountType: "percentage" as const,
+      discountValue: 15,
+      scope: "all" as const,
+      applyType: "admin" as const,
+      isEnabled: true,
+      startsAt: new Date("2026-01-01T00:00:00.000Z"),
+      expiresAt: new Date("2026-12-31T23:59:59.000Z"),
+      globalUsageLimit: null,
+      perUserUsageLimit: null,
+      usedCount: 0,
+    },
+    {
+      id: "DSC-TEST-REACT-10",
+      title: "کد تست دوره React",
+      code: "REACTONLY10",
+      discountType: "percentage" as const,
+      discountValue: 10,
+      scope: "specific" as const,
+      applyType: "user" as const,
+      isEnabled: true,
+      startsAt: new Date("2026-01-01T00:00:00.000Z"),
+      expiresAt: new Date("2026-12-31T23:59:59.000Z"),
+      globalUsageLimit: 500,
+      perUserUsageLimit: 1,
+      usedCount: 0,
+      courseIds: ["react"],
+    },
+  ] as const;
+
+  for (const discount of discountCodes) {
+    const { courseIds = [], ...discountData } = discount as typeof discount & { courseIds?: string[] };
+    await prisma.discountCode.upsert({
+      where: { id: discount.id },
+      update: {
+        ...discountData,
+        courses: {
+          deleteMany: {},
+          create: courseIds.map((courseId) => ({ courseId })),
+        },
+      },
+      create: {
+        ...discountData,
+        courses: {
+          create: courseIds.map((courseId) => ({ courseId })),
+        },
+      },
+    });
+  }
 }
 
 main()

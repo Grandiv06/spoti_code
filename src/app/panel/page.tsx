@@ -1,13 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { usePanelDashboardOverview } from "@/hooks/api/usePanelDashboardOverview";
 
 function DashboardSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
       <div className="bg-white dark:bg-[#1c1e26] rounded-3xl p-8 border border-gray-100 dark:border-gray-800 h-36" />
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
-        {Array.from({ length: 5 }).map((_, index) => (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {Array.from({ length: 3 }).map((_, index) => (
           <div
             key={index}
             className="bg-white dark:bg-[#1c1e26] p-6 rounded-3xl border border-gray-100 dark:border-gray-800 h-28"
@@ -50,76 +51,55 @@ export default function PanelDashboard() {
     );
   }
 
-  const { labels, hasActiveOrder } = data;
+  const { labels } = data;
 
   return (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-[#1c1e26] rounded-3xl p-8 border border-gray-100 dark:border-gray-800 shadow-sm relative overflow-hidden">
-        <div className="relative z-10">
-          <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-2">{labels.welcomeTitle}</h2>
-          <p className="text-gray-500 dark:text-gray-400 font-medium">{labels.welcomeSubtitle}</p>
+      <div className="relative overflow-hidden rounded-3xl border border-gray-100 bg-white p-8 shadow-sm dark:border-gray-800 dark:bg-[#1c1e26]">
+        <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="mb-2 text-3xl font-black text-gray-900 dark:text-white">{labels.welcomeTitle}</h2>
+            <p className="font-medium text-gray-500 dark:text-gray-400">{labels.welcomeSubtitle}</p>
+          </div>
+          <Link
+            href="/panel/courses"
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-black text-white shadow-[0_0_20px_rgba(34,197,94,0.25)] transition hover:opacity-95"
+          >
+            <span className="material-symbols-outlined text-[20px]">play_circle</span>
+            ادامه یادگیری
+          </Link>
         </div>
-        <div className="absolute top-0 left-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+        <div className="pointer-events-none absolute top-0 left-0 size-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/5 blur-3xl" />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
-        <div className="bg-white dark:bg-[#1c1e26] p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-blue-500">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="flex items-center gap-4 rounded-3xl border border-gray-100 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-[#1c1e26]">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-500">
             <span className="material-symbols-outlined text-2xl">school</span>
           </div>
           <div>
             <p className="text-sm font-bold text-gray-500 dark:text-gray-400">{labels.enrolledCourses}</p>
-            <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">{data.enrolledCoursesCount}</p>
+            <p className="mt-1 text-2xl font-black text-gray-900 dark:text-white">{data.enrolledCoursesCount}</p>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-[#1c1e26] p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-violet-50 dark:bg-violet-500/10 flex items-center justify-center text-violet-500">
+        <div className="flex items-center gap-4 rounded-3xl border border-gray-100 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-[#1c1e26]">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-500">
             <span className="material-symbols-outlined text-2xl">comment</span>
           </div>
           <div>
             <p className="text-sm font-bold text-gray-500 dark:text-gray-400">{labels.myComments}</p>
-            <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">{data.myCommentsCount}</p>
+            <p className="mt-1 text-2xl font-black text-gray-900 dark:text-white">{data.myCommentsCount}</p>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-[#1c1e26] p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-green-50 dark:bg-green-500/10 flex items-center justify-center text-green-500">
+        <div className="flex items-center gap-4 rounded-3xl border border-gray-100 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-[#1c1e26]">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-green-500/10 text-green-500">
             <span className="material-symbols-outlined text-2xl">task_alt</span>
           </div>
           <div>
             <p className="text-sm font-bold text-gray-500 dark:text-gray-400">{labels.acceptedComments}</p>
-            <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">{data.acceptedCommentsCount}</p>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-[#1c1e26] p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center text-amber-500">
-            <span className="material-symbols-outlined text-2xl">hourglass_empty</span>
-          </div>
-          <div>
-            <p className="text-sm font-bold text-gray-500 dark:text-gray-400">{labels.waitingComments}</p>
-            <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">{data.waitingCommentsCount}</p>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-[#1c1e26] p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm flex items-center gap-4">
-          <div
-            className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
-              hasActiveOrder
-                ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500"
-                : "bg-gray-50 dark:bg-gray-500/10 text-gray-400"
-            }`}
-          >
-            <span className="material-symbols-outlined text-2xl">
-              {hasActiveOrder ? "shopping_cart_checkout" : "shopping_cart_off"}
-            </span>
-          </div>
-          <div>
-            <p className="text-sm font-bold text-gray-500 dark:text-gray-400">{labels.activeOrder}</p>
-            <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">
-              {hasActiveOrder ? labels.activeOrderYes : labels.activeOrderNo}
-            </p>
+            <p className="mt-1 text-2xl font-black text-gray-900 dark:text-white">{data.acceptedCommentsCount}</p>
           </div>
         </div>
       </div>

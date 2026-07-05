@@ -1,12 +1,7 @@
 import type { User } from "@prisma/client";
 import { AuthError } from "@/server/auth/request-auth";
 import { prisma } from "@/server/db/prisma";
-
-const DISCOUNT_CODES: Record<string, number> = {
-  SPOTI10: 0.1,
-  NEWUSER15: 0.15,
-  WELCOME20: 0.2,
-};
+import { resolveCheckoutDiscount, buildCheckoutLineItems } from "@/server/services/discount.service";
 
 type CheckoutInput = {
   courseIds: string[];
@@ -71,12 +66,16 @@ export async function completeCheckout(user: User, rawInput: unknown) {
     throw new AuthError("شما قبلاً در دوره‌های انتخاب‌شده ثبت‌نام کرده‌اید", 400);
   }
 
-  const subtotal = purchasableCourses.reduce((sum, course) => sum + course.price, 0);
-  const discountRate = input.discountCode ? DISCOUNT_CODES[input.discountCode] ?? 0 : 0;
-  const discountAmount = Math.round(subtotal * discountRate);
-  const payableTotal = Math.max(subtotal - discountAmount, 0);
-  const perCourseDiscount =
-    purchasableCourses.length > 0 ? Math.floor(discountAmount / purchasableCourses.length) : 0;
+  const cartItems = await buildCheckoutLineItems(
+    purchasableCourses.map((course) => ({ id: course.id, price: course.price }))
+  );
+
+  const discountResult = await resolveCheckoutDiscount(user, cartItems, input.discountCode);
+  const subtotal = discountResult.subtotal;
+  const discountAmount = discountResult.discountAmount;
+  const payableTotal = discountResult.total;
+  const lineDiscounts = discountResult.lineDiscounts;
+  const appliedCode = discountResult.applied?.code ?? null;
 
   const trackingCode = createTrackingCode();
   const now = Date.now();
@@ -85,11 +84,10 @@ export async function completeCheckout(user: User, rawInput: unknown) {
     const orders = [];
 
     for (const [index, course] of purchasableCourses.entries()) {
-      const courseDiscount =
-        index === purchasableCourses.length - 1
-          ? discountAmount - perCourseDiscount * (purchasableCourses.length - 1)
-          : perCourseDiscount;
-      const amount = Math.max(course.price - courseDiscount, 0);
+      const lineItem = cartItems.find((item) => item.courseId === course.id);
+      const linePrice = lineItem?.price ?? course.price;
+      const courseDiscount = lineDiscounts[course.id] ?? 0;
+      const amount = Math.max(linePrice - courseDiscount, 0);
       const orderId = `ORD-${now}-${index + 1}`;
 
       const order = await tx.userOrder.create({
@@ -104,6 +102,8 @@ export async function completeCheckout(user: User, rawInput: unknown) {
           trackingCode,
           productTitle: course.title,
           courseId: course.id,
+          discountCode: appliedCode,
+          discountAmount: courseDiscount,
         },
       });
 
@@ -133,6 +133,21 @@ export async function completeCheckout(user: User, rawInput: unknown) {
       orders.push(order);
     }
 
+    if (discountResult.discountId) {
+      await tx.discountCodeUsage.create({
+        data: {
+          id: `DCU-${now}-${Math.random().toString(36).slice(2, 7)}`,
+          discountCodeId: discountResult.discountId,
+          userId: user.id,
+          orderId: orders[0]?.id ?? null,
+        },
+      });
+      await tx.discountCode.update({
+        where: { id: discountResult.discountId },
+        data: { usedCount: { increment: 1 } },
+      });
+    }
+
     return orders;
   });
 
@@ -141,6 +156,7 @@ export async function completeCheckout(user: User, rawInput: unknown) {
     subtotal,
     discountAmount,
     total: payableTotal,
+    appliedCode,
     enrolledCourseIds: purchasableCourses.map((course) => course.id),
     orders: createdOrders.map((order) => ({
       id: order.id,
@@ -149,6 +165,8 @@ export async function completeCheckout(user: User, rawInput: unknown) {
       status: order.status,
       productTitle: order.productTitle,
       trackingCode: order.trackingCode,
+      discountCode: order.discountCode,
+      discountAmount: order.discountAmount,
     })),
   };
 }

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { MouseEvent } from "react";
+import CoursePriceDisplay, { CourseDiscountBadge } from "@/app/components/CoursePriceDisplay";
 
 export interface CourseCardProps {
   id?: string;
@@ -15,6 +16,8 @@ export interface CourseCardProps {
   hours: string;
   students?: string | number;
   price: string | number;
+  originalPrice?: string | number | null;
+  discountPercent?: number | null;
   alt?: string;
   viewHref?: string;
   disableViewNavigation?: boolean;
@@ -32,17 +35,15 @@ export default function CourseCard({
   hours,
   students,
   price,
+  originalPrice,
+  discountPercent,
   alt = "Course Card Preview",
   viewHref,
   disableViewNavigation = false,
   onViewClick,
 }: CourseCardProps) {
-  const formattedPrice =
-    typeof price === "number" ? price.toLocaleString("fa-IR") : price;
   const formattedStudents =
     typeof students === "number" ? students.toLocaleString("fa-IR") : students;
-  const isFreePrice =
-    typeof formattedPrice === "string" && formattedPrice.trim() === "رایگان";
 
   return (
     <div
@@ -51,7 +52,6 @@ export default function CourseCard({
     >
       <div className="relative h-56 overflow-hidden rounded-t-4xl isolate">
         {image.startsWith("blob:") || image.startsWith("data:") ? (
-          // Blob/data URLs are used for local upload previews.
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={image}
@@ -68,6 +68,9 @@ export default function CourseCard({
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-60"></div>
         <div className="absolute top-5 left-5 right-5 flex justify-between items-start z-20">
+          {discountPercent && discountPercent > 0 ? (
+            <CourseDiscountBadge discountPercent={discountPercent} />
+          ) : null}
           {difficulty && (
             <span className="rounded-2xl border border-primary/20 bg-primary/15 px-3 py-1.5 text-xs font-black text-primary backdrop-blur-xl">
               {difficulty}
@@ -117,17 +120,11 @@ export default function CourseCard({
         </div>
 
         <div className="mt-auto flex items-center justify-between gap-4 pt-5 border-t border-gray-100/50 dark:border-white/5">
-          <span className="bg-primary/10 text-primary-dark dark:text-primary px-5 py-2.5 rounded-2xl font-black text-sm whitespace-nowrap">
-            {formattedPrice || "۰"}
-            {!isFreePrice && (
-              <>
-                {" "}
-                <span className="text-[10px] opacity-80 font-bold mr-1">
-                  تومان
-                </span>
-              </>
-            )}
-          </span>
+          <CoursePriceDisplay
+            price={price}
+            originalPrice={originalPrice}
+            discountPercent={discountPercent}
+          />
           <Link
             href={viewHref || (slug ? `/courses/${slug}` : id ? `/courses/${id}` : "#")}
             onClick={(e) => {

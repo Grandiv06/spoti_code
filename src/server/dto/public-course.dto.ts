@@ -44,6 +44,9 @@ export interface PublicCourseListItemDto {
   price: number;
   amount: number;
   finalPrice: number;
+  originalPrice: number;
+  displayPrice: number;
+  discountPercent: number | null;
   rating: number;
   status: string;
 }
@@ -110,6 +113,9 @@ export function toPublicCourseListItemDto(course: CourseWithInstructor): PublicC
     price: course.price,
     amount: course.price,
     finalPrice: course.price,
+    originalPrice: course.price,
+    displayPrice: course.price,
+    discountPercent: null,
     rating: course.rating,
     status: course.status,
   };

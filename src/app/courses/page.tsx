@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import EnrolledCourseButton from "@/app/components/EnrolledCourseButton";
+import CoursePriceDisplay, { CourseDiscountBadge } from "@/app/components/CoursePriceDisplay";
 import { useStudentEnrollments } from "@/hooks/useStudentEnrollments";
 import { apiGetNoMock } from "@/lib/api";
 
@@ -22,6 +23,9 @@ type CourseItem = {
   students: string;
   studentsCount: number;
   price: string;
+  originalPrice: string | null;
+  displayPrice: string;
+  discountPercent: number | null;
 };
 
 function CourseCardSkeleton() {
@@ -107,6 +111,16 @@ export default function CoursesPage() {
             row.categorySlug ?? row.category ?? row.track ?? "general"
           );
 
+          const basePrice = Number(row.price ?? 0);
+          const displayPrice = Number(row.displayPrice ?? row.finalPrice ?? basePrice);
+          const originalPrice = Number(row.originalPrice ?? basePrice);
+          const discountPercent =
+            typeof row.discountPercent === "number" && row.discountPercent > 0
+              ? row.discountPercent
+              : displayPrice < originalPrice
+                ? Math.round(((originalPrice - displayPrice) / originalPrice) * 100)
+                : null;
+
           return {
             id: String(row.id ?? row.slug ?? `course-${index + 1}`),
             slug: String(row.slug ?? row.id ?? `course-${index + 1}`),
@@ -129,7 +143,11 @@ export default function CoursesPage() {
             hours: String(row.durationHours ?? row.hours ?? "۰"),
             students: studentsCount.toLocaleString("fa-IR"),
             studentsCount,
-            price: Number(row.price ?? 0).toLocaleString("fa-IR"),
+            price: displayPrice.toLocaleString("fa-IR"),
+            originalPrice:
+              discountPercent != null ? originalPrice.toLocaleString("fa-IR") : null,
+            displayPrice: displayPrice.toLocaleString("fa-IR"),
+            discountPercent,
           };
         });
 
@@ -289,6 +307,11 @@ export default function CoursesPage() {
                       className="object-cover transform-gpu md:group-hover:scale-105 transition-transform duration-700 ease-out"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-60"></div>
+                    {!enrolled && course.discountPercent ? (
+                      <div className="absolute top-5 right-5 z-20">
+                        <CourseDiscountBadge discountPercent={course.discountPercent} />
+                      </div>
+                    ) : null}
                     {enrolled ? (
                       <div className="absolute top-5 right-5 z-20 rounded-2xl bg-emerald-500/90 px-3 py-1.5 text-[11px] font-black text-white shadow-lg">
                         ثبت‌نام شده
@@ -344,12 +367,11 @@ export default function CoursesPage() {
                         </>
                       ) : (
                         <>
-                          <span className="bg-primary/10 text-primary-dark dark:text-primary px-5 py-2.5 rounded-2xl font-black text-sm shrink-0">
-                            {course.price}{" "}
-                            <span className="text-[10px] opacity-80 font-bold mr-1">
-                              تومان
-                            </span>
-                          </span>
+                          <CoursePriceDisplay
+                            price={course.price}
+                            originalPrice={course.originalPrice}
+                            discountPercent={course.discountPercent}
+                          />
                           <Link
                             href={detailHref}
                             className="flex-1 bg-gray-50 dark:bg-white/5 hover:bg-primary hover:text-background-dark text-gray-900 dark:text-white rounded-2xl py-2.5 font-bold transition-all flex items-center justify-center gap-2 group/btn"

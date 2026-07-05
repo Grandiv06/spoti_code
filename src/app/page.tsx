@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import TestimonialSlider from "./components/TestimonialSlider";
 import PremiumStats from "./components/PremiumStats";
+import CoursePriceDisplay, { CourseDiscountBadge } from "@/app/components/CoursePriceDisplay";
 import { apiGetNoMock } from "@/lib/api";
 
 type LandingCourse = {
@@ -17,6 +18,8 @@ type LandingCourse = {
   hours: string;
   students: string;
   price: string;
+  originalPrice: string | null;
+  discountPercent: number | null;
 };
 
 const getCourseList = (payload: unknown): unknown[] => {
@@ -110,7 +113,15 @@ export default function Home() {
           const durationHours = formatCourseNumber(
             row.durationHours ?? row.hours ?? row.duration ?? row.length
           );
-          const price = formatCourseNumber(row.price ?? row.amount ?? row.finalPrice);
+          const basePrice = formatCourseNumber(row.price ?? row.amount ?? 0);
+          const displayPrice = formatCourseNumber(row.displayPrice ?? row.finalPrice ?? basePrice);
+          const originalPrice = formatCourseNumber(row.originalPrice ?? basePrice);
+          const discountPercent =
+            typeof row.discountPercent === "number" && row.discountPercent > 0
+              ? row.discountPercent
+              : displayPrice < originalPrice
+                ? Math.round(((originalPrice - displayPrice) / originalPrice) * 100)
+                : null;
 
           return {
             id: String(row.id ?? row.slug ?? `course-${index + 1}`),
@@ -125,7 +136,10 @@ export default function Home() {
             image: String(row.cover ?? row.thumbnail ?? row.image ?? "/images/js-green.png"),
             hours: durationHours.toLocaleString("fa-IR"),
             students: studentsCount.toLocaleString("fa-IR"),
-            price: price.toLocaleString("fa-IR"),
+            price: displayPrice.toLocaleString("fa-IR"),
+            originalPrice:
+              discountPercent != null ? originalPrice.toLocaleString("fa-IR") : null,
+            discountPercent,
           };
         });
 
@@ -313,6 +327,11 @@ export default function Home() {
                       className="object-cover transform-gpu md:group-hover:scale-105 transition-transform duration-700 ease-out"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-60"></div>
+                    {course.discountPercent ? (
+                      <div className="absolute top-5 right-5 z-20">
+                        <CourseDiscountBadge discountPercent={course.discountPercent} />
+                      </div>
+                    ) : null}
                     <div className="absolute top-5 left-5 right-5 flex justify-between items-start z-20">
                     </div>
                   </div>
@@ -350,12 +369,11 @@ export default function Home() {
                       </div>
                     </div>
                     <div className="mt-auto flex items-center justify-between gap-4 pt-6 border-t border-gray-100/50 dark:border-white/5">
-                      <span className="bg-primary/10 text-primary-dark dark:text-primary px-5 py-2.5 rounded-2xl font-black text-sm">
-                        {course.price}{" "}
-                        <span className="text-[10px] opacity-80 font-bold mr-1">
-                          تومان
-                        </span>
-                      </span>
+                      <CoursePriceDisplay
+                        price={course.price}
+                        originalPrice={course.originalPrice}
+                        discountPercent={course.discountPercent}
+                      />
                       <Link
                         href={`/courses/${course.slug}`}
                         className="flex-1 bg-gray-50 dark:bg-white/5 hover:bg-primary hover:text-background-dark text-gray-900 dark:text-white rounded-2xl py-2.5 font-bold transition-all flex items-center justify-center gap-2 group/btn"

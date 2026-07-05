@@ -3,97 +3,19 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { apiGetNoMock } from "@/lib/api";
+import { fetchMyCourses, type PanelCourseItem } from "@/lib/panel-my-courses";
 import PanelCoursesSkeleton from "./PanelCoursesSkeleton";
-
-type PanelCourse = {
-  enrollmentId: string;
-  id: string;
-  title: string;
-  progress: number;
-  image?: string;
-  instructor: string;
-};
-
-type MyCoursesResponse = {
-  data?: unknown;
-};
 
 export default function PanelCourses() {
   const router = useRouter();
-  const [courses, setCourses] = useState<PanelCourse[]>([]);
+  const [courses, setCourses] = useState<PanelCourseItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchCourses = async () => {
+    const loadCourses = async () => {
       setLoading(true);
       try {
-        const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-        const result = await apiGetNoMock<MyCoursesResponse>(
-          "/api/dashboard/my-courses",
-          token ? { Authorization: `Bearer ${token}` } : undefined
-        );
-
-        const rawList = Array.isArray(result?.data)
-          ? result.data
-          : Array.isArray((result?.data as { items?: unknown[] } | undefined)?.items)
-            ? ((result?.data as { items?: unknown[] }).items as unknown[])
-            : [];
-
-        const mapped = rawList.map((item, index) => {
-          const row = (item ?? {}) as Record<string, unknown>;
-          const course =
-            typeof row.course === "object" && row.course
-              ? (row.course as Record<string, unknown>)
-              : row;
-          const progressRecord =
-            typeof row.progress === "object" && row.progress
-              ? (row.progress as Record<string, unknown>)
-              : null;
-          const thumbnailFile =
-            typeof course.thumbnailFile === "object" && course.thumbnailFile
-              ? (course.thumbnailFile as Record<string, unknown>)
-              : null;
-          const teacher =
-            typeof course.teacher === "object" && course.teacher
-              ? (course.teacher as Record<string, unknown>)
-              : null;
-
-          const id = String(course.id ?? row.courseId ?? index + 1);
-          const enrollmentId = String(row.id ?? `${id}-${index}`);
-          const title = String(course.title ?? course.name ?? row.title ?? row.name ?? "دوره بدون عنوان");
-          const progressRaw = Number(
-            progressRecord?.percentage ??
-              row.progressPercent ??
-              row.completionPercent ??
-              (typeof row.progress === "number" ? row.progress : 0)
-          );
-          const progress = Number.isFinite(progressRaw) ? Math.max(0, Math.min(100, progressRaw)) : 0;
-          const image =
-            typeof thumbnailFile?.url === "string"
-              ? thumbnailFile.url
-              : typeof course.thumbnail === "string"
-                ? course.thumbnail
-                : typeof course.cover === "string"
-                  ? course.cover
-                  : typeof row.image === "string"
-                    ? row.image
-                    : undefined;
-          const instructor = String(
-            teacher?.fullName ??
-              teacher?.name ??
-              row.instructorName ??
-              (typeof row.instructor === "object" && row.instructor
-                ? (row.instructor as Record<string, unknown>).fullName ??
-                  (row.instructor as Record<string, unknown>).name
-                : row.instructor) ??
-              "نامشخص"
-          );
-
-          return { enrollmentId, id, title, progress, image, instructor };
-        });
-
-        setCourses(mapped);
+        setCourses(await fetchMyCourses());
       } catch {
         setCourses([]);
       } finally {
@@ -101,7 +23,7 @@ export default function PanelCourses() {
       }
     };
 
-    fetchCourses();
+    void loadCourses();
   }, []);
 
   if (loading) {

@@ -44,64 +44,10 @@ type DiscountFormState = {
   isEnabled: boolean;
 };
 
-const mockCourses = [
-  { id: "c1", title: "آموزش React" },
-  { id: "c2", title: "آموزش Next.js" },
-  { id: "c3", title: "آموزش JavaScript" },
-  { id: "c4", title: "آموزش Frontend" },
-  { id: "c5", title: "آموزش Backend" },
-];
-
-const initialDiscounts: DiscountCodeItem[] = [
-  {
-    id: "d1",
-    title: "تخفیف نوروزی",
-    code: "NOWRUZ30",
-    discountType: "percentage",
-    discountValue: 30,
-    scope: "all",
-    selectedCourseIds: [],
-    startAt: "2026-03-01T09:00",
-    endAt: "2026-12-30T23:59",
-    usageLimit: "1000",
-    usagePerUser: "1",
-    applyType: "user",
-    isEnabled: true,
-    usedCount: 210,
-  },
-  {
-    id: "d2",
-    title: "تخفیف ویژه React",
-    code: "REACT20",
-    discountType: "percentage",
-    discountValue: 20,
-    scope: "specific",
-    selectedCourseIds: ["c1"],
-    startAt: "2026-05-01T08:00",
-    endAt: "2026-11-30T23:59",
-    usageLimit: "300",
-    usagePerUser: "2",
-    applyType: "admin",
-    isEnabled: true,
-    usedCount: 88,
-  },
-  {
-    id: "d3",
-    title: "تخفیف منقضی شده",
-    code: "OLD50",
-    discountType: "fixed",
-    discountValue: 50000,
-    scope: "specific",
-    selectedCourseIds: ["c3"],
-    startAt: "2025-01-01T09:00",
-    endAt: "2025-01-30T23:59",
-    usageLimit: "120",
-    usagePerUser: "1",
-    applyType: "user",
-    isEnabled: false,
-    usedCount: 64,
-  },
-];
+type CourseOption = {
+  id: string;
+  title: string;
+};
 
 const emptyForm = (): DiscountFormState => ({
   title: "",
@@ -143,7 +89,8 @@ const formSelectClassName =
   "[&_button]:h-11 [&_button]:min-h-[44px] [&_button]:rounded-xl [&_button]:text-xs [&_button]:px-4";
 
 export default function AdminDiscountCodesPage() {
-  const [discounts, setDiscounts] = useState<DiscountCodeItem[]>(initialDiscounts);
+  const [discounts, setDiscounts] = useState<DiscountCodeItem[]>([]);
+  const [courses, setCourses] = useState<CourseOption[]>([]);
   const [form, setForm] = useState<DiscountFormState>(emptyForm);
   const [courseQuery, setCourseQuery] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -160,49 +107,62 @@ export default function AdminDiscountCodesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
-  useEffect(() => {
-    const fetchDiscounts = async () => {
-      try {
-        const response = await apiGetNoMock<unknown>("/api/admin-dashboard/discounts");
-        const mapped = normalizeAdminDiscountsResponse(response).map((item) => ({
-          id: item.id,
-          title: item.title,
-          code: item.code,
-          discountType: item.discountType,
-          discountValue: item.discountValue,
-          scope: item.scope,
-          selectedCourseIds: item.selectedCourseIds,
-          startAt: item.startAt,
-          endAt: item.endAt,
-          usageLimit: item.usageLimit,
-          usagePerUser: item.usagePerUser,
-          applyType: item.applyType,
-          isEnabled: item.isEnabled,
-          usedCount: item.usedCount,
-        }));
+  const mapDiscountItem = (item: ReturnType<typeof normalizeAdminDiscountsResponse>[number]): DiscountCodeItem => ({
+    id: item.id,
+    title: item.title,
+    code: item.code,
+    discountType: item.discountType,
+    discountValue: item.discountValue,
+    scope: item.scope,
+    selectedCourseIds: item.selectedCourseIds,
+    startAt: item.startAt,
+    endAt: item.endAt,
+    usageLimit: item.usageLimit,
+    usagePerUser: item.usagePerUser,
+    applyType: item.applyType,
+    isEnabled: item.isEnabled,
+    usedCount: item.usedCount,
+  });
 
-        setDiscounts(mapped.length > 0 ? mapped : initialDiscounts);
+  const reloadDiscounts = async () => {
+    const response = await apiGetNoMock<unknown>("/api/admin-dashboard/discounts");
+    const mapped = normalizeAdminDiscountsResponse(response).map(mapDiscountItem);
+    setDiscounts(mapped);
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [discountResponse, courseResponse] = await Promise.all([
+          apiGetNoMock<unknown>("/api/admin-dashboard/discounts"),
+          apiGetNoMock<{ data?: { courses?: CourseOption[] } }>("/api/admin-dashboard/discounts?courses=1"),
+        ]);
+
+        const mapped = normalizeAdminDiscountsResponse(discountResponse).map(mapDiscountItem);
+        setDiscounts(mapped);
+        setCourses(courseResponse?.data?.courses ?? []);
       } catch {
-        setDiscounts(initialDiscounts);
+        setDiscounts([]);
+        setCourses([]);
       } finally {
         setIsLoadingDiscounts(false);
       }
     };
 
-    fetchDiscounts();
+    fetchData();
   }, []);
 
   const filteredCourses = useMemo(() => {
     const q = courseQuery.trim();
-    if (!q) return mockCourses;
-    return mockCourses.filter((c) => c.title.includes(q));
-  }, [courseQuery]);
+    if (!q) return courses;
+    return courses.filter((c) => c.title.includes(q));
+  }, [courseQuery, courses]);
 
   const filteredEditCourses = useMemo(() => {
     const q = editCourseQuery.trim();
-    if (!q) return mockCourses;
-    return mockCourses.filter((c) => c.title.includes(q));
-  }, [editCourseQuery]);
+    if (!q) return courses;
+    return courses.filter((c) => c.title.includes(q));
+  }, [editCourseQuery, courses]);
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -260,12 +220,16 @@ export default function AdminDiscountCodesPage() {
   };
 
   const buildDiscountPayload = (state: DiscountFormState) => ({
-    code: state.code.trim().toUpperCase() || undefined,
-    type: state.discountType === "percentage" ? "percent" : "fixed",
-    value: Number(state.discountValue),
+    title: state.title.trim() || undefined,
+    code: state.code.trim().toUpperCase(),
+    discountType: state.discountType,
+    discountValue: Number(sanitizeNumericInput(state.discountValue)),
+    scope: state.scope,
+    selectedCourseIds: state.scope === "all" ? [] : state.selectedCourseIds,
+    applyType: state.applyType,
     startsAt: state.startAt || undefined,
     expiresAt: state.endAt || undefined,
-    isActive: state.isEnabled,
+    isEnabled: state.isEnabled,
     globalUsageLimit: state.usageLimit.trim() ? Number(state.usageLimit) : undefined,
     perUserUsageLimit: state.usagePerUser.trim() ? Number(state.usagePerUser) : undefined,
   });
@@ -315,26 +279,8 @@ export default function AdminDiscountCodesPage() {
 
     setIsCreatingDiscount(true);
     try {
-      await apiPostNoMock("/api/discounts/admin", buildDiscountPayload(form));
-
-      const created: DiscountCodeItem = {
-        id: `d-${Date.now()}`,
-        title: form.title.trim() || form.code.trim().toUpperCase() || "بدون عنوان",
-        code: form.code.trim().toUpperCase(),
-        discountType: form.discountType,
-        discountValue: Number(form.discountValue),
-        scope: form.scope,
-        selectedCourseIds: form.scope === "all" ? [] : form.selectedCourseIds,
-        startAt: form.startAt,
-        endAt: form.endAt,
-        usageLimit: form.usageLimit.trim(),
-        usagePerUser: form.usagePerUser.trim(),
-        applyType: form.applyType,
-        isEnabled: form.isEnabled,
-        usedCount: 0,
-      };
-
-      setDiscounts((p) => [created, ...p]);
+      await apiPostNoMock("/api/admin-dashboard/discounts", buildDiscountPayload(form));
+      await reloadDiscounts();
       setForm(emptyForm());
       setCourseQuery("");
       setErrors({});
@@ -385,29 +331,11 @@ export default function AdminDiscountCodesPage() {
     setIsUpdatingDiscount(true);
     setEditNotice(null);
     try {
-      await apiPutNoMock(`/api/discounts/${encodeURIComponent(editItem.id)}/admin`, buildDiscountPayload(editForm));
-
-      setDiscounts((prev) =>
-        prev.map((d) =>
-          d.id === editItem.id
-            ? {
-                ...d,
-                title: editForm.title.trim() || "بدون عنوان",
-                code: editForm.code.trim().toUpperCase(),
-                discountType: editForm.discountType,
-                discountValue: Number(editForm.discountValue),
-                scope: editForm.scope,
-                selectedCourseIds: editForm.scope === "all" ? [] : editForm.selectedCourseIds,
-                startAt: editForm.startAt,
-                endAt: editForm.endAt,
-                usageLimit: editForm.usageLimit.trim(),
-                usagePerUser: editForm.usagePerUser.trim(),
-                applyType: editForm.applyType,
-                isEnabled: editForm.isEnabled,
-              }
-            : d
-        )
+      await apiPutNoMock(
+        `/api/admin-dashboard/discounts/${encodeURIComponent(editItem.id)}`,
+        buildDiscountPayload(editForm)
       );
+      await reloadDiscounts();
       setEditNotice({ type: "success", message: "تغییرات کد تخفیف در سرور ذخیره شد." });
       setEditItem(null);
     } catch (error) {
@@ -424,18 +352,24 @@ export default function AdminDiscountCodesPage() {
     const nextEnabled = !item.isEnabled;
     setActionNotice(null);
     try {
-      await apiPutNoMock(`/api/discounts/${encodeURIComponent(item.id)}/admin`, {
-        code: item.code,
-        type: item.discountType === "percentage" ? "percent" : "fixed",
-        value: item.discountValue,
-        startsAt: item.startAt || undefined,
-        expiresAt: item.endAt || undefined,
-        isActive: nextEnabled,
-        globalUsageLimit: item.usageLimit.trim() ? Number(item.usageLimit) : undefined,
-        perUserUsageLimit: item.usagePerUser.trim() ? Number(item.usagePerUser) : undefined,
+      await apiPutNoMock(`/api/admin-dashboard/discounts/${encodeURIComponent(item.id)}`, {
+        ...buildDiscountPayload({
+          title: item.title,
+          code: item.code,
+          discountType: item.discountType,
+          discountValue: String(item.discountValue),
+          scope: item.scope,
+          selectedCourseIds: item.selectedCourseIds,
+          startAt: item.startAt,
+          endAt: item.endAt,
+          usageLimit: item.usageLimit,
+          usagePerUser: item.usagePerUser,
+          applyType: item.applyType,
+          isEnabled: nextEnabled,
+        }),
       });
 
-      setDiscounts((prev) => prev.map((d) => (d.id === item.id ? { ...d, isEnabled: nextEnabled } : d)));
+      await reloadDiscounts();
       setActionNotice({
         type: "success",
         message: nextEnabled ? "کد تخفیف فعال شد." : "کد تخفیف غیرفعال شد.",
@@ -452,8 +386,8 @@ export default function AdminDiscountCodesPage() {
     if (!confirm(`آیا از حذف کد تخفیف «${item.title}» اطمینان دارید؟`)) return;
     setActionNotice(null);
     try {
-      await apiDeleteNoMock(`/api/discounts/${encodeURIComponent(item.id)}/admin`);
-      setDiscounts((prev) => prev.filter((d) => d.id !== item.id));
+      await apiDeleteNoMock(`/api/admin-dashboard/discounts/${encodeURIComponent(item.id)}`);
+      await reloadDiscounts();
       setActionNotice({ type: "success", message: "کد تخفیف با موفقیت حذف شد." });
     } catch (error) {
       setActionNotice({
@@ -488,7 +422,7 @@ export default function AdminDiscountCodesPage() {
     }
     if (item.selectedCourseIds.length <= 2) {
       const names = item.selectedCourseIds
-        .map((id) => mockCourses.find((c) => c.id === id)?.title)
+        .map((id) => courses.find((c) => c.id === id)?.title)
         .filter(Boolean)
         .join("، ");
       return <span className="text-xs text-gray-200">{names}</span>;

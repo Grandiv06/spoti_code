@@ -1,8 +1,9 @@
-import type { User } from "@prisma/client";
+import type { CourseCategory, User } from "@prisma/client";
 import { AuthError } from "@/server/auth/request-auth";
 import { toPublicCourseDetailDto } from "@/server/dto/public-course-detail.dto";
 import {
   toPublicCourseListItemDto,
+  type PublicCourseListItemDto,
   type PublicCourseListQueryDto,
   type PublicCourseListResponseDto,
 } from "@/server/dto/public-course.dto";
@@ -12,6 +13,32 @@ import {
   findPublishedCourseBySlug,
   findPublishedCourses,
 } from "@/server/repositories/course.repository";
+import { getDisplayDiscountMapForCourses } from "@/server/services/discount.service";
+
+async function enrichPublicCourseListItems(
+  items: PublicCourseListItemDto[]
+): Promise<PublicCourseListItemDto[]> {
+  if (items.length === 0) return items;
+
+  const displayMap = await getDisplayDiscountMapForCourses(
+    items.map((course) => ({ id: course.id, price: course.price }))
+  );
+
+  return items.map((course) => {
+    const display = displayMap.get(course.id);
+    if (!display || display.displayPrice >= display.originalPrice) {
+      return course;
+    }
+
+    return {
+      ...course,
+      originalPrice: display.originalPrice,
+      displayPrice: display.displayPrice,
+      finalPrice: display.displayPrice,
+      discountPercent: display.discountPercent,
+    };
+  });
+}
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
@@ -43,7 +70,7 @@ export async function getPublicCourses(
   const totalPages = Math.max(1, Math.ceil(totalItems / limit));
 
   return {
-    data: items.map(toPublicCourseListItemDto),
+    data: await enrichPublicCourseListItems(items.map(toPublicCourseListItemDto)),
     meta: {
       itemCount: items.length,
       totalItems,
@@ -57,13 +84,15 @@ export async function getPublicCourses(
 export async function getPublicCourseBySlug(slug: string) {
   const course = await findPublishedCourseBySlug(slug.trim());
   if (!course) return null;
-  return { data: toPublicCourseDetailDto(course) };
+  const [enriched] = await enrichPublicCourseListItems([toPublicCourseListItemDto(course)]);
+  return { data: toPublicCourseDetailDto(course, enriched) };
 }
 
 export async function getPublicCourseById(id: string) {
   const course = await findPublishedCourseById(id.trim());
   if (!course) return null;
-  return { data: toPublicCourseDetailDto(course) };
+  const [enriched] = await enrichPublicCourseListItems([toPublicCourseListItemDto(course)]);
+  return { data: toPublicCourseDetailDto(course, enriched) };
 }
 
 export type AdminCoursePreviewMetaDto = {

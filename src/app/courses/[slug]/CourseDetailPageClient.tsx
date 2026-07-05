@@ -16,6 +16,7 @@ import { apiGetNoMock } from "@/lib/api";
 import { getAuthHeaders } from "@/lib/auth-tokens";
 import type { PublicCourseDetailDto } from "@/server/dto/public-course-detail.dto";
 import AdminCoursePreviewBar from "@/app/admin/requests/courses/_components/AdminCoursePreviewBar";
+import CoursePriceDisplay from "@/app/components/CoursePriceDisplay";
 
 type ApprovalStatus = "draft" | "pending" | "approved" | "rejected";
 
@@ -167,9 +168,15 @@ export default function CourseDetailPageClient({ slug, adminPreviewCourseId }: C
     ]);
     const instructorName = courseData.instructor?.name ?? courseData.instructorName ?? "";
     const showPriceCard = courseData.isFree || courseData.price > 0;
+    const payablePrice = courseData.displayPrice ?? courseData.price;
+    const hasDisplayDiscount =
+      !courseData.isFree &&
+      courseData.discountPercent != null &&
+      courseData.discountPercent > 0 &&
+      payablePrice < courseData.price;
     const priceLabel = courseData.isFree
       ? "رایگان"
-      : courseData.price.toLocaleString("fa-IR");
+      : payablePrice.toLocaleString("fa-IR");
 
     return (
       <aside className="lg:col-span-4 relative z-20 order-1 lg:order-2 mb-4 lg:mb-0">
@@ -180,14 +187,28 @@ export default function CourseDetailPageClient({ slug, adminPreviewCourseId }: C
                 <span className="text-xs md:text-sm font-bold text-gray-500 dark:text-gray-400 mb-2 block">
                   مبلغ نهایی ثبت‌نام
                 </span>
-                <div className="flex items-center gap-1.5 md:gap-2 justify-center">
-                  <span className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight">
-                    {priceLabel}
-                  </span>
-                  {!courseData.isFree ? (
+                {courseData.isFree ? (
+                  <div className="flex items-center gap-1.5 md:gap-2 justify-center">
+                    <span className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight">
+                      {priceLabel}
+                    </span>
+                  </div>
+                ) : hasDisplayDiscount ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <CoursePriceDisplay
+                      price={payablePrice}
+                      originalPrice={courseData.price}
+                      discountPercent={courseData.discountPercent}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 md:gap-2 justify-center">
+                    <span className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight">
+                      {priceLabel}
+                    </span>
                     <span className="text-base md:text-lg font-bold text-primary">تومان</span>
-                  ) : null}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
           ) : null}
@@ -219,7 +240,7 @@ export default function CourseDetailPageClient({ slug, adminPreviewCourseId }: C
                 id: courseData.id,
                 slug: courseData.slug,
                 title: courseData.title,
-                price: courseData.isFree ? "0" : String(courseData.price),
+                price: courseData.isFree ? "0" : String(payablePrice),
                 image: coverImage ?? courseData.cover ?? courseData.thumbnail ?? "",
                 instructor: instructorName,
               }}

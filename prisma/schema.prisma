@@ -35,6 +35,22 @@ enum AppUserRole {
   USER
 }
 
+enum DiscountType {
+  percentage
+  fixed
+}
+
+enum DiscountScope {
+  all
+  specific
+}
+
+enum DiscountApplyType {
+  user
+  admin
+  both
+}
+
 model User {
   id          String             @id
   phone       String             @unique
@@ -46,10 +62,11 @@ model User {
   nationalCode String?           @unique
   internalAdminNote String?
   lastLoginAt DateTime?
-  enrollments CourseEnrollment[]
-  orders      UserOrder[]
-  tickets     SupportTicket[]
-  profile     UserProfile?
+  enrollments        CourseEnrollment[]
+  orders             UserOrder[]
+  tickets            SupportTicket[]
+  profile            UserProfile?
+  discountCodeUsages DiscountCodeUsage[]
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
 }
@@ -135,6 +152,7 @@ model Course {
   approvalNote       String?
   comments           Comment[]
   enrollments        CourseEnrollment[]
+  discountCodes      DiscountCodeCourse[]
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 
@@ -189,12 +207,59 @@ model UserOrder {
   description   String?
   paymentMethod String?
   trackingCode  String?
-  productTitle  String?
-  courseId      String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  productTitle   String?
+  courseId       String?
+  discountCode   String?
+  discountAmount Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@index([userId, status])
+}
+
+model DiscountCode {
+  id                String              @id
+  title             String
+  code              String              @unique
+  discountType      DiscountType
+  discountValue     Int
+  scope             DiscountScope       @default(all)
+  applyType         DiscountApplyType   @default(user)
+  isEnabled         Boolean             @default(true)
+  startsAt          DateTime?
+  expiresAt         DateTime?
+  globalUsageLimit  Int?
+  perUserUsageLimit Int?
+  usedCount         Int                 @default(0)
+  courses           DiscountCodeCourse[]
+  usages            DiscountCodeUsage[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@index([code])
+  @@index([isEnabled, applyType])
+}
+
+model DiscountCodeCourse {
+  discountCodeId String
+  courseId       String
+  discountCode   DiscountCode @relation(fields: [discountCodeId], references: [id], onDelete: Cascade)
+  course         Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@id([discountCodeId, courseId])
+  @@index([courseId])
+}
+
+model DiscountCodeUsage {
+  id             String       @id
+  discountCodeId String
+  userId         String
+  orderId        String?
+  discountCode   DiscountCode @relation(fields: [discountCodeId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+
+  @@index([discountCodeId, userId])
 }
 
 model SupportTicket {
