@@ -8,7 +8,7 @@ function sanitizeSegment(value: string) {
   return value.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 80);
 }
 
-function resolveExtension(fileName: string, mimeType: string) {
+function resolveVideoExtension(fileName: string, mimeType: string) {
   const fromName = path.extname(fileName).toLowerCase();
   if (fromName && fromName.length <= 8) return fromName;
 
@@ -18,10 +18,16 @@ function resolveExtension(fileName: string, mimeType: string) {
   return ".mp4";
 }
 
+function resolveAttachmentExtension(fileName: string) {
+  const fromName = path.extname(fileName).toLowerCase();
+  if (fromName && fromName.length <= 8) return fromName;
+  return ".bin";
+}
+
 export async function saveCourseMediaFile(input: {
   courseId: string;
   file: File;
-  kind: "intro" | "lesson";
+  kind: "intro" | "lesson" | "attachment";
   lessonId?: string;
 }) {
   const courseId = sanitizeSegment(decodeURIComponent(input.courseId));
@@ -29,18 +35,27 @@ export async function saveCourseMediaFile(input: {
     throw new Error("شناسه دوره نامعتبر است");
   }
 
+  const bytes = Buffer.from(await input.file.arrayBuffer());
+  if (bytes.length > MAX_BYTES) {
+    throw new Error("حجم فایل نباید بیشتر از ۵۰ مگابایت باشد");
+  }
+
+  if (input.kind === "attachment") {
+    const lessonPart = `attachment-${sanitizeSegment(input.lessonId ?? "unknown")}-`;
+    const filename = `${lessonPart}${Date.now()}${resolveAttachmentExtension(input.file.name)}`;
+    const dir = path.join(UPLOAD_ROOT, courseId);
+    await mkdir(dir, { recursive: true });
+    await writeFile(path.join(dir, filename), bytes);
+    return `/uploads/courses/${courseId}/${filename}`;
+  }
+
   if (!input.file.type.startsWith("video/")) {
     throw new Error("فقط فایل ویدیویی مجاز است");
   }
 
-  const bytes = Buffer.from(await input.file.arrayBuffer());
-  if (bytes.length > MAX_BYTES) {
-    throw new Error("حجم فایل ویدیو نباید بیشتر از ۵۰ مگابایت باشد");
-  }
-
   const lessonPart =
     input.kind === "lesson" ? `lesson-${sanitizeSegment(input.lessonId ?? "unknown")}-` : "intro-";
-  const filename = `${lessonPart}${Date.now()}${resolveExtension(input.file.name, input.file.type)}`;
+  const filename = `${lessonPart}${Date.now()}${resolveVideoExtension(input.file.name, input.file.type)}`;
   const dir = path.join(UPLOAD_ROOT, courseId);
   await mkdir(dir, { recursive: true });
   await writeFile(path.join(dir, filename), bytes);

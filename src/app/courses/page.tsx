@@ -3,6 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import EnrolledCourseButton from "@/app/components/EnrolledCourseButton";
+import { useStudentEnrollments } from "@/hooks/useStudentEnrollments";
 import { apiGetNoMock } from "@/lib/api";
 
 type CourseItem = {
@@ -90,6 +92,7 @@ export default function CoursesPage() {
   const [activeFilter, setActiveFilter] = useState("all");
   const [allCourses, setAllCourses] = useState<CourseItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { isEnrolled, canPurchase } = useStudentEnrollments();
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -300,9 +303,11 @@ export default function CoursesPage() {
                         {course.instructor}
                       </span>
                     </div>
-                    <h3 className="text-xl font-black text-gray-900 dark:text-white mb-3 leading-snug group-hover:text-primary transition-colors">
-                      {course.title}
-                    </h3>
+                    <Link href={`/courses/${course.slug}`}>
+                      <h3 className="text-xl font-black text-gray-900 dark:text-white mb-3 leading-snug group-hover:text-primary transition-colors">
+                        {course.title}
+                      </h3>
+                    </Link>
                     <div className="flex items-center gap-4 text-xs text-gray-400 font-bold mb-8">
                       <div className="flex items-center gap-1">
                         <span className="material-symbols-outlined text-[16px]">
@@ -325,15 +330,19 @@ export default function CoursesPage() {
                           تومان
                         </span>
                       </span>
-                      <Link
-                        href={`/courses/${course.slug}`}
-                        className="flex-1 bg-gray-50 dark:bg-white/5 hover:bg-primary hover:text-background-dark text-gray-900 dark:text-white rounded-2xl py-2.5 font-bold transition-all flex items-center justify-center gap-2 group/btn"
-                      >
-                        مشاهده
-                        <span className="material-symbols-outlined text-[18px] rtl:rotate-180 group-hover/btn:-translate-x-2 transition-transform">
-                          arrow_right_alt
-                        </span>
-                      </Link>
+                      {canPurchase && isEnrolled(course.id, course.slug) ? (
+                        <EnrolledCourseButton courseId={course.id} compact />
+                      ) : (
+                        <Link
+                          href={`/courses/${course.slug}`}
+                          className="flex-1 bg-gray-50 dark:bg-white/5 hover:bg-primary hover:text-background-dark text-gray-900 dark:text-white rounded-2xl py-2.5 font-bold transition-all flex items-center justify-center gap-2 group/btn"
+                        >
+                          مشاهده
+                          <span className="material-symbols-outlined text-[18px] rtl:rotate-180 group-hover/btn:-translate-x-2 transition-transform">
+                            arrow_right_alt
+                          </span>
+                        </Link>
+                      )}
                     </div>
                   </div>
                 </div>

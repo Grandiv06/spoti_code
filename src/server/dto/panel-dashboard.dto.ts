@@ -29,6 +29,7 @@ export type PanelMyCourseDto = {
   progressPercent: number;
   course: {
     id: string;
+    slug: string;
     title: string;
     name: string;
     thumbnail: string;

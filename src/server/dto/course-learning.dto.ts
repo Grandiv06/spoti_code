@@ -181,10 +181,7 @@ function readChapters(course: Pick<Course, "id" | "chapters" | "introVideo" | "a
         isLocked: Boolean(lesson.isLocked ?? lesson.locked ?? false),
         isFree: lesson.isFree === true || lesson.isFreePreview === true,
         videoUrl: readString(lesson.videoUrl ?? lesson.video ?? lesson.mediaUrl ?? course.introVideo) || undefined,
-        description:
-          readString(lesson.description ?? lesson.content ?? lesson.summary) ||
-          course.aboutDescription ||
-          course.description,
+        description: readString(lesson.description ?? lesson.content ?? lesson.summary),
         attachments: readAttachments(lesson.attachments ?? lesson.files ?? lesson.resources),
       })),
     };

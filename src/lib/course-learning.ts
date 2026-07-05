@@ -71,7 +71,7 @@ function readDuration(value: unknown): string {
   return "—";
 }
 
-function readAttachments(raw: unknown): Array<{ name: string; size: string }> {
+function readAttachments(raw: unknown): Array<{ name: string; size: string; url?: string }> {
   if (!Array.isArray(raw)) return [];
   return raw
     .map((item) => {
@@ -83,9 +83,10 @@ function readAttachments(raw: unknown): Array<{ name: string; size: string }> {
         typeof sizeRaw === "number"
           ? `${(sizeRaw / (1024 * 1024)).toFixed(1)} MB`
           : readString(sizeRaw, "—");
-      return { name, size };
+      const url = readString(record.url ?? record.previewUrl, "") || undefined;
+      return { name, size, ...(url ? { url } : {}) };
     })
-    .filter(Boolean) as Array<{ name: string; size: string }>;
+    .filter(Boolean) as Array<{ name: string; size: string; url?: string }>;
 }
 
 export type MappedLesson = {
@@ -97,7 +98,7 @@ export type MappedLesson = {
   isLocked: boolean;
   videoUrl?: string;
   description: string;
-  attachments: Array<{ name: string; size: string }>;
+  attachments: Array<{ name: string; size: string; url?: string }>;
 };
 
 export type MappedChapter = {

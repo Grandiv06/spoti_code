@@ -6,7 +6,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import { apiPostNoMock } from "@/lib/api";
 import { getAuthHeaders } from "@/lib/auth-tokens";
 import { formatCartPriceLabel } from "@/lib/cart-price";
 
@@ -32,7 +31,7 @@ function CheckoutItemImage({ src, alt }: { src: string; alt: string }) {
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const { cart, removeFromCart, clearCart, getTotalPrice, setCartOpen } = useCart();
   const [discountCode, setDiscountCode] = useState("");
   const [appliedCode, setAppliedCode] = useState<string | null>(null);
@@ -41,6 +40,7 @@ export default function CheckoutPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [successTrackingCode, setSuccessTrackingCode] = useState<string | null>(null);
 
+  const isStaff = user?.role === "admin" || user?.role === "instructor";
   const discountRate = appliedCode ? DISCOUNT_CODES[appliedCode] ?? 0 : 0;
   const subtotal = getTotalPrice();
   const discountAmount = Math.round(subtotal * discountRate);
@@ -75,6 +75,11 @@ export default function CheckoutPage() {
 
     if (!isAuthenticated) {
       router.push(`/login?returnUrl=${encodeURIComponent("/checkout")}`);
+      return;
+    }
+
+    if (isStaff) {
+      setSubmitError("مدرس و ادمین امکان خرید دوره برای خود ندارند.");
       return;
     }
 
@@ -162,6 +167,12 @@ export default function CheckoutPage() {
                 بازگشت به دوره‌ها
               </Link>
             </div>
+
+            {!authLoading && isStaff ? (
+              <div className="mb-6 rounded-[1.5rem] border border-amber-500/20 bg-amber-500/10 px-5 py-4 text-sm font-bold text-amber-700 dark:text-amber-300">
+                مدرس و ادمین امکان خرید دوره برای خود ندارند.
+              </div>
+            ) : null}
 
             {!authLoading && !isAuthenticated ? (
               <div className="mb-6 rounded-[1.5rem] border border-amber-500/20 bg-amber-500/10 px-5 py-4 text-sm font-bold text-amber-700 dark:text-amber-300">
@@ -264,7 +275,7 @@ export default function CheckoutPage() {
               <button
                 type="button"
                 onClick={handleCompletePurchase}
-                disabled={cart.length === 0 || isSubmitting || authLoading}
+                disabled={cart.length === 0 || isSubmitting || authLoading || isStaff}
                 className="w-full cursor-pointer rounded-2xl bg-primary px-5 py-4 text-base font-black text-white shadow-[0_0_24px_rgba(34,197,94,0.25)] transition hover:-translate-y-0.5 hover:shadow-[0_0_34px_rgba(34,197,94,0.35)] disabled:cursor-not-allowed disabled:bg-gray-400"
               >
                 {isSubmitting ? "در حال پردازش..." : "پرداخت و تکمیل خرید"}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import AddToCartButton from "../../components/AddToCartButton";
+import CoursePurchaseAction from "@/app/components/CoursePurchaseAction";
 import CourseFAQ from "../../components/CourseFAQ";
 import CourseInstructor from "../../components/CourseInstructor";
 import CourseReviews from "../../components/CourseReviews";
@@ -214,9 +214,10 @@ export default function CourseDetailPageClient({ slug, adminPreviewCourseId }: C
           ) : null}
 
           {!isAdminPreview ? (
-            <AddToCartButton
+            <CoursePurchaseAction
               course={{
                 id: courseData.id,
+                slug: courseData.slug,
                 title: courseData.title,
                 price: courseData.isFree ? "0" : String(courseData.price),
                 image: coverImage ?? courseData.cover ?? courseData.thumbnail ?? "",

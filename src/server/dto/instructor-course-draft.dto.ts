@@ -4,6 +4,13 @@ type UnknownRecord = Record<string, unknown>;
 
 export type CourseApprovalStatus = "draft" | "pending" | "approved" | "rejected";
 
+export type InstructorCourseLessonAttachmentDraftDto = {
+  id?: string;
+  name: string;
+  url: string;
+  size?: string | number;
+};
+
 export type InstructorCourseLessonDraftDto = {
   id: string;
   title: string;
@@ -11,6 +18,8 @@ export type InstructorCourseLessonDraftDto = {
   type: string;
   access: "free" | "locked";
   videoUrl?: string;
+  description?: string;
+  attachments?: InstructorCourseLessonAttachmentDraftDto[];
 };
 
 export type InstructorCourseChapterDraftDto = {
@@ -95,12 +104,35 @@ function normalizeLevel(value: unknown): CourseLevel {
   return CourseLevel.intermediate;
 }
 
+function normalizeAttachment(value: unknown): InstructorCourseLessonAttachmentDraftDto | null {
+  if (!isRecord(value)) return null;
+  const name = readString(value.name ?? value.fileName ?? value.title);
+  const url = readString(value.url ?? value.previewUrl);
+  if (!name || !url) return null;
+  const id = readString(value.id) || undefined;
+  const sizeRaw = value.size ?? value.fileSize;
+  const size =
+    typeof sizeRaw === "number"
+      ? `${(sizeRaw / (1024 * 1024)).toFixed(1)} MB`
+      : readString(sizeRaw) || undefined;
+  return { ...(id ? { id } : {}), name, url, ...(size ? { size } : {}) };
+}
+
+function normalizeAttachments(value: unknown): InstructorCourseLessonAttachmentDraftDto[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => normalizeAttachment(item))
+    .filter((item): item is InstructorCourseLessonAttachmentDraftDto => Boolean(item));
+}
+
 function normalizeLesson(value: unknown, index: number): InstructorCourseLessonDraftDto | null {
   if (!isRecord(value)) return null;
   const title = readString(value.title);
   if (!title) return null;
   const access = value.access === "free" ? "free" : "locked";
   const videoUrl = readString(value.videoUrl);
+  const description = readString(value.description ?? value.content ?? value.summary);
+  const attachments = normalizeAttachments(value.attachments ?? value.files ?? value.resources);
   return {
     id: readString(value.id, `lesson-${Date.now()}-${index}`),
     title,
@@ -108,6 +140,8 @@ function normalizeLesson(value: unknown, index: number): InstructorCourseLessonD
     type: readString(value.type, "video"),
     access,
     ...(videoUrl ? { videoUrl } : {}),
+    ...(description ? { description } : {}),
+    ...(attachments.length ? { attachments } : {}),
   };
 }
 

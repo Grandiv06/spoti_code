@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 
 type CourseOrderPayload = {
   id: string;
@@ -14,6 +15,7 @@ type CourseOrderPayload = {
 
 export default function AddToCartButton({ course }: { course: CourseOrderPayload }) {
   const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
   const { addToCart, isInCart, setCartOpen } = useCart();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
@@ -28,6 +30,11 @@ export default function AddToCartButton({ course }: { course: CourseOrderPayload
 
   const handleAddToCart = () => {
     if (isSubmitting) return;
+
+    if (isAuthenticated && user?.role !== "user") {
+      setErrorMessage("فقط کاربران عادی می‌توانند دوره خریداری کنند.");
+      return;
+    }
 
     setIsSubmitting(true);
     setErrorMessage(null);

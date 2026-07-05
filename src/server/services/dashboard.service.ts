@@ -64,6 +64,7 @@ export async function getPanelMyCourses(user: User): Promise<PanelMyCourseDto[]>
     progressPercent: enrollment.progress,
     course: {
       id: enrollment.course.id,
+      slug: enrollment.course.slug,
       title: enrollment.course.title,
       name: enrollment.course.title,
       thumbnail: enrollment.course.thumbnail,

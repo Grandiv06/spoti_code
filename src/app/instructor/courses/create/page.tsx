@@ -69,6 +69,13 @@ const FEATURE_ICON_OPTIONS = [
   { value: "architecture", label: "پروژه‌محور", icon: "architecture" },
 ] as const;
 
+type LessonAttachmentModel = {
+  id: string;
+  name: string;
+  url: string;
+  size?: string;
+};
+
 type LessonModel = {
   id: string;
   title: string;
@@ -76,6 +83,8 @@ type LessonModel = {
   type: string;
   access: "free" | "locked";
   videoUrl?: string;
+  description?: string;
+  attachments?: LessonAttachmentModel[];
 };
 
 type ChapterModel = {
@@ -123,6 +132,39 @@ type WizardFormData = {
   chapters: ChapterModel[];
   faqs: FAQModel[];
 };
+
+function formatAttachmentSize(bytes: number) {
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function buildChaptersWithLessonMeta(
+  chapters: ChapterModel[],
+  lessonDescriptionMap: Record<string, string>,
+  lessonFileMap: Record<string, LessonAttachmentModel[]>
+): ChapterModel[] {
+  return chapters.map((chapter) => ({
+    ...chapter,
+    lessons: chapter.lessons.map((lesson) => {
+      const description =
+        lessonDescriptionMap[lesson.id]?.trim() || lesson.description?.trim() || "";
+      const files = lessonFileMap[lesson.id] ?? lesson.attachments ?? [];
+      const attachments = files
+        .filter((file) => file.url && !file.url.startsWith("blob:"))
+        .map((file) => ({
+          id: file.id,
+          name: file.name,
+          url: file.url,
+          ...(file.size ? { size: file.size } : {}),
+        }));
+
+      return {
+        ...lesson,
+        ...(description ? { description } : {}),
+        ...(attachments.length ? { attachments } : {}),
+      };
+    }),
+  }));
+}
 
 type LessonRowActions = {
   onStartEditTitle: (lessonId: string) => void;
@@ -356,7 +398,7 @@ type ChapterLessonDropZoneProps = {
   editingLessonDurationId: string | null;
   lessonUploadProgress: Record<string, number>;
   lessonVideoMap: Record<string, { name: string; url: string }>;
-  lessonFileMap: Record<string, { id: string; name: string; url: string }[]>;
+  lessonFileMap: Record<string, LessonAttachmentModel[]>;
   lessonDescriptionMap: Record<string, string>;
   actions: LessonRowActions;
 };
@@ -688,6 +730,8 @@ export default function CreateCourseWizardPage() {
             })
           );
           const restoredLessonVideos: Record<string, { name: string; url: string }> = {};
+          const restoredDescriptions: Record<string, string> = {};
+          const restoredLessonFiles: Record<string, LessonAttachmentModel[]> = {};
           const chapterSource = Array.isArray(draftData.chapters) ? draftData.chapters : [];
           for (const chapter of chapterSource) {
             if (!chapter || typeof chapter !== "object" || !Array.isArray((chapter as ChapterModel).lessons)) continue;
@@ -696,10 +740,39 @@ export default function CreateCourseWizardPage() {
               if (url && !url.startsWith("blob:")) {
                 restoredLessonVideos[lesson.id] = { name: lesson.title, url };
               }
+              const description = typeof lesson.description === "string" ? lesson.description.trim() : "";
+              if (description) {
+                restoredDescriptions[lesson.id] = description;
+              }
+              if (Array.isArray(lesson.attachments)) {
+                const files = lesson.attachments
+                  .map((file) => {
+                    if (!file || typeof file !== "object") return null;
+                    const name = typeof file.name === "string" ? file.name.trim() : "";
+                    const fileUrl = typeof file.url === "string" ? file.url.trim() : "";
+                    if (!name || !fileUrl || fileUrl.startsWith("blob:")) return null;
+                    return {
+                      id: typeof file.id === "string" ? file.id : `file-${Math.random().toString(36).slice(2, 9)}`,
+                      name,
+                      url: fileUrl,
+                      ...(typeof file.size === "string" ? { size: file.size } : {}),
+                    };
+                  })
+                  .filter(Boolean) as LessonAttachmentModel[];
+                if (files.length > 0) {
+                  restoredLessonFiles[lesson.id] = files;
+                }
+              }
             }
           }
           if (Object.keys(restoredLessonVideos).length > 0) {
             setLessonVideoMap(restoredLessonVideos);
+          }
+          if (Object.keys(restoredDescriptions).length > 0) {
+            setLessonDescriptionMap(restoredDescriptions);
+          }
+          if (Object.keys(restoredLessonFiles).length > 0) {
+            setLessonFileMap(restoredLessonFiles);
           }
         }
       })
@@ -753,8 +826,9 @@ export default function CreateCourseWizardPage() {
   const [lessonUploadProgress, setLessonUploadProgress] = useState<Record<string, number>>({});
   const [lessonVideoMap, setLessonVideoMap] = useState<Record<string, { name: string; url: string }>>({});
   const lessonVideoFilesRef = useRef<Record<string, File>>({});
+  const lessonAttachmentFilesRef = useRef<Record<string, Record<string, File>>>({});
   const [videoPreview, setVideoPreview] = useState<{ url: string; title: string } | null>(null);
-  const [lessonFileMap, setLessonFileMap] = useState<Record<string, { id: string; name: string; url: string }[]>>({});
+  const [lessonFileMap, setLessonFileMap] = useState<Record<string, LessonAttachmentModel[]>>({});
   const [lessonDescriptionMap, setLessonDescriptionMap] = useState<Record<string, string>>({});
   const [lessonDescriptionEditor, setLessonDescriptionEditor] = useState<{
     open: boolean;
@@ -955,7 +1029,10 @@ export default function CreateCourseWizardPage() {
     aboutDescription: source.aboutDescription,
     aboutHighlights: source.aboutHighlights,
     features: source.features,
-    chapters: source.chapters,
+    chapters:
+      overrides?.chapters !== undefined
+        ? overrides.chapters
+        : buildChaptersWithLessonMeta(source.chapters, lessonDescriptionMap, lessonFileMap),
     faqs: source.faqs,
   };
   };
@@ -976,6 +1053,7 @@ export default function CreateCourseWizardPage() {
   const uploadPendingCourseMedia = async (courseId: string): Promise<Partial<WizardFormData>> => {
     let nextIntroVideo = formData.introVideo;
     let nextChapters = formData.chapters;
+    let nextLessonFileMap = { ...lessonFileMap };
     let uploaded = false;
 
     if (videoFile && (!nextIntroVideo || nextIntroVideo.startsWith("blob:"))) {
@@ -1013,15 +1091,46 @@ export default function CreateCourseWizardPage() {
       uploaded = true;
     }
 
+    const pendingAttachments = { ...lessonAttachmentFilesRef.current };
+    for (const [lessonId, filesById] of Object.entries(pendingAttachments)) {
+      for (const [fileId, file] of Object.entries(filesById)) {
+        const currentFiles = nextLessonFileMap[lessonId] ?? [];
+        const entry = currentFiles.find((item) => item.id === fileId);
+        if (!entry?.url?.startsWith("blob:")) {
+          delete lessonAttachmentFilesRef.current[lessonId]?.[fileId];
+          continue;
+        }
+
+        const uploadedUrl = await uploadCourseMediaFile(courseId, file, "attachment", lessonId);
+        URL.revokeObjectURL(entry.url);
+        nextLessonFileMap = {
+          ...nextLessonFileMap,
+          [lessonId]: currentFiles.map((item) =>
+            item.id === fileId ? { ...item, url: uploadedUrl } : item
+          ),
+        };
+        delete lessonAttachmentFilesRef.current[lessonId]?.[fileId];
+        uploaded = true;
+      }
+    }
+
     if (uploaded) {
       setFormData((prev) => ({
         ...prev,
         introVideo: nextIntroVideo,
         chapters: nextChapters,
       }));
+      if (Object.keys(nextLessonFileMap).length > 0) {
+        setLessonFileMap(nextLessonFileMap);
+      }
     }
 
-    return uploaded ? { introVideo: nextIntroVideo, chapters: nextChapters } : {};
+    return uploaded
+      ? {
+          introVideo: nextIntroVideo,
+          chapters: buildChaptersWithLessonMeta(nextChapters, lessonDescriptionMap, nextLessonFileMap),
+        }
+      : {};
   };
 
   const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1545,43 +1654,76 @@ export default function CreateCourseWizardPage() {
       openDeleteConfirm("حذف جلسه", "آیا مطمئن هستید که می‌خواهید این جلسه حذف شود؟", () => deleteLesson(chapterId, lessonId)),
   };
 
-  const handleLessonFileUpload = (lessonId: string, files?: File[]) => {
+  const handleLessonFileUpload = async (lessonId: string, files?: File[]) => {
     if (!lessonId) {
       setLessonFilesError("جلسه‌ای برای آپلود انتخاب نشده است.");
       return;
     }
     if (!files || files.length === 0) return;
-    setLessonFileMap((prev) => {
-      const current = prev[lessonId] || [];
-      const remaining = Math.max(0, MAX_LESSON_FILES - current.length);
-      if (remaining === 0) {
-        setLessonFilesError(`حداکثر ${MAX_LESSON_FILES} فایل برای هر جلسه مجاز است.`);
-        return prev;
-      }
 
-      const selected = files.slice(0, remaining);
-      const newFiles = selected.map((file) => ({
-        id: `file-${Math.random().toString(36).slice(2, 9)}`,
-        name: file.name,
-        url: URL.createObjectURL(file),
-      }));
+    markFormEdited();
+    const current = lessonFileMap[lessonId] || [];
+    const remaining = Math.max(0, MAX_LESSON_FILES - current.length);
+    if (remaining === 0) {
+      setLessonFilesError(`حداکثر ${MAX_LESSON_FILES} فایل برای هر جلسه مجاز است.`);
+      return;
+    }
 
-      setLessonFilesError("");
-      return { ...prev, [lessonId]: [...current, ...newFiles] };
+    const selected = files.slice(0, remaining);
+    const newEntries = selected.map((file) => ({
+      id: `file-${Math.random().toString(36).slice(2, 9)}`,
+      name: file.name,
+      url: URL.createObjectURL(file),
+      size: formatAttachmentSize(file.size),
+    }));
+
+    if (!lessonAttachmentFilesRef.current[lessonId]) {
+      lessonAttachmentFilesRef.current[lessonId] = {};
+    }
+    selected.forEach((file, index) => {
+      lessonAttachmentFilesRef.current[lessonId][newEntries[index].id] = file;
     });
+
+    setLessonFileMap((prev) => ({
+      ...prev,
+      [lessonId]: [...(prev[lessonId] || []), ...newEntries],
+    }));
+    setLessonFilesError("");
+
+    if (createdCourseId) {
+      for (const entry of newEntries) {
+        const file = lessonAttachmentFilesRef.current[lessonId]?.[entry.id];
+        if (!file) continue;
+        try {
+          const uploadedUrl = await uploadCourseMediaFile(createdCourseId, file, "attachment", lessonId);
+          URL.revokeObjectURL(entry.url);
+          delete lessonAttachmentFilesRef.current[lessonId]?.[entry.id];
+          setLessonFileMap((prev) => ({
+            ...prev,
+            [lessonId]: (prev[lessonId] || []).map((item) =>
+              item.id === entry.id ? { ...item, url: uploadedUrl } : item
+            ),
+          }));
+        } catch (error) {
+          showToast(error instanceof Error ? error.message : "آپلود فایل ضمیمه انجام نشد.", "error");
+        }
+      }
+    }
   };
 
   const removeLessonFile = (lessonId: string, fileId: string) => {
     setLessonFileMap((prev) => {
       const list = prev[lessonId] || [];
       const target = list.find((f) => f.id === fileId);
-      if (target?.url) URL.revokeObjectURL(target.url);
+      if (target?.url?.startsWith("blob:")) URL.revokeObjectURL(target.url);
+      delete lessonAttachmentFilesRef.current[lessonId]?.[fileId];
       const nextList = list.filter((f) => f.id !== fileId);
       const copy = { ...prev };
       if (nextList.length) copy[lessonId] = nextList;
       else delete copy[lessonId];
       return copy;
     });
+    markFormEdited();
   };
 
   // FAQ actions
@@ -3408,6 +3550,7 @@ export default function CreateCourseWizardPage() {
               <button
                 type="button"
                 onClick={() => {
+                  markFormEdited();
                   setLessonDescriptionMap((prev) => ({
                     ...prev,
                     [lessonDescriptionEditor.lessonId]: lessonDescriptionEditor.value.trim(),

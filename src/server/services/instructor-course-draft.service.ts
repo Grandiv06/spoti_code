@@ -120,6 +120,8 @@ function publicChapters(input: InstructorCourseDraftDto) {
         isLocked: !isFree,
         isUnlocked: isFree,
         ...(lesson.videoUrl ? { videoUrl: lesson.videoUrl } : {}),
+        ...(lesson.description ? { description: lesson.description } : {}),
+        ...(lesson.attachments?.length ? { attachments: lesson.attachments } : {}),
         status: "published",
       };
     }),

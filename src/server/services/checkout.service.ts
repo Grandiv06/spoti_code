@@ -30,6 +30,10 @@ function createTrackingCode() {
 }
 
 export async function completeCheckout(user: User, rawInput: unknown) {
+  if (user.role !== "USER") {
+    throw new AuthError("مدرس و ادمین امکان خرید دوره برای خود ندارند", 403);
+  }
+
   const input = normalizeCheckoutInput(rawInput);
 
   if (input.courseIds.length === 0) {

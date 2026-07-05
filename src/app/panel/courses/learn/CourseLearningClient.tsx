@@ -26,7 +26,7 @@ import {
 } from "@/lib/course-qa";
 import CourseLearningSkeleton from "./CourseLearningSkeleton";
 
-type LearningAttachment = { name: string; size: string };
+type LearningAttachment = { name: string; size: string; url?: string };
 type LearningLesson = {
   id: string;
   title: string;
@@ -1028,7 +1028,11 @@ export default function CourseLearningClient() {
               {activeTab === "description" && (
                 <div className="text-gray-600 dark:text-gray-300 leading-loose text-sm md:text-base">
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">درباره این جلسه</h3>
-                  <p>{activeLesson.description}</p>
+                  {activeLesson.description ? (
+                    <p>{activeLesson.description}</p>
+                  ) : (
+                    <p className="text-gray-400 dark:text-gray-500">توضیحی برای این جلسه ثبت نشده است.</p>
+                  )}
                 </div>
               )}
 
@@ -1038,7 +1042,30 @@ export default function CourseLearningClient() {
                   {activeLesson.attachments.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {activeLesson.attachments.map((file: LearningAttachment, idx: number) => (
-                        <div key={idx} className="flex items-center justify-between p-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-[#14161c] hover:border-primary/30 transition-colors group cursor-pointer">
+                        file.url ? (
+                          <a
+                            key={idx}
+                            href={file.url}
+                            download={file.name}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-between p-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-[#14161c] hover:border-primary/30 transition-colors group cursor-pointer"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-white dark:bg-[#1c1e26] flex items-center justify-center text-primary shadow-sm">
+                                <Download className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <p className="font-bold text-sm text-gray-900 dark:text-white line-clamp-1">{file.name}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{file.size}</p>
+                              </div>
+                            </div>
+                            <span className="w-8 h-8 rounded-full bg-white dark:bg-[#1c1e26] flex items-center justify-center text-gray-400 group-hover:text-primary shadow-sm transition-colors">
+                              <Download className="w-4 h-4" />
+                            </span>
+                          </a>
+                        ) : (
+                        <div key={idx} className="flex items-center justify-between p-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-[#14161c] hover:border-primary/30 transition-colors group">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl bg-white dark:bg-[#1c1e26] flex items-center justify-center text-primary shadow-sm">
                               <Download className="w-5 h-5" />
@@ -1048,10 +1075,8 @@ export default function CourseLearningClient() {
                               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{file.size}</p>
                             </div>
                           </div>
-                          <button className="w-8 h-8 rounded-full bg-white dark:bg-[#1c1e26] flex items-center justify-center text-gray-400 hover:text-primary shadow-sm transition-colors cursor-pointer">
-                            <Download className="w-4 h-4" />
-                          </button>
                         </div>
+                        )
                       ))}
                     </div>
                   ) : (

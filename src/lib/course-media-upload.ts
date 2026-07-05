@@ -1,7 +1,7 @@
 import { API_BASE_URL } from "@/lib/api-config";
 import { getAccessToken } from "@/lib/auth-tokens";
 
-type UploadKind = "intro" | "lesson";
+type UploadKind = "intro" | "lesson" | "attachment";
 
 function unwrapUploadUrl(payload: unknown): string {
   if (!payload || typeof payload !== "object") return "";

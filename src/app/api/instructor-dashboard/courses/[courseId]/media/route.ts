@@ -38,10 +38,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ message: "فایل ویدیو ارسال نشده است" }, { status: 400 });
     }
 
+    const resolvedKind =
+      kind === "lesson" ? "lesson" : kind === "attachment" ? "attachment" : "intro";
+
     const url = await saveCourseMediaFile({
       courseId: decodedId,
       file,
-      kind: kind === "lesson" ? "lesson" : "intro",
+      kind: resolvedKind,
       lessonId: typeof lessonId === "string" ? lessonId : undefined,
     });
 
