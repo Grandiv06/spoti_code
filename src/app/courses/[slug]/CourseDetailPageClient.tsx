@@ -6,7 +6,7 @@ import CourseFAQ from "../../components/CourseFAQ";
 import CourseInstructor from "../../components/CourseInstructor";
 import CourseReviews from "../../components/CourseReviews";
 import CourseDetailClient from "../[id]/CourseDetailClient";
-import { SkeletonBox } from "@/components/ui/Skeleton";
+import CourseDetailSkeleton from "../_components/CourseDetailSkeleton";
 import {
   readCourseMediaUrl,
   resolveCourseTeacher,
@@ -230,35 +230,7 @@ export default function CourseDetailPageClient({ slug, adminPreviewCourseId }: C
   }, [courseData, isAdminPreview]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark transition-colors duration-300 relative overflow-x-hidden">
-        <main className="max-w-[1440px] mx-auto px-4 md:px-12 py-12 relative z-10">
-          <section className="glass-panel rounded-[2rem] md:rounded-4xl p-2 mb-16 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1),0_10px_20px_-5px_rgba(0,0,0,0.04)] overflow-hidden">
-            <div className="rounded-[1.75rem] md:rounded-4xl overflow-hidden bg-[#1c1f24] dark:bg-[#1c1f24] p-4 md:p-5">
-              <div className="relative overflow-hidden rounded-[2rem] md:rounded-[2.5rem] min-h-[420px] md:min-h-[560px] border border-white/5 bg-[#1c1f24]" dir="ltr">
-                <div className="absolute inset-0 grid grid-cols-1 lg:grid-cols-[1fr_0.95fr]">
-                  <div className="relative p-4 md:p-6 lg:p-8">
-                    <div className="relative h-full rounded-[1.75rem] md:rounded-[2rem] overflow-hidden bg-[#1b1e23] border border-white/10">
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="size-24 md:size-28 rounded-full bg-white/95 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.35)] flex items-center justify-center">
-                          <div className="size-0 border-y-[14px] md:border-y-[16px] border-y-transparent border-l-[20px] md:border-l-[22px] border-l-primary ml-1" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="relative p-5 md:p-8 lg:p-12 xl:p-16 flex flex-col justify-center bg-[#1c1f24]/60">
-                    <div className="relative z-10 space-y-4 md:space-y-5 mb-8 md:mb-10">
-                      <SkeletonBox className="h-12 md:h-16 w-full ml-auto" rounded="rounded-[1.5rem]" />
-                      <SkeletonBox className="h-12 md:h-16 w-11/12 ml-auto" rounded="rounded-[1.5rem]" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        </main>
-      </div>
-    );
+    return <CourseDetailSkeleton />;
   }
 
   if (error) {
