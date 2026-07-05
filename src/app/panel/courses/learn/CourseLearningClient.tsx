@@ -205,7 +205,6 @@ export default function CourseLearningClient() {
 
   const qaMessageState = useMemo(() => {
     if (hasInstructorReply(lessonChatMessages)) return "replied" as const;
-    if (lessonChatMessages.length > 0) return "seen" as const;
     return "sent" as const;
   }, [lessonChatMessages]);
 
@@ -1040,44 +1039,47 @@ export default function CourseLearningClient() {
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">فایل‌های ضمیمه</h3>
                   {activeLesson.attachments.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {activeLesson.attachments.map((file: LearningAttachment, idx: number) => (
-                        file.url ? (
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
+                      {activeLesson.attachments.map((file: LearningAttachment, idx: number) => {
+                        const cardContent = (
+                          <>
+                            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                              <FileText className="size-5" />
+                            </div>
+                            <div className="min-w-0 flex-1 text-right">
+                              <p className="truncate text-sm font-bold text-gray-900 dark:text-white">{file.name}</p>
+                              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{file.size}</p>
+                            </div>
+                            {file.url ? (
+                              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white text-gray-400 shadow-sm transition-colors group-hover:text-primary dark:bg-[#1c1e26]">
+                                <Download className="size-4" />
+                              </span>
+                            ) : null}
+                          </>
+                        );
+
+                        return file.url ? (
                           <a
                             key={idx}
                             href={file.url}
                             download={file.name}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center justify-between p-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-[#14161c] hover:border-primary/30 transition-colors group cursor-pointer"
+                            dir="rtl"
+                            className="group flex items-center gap-3 rounded-2xl border border-gray-100 bg-gray-50 p-4 transition-colors hover:border-primary/30 dark:border-gray-800 dark:bg-[#14161c]"
                           >
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-white dark:bg-[#1c1e26] flex items-center justify-center text-primary shadow-sm">
-                                <Download className="w-5 h-5" />
-                              </div>
-                              <div>
-                                <p className="font-bold text-sm text-gray-900 dark:text-white line-clamp-1">{file.name}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{file.size}</p>
-                              </div>
-                            </div>
-                            <span className="w-8 h-8 rounded-full bg-white dark:bg-[#1c1e26] flex items-center justify-center text-gray-400 group-hover:text-primary shadow-sm transition-colors">
-                              <Download className="w-4 h-4" />
-                            </span>
+                            {cardContent}
                           </a>
                         ) : (
-                        <div key={idx} className="flex items-center justify-between p-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-[#14161c] hover:border-primary/30 transition-colors group">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-white dark:bg-[#1c1e26] flex items-center justify-center text-primary shadow-sm">
-                              <Download className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <p className="font-bold text-sm text-gray-900 dark:text-white line-clamp-1">{file.name}</p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{file.size}</p>
-                            </div>
+                          <div
+                            key={idx}
+                            dir="rtl"
+                            className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-[#14161c]"
+                          >
+                            {cardContent}
                           </div>
-                        </div>
-                        )
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center py-10 text-gray-400">
@@ -1099,8 +1101,8 @@ export default function CourseLearningClient() {
                   {(() => {
                     if (qaLoading) {
                       return (
-                        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 py-12 text-gray-400 dark:border-gray-700">
-                          <Loader2 className="mb-2 h-10 w-10 animate-spin text-primary" />
+                        <div className="flex items-center justify-start gap-3 rounded-2xl border border-dashed border-gray-200 px-4 py-8 text-gray-400 dark:border-gray-700">
+                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
                           <p className="text-sm font-medium">در حال بارگذاری پرسش و پاسخ...</p>
                         </div>
                       );
@@ -1108,42 +1110,66 @@ export default function CourseLearningClient() {
 
                     if (lessonChatMessages.length === 0) {
                       return (
-                        <div className="flex flex-col rounded-3xl border border-gray-100 bg-white/60 dark:border-white/5 dark:bg-white/5 shadow-sm overflow-hidden min-h-[500px]">
-                          <div className="flex flex-col items-center justify-center px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                            <MessageSquare className="mb-3 h-10 w-10 text-primary" />
-                            <p className="text-sm font-bold text-gray-700 dark:text-gray-200">هنوز سوالی ثبت نشده است</p>
-                            <p className="mt-2 max-w-md text-xs font-medium leading-6">
-                              سوال خود را درباره این درس بنویسید تا استاد دوره پاسخ دهد.
-                            </p>
-                          </div>
-
-                          <div className="border-t border-gray-100 dark:border-gray-800 p-4 bg-white dark:bg-[#1c1e26] shrink-0">
-                            <div className="space-y-3 text-right">
-                              <div className="relative flex items-center gap-3 rounded-2xl border border-gray-200/80 dark:border-white/10 bg-slate-50/50 dark:bg-[#14161c]/40 px-3 py-2 pr-4 focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/10 focus-within:bg-white dark:focus-within:bg-[#14161c] transition-all duration-300 shadow-inner">
-                                <textarea
-                                  value={composerBlocks[0]?.type === "text" ? composerBlocks[0].content : ""}
-                                  onChange={(e) =>
-                                    setComposerBlocks([{ id: makeBlockId(), type: "text", content: e.target.value }])
-                                  }
-                                  placeholder="اولین سوال خود را بنویسید..."
-                                  rows={3}
-                                  className="w-full resize-none bg-transparent px-2 py-2 text-right text-sm font-medium leading-6 text-gray-800 outline-none placeholder-gray-400 dark:text-white dark:placeholder-gray-500"
-                                  dir="rtl"
-                                />
-                                <button
-                                  type="button"
-                                  disabled={!composerPayload.trim() || isSendingMessage || !activeLessonId}
-                                  onClick={() => void handleSendMessage()}
-                                  className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary via-indigo-600 to-indigo-500 text-white hover:opacity-95 shadow-md shadow-primary/25 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shrink-0 cursor-pointer"
-                                >
-                                  {isSendingMessage ? (
-                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                  ) : (
-                                    <Send className="w-5 h-5 rotate-180" />
-                                  )}
-                                </button>
+                        <div className="overflow-hidden rounded-3xl border border-gray-100 bg-gradient-to-b from-gray-50/80 to-white dark:border-gray-800 dark:from-white/[0.04] dark:to-[#1c1e26] shadow-sm">
+                          <div className="border-b border-gray-100 px-5 py-5 dark:border-gray-800 md:px-6">
+                            <div className="flex items-start gap-4 text-right">
+                              <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
+                                <MessageSquare className="h-5 w-5" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <h3 className="text-base font-black text-gray-900 dark:text-white">
+                                  هنوز سوالی ثبت نشده است
+                                </h3>
+                                <p className="mt-1.5 text-sm font-medium leading-7 text-gray-500 dark:text-gray-400">
+                                  سوال خود را درباره این درس بنویسید تا استاد دوره پاسخ دهد.
+                                </p>
+                                <div className="mt-4 flex flex-wrap gap-2">
+                                  <span className="rounded-full bg-white px-3 py-1 text-[11px] font-bold text-gray-600 ring-1 ring-gray-200/80 dark:bg-white/5 dark:text-gray-300 dark:ring-white/10">
+                                    رفع اشکال درس
+                                  </span>
+                                  <span className="rounded-full bg-white px-3 py-1 text-[11px] font-bold text-gray-600 ring-1 ring-gray-200/80 dark:bg-white/5 dark:text-gray-300 dark:ring-white/10">
+                                    توضیح بیشتر مدرس
+                                  </span>
+                                  <span className="rounded-full bg-white px-3 py-1 text-[11px] font-bold text-gray-600 ring-1 ring-gray-200/80 dark:bg-white/5 dark:text-gray-300 dark:ring-white/10">
+                                    فایل یا تمرین
+                                  </span>
+                                </div>
                               </div>
                             </div>
+                          </div>
+
+                          <div className="bg-white p-4 dark:bg-[#1c1e26] md:p-5">
+                            <label className="mb-3 block text-xs font-bold text-gray-500 dark:text-gray-400">
+                              اولین سوال شما
+                            </label>
+                            <div className="relative flex items-end gap-3 rounded-2xl border border-gray-200/80 bg-gray-50/70 px-3 py-3 transition-all focus-within:border-primary/40 focus-within:bg-white focus-within:ring-4 focus-within:ring-primary/10 dark:border-white/10 dark:bg-[#14161c]/50 dark:focus-within:bg-[#14161c]">
+                              <textarea
+                                value={composerBlocks[0]?.type === "text" ? composerBlocks[0].content : ""}
+                                onChange={(e) =>
+                                  setComposerBlocks([{ id: makeBlockId(), type: "text", content: e.target.value }])
+                                }
+                                placeholder="مثلاً: این بخش از ویدیو را متوجه نشدم..."
+                                rows={3}
+                                className="min-h-[88px] w-full resize-none bg-transparent px-1 py-1 text-right text-sm font-medium leading-7 text-gray-800 outline-none placeholder:text-gray-400 dark:text-white dark:placeholder:text-gray-500"
+                                dir="rtl"
+                              />
+                              <button
+                                type="button"
+                                disabled={!composerPayload.trim() || isSendingMessage || !activeLessonId}
+                                onClick={() => void handleSendMessage()}
+                                className="mb-0.5 flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-white shadow-md shadow-primary/20 transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+                                title="ارسال سوال"
+                              >
+                                {isSendingMessage ? (
+                                  <Loader2 className="h-5 w-5 animate-spin" />
+                                ) : (
+                                  <Send className="h-5 w-5 rotate-180" />
+                                )}
+                              </button>
+                            </div>
+                            <p className="mt-3 text-[11px] font-medium leading-6 text-gray-400 dark:text-gray-500">
+                              پاسخ استاد در همین بخش نمایش داده می‌شود.
+                            </p>
                           </div>
                         </div>
                       );
@@ -1172,12 +1198,10 @@ export default function CourseLearningClient() {
                             className={cn(
                               "rounded-lg px-3 py-1 text-[11px] font-black",
                               qaMessageState === "sent" && "bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-gray-300",
-                              qaMessageState === "seen" && "bg-sky-500/10 text-sky-600 dark:text-sky-300",
                               qaMessageState === "replied" && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
                             )}
                           >
-                            {qaMessageState === "sent" && "ارسال شده"}
-                            {qaMessageState === "seen" && "استاد پیامت رو دید"}
+                            {qaMessageState === "sent" && "در انتظار پاسخ استاد"}
                             {qaMessageState === "replied" && "استاد پاسخ داد"}
                           </span>
                         </div>

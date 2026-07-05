@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { usePanelSidebar } from "@/context/PanelSidebarContext";
 import { fetchMyProfile } from "@/lib/panel-profile";
+import { formatIranPhoneForDisplay } from "@/lib/format-phone";
 import { cn } from "@/lib/utils";
 import { User, LogOut, X, ChevronRight, ChevronLeft } from "lucide-react";
 
@@ -28,27 +29,36 @@ export default function PanelSidebar() {
   const { isMobileOpen, setMobileOpen, isCollapsed, setIsCollapsed, toggleCollapsed } = usePanelSidebar();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [profileName, setProfileName] = useState("");
+  const [profileAvatar, setProfileAvatar] = useState("");
 
   useEffect(() => {
     if (!user) {
       setProfileName("");
+      setProfileAvatar("");
       return;
     }
 
     let cancelled = false;
 
-    const loadProfileName = async () => {
+    const loadProfile = async () => {
       try {
         const profile = await fetchMyProfile();
-        if (!cancelled && profile.displayName?.trim()) {
+        if (cancelled) return;
+        if (profile.displayName?.trim()) {
           setProfileName(profile.displayName.trim());
         }
+        if (profile.avatarImage?.trim()) {
+          setProfileAvatar(profile.avatarImage.trim());
+        }
       } catch {
-        if (!cancelled) setProfileName("");
+        if (!cancelled) {
+          setProfileName("");
+          setProfileAvatar("");
+        }
       }
     };
 
-    void loadProfileName();
+    void loadProfile();
 
     return () => {
       cancelled = true;
@@ -56,7 +66,8 @@ export default function PanelSidebar() {
   }, [user?.id]);
 
   const sidebarDisplayName = profileName || user?.displayName || "کاربر مهمان";
-  const sidebarPhone = user?.phone?.trim() || "";
+  const sidebarPhone = user?.phone?.trim() ? formatIranPhoneForDisplay(user.phone) : "";
+  const sidebarAvatar = profileAvatar || user?.avatarUrl || "";
 
   useEffect(() => {
     try {
@@ -157,27 +168,47 @@ export default function PanelSidebar() {
               )}
               title={isCollapsed ? `${sidebarDisplayName}${sidebarPhone ? ` • ${sidebarPhone}` : ""}` : undefined}
             >
-              <div className={cn(
-                "flex items-center w-full",
-                isCollapsed ? "justify-center" : "flex-row-reverse gap-3"
-              )}>
-                <div className={cn(
-                  "rounded-full border-2 border-primary/50 overflow-hidden flex items-center justify-center bg-primary/10 dark:bg-primary/20 shrink-0 transition-all duration-300",
-                  isCollapsed ? "w-12 h-12" : "w-14 h-14"
-                )}>
-                  {user?.avatarUrl ? (
-                    <Image src={user.avatarUrl} alt="" width={56} height={56} className="object-cover w-full h-full" />
+              <div
+                dir="rtl"
+                className={cn(
+                  "flex w-full items-center",
+                  isCollapsed ? "justify-center" : "gap-3"
+                )}
+              >
+                <div
+                  className={cn(
+                    "flex shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-primary/50 bg-primary/10 dark:bg-primary/20 transition-all duration-300",
+                    isCollapsed ? "size-12" : "size-14"
+                  )}
+                >
+                  {sidebarAvatar ? (
+                    sidebarAvatar.startsWith("data:") || sidebarAvatar.startsWith("blob:") ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={sidebarAvatar} alt="" className="size-full object-cover" />
+                    ) : (
+                      <Image
+                        src={sidebarAvatar}
+                        alt=""
+                        width={56}
+                        height={56}
+                        className="size-full object-cover"
+                        unoptimized
+                      />
+                    )
                   ) : (
-                    <User className={cn("text-primary transition-all", isCollapsed ? "w-6 h-6" : "w-7 h-7")} strokeWidth={2} />
+                    <User
+                      className={cn("text-primary transition-all", isCollapsed ? "size-6" : "size-7")}
+                      strokeWidth={2}
+                    />
                   )}
                 </div>
                 {!isCollapsed && (
-                  <div className="flex flex-col items-end min-w-0 flex-1 overflow-hidden transition-all duration-300 opacity-100 gap-0.5">
-                    <p className="text-base font-bold text-gray-900 dark:text-white truncate w-full text-right leading-snug">
+                  <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5 overflow-hidden text-right">
+                    <p className="w-full truncate text-base font-bold leading-snug text-gray-900 dark:text-white">
                       {sidebarDisplayName}
                     </p>
                     {sidebarPhone && (
-                      <p dir="ltr" className="text-sm text-gray-600 dark:text-gray-400 truncate w-full text-right leading-snug">
+                      <p className="w-full truncate text-right text-sm leading-snug text-gray-600 dark:text-gray-400" dir="rtl">
                         {sidebarPhone}
                       </p>
                     )}

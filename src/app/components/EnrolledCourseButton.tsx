@@ -34,7 +34,7 @@ export default function EnrolledCourseButton({ courseId, compact = false }: Enro
         className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary to-emerald-400 px-4 py-4 text-sm font-black text-white shadow-[0_0_20px_rgba(34,197,94,0.35)] transition-all hover:-translate-y-0.5 md:rounded-[2rem] md:py-6 md:text-xl"
       >
         <span className="material-symbols-outlined text-2xl md:text-[28px]">play_circle</span>
-        ورود به پنل و مشاهده دوره
+        ادامه یادگیری
       </Link>
     </div>
   );

@@ -272,12 +272,16 @@ export default function CoursesPage() {
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                {filteredCourses.map((course) => (
+                {filteredCourses.map((course) => {
+                  const enrolled = canPurchase && isEnrolled(course.id, course.slug);
+                  const detailHref = `/courses/${course.slug}`;
+
+                  return (
                   <div
                   key={course.id}
                   className="group flex flex-col h-full bg-white dark:bg-transparent dark:glass-premium rounded-4xl border border-gray-200 dark:border-white/5 overflow-hidden shadow-sm dark:shadow-none transition-all duration-500 md:hover:-translate-y-3 md:hover:shadow-[0_30px_60px_-15px_rgba(34,197,94,0.15)]"
                 >
-                  <div className="relative h-64 overflow-hidden rounded-t-4xl isolate">
+                  <Link href={detailHref} className="relative block h-64 overflow-hidden rounded-t-4xl isolate">
                     <Image
                       src={course.image}
                       alt={course.title}
@@ -285,9 +289,12 @@ export default function CoursesPage() {
                       className="object-cover transform-gpu md:group-hover:scale-105 transition-transform duration-700 ease-out"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-60"></div>
-                    <div className="absolute top-5 left-5 right-5 flex justify-between items-start z-20">
-                    </div>
-                  </div>
+                    {enrolled ? (
+                      <div className="absolute top-5 right-5 z-20 rounded-2xl bg-emerald-500/90 px-3 py-1.5 text-[11px] font-black text-white shadow-lg">
+                        ثبت‌نام شده
+                      </div>
+                    ) : null}
+                  </Link>
                   <div className="p-7 flex flex-col flex-1">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="size-8 rounded-full border border-white/50 p-0.5">
@@ -303,7 +310,7 @@ export default function CoursesPage() {
                         {course.instructor}
                       </span>
                     </div>
-                    <Link href={`/courses/${course.slug}`}>
+                    <Link href={detailHref}>
                       <h3 className="text-xl font-black text-gray-900 dark:text-white mb-3 leading-snug group-hover:text-primary transition-colors">
                         {course.title}
                       </h3>
@@ -323,30 +330,42 @@ export default function CoursesPage() {
                         <span>{course.students} دانشجو</span>
                       </div>
                     </div>
-                    <div className="mt-auto flex items-center justify-between gap-4 pt-6 border-t border-gray-100/50 dark:border-white/5">
-                      <span className="bg-primary/10 text-primary-dark dark:text-primary px-5 py-2.5 rounded-2xl font-black text-sm">
-                        {course.price}{" "}
-                        <span className="text-[10px] opacity-80 font-bold mr-1">
-                          تومان
-                        </span>
-                      </span>
-                      {canPurchase && isEnrolled(course.id, course.slug) ? (
-                        <EnrolledCourseButton courseId={course.id} compact />
+                    <div className="mt-auto flex items-center justify-between gap-3 pt-6 border-t border-gray-100/50 dark:border-white/5">
+                      {enrolled ? (
+                        <>
+                          <Link
+                            href={detailHref}
+                            className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gray-50 px-4 py-2.5 text-sm font-bold text-gray-900 transition-all hover:bg-gray-100 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                          >
+                            جزئیات دوره
+                            <span className="material-symbols-outlined text-[18px] rtl:rotate-180">arrow_right_alt</span>
+                          </Link>
+                          <EnrolledCourseButton courseId={course.id} compact />
+                        </>
                       ) : (
-                        <Link
-                          href={`/courses/${course.slug}`}
-                          className="flex-1 bg-gray-50 dark:bg-white/5 hover:bg-primary hover:text-background-dark text-gray-900 dark:text-white rounded-2xl py-2.5 font-bold transition-all flex items-center justify-center gap-2 group/btn"
-                        >
-                          مشاهده
-                          <span className="material-symbols-outlined text-[18px] rtl:rotate-180 group-hover/btn:-translate-x-2 transition-transform">
-                            arrow_right_alt
+                        <>
+                          <span className="bg-primary/10 text-primary-dark dark:text-primary px-5 py-2.5 rounded-2xl font-black text-sm shrink-0">
+                            {course.price}{" "}
+                            <span className="text-[10px] opacity-80 font-bold mr-1">
+                              تومان
+                            </span>
                           </span>
-                        </Link>
+                          <Link
+                            href={detailHref}
+                            className="flex-1 bg-gray-50 dark:bg-white/5 hover:bg-primary hover:text-background-dark text-gray-900 dark:text-white rounded-2xl py-2.5 font-bold transition-all flex items-center justify-center gap-2 group/btn"
+                          >
+                            مشاهده
+                            <span className="material-symbols-outlined text-[18px] rtl:rotate-180 group-hover/btn:-translate-x-2 transition-transform">
+                              arrow_right_alt
+                            </span>
+                          </Link>
+                        </>
                       )}
                     </div>
                   </div>
                 </div>
-                ))}
+                );
+                })}
               </div>
 
               {/* Pagination */}

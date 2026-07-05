@@ -11,6 +11,8 @@ import {
   findUserRootComments,
   findUserTransactions,
 } from "@/server/repositories/dashboard.repository";
+import { findUserProfileByUserId } from "@/server/repositories/profile.repository";
+import { resolveUserDisplayName } from "@/server/utils/user-display-name";
 
 function buildLabels(displayName: string): PanelDashboardOverviewDto["labels"] {
   return {
@@ -27,7 +29,13 @@ function buildLabels(displayName: string): PanelDashboardOverviewDto["labels"] {
 }
 
 export async function getPanelDashboardOverview(user: User): Promise<PanelDashboardOverviewDto> {
-  const displayName = user.fullName?.trim() || "کاربر عزیز";
+  const profile = await findUserProfileByUserId(user.id);
+  const displayName = resolveUserDisplayName({
+    fullName: user.fullName,
+    phone: user.phone,
+    email: user.email,
+    profile,
+  });
 
   const [enrolledCoursesCount, activeOrdersCount, rootComments] = await Promise.all([
     countUserEnrollments(user.id),
