@@ -17,6 +17,22 @@ interface VideoControlsProps {
   onPlaybackChange?: (isPlaying: boolean) => void;
 }
 
+function PlayGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-6 fill-gray-900" aria-hidden="true">
+      <path d="M8 5.14v13.72c0 .79.87 1.27 1.54.84l11.14-6.86c.63-.39.63-1.29 0-1.68L9.54 4.3C8.87 3.87 8 4.35 8 5.14z" />
+    </svg>
+  );
+}
+
+function PauseGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-6 fill-gray-900" aria-hidden="true">
+      <path d="M7 5h4v14H7V5zm6 0h4v14h-4V5z" />
+    </svg>
+  );
+}
+
 export default function VideoControls({
   videoRef,
   videoUrl,
@@ -131,55 +147,53 @@ export default function VideoControls({
   };
 
   return (
-    <div className="absolute bottom-4 right-4 left-4 z-30 flex flex-col gap-3 dir-ltr">
-      {/* Progress bar - left to right: left = start, right = end */}
+    <div className="absolute bottom-4 right-4 left-4 z-30 flex flex-col gap-2.5" dir="ltr">
       <div
         role="progressbar"
         aria-valuenow={currentTime}
         aria-valuemin={0}
         aria-valuemax={duration}
         onClick={handleProgressClick}
-        dir="ltr"
-        style={{ direction: "ltr" }}
-        className="h-2 w-full cursor-pointer rounded-full bg-white/20 overflow-hidden border border-white/10 flex flex-row"
+        className="flex h-1.5 w-full cursor-pointer flex-row overflow-hidden rounded-full bg-white/20"
       >
         <div
-          className="h-full bg-primary/80 rounded-full min-w-0 transition-all duration-100"
-          style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%`, flex: "none" }}
+          className="h-full min-w-0 rounded-full bg-primary transition-all duration-100"
+          style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
         />
       </div>
 
-      {/* Controls bar - same style as title overlay */}
-      <div className="bg-black/40 backdrop-blur-md rounded-3xl p-4 border border-white/10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 shadow-lg">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
+      <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/45 p-2.5 shadow-lg backdrop-blur-md sm:gap-4 sm:rounded-3xl sm:p-3">
+        {/* Left: play + time */}
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <button
             type="button"
             onClick={togglePlay}
-            className="size-10 shrink-0 rounded-2xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors border border-white/10 cursor-pointer"
+            className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-white shadow-md transition-colors hover:bg-white/95"
             aria-label={isPlaying ? "توقف" : "پخش"}
           >
-            <span className="material-symbols-outlined text-2xl">
-              {isPlaying ? "pause" : "play_arrow"}
-            </span>
+            {isPlaying ? <PauseGlyph /> : <PlayGlyph />}
           </button>
 
-          <div className="flex flex-col min-w-0 flex-1">
-            <span className="text-xs text-white/70 truncate">{title}</span>
-            <span className="text-sm font-bold text-white truncate">{subtitle}</span>
-          </div>
-
-          <span dir="ltr" className="text-xs bg-white/20 px-3 py-1.5 rounded-xl font-mono shrink-0 text-white">
-            {formatTime(currentTime)} / {formatTime(duration)}
+          <span className="shrink-0 font-mono text-xs tabular-nums text-white/90 sm:text-sm">
+            {formatTime(currentTime)}
+            <span className="text-white/45"> / </span>
+            {formatTime(duration)}
           </span>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Volume */}
-          <div className="flex items-center gap-1">
+        {/* Center: title */}
+        <div className="min-w-0 flex-1 text-right" dir="rtl">
+          <p className="truncate text-[11px] text-white/55 sm:text-xs">{title}</p>
+          <p className="truncate text-sm font-bold text-white sm:text-[15px]">{subtitle}</p>
+        </div>
+
+        {/* Right: volume, download, fullscreen */}
+        <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
+          <div className="hidden items-center gap-1.5 sm:flex">
             <button
               type="button"
               onClick={toggleMute}
-              className="size-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors border border-white/10 cursor-pointer"
+              className="flex size-9 cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-white/10 text-white transition-colors hover:bg-white/20"
               aria-label={isMuted ? "صدای بلند" : "بی‌صدا"}
             >
               <span className="material-symbols-outlined text-xl">
@@ -193,35 +207,42 @@ export default function VideoControls({
               step={0.05}
               value={isMuted ? 0 : volume}
               onChange={handleVolumeChange}
-              dir="ltr"
-              className="w-16 h-1.5 cursor-pointer appearance-none rounded-full bg-white/20 [&::-webkit-slider-thumb]:size-2.5 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:border-0"
+              className="h-1 w-16 cursor-pointer appearance-none rounded-full bg-white/25 [&::-webkit-slider-thumb]:size-2.5 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-white"
             />
           </div>
 
-          {/* Download */}
+          <button
+            type="button"
+            onClick={toggleMute}
+            className="flex size-9 cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-white/10 text-white transition-colors hover:bg-white/20 sm:hidden"
+            aria-label={isMuted ? "صدای بلند" : "بی‌صدا"}
+          >
+            <span className="material-symbols-outlined text-xl">
+              {isMuted || volume === 0 ? "volume_off" : "volume_up"}
+            </span>
+          </button>
+
           <a
             href={videoUrl}
             download="video.mp4"
             target="_blank"
             rel="noopener noreferrer"
-            className="size-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors border border-white/10 hover:bg-white/25 cursor-pointer"
+            className="flex size-9 cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-white/10 text-white transition-colors hover:bg-white/20"
             aria-label="دانلود ویدیو"
           >
             <span className="material-symbols-outlined text-xl">download</span>
           </a>
 
-          {/* Fullscreen */}
           <button
             type="button"
             onClick={toggleFullscreen}
-            className="size-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors border border-white/10 cursor-pointer"
+            className="flex size-9 cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-white/10 text-white transition-colors hover:bg-white/20"
             aria-label={isFullscreen ? "خروج از تمام‌صفحه" : "تمام‌صفحه"}
           >
             <span className="material-symbols-outlined text-xl">
               {isFullscreen ? "fullscreen_exit" : "fullscreen"}
             </span>
           </button>
-
         </div>
       </div>
     </div>

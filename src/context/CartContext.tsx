@@ -1,11 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { formatCartPrice, parseCartPrice } from "@/lib/cart-price";
 
 export type Course = {
   id: string;
   title: string;
-  price: string; // Stored as string like "4,500,000"
+  price: string;
   image: string;
   instructor: string;
 };
@@ -13,11 +14,12 @@ export type Course = {
 interface CartContextType {
   cart: Course[];
   isCartOpen: boolean;
-  addToCart: (course: Course) => void;
+  addToCart: (course: Course) => boolean;
   removeFromCart: (courseId: string) => void;
   clearCart: () => void;
   toggleCart: () => void;
   setCartOpen: (open: boolean) => void;
+  isInCart: (courseId: string) => boolean;
   getTotalPrice: () => number;
 }
 
@@ -43,38 +45,52 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("spoticode-cart", JSON.stringify(cart));
   }, [cart]);
 
-  const addToCart = (course: Course) => {
+  const addToCart = useCallback((course: Course) => {
+    let added = false;
     setCart((prevCart) => {
-      // Check if course is already in cart to avoid duplicates
       if (prevCart.some((item) => item.id === course.id)) {
         return prevCart;
       }
-      return [...prevCart, course];
+      added = true;
+      return [
+        ...prevCart,
+        {
+          ...course,
+          price: formatCartPrice(course.price),
+        },
+      ];
     });
-    setIsCartOpen(true); // Auto open cart when adding
-  };
+    if (added) {
+      setIsCartOpen(true);
+    }
+    return added;
+  }, []);
 
-  const removeFromCart = (courseId: string) => {
+  const removeFromCart = useCallback((courseId: string) => {
     setCart((prevCart) => prevCart.filter((item) => item.id !== courseId));
-  };
+  }, []);
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     setCart([]);
-  };
+  }, []);
 
-  const toggleCart = () => {
+  const toggleCart = useCallback(() => {
     setIsCartOpen((prev) => !prev);
-  };
+  }, []);
 
-  const setCartOpen = (open: boolean) => {
+  const setCartOpen = useCallback((open: boolean) => {
     setIsCartOpen(open);
-  };
+  }, []);
 
-  const getTotalPrice = () =>
-    cart.reduce((total, item) => {
-      const price = Number(item.price.replace(/,/g, ""));
-      return total + (Number.isFinite(price) ? price : 0);
-    }, 0);
+  const isInCart = useCallback(
+    (courseId: string) => cart.some((item) => item.id === courseId),
+    [cart]
+  );
+
+  const getTotalPrice = useCallback(
+    () => cart.reduce((total, item) => total + parseCartPrice(item.price), 0),
+    [cart]
+  );
 
   return (
     <CartContext.Provider
@@ -86,6 +102,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         clearCart,
         toggleCart,
         setCartOpen,
+        isInCart,
         getTotalPrice,
       }}
     >
