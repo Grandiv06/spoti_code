@@ -26,42 +26,38 @@ export default function CoursePriceDisplay({
 
   if (!hasDiscount) {
     return (
-      <span
-        className={`bg-primary/10 text-primary-dark dark:text-primary rounded-2xl font-black whitespace-nowrap ${
-          compact ? "px-4 py-2 text-xs" : "px-5 py-2.5 text-sm"
+      <div
+        className={`inline-flex items-baseline gap-1 rounded-2xl bg-primary/10 font-black text-primary ring-1 ring-primary/15 whitespace-nowrap ${
+          compact ? "px-3.5 py-2 text-xs" : "px-4 py-2.5 text-sm"
         }`}
       >
-        {formattedPrice}{" "}
-        <span className="text-[10px] opacity-80 font-bold mr-1">تومان</span>
-      </span>
+        <span>{formattedPrice}</span>
+        <span className="text-[10px] font-bold opacity-75">تومان</span>
+      </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-start gap-1 shrink-0">
-      <div className="flex items-center gap-2">
-        <span
-          className={`bg-primary/10 text-primary-dark dark:text-primary rounded-2xl font-black whitespace-nowrap ${
-            compact ? "px-4 py-2 text-xs" : "px-5 py-2.5 text-sm"
-          }`}
-        >
-          {formattedPrice}{" "}
-          <span className="text-[10px] opacity-80 font-bold mr-1">تومان</span>
-        </span>
-        <span className="rounded-xl bg-rose-500/15 px-2 py-1 text-[10px] font-black text-rose-500 dark:text-rose-400">
-          {discountPercent.toLocaleString("fa-IR")}٪ تخفیف
-        </span>
-      </div>
-      <span className="text-[11px] font-bold text-gray-400 line-through decoration-rose-400/70">
+    <div className="flex shrink-0 flex-col items-start gap-1.5">
+      <span className="rounded-lg bg-white/60 px-2 py-0.5 text-[11px] font-bold text-gray-500 line-through decoration-gray-400/80 dark:bg-white/[0.04] dark:text-gray-400">
         {formattedOriginal} تومان
       </span>
+
+      <div
+        className={`inline-flex items-baseline gap-1 rounded-2xl bg-gradient-to-l from-primary/20 via-primary/10 to-primary/5 font-black text-primary shadow-[0_0_20px_rgba(34,197,94,0.12)] ring-1 ring-primary/25 ${
+          compact ? "px-3.5 py-2" : "px-4 py-2.5"
+        }`}
+      >
+        <span className={compact ? "text-sm leading-none" : "text-base leading-none"}>{formattedPrice}</span>
+        <span className="text-[10px] font-bold text-primary/80">تومان</span>
+      </div>
     </div>
   );
 }
 
 export function CourseDiscountBadge({ discountPercent }: { discountPercent: number }) {
   return (
-    <span className="rounded-2xl bg-rose-500/90 px-3 py-1.5 text-[11px] font-black text-white shadow-lg">
+    <span className="rounded-2xl bg-gradient-to-l from-rose-500 to-rose-600 px-3 py-1.5 text-[11px] font-black text-white shadow-[0_4px_14px_rgba(244,63,94,0.35)]">
       {discountPercent.toLocaleString("fa-IR")}٪ تخفیف
     </span>
   );

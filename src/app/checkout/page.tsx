@@ -8,7 +8,7 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { apiPostNoMock } from "@/lib/api";
 import { getAuthHeaders } from "@/lib/auth-tokens";
-import { formatCartPriceLabel } from "@/lib/cart-price";
+import { formatCartPriceLabel, parseCartPrice } from "@/lib/cart-price";
 
 type DiscountPreview = {
   subtotal: number;
@@ -19,7 +19,18 @@ type DiscountPreview = {
     title: string;
     applyType: "user" | "admin" | "both";
     discountAmount: number;
+    lineDiscounts: Record<string, number>;
+    eligibleCourseIds: string[];
   } | null;
+};
+
+type InvoiceLine = {
+  id: string;
+  title: string;
+  originalPrice: number;
+  discountAmount: number;
+  finalPrice: number;
+  hasDiscount: boolean;
 };
 
 function CheckoutItemImage({ src, alt }: { src: string; alt: string }) {
@@ -92,6 +103,25 @@ export default function CheckoutPage() {
     [subtotal, discountAmount, total]
   );
 
+  const invoiceLines = useMemo<InvoiceLine[]>(() => {
+    const lineDiscounts = preview?.applied?.lineDiscounts ?? {};
+
+    return cart.map((item) => {
+      const originalPrice = parseCartPrice(item.price);
+      const discountAmountForLine = lineDiscounts[item.id] ?? 0;
+      const finalPrice = Math.max(originalPrice - discountAmountForLine, 0);
+
+      return {
+        id: item.id,
+        title: item.title,
+        originalPrice,
+        discountAmount: discountAmountForLine,
+        finalPrice,
+        hasDiscount: discountAmountForLine > 0,
+      };
+    });
+  }, [cart, preview?.applied?.lineDiscounts]);
+
   const handleApplyDiscount = async () => {
     const normalized = discountCode.trim().toUpperCase();
     if (!normalized) {
@@ -128,6 +158,13 @@ export default function CheckoutPage() {
       setPreview(null);
       setDiscountError(error instanceof Error ? error.message : "کد تخفیف معتبر نیست");
     }
+  };
+
+  const handleRemoveDiscount = () => {
+    setAppliedCode(null);
+    setPreview(null);
+    setDiscountCode("");
+    setDiscountError(null);
   };
 
   const handleCompletePurchase = async () => {
@@ -294,24 +331,47 @@ export default function CheckoutPage() {
             <div className="mt-5 space-y-4">
               <div className="rounded-2xl bg-gray-50 p-4 dark:bg-white/[0.03]">
                 <label className="mb-2 block text-xs font-bold text-gray-500 dark:text-gray-400">کد تخفیف</label>
-                <div className="flex gap-2">
-                  <input
-                    value={discountCode}
-                    onChange={(e) => setDiscountCode(e.target.value)}
-                    placeholder="SPOTI10"
-                    className="min-w-0 flex-1 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-bold outline-none transition focus:border-primary dark:border-white/10 dark:bg-[#1a1c23]"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleApplyDiscount}
-                    className="cursor-pointer rounded-2xl bg-primary px-4 py-3 text-sm font-black text-white transition hover:opacity-90"
-                  >
-                    اعمال
-                  </button>
-                </div>
                 {appliedCode ? (
-                  <p className="mt-2 text-xs font-bold text-emerald-500">کد {appliedCode} با موفقیت اعمال شد.</p>
-                ) : null}
+                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-primary/25 bg-primary/10 px-4 py-3 ring-1 ring-primary/15">
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-primary/80">کد اعمال‌شده</p>
+                      <p className="mt-0.5 truncate font-mono text-sm font-black text-primary">
+                        {appliedCode}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRemoveDiscount}
+                      className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-white/20 bg-white/80 text-gray-500 transition hover:border-red-300 hover:bg-red-50 hover:text-red-500 dark:bg-[#1a1c23] dark:text-gray-400 dark:hover:border-red-500/30 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                      aria-label="حذف کد تخفیف"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">close</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      value={discountCode}
+                      onChange={(e) => setDiscountCode(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          void handleApplyDiscount();
+                        }
+                      }}
+                      placeholder="TESTUSER20"
+                      className="min-w-0 flex-1 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-bold outline-none transition focus:border-primary dark:border-white/10 dark:bg-[#1a1c23]"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyDiscount}
+                      disabled={isPreviewLoading || !discountCode.trim()}
+                      className="cursor-pointer rounded-2xl bg-primary px-4 py-3 text-sm font-black text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {isPreviewLoading ? "..." : "اعمال"}
+                    </button>
+                  </div>
+                )}
                 {isPreviewLoading ? (
                   <p className="mt-2 text-xs font-bold text-gray-400">در حال محاسبه تخفیف...</p>
                 ) : null}
@@ -320,18 +380,96 @@ export default function CheckoutPage() {
                 ) : null}
               </div>
 
-              <div className="space-y-3 rounded-2xl border border-gray-200/80 bg-white p-4 dark:border-white/10 dark:bg-white/[0.03]">
-                <div className="flex items-center justify-between text-sm font-bold text-gray-500 dark:text-gray-400">
-                  <span>جمع جزء</span>
-                  <span>{formatted.subtotal} تومان</span>
-                </div>
-                <div className="flex items-center justify-between text-sm font-bold text-gray-500 dark:text-gray-400">
-                  <span>تخفیف</span>
-                  <span>- {formatted.discountAmount} تومان</span>
-                </div>
-                <div className="flex items-center justify-between border-t border-gray-200/80 pt-3 text-lg font-black text-gray-900 dark:border-white/10 dark:text-white">
-                  <span>مبلغ نهایی</span>
-                  <span>{formatted.total} تومان</span>
+              <div className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white dark:border-white/10 dark:bg-[#171a22]/80">
+                {appliedCode && invoiceLines.length > 0 ? (
+                  <div className="border-b border-gray-200/80 bg-gradient-to-l from-primary/[0.07] via-transparent to-transparent px-4 py-3.5 dark:border-white/10">
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex size-8 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/20">
+                        <span className="material-symbols-outlined text-[18px]">receipt_long</span>
+                      </span>
+                      <div>
+                        <p className="text-sm font-black text-gray-900 dark:text-white">جزئیات فاکتور</p>
+                        <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400">تفکیک قیمت هر دوره</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                {appliedCode && invoiceLines.length > 0 ? (
+                  <div className="space-y-2.5 p-4">
+                    {invoiceLines.map((line) => (
+                      <div
+                        key={line.id}
+                        className={`rounded-2xl border p-3.5 transition-colors ${
+                          line.hasDiscount
+                            ? "border-primary/25 bg-primary/[0.06] shadow-[inset_0_1px_0_rgba(34,197,94,0.08)] dark:border-primary/20 dark:bg-primary/[0.08]"
+                            : "border-gray-200/70 bg-gray-50/70 dark:border-white/[0.08] dark:bg-white/[0.025]"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="line-clamp-2 flex-1 text-sm font-black leading-6 text-gray-900 dark:text-white">
+                            {line.title}
+                          </p>
+                          {line.hasDiscount ? (
+                            <span className="shrink-0 rounded-lg bg-amber-500/15 px-2 py-1 text-[10px] font-black text-amber-600 ring-1 ring-amber-500/20 dark:text-amber-300">
+                              شامل تخفیف
+                            </span>
+                          ) : null}
+                        </div>
+
+                        <div className="mt-3 space-y-2">
+                          <div className="flex items-center justify-between text-xs font-bold">
+                            <span className="text-gray-500 dark:text-gray-400">قیمت</span>
+                            <span
+                              className={
+                                line.hasDiscount
+                                  ? "text-gray-400 line-through decoration-gray-500/60 dark:text-gray-500"
+                                  : "text-gray-700 dark:text-gray-200"
+                              }
+                            >
+                              {formatCartPriceLabel(line.originalPrice)} تومان
+                            </span>
+                          </div>
+
+                          {line.hasDiscount ? (
+                            <>
+                              <div className="flex items-center justify-between rounded-xl bg-amber-500/10 px-2.5 py-2 text-xs font-bold text-amber-700 ring-1 ring-amber-500/15 dark:text-amber-300">
+                                <span className="flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-[14px]">sell</span>
+                                  {appliedCode}
+                                </span>
+                                <span>- {formatCartPriceLabel(line.discountAmount)}</span>
+                              </div>
+                              <div className="flex items-center justify-between rounded-xl bg-primary/10 px-2.5 py-2 text-sm font-black text-primary ring-1 ring-primary/15">
+                                <span className="text-gray-700 dark:text-gray-200">مبلغ این دوره</span>
+                                <span>{formatCartPriceLabel(line.finalPrice)} تومان</span>
+                              </div>
+                            </>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+
+                <div className={`space-y-3 p-4 ${appliedCode && invoiceLines.length > 0 ? "border-t border-dashed border-gray-200/80 dark:border-white/10" : ""}`}>
+                  <div className="flex items-center justify-between text-sm font-bold text-gray-500 dark:text-gray-400">
+                    <span>جمع جزء</span>
+                    <span className="text-gray-700 dark:text-gray-200">{formatted.subtotal} تومان</span>
+                  </div>
+                  {appliedCode ? (
+                    <div className="flex items-center justify-between rounded-xl bg-amber-500/10 px-3 py-2.5 text-sm font-bold text-amber-700 ring-1 ring-amber-500/15 dark:text-amber-300">
+                      <span className="flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[16px]">sell</span>
+                        تخفیف ({appliedCode})
+                      </span>
+                      <span>- {formatted.discountAmount} تومان</span>
+                    </div>
+                  ) : null}
+                  <div className="flex items-center justify-between rounded-2xl bg-primary/10 px-3.5 py-3 ring-1 ring-primary/20">
+                    <span className="text-base font-black text-gray-900 dark:text-white">مبلغ نهایی</span>
+                    <span className="text-lg font-black text-primary">{formatted.total} تومان</span>
+                  </div>
                 </div>
               </div>
 

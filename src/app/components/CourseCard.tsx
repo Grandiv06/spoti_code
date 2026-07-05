@@ -119,7 +119,7 @@ export default function CourseCard({
           )}
         </div>
 
-        <div className="mt-auto flex items-center justify-between gap-4 pt-5 border-t border-gray-100/50 dark:border-white/5">
+        <div className="mt-auto flex items-end justify-between gap-4 pt-5 border-t border-gray-100/50 dark:border-white/5">
           <CoursePriceDisplay
             price={price}
             originalPrice={originalPrice}

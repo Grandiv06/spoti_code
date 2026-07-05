@@ -353,7 +353,7 @@ export default function CoursesPage() {
                         <span>{course.students} دانشجو</span>
                       </div>
                     </div>
-                    <div className="mt-auto flex items-center justify-between gap-3 pt-6 border-t border-gray-100/50 dark:border-white/5">
+                    <div className="mt-auto flex items-end justify-between gap-3 pt-6 border-t border-gray-100/50 dark:border-white/5">
                       {enrolled ? (
                         <>
                           <Link

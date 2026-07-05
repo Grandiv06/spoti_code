@@ -368,7 +368,7 @@ export default function Home() {
                         <span>{course.students} دانشجو</span>
                       </div>
                     </div>
-                    <div className="mt-auto flex items-center justify-between gap-4 pt-6 border-t border-gray-100/50 dark:border-white/5">
+                    <div className="mt-auto flex items-end justify-between gap-4 pt-6 border-t border-gray-100/50 dark:border-white/5">
                       <CoursePriceDisplay
                         price={course.price}
                         originalPrice={course.originalPrice}
