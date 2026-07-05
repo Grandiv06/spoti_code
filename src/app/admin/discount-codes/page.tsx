@@ -6,6 +6,7 @@ import { apiDeleteNoMock, apiGetNoMock, apiPostNoMock, apiPutNoMock } from "@/li
 import { normalizeAdminDiscountsResponse } from "@/lib/admin-discounts";
 import { sanitizeNumericInput } from "@/lib/digits";
 import CustomSelect from "@/components/ui/CustomSelect";
+import DateTimePicker from "@/components/ui/DateTimePicker";
 import AdminTablePagination from "@/components/admin/AdminTablePagination";
 
 type DiscountType = "percentage" | "fixed";
@@ -668,10 +669,17 @@ export default function AdminDiscountCodesPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="تاریخ و ساعت شروع">
-              <input type="datetime-local" value={form.startAt} onChange={(e) => setForm((p) => ({ ...p, startAt: e.target.value }))} className={inputClass()} />
+              <DateTimePicker
+                value={form.startAt}
+                onChange={(startAt) => setForm((p) => ({ ...p, startAt }))}
+              />
             </Field>
             <Field label="تاریخ و ساعت پایان" error={errors.endAt}>
-              <input type="datetime-local" value={form.endAt} onChange={(e) => setForm((p) => ({ ...p, endAt: e.target.value }))} className={inputClass()} />
+              <DateTimePicker
+                value={form.endAt}
+                onChange={(endAt) => setForm((p) => ({ ...p, endAt }))}
+                hasError={Boolean(errors.endAt)}
+              />
             </Field>
             <Field label="محدودیت تعداد استفاده" hint="خالی بماند = نامحدود" error={errors.usageLimit}>
               <input value={form.usageLimit} onChange={(e) => setForm((p) => ({ ...p, usageLimit: sanitizeNumericInput(e.target.value) }))} placeholder="مثلا ۱۰۰" className={inputClass()} />
@@ -912,10 +920,17 @@ export default function AdminDiscountCodesPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Field label="تاریخ و ساعت شروع">
-                  <input type="datetime-local" value={editForm.startAt} onChange={(e) => setEditForm((p) => ({ ...p, startAt: e.target.value }))} className={inputClass()} />
+                  <DateTimePicker
+                    value={editForm.startAt}
+                    onChange={(startAt) => setEditForm((p) => ({ ...p, startAt }))}
+                  />
                 </Field>
                 <Field label="تاریخ و ساعت پایان" error={editErrors.endAt}>
-                  <input type="datetime-local" value={editForm.endAt} onChange={(e) => setEditForm((p) => ({ ...p, endAt: e.target.value }))} className={inputClass()} />
+                  <DateTimePicker
+                    value={editForm.endAt}
+                    onChange={(endAt) => setEditForm((p) => ({ ...p, endAt }))}
+                    hasError={Boolean(editErrors.endAt)}
+                  />
                 </Field>
                 <Field label="محدودیت تعداد استفاده" error={editErrors.usageLimit}>
                   <input value={editForm.usageLimit} onChange={(e) => setEditForm((p) => ({ ...p, usageLimit: sanitizeNumericInput(e.target.value) }))} className={inputClass()} />

@@ -1,0 +1,102 @@
+.spoti-date-picker.rmdp-wrapper {
+  direction: rtl;
+  font-family: inherit;
+}
+
+.spoti-date-picker .rmdp-calendar {
+  border-radius: 1.25rem;
+  border: 1px solid rgb(229 231 235);
+  box-shadow:
+    0 20px 40px rgba(15, 23, 42, 0.12),
+    0 4px 12px rgba(15, 23, 42, 0.06);
+  padding: 0.75rem;
+  background: #fff;
+}
+
+.spoti-date-picker.rmdp-dark .rmdp-calendar {
+  background: #1c1e26;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 24px 48px rgba(0, 0, 0, 0.45),
+    0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.spoti-date-picker .rmdp-header-values {
+  font-weight: 800;
+  font-size: 0.875rem;
+}
+
+.spoti-date-picker .rmdp-week-day {
+  font-weight: 800;
+  font-size: 0.7rem;
+  color: #9ca3af;
+}
+
+.spoti-date-picker .rmdp-day span {
+  border-radius: 0.75rem;
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+
+.spoti-date-picker .rmdp-day.rmdp-selected span:not(.highlight) {
+  background-color: #22c55e !important;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.35);
+  color: #fff !important;
+}
+
+.spoti-date-picker .rmdp-day:not(.rmdp-disabled):not(.rmdp-day-hidden) span:hover {
+  background-color: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+}
+
+.spoti-date-picker.rmdp-dark .rmdp-day:not(.rmdp-disabled):not(.rmdp-day-hidden) span:hover {
+  color: #4ade80;
+}
+
+.spoti-date-picker .rmdp-arrow-container {
+  border-radius: 0.75rem;
+}
+
+.spoti-date-picker .rmdp-arrow-container:hover {
+  background-color: rgba(34, 197, 94, 0.12);
+}
+
+.spoti-date-picker .rmdp-arrow {
+  border-color: #22c55e;
+}
+
+.spoti-date-picker.rmdp-dark .rmdp-arrow {
+  border-color: #4ade80;
+}
+
+.spoti-date-picker .rmdp-time-picker {
+  border-top: 1px solid rgb(243 244 246);
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  min-width: 100%;
+}
+
+.spoti-date-picker.rmdp-dark .rmdp-time-picker {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+.spoti-date-picker .rmdp-time-picker input {
+  border-radius: 0.625rem;
+  border: 1px solid rgb(229 231 235);
+  background: rgb(249 250 251);
+  font-weight: 800;
+  font-size: 0.75rem;
+  padding: 0.35rem 0.5rem;
+}
+
+.spoti-date-picker.rmdp-dark .rmdp-time-picker input {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+.spoti-date-picker .rmdp-time-picker div .rmdp-am {
+  border-radius: 0.625rem;
+  font-weight: 800;
+  font-size: 0.7rem;
+}
