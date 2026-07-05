@@ -27,45 +27,6 @@ export interface Review {
   reply?: ReviewReply;
 }
 
-const MOCK_REVIEWS: Review[] = [
-  {
-    id: "1",
-    author: "سهراب امینی",
-    role: "توسعه‌دهنده React",
-    avatar: "/images/student1.jpg",
-    comment:
-      "پروژه‌های عملی این دوره باعث شد ترس من از کدنویسی بریزه. محتوا بسیار کاربردی و به‌روز است. الان در یک شرکت معتبر مشغولم.",
-    date: "۲ هفته پیش",
-    userId: "user-1",
-  },
-  {
-    id: "2",
-    author: "سارا رضایی",
-    role: "توسعه‌دهنده فرانت‌اند",
-    avatar: "/images/student2.jpg",
-    comment:
-      "بهترین تصمیمی که برای آینده‌ام گرفتم شرکت در این دوره بود. منتورها واقعاً دلسوزانه کمک می‌کنند و محتوا عالیه.",
-    date: "۱ ماه پیش",
-    userId: "user-2",
-    reply: {
-      author: "مدرس دوره",
-      role: "مدرس",
-      comment: "خوشحالیم که تجربه خوبی داشتید. موفق باشید!",
-      date: "۳ هفته پیش",
-    },
-  },
-  {
-    id: "3",
-    author: "نیما حسینی",
-    role: "متخصص دیتاساینس",
-    avatar: "/images/student3.jpg",
-    comment:
-      "محتوای آموزشی بسیار به‌روز و با کیفیت هست. پشتیبانی ۲۴ ساعته واقعاً یک مزیت بزرگه. فقط امیدوارم مباحث پیشرفته‌تر هم اضافه بشه.",
-    date: "۲ ماه پیش",
-    userId: "user-3",
-  },
-];
-
 interface CourseReviewsProps {
   courseId: string;
   reviews?: Review[];
@@ -74,6 +35,7 @@ interface CourseReviewsProps {
 
 const INITIAL_COMMENTS_SIZE = 7;
 const LOAD_MORE_COMMENTS_SIZE = 4;
+const EMPTY_REVIEWS: Review[] = [];
 
 const getCommentsPath = (courseId: string, offset: number, limit: number) =>
   `/api/comments/course/${encodeURIComponent(courseId)}?offset=${offset}&limit=${limit}`;
@@ -312,16 +274,18 @@ function CommentsSkeleton() {
 
 export default function CourseReviews({
   courseId,
-  reviews = MOCK_REVIEWS,
-  totalReviews = "۱۲۸",
+  reviews = EMPTY_REVIEWS,
+  totalReviews = 0,
 }: CourseReviewsProps) {
   const { user } = useAuth();
   const [liveReviews, setLiveReviews] = useState<Review[]>([]);
   const [liveTotalReviews, setLiveTotalReviews] = useState<number | string>(0);
   const [hasMoreReviews, setHasMoreReviews] = useState(false);
   const [isLoadingReviews, setIsLoadingReviews] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [formData, setFormData] = useState({ comment: "" });
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
@@ -350,21 +314,37 @@ export default function CourseReviews({
   );
 
   useEffect(() => {
+    let cancelled = false;
+
+    setLiveReviews([]);
+    setLiveTotalReviews(0);
+    setHasMoreReviews(false);
+    setHasLoadedOnce(false);
+    setIsLoadingReviews(true);
+
     const fetchComments = async () => {
-      setIsLoadingReviews(true);
       try {
         await loadCourseComments(0, INITIAL_COMMENTS_SIZE, false);
       } catch {
-        setLiveReviews(reviews);
-        setLiveTotalReviews(totalReviews);
-        setHasMoreReviews(false);
+        if (!cancelled) {
+          setLiveReviews([]);
+          setLiveTotalReviews(0);
+          setHasMoreReviews(false);
+        }
       } finally {
-        setIsLoadingReviews(false);
+        if (!cancelled) {
+          setIsLoadingReviews(false);
+          setHasLoadedOnce(true);
+        }
       }
     };
 
-    fetchComments();
-  }, [loadCourseComments, reviews, totalReviews]);
+    void fetchComments();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [courseId, loadCourseComments]);
 
   const handleLoadMore = async () => {
     if (isLoadingMore || !hasMoreReviews) return;
@@ -397,9 +377,6 @@ export default function CourseReviews({
       }
 
       await apiPostNoMock("/api/comments", requestBody);
-      setIsLoadingReviews(true);
-      await loadCourseComments(0, INITIAL_COMMENTS_SIZE, false);
-      setIsLoadingReviews(false);
     } catch {
       // Keep modal open to allow retry on API failure.
       return;
@@ -410,13 +387,18 @@ export default function CourseReviews({
     setIsModalOpen(false);
     setFormData({ comment: "" });
     setRating(5);
+    setIsSuccessModalOpen(true);
   };
+
+  const isAnyModalOpen = isModalOpen || isSuccessModalOpen;
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setIsModalOpen(false);
+      if (e.key !== "Escape") return;
+      if (isSuccessModalOpen) setIsSuccessModalOpen(false);
+      else if (isModalOpen) setIsModalOpen(false);
     };
-    if (isModalOpen) {
+    if (isAnyModalOpen) {
       document.addEventListener("keydown", handleEscape);
       document.body.style.overflow = "hidden";
     }
@@ -424,7 +406,7 @@ export default function CourseReviews({
       document.removeEventListener("keydown", handleEscape);
       document.body.style.overflow = "";
     };
-  }, [isModalOpen]);
+  }, [isModalOpen, isSuccessModalOpen, isAnyModalOpen]);
 
   return (
     <section className="glass-panel overflow-hidden rounded-[2rem] border border-gray-200/80 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.08)] dark:border-white/[0.06] dark:shadow-none md:rounded-4xl">
@@ -582,9 +564,47 @@ export default function CourseReviews({
         </div>
       )}
 
+      {isSuccessModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm cursor-pointer"
+          onClick={() => setIsSuccessModalOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="review-success-title"
+        >
+          <div
+            className="w-full max-w-md bg-white dark:bg-[#0f1115] rounded-[2rem] md:rounded-4xl p-6 md:p-8 shadow-2xl border border-gray-200 dark:border-gray-700/50 my-auto text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-5 flex size-16 items-center justify-center rounded-[1.35rem] bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400">
+              <span className="material-symbols-outlined filled text-4xl">check_circle</span>
+            </div>
+
+            <h3
+              id="review-success-title"
+              className="mb-3 text-lg md:text-xl font-black text-gray-900 dark:text-white"
+            >
+              نظر شما ثبت شد
+            </h3>
+
+            <p className="mb-8 text-sm md:text-base font-medium leading-7 text-gray-600 dark:text-gray-300">
+              نظر شما با موفقیت ثبت شد. پس از بررسی و تأیید توسط ادمین، در این صفحه نمایش داده می‌شود.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setIsSuccessModalOpen(false)}
+              className="w-full h-11 md:h-12 bg-primary hover:bg-primary-dark text-white font-bold rounded-xl md:rounded-2xl transition-all cursor-pointer text-sm md:text-base"
+            >
+              متوجه شدم
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="p-4 md:p-6">
-        <div className="overflow-hidden rounded-[1.5rem] border border-gray-200/70 bg-white/80 dark:border-white/10 dark:bg-white/[0.02] md:rounded-[1.75rem]">
-          {isLoadingReviews ? (
+        <div className="min-h-[12rem] overflow-hidden rounded-[1.5rem] border border-gray-200/70 bg-white/80 dark:border-white/10 dark:bg-white/[0.02] md:rounded-[1.75rem]">
+          {isLoadingReviews && !hasLoadedOnce ? (
             <CommentsSkeleton />
           ) : liveReviews.length === 0 ? (
             <div className="px-6 py-10 text-center text-sm font-bold text-gray-500 dark:text-gray-400">

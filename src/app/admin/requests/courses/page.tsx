@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, BookOpenCheck, CheckCircle2, Loader2, Search, XCircle } from "lucide-react";
+import { ArrowRight, BookOpenCheck, CheckCircle2, Eye, Loader2, Search, XCircle } from "lucide-react";
 import CustomSelect from "@/components/ui/CustomSelect";
 import { apiGetNoMock, apiPatchNoMock } from "@/lib/api";
 
@@ -242,24 +242,35 @@ export default function AdminCourseRequestsPage() {
           ) : (
             <div className="space-y-3">
               {requests.map((request) => (
-                <button
+                <div
                   key={request.id}
-                  type="button"
-                  onClick={() => setSelectedId(request.id)}
-                  className={`w-full rounded-2xl border p-4 text-right transition ${
+                  className={`flex items-stretch gap-2 rounded-2xl border transition ${
                     selectedRequest?.id === request.id
                       ? "border-primary/40 bg-primary/10"
-                      : "border-gray-100 bg-gray-50/50 hover:border-primary/20 dark:border-white/5 dark:bg-black/10"
+                      : "border-gray-100 bg-gray-50/50 dark:border-white/5 dark:bg-black/10"
                   }`}
                 >
-                  <div className="mb-2 flex items-start justify-between gap-3">
-                    <h3 className="text-sm font-black text-gray-900 dark:text-white">{request.title}</h3>
-                    <span className="shrink-0 rounded-full bg-amber-500/10 px-2.5 py-1 text-[10px] font-black text-amber-500">
-                      {statusLabel(request.approvalStatus)}
-                    </span>
-                  </div>
-                  <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400">{request.instructorName}</p>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(request.id)}
+                    className="min-w-0 flex-1 rounded-2xl p-4 text-right"
+                  >
+                    <div className="mb-2 flex items-start justify-between gap-3">
+                      <h3 className="text-sm font-black text-gray-900 dark:text-white">{request.title}</h3>
+                      <span className="shrink-0 rounded-full bg-amber-500/10 px-2.5 py-1 text-[10px] font-black text-amber-500">
+                        {statusLabel(request.approvalStatus)}
+                      </span>
+                    </div>
+                    <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400">{request.instructorName}</p>
+                  </button>
+                  <Link
+                    href={`/admin/requests/courses/${encodeURIComponent(request.id)}/preview`}
+                    className="flex shrink-0 items-center justify-center rounded-2xl px-3 text-primary transition hover:bg-primary/10"
+                    title="مشاهده صفحه دوره"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Link>
+                </div>
               ))}
             </div>
           )}
@@ -288,6 +299,14 @@ export default function AdminCourseRequestsPage() {
                 <Detail label="قیمت" value={selectedRequest.price === 0 ? "رایگان" : `${selectedRequest.price.toLocaleString("fa-IR")} تومان`} />
                 <Detail label="تاریخ ارسال" value={formatDate(selectedRequest.submittedAt ?? selectedRequest.updatedAt)} />
               </div>
+
+              <Link
+                href={`/admin/requests/courses/${encodeURIComponent(selectedRequest.id)}/preview`}
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 px-5 text-xs font-black text-primary transition hover:border-primary/40 hover:bg-primary/15"
+              >
+                <BookOpenCheck className="h-4 w-4" />
+                مشاهده صفحه کامل دوره (پیش‌نمایش کاربر)
+              </Link>
 
               {message ? (
                 <div className="rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-xs font-black text-primary">

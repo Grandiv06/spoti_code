@@ -72,20 +72,23 @@ async function uniqueCourseSlug(base: string, currentCourseId?: string) {
   let suffix = 2;
 
   while (true) {
-    const existing = await prisma.course.findUnique({ where: { slug } });
-    if (!existing || existing.id === currentCourseId) return slug;
+    const rows = await prisma.$queryRaw<Array<{ id: string }>>`
+      SELECT "id" FROM "Course" WHERE "slug" = ${slug} LIMIT 1
+    `;
+    const existingId = rows[0]?.id;
+    if (!existingId || existingId === currentCourseId) return slug;
     slug = `${base}-${suffix}`;
     suffix += 1;
   }
 }
 
 function categoryTitle(category: InstructorCourseDraftDto["category"]) {
-  if (category === "backend") return "Backend";
-  if (category === "ai") return "AI";
-  if (category === "base") return "Frontend";
-  if (category === "mobile") return "Mobile";
-  if (category === "devops") return "DevOps";
-  return "Frontend";
+  if (category === "backend") return "بک‌اند";
+  if (category === "ai") return "هوش مصنوعی";
+  if (category === "base") return "مبانی";
+  if (category === "mobile") return "موبایل";
+  if (category === "devops") return "دواپس";
+  return "فرانت‌اند";
 }
 
 function difficultyLabel(level: InstructorCourseDraftDto["level"]) {
@@ -105,14 +108,21 @@ function publicChapters(input: InstructorCourseDraftDto) {
     title: chapter.title,
     subtitle: chapter.subtitle,
     number: chapter.number || String(chapterIndex + 1).padStart(2, "0"),
-    lessons: chapter.lessons.map((lesson) => ({
-      id: lesson.id,
-      title: lesson.title,
-      type: lesson.type || "video",
-      duration: lesson.duration,
-      isFree: input.isPaid === "free" || lesson.access === "free",
-      status: "published",
-    })),
+    lessons: chapter.lessons.map((lesson) => {
+      const isFree = input.isPaid === "free" || lesson.access === "free";
+      return {
+        id: lesson.id,
+        title: lesson.title,
+        type: lesson.type || "video",
+        duration: lesson.duration,
+        isFree,
+        isFreePreview: isFree,
+        isLocked: !isFree,
+        isUnlocked: isFree,
+        ...(lesson.videoUrl ? { videoUrl: lesson.videoUrl } : {}),
+        status: "published",
+      };
+    }),
   }));
 }
 
@@ -129,6 +139,51 @@ function parseDraftData(value: unknown): unknown {
     }
   }
   return value;
+}
+
+function mapApprovalListRow(row: CourseApprovalRow & { studentsCount?: number; revenue?: bigint | number | null; rating?: number | null }) {
+  const approvalStatus = normalizeApprovalStatus(row.approvalStatus);
+  return {
+    id: row.id,
+    courseId: row.id,
+    slug: row.slug,
+    title: row.title,
+    shortDescription: row.shortDescription,
+    description: row.description,
+    aboutDescription: row.aboutDescription ?? row.description,
+    category: row.category,
+    categoryTitle: row.categoryTitle,
+    instructorId: row.instructorId,
+    instructorName: row.instructorName,
+    instructor: row.instructorName,
+    cover: resolvePersistableCover(row.cover),
+    thumbnail: resolvePersistableCover(row.thumbnail, row.cover),
+    difficulty: row.difficulty,
+    level: row.level,
+    durationHours: row.durationHours,
+    price: row.price,
+    studentsCount: Number(row.studentsCount ?? 0),
+    revenue: Number(row.revenue ?? 0),
+    rating: Number(row.rating ?? 0),
+    status: row.status === "published" && approvalStatus === "approved" ? "published" : approvalStatus,
+    approvalStatus,
+    approvalStatusLabel:
+      approvalStatus === "approved"
+        ? "تایید شده"
+        : approvalStatus === "pending"
+          ? "در انتظار بررسی"
+          : approvalStatus === "rejected"
+            ? "رد شده"
+            : "پیش‌نویس",
+    draftStep: row.draftStep ?? 1,
+    specialWord: row.specialWord ?? "",
+    submittedAt: row.submittedAt,
+    approvedAt: row.approvedAt,
+    rejectedAt: row.rejectedAt,
+    approvalNote: row.approvalNote ?? "",
+    updatedAt: row.updatedAt,
+    createdAt: row.createdAt,
+  };
 }
 
 function mapApprovalRow(row: CourseApprovalRow) {
@@ -189,9 +244,13 @@ async function requireInstructor(user: User) {
 }
 
 async function findOwnedCourse(courseId: string, instructorId: string) {
-  const course = await prisma.course.findFirst({
-    where: { id: decodeURIComponent(courseId), instructorId },
-  });
+  const rows = await prisma.$queryRaw<Array<{ id: string; cover: string; introVideo: string | null }>>`
+    SELECT "id", "cover", "introVideo"
+    FROM "Course"
+    WHERE "id" = ${decodeURIComponent(courseId)} AND "instructorId" = ${instructorId}
+    LIMIT 1
+  `;
+  const course = rows[0];
   if (!course) throw new AuthError("دوره پیدا نشد یا دسترسی ندارید", 404);
   return course;
 }
@@ -292,6 +351,7 @@ export async function upsertInstructorCourseDraft(user: User, rawInput: unknown)
         chapters: publicChapters(input) as Prisma.InputJsonValue,
         faqs: input.faqs as Prisma.InputJsonValue,
         specialWord: JSON.stringify(input.specialWords),
+        draftData: draftJson(input) as Prisma.InputJsonValue,
       },
     });
   } else {
@@ -317,6 +377,7 @@ export async function upsertInstructorCourseDraft(user: User, rawInput: unknown)
         chapters: publicChapters(input) as Prisma.InputJsonValue,
         faqs: input.faqs as Prisma.InputJsonValue,
         specialWord: JSON.stringify(input.specialWords),
+        draftData: draftJson(input) as Prisma.InputJsonValue,
         status: "draft",
       },
     });
@@ -383,49 +444,94 @@ export async function submitInstructorCourseForPublish(user: User, courseId: str
   return readCourseRow(course.id);
 }
 
-export async function getAdminCourseRequests(user: User, filters: { status?: string; search?: string; sort?: string } = {}) {
+export async function getAdminCourseRequests(
+  user: User,
+  filters: { status?: string; search?: string; sort?: string; includeDraftPayload?: boolean } = {}
+) {
   await ensureCourseApprovalSchema();
   if (user.role !== "ADMIN") throw new AuthError("دسترسی ادمین لازم است", 403);
 
   const status = filters.status === "approved" || filters.status === "rejected" || filters.status === "draft" ? filters.status : "pending";
   const orderBy = filters.sort === "oldest" ? Prisma.sql`ASC` : Prisma.sql`DESC`;
-  const rows = await prisma.$queryRaw<CourseApprovalRow[]>`
-    SELECT
-      c."id",
-      c."slug",
-      c."title",
-      c."shortDescription",
-      c."description",
-      c."aboutDescription",
-      c."category",
-      c."categoryTitle",
-      c."instructorId",
-      i."name" as "instructorName",
-      c."cover",
-      c."thumbnail",
-      c."difficulty",
-      c."level",
-      c."durationHours",
-      c."price",
-      c."status",
-      c."approvalStatus",
-      c."draftStep",
-      CAST(c."draftData" AS TEXT) as "draftData",
-      c."submittedAt",
-      c."approvedAt",
-      c."rejectedAt",
-      c."approvalNote",
-      c."updatedAt",
-      c."createdAt"
-    FROM "Course" c
-    INNER JOIN "Instructor" i ON i."id" = c."instructorId"
-    WHERE c."approvalStatus" = ${status}
-    ORDER BY c."submittedAt" ${orderBy}, c."updatedAt" ${orderBy}
-  `;
+  const includeDraftPayload = filters.includeDraftPayload === true;
+  const rows = includeDraftPayload
+    ? await prisma.$queryRaw<CourseApprovalRow[]>`
+        SELECT
+          c."id",
+          c."slug",
+          c."title",
+          c."shortDescription",
+          c."description",
+          c."aboutDescription",
+          c."category",
+          c."categoryTitle",
+          c."instructorId",
+          i."name" as "instructorName",
+          c."cover",
+          c."thumbnail",
+          c."difficulty",
+          c."level",
+          c."durationHours",
+          c."price",
+          c."status",
+          c."approvalStatus",
+          c."draftStep",
+          CAST(c."draftData" AS TEXT) as "draftData",
+          c."introVideo",
+          CAST(c."chapters" AS TEXT) as "chapters",
+          CAST(c."faqs" AS TEXT) as "faqs",
+          c."specialWord",
+          c."submittedAt",
+          c."approvedAt",
+          c."rejectedAt",
+          c."approvalNote",
+          c."updatedAt",
+          c."createdAt"
+        FROM "Course" c
+        INNER JOIN "Instructor" i ON i."id" = c."instructorId"
+        WHERE c."approvalStatus" = ${status}
+        ORDER BY c."submittedAt" ${orderBy}, c."updatedAt" ${orderBy}
+      `
+    : await prisma.$queryRaw<Array<CourseApprovalRow & { studentsCount?: number; revenue?: bigint | number | null; rating?: number | null }>>`
+        SELECT
+          c."id",
+          c."slug",
+          c."title",
+          c."shortDescription",
+          c."description",
+          c."aboutDescription",
+          c."category",
+          c."categoryTitle",
+          c."instructorId",
+          i."name" as "instructorName",
+          c."cover",
+          c."thumbnail",
+          c."difficulty",
+          c."level",
+          c."durationHours",
+          c."price",
+          c."studentsCount",
+          c."revenue",
+          c."rating",
+          c."status",
+          c."approvalStatus",
+          c."draftStep",
+          c."specialWord",
+          c."submittedAt",
+          c."approvedAt",
+          c."rejectedAt",
+          c."approvalNote",
+          c."updatedAt",
+          c."createdAt"
+        FROM "Course" c
+        INNER JOIN "Instructor" i ON i."id" = c."instructorId"
+        WHERE c."approvalStatus" = ${status}
+        ORDER BY c."submittedAt" ${orderBy}, c."updatedAt" ${orderBy}
+      `;
 
   const query = filters.search?.trim().toLowerCase();
   const items = rows
-    .map(mapApprovalRow)
+    .map((row) => (includeDraftPayload ? mapApprovalRow(row) : mapApprovalListRow(row)))
     .filter((item) => !query || item.title.toLowerCase().includes(query) || item.instructorName.toLowerCase().includes(query));
 
   const statsRows = await prisma.$queryRaw<Array<{ approvalStatus: string | null; count: number | bigint | string }>>`

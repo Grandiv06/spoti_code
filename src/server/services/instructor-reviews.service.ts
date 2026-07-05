@@ -182,6 +182,13 @@ export async function replyToInstructorReview(
     });
   }
 
+  await prisma.$executeRaw`
+    UPDATE "Comment"
+    SET "approvalStatus" = 'approved'
+    WHERE "id" = ${review.id}
+      AND "approvalStatus" = 'pending'
+  `;
+
   const updated = await prisma.comment.findUnique({
     where: { id: review.id },
     include: {

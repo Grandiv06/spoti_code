@@ -8,40 +8,16 @@ export interface FAQItem {
   answer: string;
 }
 
-const MOCK_FAQS: FAQItem[] = [
-  {
-    id: "1",
-    question: "آیا پیش‌نیازی برای این دوره لازم است؟",
-    answer:
-      "بله، آشنایی با HTML، CSS و جاوااسکریپت پایه ضروری است. اگر تجربه‌ی کاری با React ندارید، پیشنهاد می‌کنیم ابتدا دوره مقدماتی React را بگذرانید.",
-  },
-  {
-    id: "2",
-    question: "دسترسی به محتوا چقدر طول می‌کشد؟",
-    answer:
-      "با ثبت‌نام در دوره، به صورت مادام‌العمر به تمام محتوا، ویدیوها و به‌روزرسانی‌های آینده دسترسی خواهید داشت.",
-  },
-  {
-    id: "3",
-    question: "آیا امکان دریافت مدرک وجود دارد؟",
-    answer:
-      "بله، پس از اتمام دوره و تکمیل پروژه‌های عملی، مدرک معتبر و قابل ترجمه برای شما صادر می‌شود.",
-  },
-  {
-    id: "4",
-    question: "نحوه پشتیبانی چگونه است؟",
-    answer:
-      "پشتیبانی از طریق گروه اختصاصی دیسکورد و تیکتینگ انجام می‌شود. تیم پشتیبانی در ساعات اداری پاسخگوی سوالات شماست.",
-  },
-];
 
 interface CourseFAQProps {
   items?: FAQItem[];
 }
 
-export default function CourseFAQ({ items = MOCK_FAQS }: CourseFAQProps) {
+export default function CourseFAQ({ items = [] }: CourseFAQProps) {
   const [isFAQVisible, setIsFAQVisible] = useState(true);
   const [openId, setOpenId] = useState<string | null>(null);
+
+  if (!items.length) return null;
 
   const toggle = (id: string) => {
     setOpenId((prev) => (prev === id ? null : id));

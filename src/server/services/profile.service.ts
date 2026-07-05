@@ -5,6 +5,7 @@ import {
   findUserProfileByUserId,
   upsertUserProfile,
 } from "@/server/repositories/profile.repository";
+import { resolveUserDisplayName } from "@/server/utils/user-display-name";
 
 function asOptionalString(value: unknown): string | null | undefined {
   if (value === undefined) return undefined;
@@ -32,14 +33,19 @@ function formatJoinDate(value: Date): string {
 }
 
 function mapProfile(user: User, profile: Awaited<ReturnType<typeof findUserProfileByUserId>>): PanelProfileDto {
-  const fullName = user.fullName?.trim() || "کاربر اسپاتی‌کد";
-  const occupation = profile?.occupation?.trim() || fullName;
+  const displayName = resolveUserDisplayName({
+    fullName: user.fullName,
+    phone: user.phone,
+    email: user.email,
+    profile,
+  });
+  const occupation = profile?.occupation?.trim() || displayName;
 
   return {
     id: profile?.id ?? `PRF-${user.id}`,
     userId: user.id,
-    fullName,
-    displayName: occupation,
+    fullName: displayName,
+    displayName,
     phone: user.phone,
     occupation,
     about: profile?.about?.trim() || "",
@@ -54,6 +60,19 @@ function mapProfile(user: User, profile: Awaited<ReturnType<typeof findUserProfi
     role: mapUserRoleLabel(user.role),
     joinDate: formatJoinDate(user.createdAt),
   };
+}
+
+export async function getPublicUserProfile(userId: string): Promise<PanelProfileDto | null> {
+  const normalizedId = decodeURIComponent(userId).trim();
+  if (!normalizedId) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: normalizedId },
+  });
+  if (!user) return null;
+
+  const profile = await findUserProfileByUserId(user.id);
+  return mapProfile(user, profile);
 }
 
 export async function getMyProfile(user: User): Promise<PanelProfileDto> {

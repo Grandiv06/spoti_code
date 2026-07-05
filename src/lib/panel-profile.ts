@@ -175,6 +175,13 @@ export async function fetchMyProfile(): Promise<Partial<ProfileSettings>> {
   return mapProfileResponseToSettings(response);
 }
 
+export async function fetchPublicProfile(userId: string): Promise<Partial<ProfileSettings>> {
+  const response = await apiGetNoMock<unknown>(
+    `/api/profiles/${encodeURIComponent(userId)}`
+  );
+  return mapProfileResponseToSettings(response);
+}
+
 export async function updateMyProfile(settings: ProfileSettings): Promise<Partial<ProfileSettings>> {
   const normalizedSettings = normalizeProfileSocials(settings);
   const response = await apiPutNoMock<unknown>(

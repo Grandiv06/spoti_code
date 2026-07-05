@@ -15,7 +15,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isAdminPage = pathname?.startsWith("/admin");
   const isInstructorPage =
     pathname === "/instructor" || pathname?.startsWith("/instructor/");
-  const isDashboardPage = isPanelPage || isAdminPage || isInstructorPage;
+  const isAdminCoursePreviewPage = /^\/admin\/requests\/courses\/[^/]+\/preview\/?$/.test(pathname ?? "");
+  const isDashboardPage =
+    (isPanelPage || isAdminPage || isInstructorPage) && !isAdminCoursePreviewPage;
 
   return (
     <div

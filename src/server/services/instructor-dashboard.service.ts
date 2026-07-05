@@ -182,6 +182,10 @@ function courseToDashboardRow(course: InstructorCourse, approval?: { approvalSta
     totalRevenue: toNumber(course.revenue),
     rating: course.rating,
     price: course.price,
+    level: course.level,
+    shortDescription: course.shortDescription ?? "",
+    durationHours: course.durationHours,
+    hours: course.durationHours,
     createdAt: course.createdAt.toISOString(),
     updatedAt: course.updatedAt.toISOString(),
   };

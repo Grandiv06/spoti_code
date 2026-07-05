@@ -25,6 +25,7 @@ export interface CourseHeroProps {
   };
   coverImage?: string;
   introVideo?: string;
+  introVideoDuration?: string;
   isPreviewActive?: boolean;
   activeVideoTitle?: string;
   activeVideoDuration?: string;
@@ -35,19 +36,20 @@ export interface CourseHeroProps {
 }
 
 export default function CourseHero({
-  title = "متخصص React و Next.js",
-  category = "فرانت‌اند",
-  level = "پیشرفته",
-  duration = "۶۵ ساعت",
-  rating = 4.9,
-  shortDescription = "مسیر صفر تا صد ورود به بازار کار جهانی. یادگیری عمیق هوک‌ها، SSR، و معماری مدرن وب با جدیدترین نسخه Next.js 14.",
+  title = "",
+  category = "",
+  level = "",
+  duration = "",
+  rating,
+  shortDescription = "",
   specialWords = {
-    highlighted: ["React"],
-    underlined: ["Next.js"],
+    highlighted: [],
+    underlined: [],
     color: "green",
   },
-  coverImage = "/images/course3.jpg",
+  coverImage = "",
   introVideo = "",
+  introVideoDuration = "",
   isPreviewActive = false,
   activeVideoTitle = "",
   activeVideoDuration = "",
@@ -60,7 +62,7 @@ export default function CourseHero({
   const [showControls, setShowControls] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   
-  // Use introVideo if provided, otherwise fallback to test video
+  // Use introVideo if provided, otherwise fallback to test video only when allowed
   const activeVideoUrl = introVideo || (disableFallbackVideo ? "" : TEST_VIDEO_URL);
   const [videoUrl, setVideoUrl] = useState(activeVideoUrl);
   const [videoError, setVideoError] = useState(false);
@@ -154,16 +156,18 @@ export default function CourseHero({
 
   // Helper to render title words with brand custom highlight & underline
   const renderTitle = () => {
-    const fullTitle = title || "متخصص React و Next.js";
-    const words = fullTitle.split(/(\s+)/); // split by spaces but keep delimiters
-    
-    const highlightedWords = specialWords?.highlighted || ["React"];
-    const underlinedWords = specialWords?.underlined || ["Next.js"];
+    if (!title.trim()) return null;
+
+    const highlightedWords = specialWords?.highlighted?.filter(Boolean) ?? [];
+    const underlinedWords = specialWords?.underlined?.filter(Boolean) ?? [];
     const highlightColor = specialWords?.color || "green";
 
-    // Map color names to brand colors
-    let colorClass = "text-primary dark:text-primary"; // green/brand
-    let underlineSvgClass = "text-primary opacity-60"; // green/brand svg
+    if (!highlightedWords.length && !underlinedWords.length) {
+      return title;
+    }
+
+    let colorClass = "text-primary dark:text-primary";
+    let underlineSvgClass = "text-primary opacity-60";
 
     if (highlightColor === "white") {
       colorClass = "text-white dark:text-white";
@@ -176,56 +180,63 @@ export default function CourseHero({
       underlineSvgClass = "text-blue-500 opacity-60";
     }
 
-    return words.map((word, index) => {
-      // Clean word from punctuation for exact match
-      const cleanWord = word.trim().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
-      
-      const isHighlighted = highlightedWords.some(
-        (h) => cleanWord && h.toLowerCase() === cleanWord.toLowerCase()
-      );
-      const isUnderlined = underlinedWords.some(
-        (u) => cleanWord && u.toLowerCase() === cleanWord.toLowerCase()
-      );
+    type StyledTerm = { text: string; kind: "highlight" | "underline" };
+    const terms: StyledTerm[] = [
+      ...highlightedWords.map((text) => ({ text, kind: "highlight" as const })),
+      ...underlinedWords.map((text) => ({ text, kind: "underline" as const })),
+    ].sort((a, b) => b.text.length - a.text.length);
 
-      if (isHighlighted) {
+    const kindByTerm = new Map<string, "highlight" | "underline">();
+    for (const term of terms) {
+      const key = term.text.toLowerCase();
+      if (term.kind === "highlight" || !kindByTerm.has(key)) {
+        kindByTerm.set(key, term.kind);
+      }
+    }
+
+    const pattern = terms
+      .map((term) => term.text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+      .join("|");
+    if (!pattern) return title;
+
+    const parts = title.split(new RegExp(`(${pattern})`, "gi"));
+
+    return parts.map((part, index) => {
+      const kind = kindByTerm.get(part.toLowerCase());
+      if (kind === "highlight") {
         return (
           <span key={index} className={`font-black drop-shadow-sm transition-all duration-300 ${colorClass}`}>
-            {word}
+            {part}
           </span>
         );
       }
-
-      if (isUnderlined) {
+      if (kind === "underline") {
         return (
           <span key={index} className="relative inline-block mt-2 sm:mt-0 font-black transition-all duration-300">
-            {word}
+            {part}
             <svg
               className={`absolute w-full h-2 md:h-3 -bottom-1 right-0 transition-all duration-300 ${underlineSvgClass}`}
               preserveAspectRatio="none"
               viewBox="0 0 100 10"
             >
-              <path
-                d="M0 5 Q 50 10 100 5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="8"
-              />
+              <path d="M0 5 Q 50 10 100 5" fill="none" stroke="currentColor" strokeWidth="8" />
             </svg>
           </span>
         );
       }
-
-      return <React.Fragment key={index}>{word}</React.Fragment>;
+      return <React.Fragment key={index}>{part}</React.Fragment>;
     });
   };
 
-  const displayLevel = level === "elementary" 
+  const displayLevel = level === "elementary" || level === "beginner"
     ? "مقدماتی" 
     : level === "intermediate" 
     ? "متوسط" 
     : level === "advanced" 
     ? "پیشرفته" 
     : level;
+
+  const displayDuration = introVideoDuration?.trim() || "";
 
   return (
     <div className={`glass-panel rounded-5xl mb-16 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1),0_10px_20px_-5px_rgba(0,0,0,0.04)] relative overflow-hidden group transition-all duration-700 ${
@@ -253,16 +264,18 @@ export default function CourseHero({
             <span className="bg-emerald-100/80 dark:bg-emerald-900/30 backdrop-blur-md text-emerald-700 dark:text-emerald-300 px-3 md:px-4 py-1.5 md:py-2 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-black uppercase tracking-wider border border-emerald-200 dark:border-emerald-700">
               {category}
             </span>
+            {typeof rating === "number" && rating > 0 ? (
             <span className="bg-amber-100/80 dark:bg-amber-900/30 backdrop-blur-md text-amber-700 dark:text-amber-300 px-3 md:px-4 py-1.5 md:py-2 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-black uppercase tracking-wider border border-amber-200 dark:border-amber-700 flex items-center gap-1">
               <span className="material-symbols-outlined text-[14px] md:text-[16px] filled">star</span>
               {rating}
             </span>
+            ) : null}
           </div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-black text-gray-900 dark:text-white leading-[1.3] md:leading-[1.2] mb-4 md:mb-8 text-right">
             {renderTitle()}
           </h1>
           <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base md:text-xl font-medium leading-loose max-w-xl mb-8 md:mb-10 text-justify md:text-right">
-            {shortDescription}
+            {shortDescription || null}
           </p>
           <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-6 md:gap-12 pt-6 md:pt-8 border-t border-gray-200 dark:border-gray-700 w-full">
             <div className="flex items-center gap-4 w-full sm:w-auto">
@@ -472,7 +485,9 @@ export default function CourseHero({
                   </span>
                 </div>
                 <span className="text-xs bg-white/20 px-3 py-1.5 rounded-xl font-mono dir-ltr">
-                  {isPreviewActive && activeVideoDuration ? activeVideoDuration : "05:34"}
+                  {isPreviewActive && activeVideoDuration
+                    ? activeVideoDuration
+                    : displayDuration || null}
                 </span>
               </div>
             </div>

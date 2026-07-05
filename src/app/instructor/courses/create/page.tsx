@@ -31,6 +31,7 @@ import {
   Video,
   Plus,
   Trash2,
+  Pencil,
   X,
   AlertCircle,
   HelpCircle,
@@ -51,6 +52,8 @@ import CourseFAQ from "@/app/components/CourseFAQ";
 import CustomSelect from "@/components/ui/CustomSelect";
 import HighlightableTextareaWithBadges from "@/components/ui/HighlightableTextareaWithBadges";
 import { apiGetNoMock, apiPatchNoMock, apiPostNoMock } from "@/lib/api";
+import { uploadCourseMediaFile } from "@/lib/course-media-upload";
+import VideoPreviewModal from "@/app/instructor/courses/create/_components/VideoPreviewModal";
 import {
   CreateCourseCategory,
   CreateCourseDifficulty,
@@ -72,6 +75,7 @@ type LessonModel = {
   duration: string;
   type: string;
   access: "free" | "locked";
+  videoUrl?: string;
 };
 
 type ChapterModel = {
@@ -131,7 +135,7 @@ type LessonRowActions = {
   onOpenFilesModal: (lessonId: string) => void;
   onOpenDescriptionEditor: (lessonId: string) => void;
   onUploadVideo: (lessonId: string, file?: File) => void;
-  onOpenVideo: (url: string) => void;
+  onOpenVideo: (url: string, title?: string) => void;
   onRequestDeleteVideo: (lessonId: string) => void;
   onRequestDeleteLesson: (chapterId: string, lessonId: string) => void;
 };
@@ -292,10 +296,10 @@ function SortableLessonRow({
             <>
               <button
                 type="button"
-                onClick={() => actions.onOpenVideo(lessonVideo.url)}
+                onClick={() => actions.onOpenVideo(lessonVideo.url, lessonVideo.name || lesson.title)}
                 className="h-6 px-2 inline-flex items-center justify-center rounded-md border border-emerald-200/80 dark:border-emerald-400/20 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all text-[8px] font-black cursor-pointer"
               >
-                ویدیو
+                پیش‌نمایش
               </button>
               <button
                 type="button"
@@ -672,7 +676,7 @@ export default function CreateCourseWizardPage() {
             setCoverProgress(100);
           }
           if (mergedIntroVideo) {
-            setVideoProgress(100);
+            setVideoFile(null);
           }
           setFormData((prev) =>
             mergeDraftIntoWizardForm(prev, draftData, {
@@ -683,6 +687,20 @@ export default function CreateCourseWizardPage() {
               introVideo: data.introVideo,
             })
           );
+          const restoredLessonVideos: Record<string, { name: string; url: string }> = {};
+          const chapterSource = Array.isArray(draftData.chapters) ? draftData.chapters : [];
+          for (const chapter of chapterSource) {
+            if (!chapter || typeof chapter !== "object" || !Array.isArray((chapter as ChapterModel).lessons)) continue;
+            for (const lesson of (chapter as ChapterModel).lessons) {
+              const url = typeof lesson.videoUrl === "string" ? lesson.videoUrl.trim() : "";
+              if (url && !url.startsWith("blob:")) {
+                restoredLessonVideos[lesson.id] = { name: lesson.title, url };
+              }
+            }
+          }
+          if (Object.keys(restoredLessonVideos).length > 0) {
+            setLessonVideoMap(restoredLessonVideos);
+          }
         }
       })
       .catch(() => {
@@ -699,7 +717,6 @@ export default function CreateCourseWizardPage() {
   // Upload Progress Simulators
   const [coverProgress, setCoverProgress] = useState(0);
   const [coverFile, setCoverFile] = useState<File | null>(null);
-  const [videoProgress, setVideoProgress] = useState(0);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const videoObjectUrlRef = useRef<string | null>(null);
 
@@ -735,6 +752,8 @@ export default function CreateCourseWizardPage() {
   const [editingChapterTitleId, setEditingChapterTitleId] = useState<string | null>(null);
   const [lessonUploadProgress, setLessonUploadProgress] = useState<Record<string, number>>({});
   const [lessonVideoMap, setLessonVideoMap] = useState<Record<string, { name: string; url: string }>>({});
+  const lessonVideoFilesRef = useRef<Record<string, File>>({});
+  const [videoPreview, setVideoPreview] = useState<{ url: string; title: string } | null>(null);
   const [lessonFileMap, setLessonFileMap] = useState<Record<string, { id: string; name: string; url: string }[]>>({});
   const [lessonDescriptionMap, setLessonDescriptionMap] = useState<Record<string, string>>({});
   const [lessonDescriptionEditor, setLessonDescriptionEditor] = useState<{
@@ -915,28 +934,95 @@ export default function CreateCourseWizardPage() {
     return typeof candidate === "string" ? candidate : "";
   };
 
-  const buildCourseDraftPayload = (currentStep = step) => ({
+  const buildCourseDraftPayload = (currentStep = step, overrides?: Partial<WizardFormData>) => {
+    const source = { ...formData, ...overrides };
+    return {
     courseId: createdCourseId ?? undefined,
     step: currentStep,
-    title: formData.title,
-    category: mapCategoryToApi(formData.category),
-    level: mapLevelToLocal(mapLevelToApi(formData.level)),
-    language: formData.language,
-    duration: formData.duration,
-    price: formData.isPaid === "free" ? 0 : formData.price,
-    isPaid: formData.isPaid,
-    cover: formData.cover,
-    introVideo: formData.introVideo,
-    shortDescription: formData.shortDescription,
-    heroTitle: formData.heroTitle,
-    specialWords: formData.specialWords,
-    aboutTitle: formData.aboutTitle,
-    aboutDescription: formData.aboutDescription,
-    aboutHighlights: formData.aboutHighlights,
-    features: formData.features,
-    chapters: formData.chapters,
-    faqs: formData.faqs,
-  });
+    title: source.title,
+    category: mapCategoryToApi(source.category),
+    level: mapLevelToLocal(mapLevelToApi(source.level)),
+    language: source.language,
+    duration: source.duration,
+    price: source.isPaid === "free" ? 0 : source.price,
+    isPaid: source.isPaid,
+    cover: source.cover,
+    introVideo: source.introVideo,
+    shortDescription: source.shortDescription,
+    heroTitle: source.heroTitle,
+    specialWords: source.specialWords,
+    aboutTitle: source.aboutTitle,
+    aboutDescription: source.aboutDescription,
+    aboutHighlights: source.aboutHighlights,
+    features: source.features,
+    chapters: source.chapters,
+    faqs: source.faqs,
+  };
+  };
+
+  const applyLessonVideoUrl = (lessonId: string, url: string, fileName: string) => {
+    setLessonVideoMap((prev) => ({ ...prev, [lessonId]: { name: fileName, url } }));
+    setFormData((prev) => ({
+      ...prev,
+      chapters: prev.chapters.map((chapter) => ({
+        ...chapter,
+        lessons: chapter.lessons.map((lesson) =>
+          lesson.id === lessonId ? { ...lesson, videoUrl: url } : lesson
+        ),
+      })),
+    }));
+  };
+
+  const uploadPendingCourseMedia = async (courseId: string): Promise<Partial<WizardFormData>> => {
+    let nextIntroVideo = formData.introVideo;
+    let nextChapters = formData.chapters;
+    let uploaded = false;
+
+    if (videoFile && (!nextIntroVideo || nextIntroVideo.startsWith("blob:"))) {
+      nextIntroVideo = await uploadCourseMediaFile(courseId, videoFile, "intro");
+      if (videoObjectUrlRef.current?.startsWith("blob:")) {
+        URL.revokeObjectURL(videoObjectUrlRef.current);
+      }
+      videoObjectUrlRef.current = nextIntroVideo;
+      uploaded = true;
+    }
+
+    const pendingLessonFiles = { ...lessonVideoFilesRef.current };
+    for (const [lessonId, file] of Object.entries(pendingLessonFiles)) {
+      const currentLesson = nextChapters
+        .flatMap((chapter) => chapter.lessons)
+        .find((lesson) => lesson.id === lessonId);
+      const currentUrl = currentLesson?.videoUrl ?? lessonVideoMap[lessonId]?.url ?? "";
+      if (currentUrl && !currentUrl.startsWith("blob:")) {
+        delete lessonVideoFilesRef.current[lessonId];
+        continue;
+      }
+
+      const uploadedUrl = await uploadCourseMediaFile(courseId, file, "lesson", lessonId);
+      if (lessonVideoMap[lessonId]?.url?.startsWith("blob:")) {
+        URL.revokeObjectURL(lessonVideoMap[lessonId].url);
+      }
+      nextChapters = nextChapters.map((chapter) => ({
+        ...chapter,
+        lessons: chapter.lessons.map((lesson) =>
+          lesson.id === lessonId ? { ...lesson, videoUrl: uploadedUrl } : lesson
+        ),
+      }));
+      setLessonVideoMap((prev) => ({ ...prev, [lessonId]: { name: file.name, url: uploadedUrl } }));
+      delete lessonVideoFilesRef.current[lessonId];
+      uploaded = true;
+    }
+
+    if (uploaded) {
+      setFormData((prev) => ({
+        ...prev,
+        introVideo: nextIntroVideo,
+        chapters: nextChapters,
+      }));
+    }
+
+    return uploaded ? { introVideo: nextIntroVideo, chapters: nextChapters } : {};
+  };
 
   const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -975,34 +1061,41 @@ export default function CreateCourseWizardPage() {
     }, 80);
   };
 
-  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     markFormEdited();
-    if (videoObjectUrlRef.current) {
+    if (videoObjectUrlRef.current?.startsWith("blob:")) {
       URL.revokeObjectURL(videoObjectUrlRef.current);
       videoObjectUrlRef.current = null;
     }
 
     setVideoFile(file);
-    setVideoProgress(10);
     const previewUrl = URL.createObjectURL(file);
     videoObjectUrlRef.current = previewUrl;
+    setFormData((prev) => ({ ...prev, introVideo: previewUrl }));
 
-    const interval = window.setInterval(() => {
-      setVideoProgress((prev) => {
-        if (prev >= 90) {
-          window.clearInterval(interval);
-          setFormData((prevData) => ({
-            ...prevData,
-            introVideo: previewUrl,
-          }));
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 100);
+    if (createdCourseId) {
+      try {
+        const uploadedUrl = await uploadCourseMediaFile(createdCourseId, file, "intro");
+        URL.revokeObjectURL(previewUrl);
+        videoObjectUrlRef.current = uploadedUrl;
+        setFormData((prev) => ({ ...prev, introVideo: uploadedUrl }));
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "آپلود ویدیوی معرفی انجام نشد.", "error");
+      }
+    }
+  };
+
+  const clearIntroVideo = () => {
+    markFormEdited();
+    setVideoFile(null);
+    if (videoObjectUrlRef.current) {
+      URL.revokeObjectURL(videoObjectUrlRef.current);
+      videoObjectUrlRef.current = null;
+    }
+    setFormData((prev) => ({ ...prev, introVideo: "" }));
   };
 
   useEffect(() => {
@@ -1382,39 +1475,51 @@ export default function CreateCourseWizardPage() {
     }));
   };
 
-  const handleLessonVideoUpload = (lessonId: string, file?: File) => {
+  const handleLessonVideoUpload = async (lessonId: string, file?: File) => {
     if (!file) return;
-    const videoUrl = URL.createObjectURL(file);
-    setLessonUploadProgress((prev) => ({ ...prev, [lessonId]: 0 }));
 
-    const interval = setInterval(() => {
-      setLessonUploadProgress((prev) => {
-        const current = prev[lessonId] ?? 0;
-        const next = Math.min(current + 10, 100);
-        if (next >= 100) {
-          clearInterval(interval);
-          setLessonVideoMap((v) => ({ ...v, [lessonId]: { name: file.name, url: videoUrl } }));
-          setTimeout(() => {
-            setLessonUploadProgress((after) => {
-              const copy = { ...after };
-              delete copy[lessonId];
-              return copy;
-            });
-          }, 800);
-        }
-        return { ...prev, [lessonId]: next };
-      });
-    }, 120);
+    markFormEdited();
+    lessonVideoFilesRef.current[lessonId] = file;
+    const previewUrl = URL.createObjectURL(file);
+    setLessonVideoMap((prev) => {
+      const existing = prev[lessonId];
+      if (existing?.url?.startsWith("blob:")) {
+        URL.revokeObjectURL(existing.url);
+      }
+      return { ...prev, [lessonId]: { name: file.name, url: previewUrl } };
+    });
+    applyLessonVideoUrl(lessonId, previewUrl, file.name);
+
+    if (createdCourseId) {
+      try {
+        const uploadedUrl = await uploadCourseMediaFile(createdCourseId, file, "lesson", lessonId);
+        URL.revokeObjectURL(previewUrl);
+        delete lessonVideoFilesRef.current[lessonId];
+        applyLessonVideoUrl(lessonId, uploadedUrl, file.name);
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "آپلود ویدیوی جلسه انجام نشد.", "error");
+      }
+    }
   };
 
   const removeLessonVideo = (lessonId: string) => {
     setLessonVideoMap((prev) => {
       const target = prev[lessonId];
-      if (target?.url) URL.revokeObjectURL(target.url);
+      if (target?.url?.startsWith("blob:")) URL.revokeObjectURL(target.url);
       const copy = { ...prev };
       delete copy[lessonId];
       return copy;
     });
+    delete lessonVideoFilesRef.current[lessonId];
+    setFormData((prev) => ({
+      ...prev,
+      chapters: prev.chapters.map((chapter) => ({
+        ...chapter,
+        lessons: chapter.lessons.map((lesson) =>
+          lesson.id === lessonId ? { ...lesson, videoUrl: undefined } : lesson
+        ),
+      })),
+    }));
   };
 
   const lessonRowActions: LessonRowActions = {
@@ -1433,7 +1538,7 @@ export default function CreateCourseWizardPage() {
         value: lessonDescriptionMap[lessonId] || "",
       }),
     onUploadVideo: handleLessonVideoUpload,
-    onOpenVideo: (url) => window.open(url, "_blank", "noopener,noreferrer"),
+    onOpenVideo: (url, title) => setVideoPreview({ url, title: title || "پیش‌نمایش ویدیو" }),
     onRequestDeleteVideo: (lessonId) =>
       openDeleteConfirm("حذف ویدیوی آپلود شده", "آیا از حذف این فایل ویدیو مطمئن هستید؟", () => removeLessonVideo(lessonId)),
     onRequestDeleteLesson: (chapterId, lessonId) =>
@@ -1603,12 +1708,25 @@ export default function CreateCourseWizardPage() {
 
   // Navigation handlers
   const persistCourseDraft = async (currentStep = step): Promise<string | null> => {
-    const response = await apiPostNoMock<unknown>(
+    let mediaOverrides: Partial<WizardFormData> = {};
+    const initialResponse = await apiPostNoMock<unknown>(
       "/api/instructor-dashboard/courses/drafts",
-      buildCourseDraftPayload(currentStep)
+      buildCourseDraftPayload(currentStep, mediaOverrides)
     );
-    const apiCourseId = extractCourseId(response);
-    const courseId = apiCourseId || createdCourseId;
+    const courseId = extractCourseId(initialResponse) || createdCourseId;
+
+    if (!courseId) {
+      return null;
+    }
+
+    mediaOverrides = await uploadPendingCourseMedia(courseId);
+    if (Object.keys(mediaOverrides).length > 0) {
+      await apiPostNoMock<unknown>(
+        "/api/instructor-dashboard/courses/drafts",
+        buildCourseDraftPayload(currentStep, mediaOverrides)
+      );
+    }
+
     const payload = buildStep1CoursePayload();
 
     if (courseId) {
@@ -1731,15 +1849,21 @@ export default function CreateCourseWizardPage() {
 
     try {
       setIsSavingStep1(true);
-      const response = await apiPostNoMock<unknown>(
+      const initialResponse = await apiPostNoMock<unknown>(
         "/api/instructor-dashboard/courses/drafts",
         buildCourseDraftPayload(5)
       );
-      const apiCourseId = extractCourseId(response);
-      const courseId = apiCourseId || createdCourseId;
-
+      const courseId = extractCourseId(initialResponse) || createdCourseId;
       if (!courseId) {
         throw new Error("شناسه دوره از سرور دریافت نشد.");
+      }
+
+      const mediaOverrides = await uploadPendingCourseMedia(courseId);
+      if (Object.keys(mediaOverrides).length > 0) {
+        await apiPostNoMock<unknown>(
+          "/api/instructor-dashboard/courses/drafts",
+          buildCourseDraftPayload(5, mediaOverrides)
+        );
       }
 
       if (status === "pending" || status === "published") {
@@ -2231,62 +2355,58 @@ export default function CreateCourseWizardPage() {
                   {errors.shortDescription && <span className="text-[10px] text-red-500 font-bold">{errors.shortDescription}</span>}
                 </div>
 
-                {/* Intro Video Upload (Mock) */}
+                {/* Intro Video Upload */}
                 <div className="flex flex-col gap-3">
                   <label className="text-xs font-bold text-gray-700 dark:text-gray-300">ویدیوی معرفی دوره</label>
-                  <div className={`relative ${WIZARD_DROPZONE_CLASS} p-5 flex flex-col items-center justify-center min-h-[130px] text-center`}>
-                    <input
-                      type="file"
-                      accept="video/*"
-                      onChange={handleVideoUpload}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                    />
-                    {videoProgress === 0 ? (
-                      <>
-                        <UploadCloud className="w-10 h-10 text-gray-400 mb-2" />
-                        <p className="text-[11px] font-black text-gray-700 dark:text-gray-300 mb-1">
-                          انتخاب یا رها کردن ویدیوی پیش‌نمایش
+                  {formData.introVideo ? (
+                    <div className="overflow-hidden rounded-2xl border border-emerald-500/20 bg-black shadow-sm">
+                      <video
+                        key={formData.introVideo}
+                        src={formData.introVideo}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        className="max-h-56 w-full object-contain bg-black"
+                      />
+                      <div className="flex items-center justify-between gap-3 border-t border-emerald-500/10 bg-gray-50 px-4 py-3 dark:bg-white/5">
+                        <p className="truncate text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                          {videoFile?.name || "ویدیوی معرفی بارگذاری شد"}
                         </p>
-                        <p className="text-[9px] text-gray-400 font-bold">MP4, MKV حداکثر ۵۰ مگابایت</p>
-                      </>
-                    ) : videoProgress < 100 ? (
-                      <div className="w-full space-y-2 px-4 z-20">
-                        <Video className="w-8 h-8 text-primary mx-auto animate-pulse" />
-                        <div className="flex justify-between text-[9px] text-gray-400 font-bold">
-                          <span>درحال آپلود...</span>
-                          <span>{videoProgress}٪</span>
-                        </div>
-                        <div className="w-full h-1.5 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
-                          <div className="h-full bg-primary" style={{ width: `${videoProgress}%` }} />
+                        <div className="flex shrink-0 items-center gap-2">
+                          <label className="cursor-pointer rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-[10px] font-bold text-gray-700 transition-colors hover:border-primary/30 hover:text-primary dark:border-white/10 dark:bg-white/5 dark:text-gray-200">
+                            تغییر
+                            <input
+                              type="file"
+                              accept="video/*"
+                              onChange={handleVideoUpload}
+                              className="hidden"
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={clearIntroVideo}
+                            className="rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-[10px] font-bold text-red-500 transition-colors hover:bg-red-100 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
+                          >
+                            حذف
+                          </button>
                         </div>
                       </div>
-                    ) : (
-                      <div className="relative w-full h-full flex flex-col items-center justify-center p-2 z-20">
-                        <Video className="w-10 h-10 text-emerald-500 mb-2" />
-                        <p className="text-[9px] text-emerald-500 font-bold flex items-center gap-1">
-                          <Check className="w-4 h-4" />
-                          <span>{videoFile?.name} ({Math.round((videoFile?.size || 0)/1024/1024)} MB)</span>
-                        </p>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            markFormEdited();
-                            setVideoProgress(0);
-                            setVideoFile(null);
-                            if (videoObjectUrlRef.current) {
-                              URL.revokeObjectURL(videoObjectUrlRef.current);
-                              videoObjectUrlRef.current = null;
-                            }
-                            setFormData((p) => ({ ...p, introVideo: "" }));
-                          }}
-                          className="absolute top-2 left-2 p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors z-30 cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <div className={`relative ${WIZARD_DROPZONE_CLASS} flex min-h-[130px] flex-col items-center justify-center p-5 text-center`}>
+                      <input
+                        type="file"
+                        accept="video/*"
+                        onChange={handleVideoUpload}
+                        className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+                      />
+                      <UploadCloud className="mb-2 h-10 w-10 text-gray-400" />
+                      <p className="mb-1 text-[11px] font-black text-gray-700 dark:text-gray-300">
+                        انتخاب یا رها کردن ویدیوی پیش‌نمایش
+                      </p>
+                      <p className="text-[9px] font-bold text-gray-400">MP4, MKV حداکثر ۵۰ مگابایت</p>
+                    </div>
+                  )}
                 </div>
 
               </div>
@@ -2405,10 +2525,10 @@ export default function CreateCourseWizardPage() {
                           <span>{feat.title}</span>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
-                          <button type="button" onClick={() => editFeature(feat)} className="inline-flex size-8 items-center justify-center rounded-lg text-blue-500 hover:bg-gray-100 dark:hover:bg-white/5">
-                            <span className="material-symbols-outlined text-[16px]">edit</span>
+                          <button type="button" onClick={() => editFeature(feat)} className="inline-flex size-8 items-center justify-center rounded-lg text-blue-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
+                            <Pencil className="w-3.5 h-3.5" />
                           </button>
-                          <button type="button" onClick={() => openDeleteConfirm("حذف ویژگی", "آیا مطمئن هستید که می‌خواهید این ویژگی حذف شود؟", () => deleteFeature(feat.id))} className="inline-flex size-8 items-center justify-center rounded-lg text-red-500 hover:bg-gray-100 dark:hover:bg-white/5">
+                          <button type="button" onClick={() => openDeleteConfirm("حذف ویژگی", "آیا مطمئن هستید که می‌خواهید این ویژگی حذف شود؟", () => deleteFeature(feat.id))} className="inline-flex size-8 items-center justify-center rounded-lg text-red-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -3086,9 +3206,19 @@ export default function CreateCourseWizardPage() {
                                       </div>
                                       <div className="flex items-center gap-1.5 shrink-0">
                                         {lessonVideoMap[lesson.id] ? (
-                                          <span className="size-8 rounded-xl inline-flex items-center justify-center bg-blue-500/10 text-blue-400">
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              setVideoPreview({
+                                                url: lessonVideoMap[lesson.id].url,
+                                                title: lesson.title || lessonVideoMap[lesson.id].name,
+                                              })
+                                            }
+                                            className="size-8 rounded-xl inline-flex items-center justify-center bg-blue-500/10 text-blue-400 transition-colors hover:bg-blue-500/20"
+                                            title="پیش‌نمایش ویدیو"
+                                          >
                                             <Video className="w-4 h-4" />
-                                          </span>
+                                          </button>
                                         ) : null}
                                         {(lessonFileMap[lesson.id]?.length || 0) > 0 ? (
                                           <span className="size-8 rounded-xl inline-flex items-center justify-center bg-amber-500/10 text-amber-400 text-[9px] font-black">
@@ -3381,6 +3511,13 @@ export default function CreateCourseWizardPage() {
           </div>
         </div>
       )}
+
+      <VideoPreviewModal
+        open={Boolean(videoPreview)}
+        title={videoPreview?.title || "پیش‌نمایش ویدیو"}
+        videoUrl={videoPreview?.url || ""}
+        onClose={() => setVideoPreview(null)}
+      />
 
     </div>
   );

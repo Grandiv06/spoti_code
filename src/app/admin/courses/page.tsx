@@ -48,25 +48,17 @@ export default function AdminCoursesPage() {
   const router = useRouter();
 
   const [courses, setCourses] = useState<Course[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
 
   const { data, isPending, isFetching, isError, error, refetch } = useAdminCoursesQuery();
 
   useEffect(() => {
     if (data) {
       setCourses(data);
-      setIsLoaded(true);
     }
   }, [data]);
 
   const isLoadingCourses = isPending || isFetching;
   const showCoursesContent = !isError || courses.length > 0;
-
-  useEffect(() => {
-    if (isLoaded) {
-      localStorage.setItem("spoticode_admin_courses", JSON.stringify(courses));
-    }
-  }, [courses, isLoaded]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");

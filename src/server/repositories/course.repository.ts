@@ -1,5 +1,31 @@
-import type { CourseCategory } from "@prisma/client";
+import type { CourseCategory, Prisma } from "@prisma/client";
 import { prisma } from "@/server/db/prisma";
+
+function parseJsonColumn(value: unknown): Prisma.JsonValue | null {
+  if (value == null) return null;
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value) as Prisma.JsonValue;
+    } catch {
+      return null;
+    }
+  }
+  return value as Prisma.JsonValue;
+}
+
+async function attachDraftData<T extends { id: string }>(course: T) {
+  const [row] = await prisma.$queryRaw<Array<{ draftData: unknown }>>`
+    SELECT CAST("draftData" AS TEXT) as "draftData"
+    FROM "Course"
+    WHERE "id" = ${course.id}
+    LIMIT 1
+  `;
+
+  return {
+    ...course,
+    draftData: parseJsonColumn(row?.draftData),
+  };
+}
 
 export interface FindPublishedCoursesParams {
   page: number;
@@ -43,18 +69,66 @@ export async function findPublishedCourses({
 }
 
 export async function findPublishedCourseBySlug(slug: string) {
-  return prisma.course.findFirst({
+  const course = await prisma.course.findFirst({
     where: { slug, status: "published" },
     include: { instructor: true },
   });
+  if (!course) return null;
+  return attachDraftData(course);
 }
 
 export async function findPublishedCourseById(id: string) {
-  return prisma.course.findFirst({
+  const course = await prisma.course.findFirst({
     where: {
       status: "published",
       OR: [{ id }, { slug: id }],
     },
     include: { instructor: true },
   });
+  if (!course) return null;
+  return attachDraftData(course);
+}
+
+export async function findCourseByIdForAdminPreview(courseId: string) {
+  const normalizedId = decodeURIComponent(courseId).trim();
+  if (!normalizedId) return null;
+
+  const course = await prisma.course.findFirst({
+    where: {
+      OR: [{ id: normalizedId }, { slug: normalizedId }],
+    },
+    include: { instructor: true },
+  });
+  if (!course) return null;
+
+  const [approvalRow] = await prisma.$queryRaw<
+    Array<{
+      approvalStatus: string | null;
+      submittedAt: Date | null;
+      approvedAt: Date | null;
+      rejectedAt: Date | null;
+      approvalNote: string | null;
+    }>
+  >`
+    SELECT
+      "approvalStatus",
+      "submittedAt",
+      "approvedAt",
+      "rejectedAt",
+      "approvalNote"
+    FROM "Course"
+    WHERE "id" = ${course.id}
+    LIMIT 1
+  `;
+
+  const withDraft = await attachDraftData(course);
+
+  return {
+    ...withDraft,
+    approvalStatus: approvalRow?.approvalStatus ?? "draft",
+    submittedAt: approvalRow?.submittedAt ?? null,
+    approvedAt: approvalRow?.approvedAt ?? null,
+    rejectedAt: approvalRow?.rejectedAt ?? null,
+    approvalNote: approvalRow?.approvalNote ?? null,
+  };
 }

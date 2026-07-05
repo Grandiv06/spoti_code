@@ -1,4 +1,5 @@
-import type { CourseCategory } from "@prisma/client";
+import type { User } from "@prisma/client";
+import { AuthError } from "@/server/auth/request-auth";
 import { toPublicCourseDetailDto } from "@/server/dto/public-course-detail.dto";
 import {
   toPublicCourseListItemDto,
@@ -6,6 +7,7 @@ import {
   type PublicCourseListResponseDto,
 } from "@/server/dto/public-course.dto";
 import {
+  findCourseByIdForAdminPreview,
   findPublishedCourseById,
   findPublishedCourseBySlug,
   findPublishedCourses,
@@ -62,4 +64,39 @@ export async function getPublicCourseById(id: string) {
   const course = await findPublishedCourseById(id.trim());
   if (!course) return null;
   return { data: toPublicCourseDetailDto(course) };
+}
+
+export type AdminCoursePreviewMetaDto = {
+  course: ReturnType<typeof toPublicCourseDetailDto>;
+  approvalStatus: "draft" | "pending" | "approved" | "rejected";
+  submittedAt?: string | null;
+  approvedAt?: string | null;
+  rejectedAt?: string | null;
+  approvalNote?: string | null;
+  instructorName: string;
+};
+
+export async function getAdminCoursePreview(user: User, courseId: string): Promise<AdminCoursePreviewMetaDto | null> {
+  if (user.role !== "ADMIN") {
+    throw new AuthError("دسترسی ادمین لازم است", 403);
+  }
+
+  const course = await findCourseByIdForAdminPreview(courseId);
+  if (!course) return null;
+
+  const approvalStatus = course.approvalStatus;
+  const normalizedStatus =
+    approvalStatus === "approved" || approvalStatus === "rejected" || approvalStatus === "draft"
+      ? approvalStatus
+      : "pending";
+
+  return {
+    course: toPublicCourseDetailDto(course),
+    approvalStatus: normalizedStatus,
+    submittedAt: course.submittedAt?.toISOString() ?? null,
+    approvedAt: course.approvedAt?.toISOString() ?? null,
+    rejectedAt: course.rejectedAt?.toISOString() ?? null,
+    approvalNote: course.approvalNote ?? null,
+    instructorName: course.instructor.name,
+  };
 }

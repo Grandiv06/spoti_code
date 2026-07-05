@@ -15,7 +15,15 @@ export async function findCourseCommentsByCourseId(
     "courseId" = ${courseId}
     AND "parentId" IS NULL
     AND "rating" IS NOT NULL
-    AND "approvalStatus" = 'approved'
+    AND (
+      "approvalStatus" = 'approved'
+      OR EXISTS (
+        SELECT 1
+        FROM "Comment" AS instructor_reply
+        WHERE instructor_reply."parentId" = "Comment"."id"
+          AND instructor_reply."isInstructorReply" = true
+      )
+    )
   `;
 
   const [idRows, countRows] = await Promise.all([

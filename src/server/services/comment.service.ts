@@ -11,6 +11,8 @@ import {
   findCourseCommentsByCourseId,
   findPublishedCourseId,
 } from "@/server/repositories/comment.repository";
+import { prisma } from "@/server/db/prisma";
+import { resolveUserDisplayName } from "@/server/utils/user-display-name";
 
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
@@ -81,6 +83,28 @@ function canCreateStandaloneCourseReview(user?: User | null) {
   return user?.role !== "ADMIN" && user?.role !== "INSTRUCTOR";
 }
 
+async function resolveCommentAuthor(user: User) {
+  const freshUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    include: { profile: true },
+  });
+
+  if (!freshUser) {
+    throw new AuthError("کاربر پیدا نشد", 404);
+  }
+
+  return {
+    authorId: freshUser.id,
+    authorName: resolveUserDisplayName({
+      fullName: freshUser.fullName,
+      phone: freshUser.phone,
+      email: freshUser.email,
+      profile: freshUser.profile,
+    }),
+    authorAvatar: freshUser.profile?.image?.trim() || "/images/student1.jpg",
+  };
+}
+
 export async function createPublicCourseCommentForUser(input: CreateCourseCommentInputDto, user?: User | null) {
   if (input.commentableType !== "course") {
     throw new Error("نوع نظر پشتیبانی نمی‌شود");
@@ -90,6 +114,10 @@ export async function createPublicCourseCommentForUser(input: CreateCourseCommen
   if (!courseId) return null;
 
   const parentId = typeof input.parentId === "string" && input.parentId.trim() ? input.parentId.trim() : undefined;
+
+  if (!parentId && !user) {
+    throw new AuthError("برای ثبت نظر باید وارد حساب کاربری شوید", 401);
+  }
 
   if (!parentId && !canCreateStandaloneCourseReview(user)) {
     throw new AuthError("ادمین و مدرس امکان ثبت نظر مستقل برای دوره را ندارند و فقط می‌توانند به نظرها پاسخ دهند.", 403);
@@ -102,17 +130,34 @@ export async function createPublicCourseCommentForUser(input: CreateCourseCommen
     }
   }
 
+  const author = user
+    ? await resolveCommentAuthor(user)
+    : {
+        authorId: undefined,
+        authorName: "کاربر اسپاتی‌کد",
+        authorAvatar: "/images/student1.jpg",
+      };
+
   const comment = await createCourseComment({
     courseId,
     content: input.content.trim(),
     parentId,
     rating: parentId ? undefined : input.rating,
-    authorId: user?.id,
-    authorName: user?.fullName?.trim() || "کاربر اسپاتی‌کد",
+    authorId: author.authorId,
+    authorName: author.authorName,
     authorRole: readAuthorRole(user),
-    authorAvatar: "/images/student1.jpg",
+    authorAvatar: author.authorAvatar,
     isInstructorReply: user?.role === "ADMIN" || user?.role === "INSTRUCTOR",
   });
+
+  if (parentId && (user?.role === "ADMIN" || user?.role === "INSTRUCTOR")) {
+    await prisma.$executeRaw`
+      UPDATE "Comment"
+      SET "approvalStatus" = 'approved'
+      WHERE "id" = ${parentId}
+        AND "approvalStatus" = 'pending'
+    `;
+  }
 
   return {
     data: toCourseCommentListItemDto({ ...comment, replies: [] }),

@@ -18,35 +18,61 @@ type CourseDetailClientProps = {
     category: string;
     level: string;
     duration: string;
-    rating: number;
+    rating?: number;
     shortDescription: string;
     coverImage: string;
     introVideo: string;
+    introVideoDuration?: string;
     specialWords: {
       highlighted?: string[];
       underlined?: string[];
       color?: string;
     };
   };
+  aboutTitle?: string;
   aboutDescription?: string;
+  aboutHighlights?: string[];
   totalLessons: number;
   chapters?: Chapter[];
   coursePurchased?: boolean;
+  previewAllLessons?: boolean;
   children?: ReactNode;
   sidebar?: ReactNode;
 };
 
-const DEFAULT_ABOUT_PARAGRAPHS = [
-  "این دوره حاصل تجربه‌ی سال‌ها کار بر روی پروژه‌های بزرگ مقیاس است. هدف ما صرفاً آموزش سینتکس نیست، بلکه انتقال طرز تفکر مهندسی است.",
-  "در طول این مسیر، شما با چالش‌های واقعی روبرو می‌شوید. از بهینه‌سازی پرفورمنس گرفته تا مدیریت state‌های پیچیده با Redux Toolkit و پیاده‌سازی Authentication امن در Next.js. این یک دوره تئوری نیست؛ یک شبیه‌ساز محیط کار است.",
-];
+function renderHighlightedText(text: string, highlights: string[]) {
+  if (!text) return null;
+  if (!highlights.length) return text;
+
+  const sortedHighlights = [...highlights].filter(Boolean).sort((a, b) => b.length - a.length);
+  const pattern = sortedHighlights.map((item) => item.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+  if (!pattern) return text;
+
+  const parts = text.split(new RegExp(`(${pattern})`, "g"));
+  return parts.map((part, index) => {
+    const matched = sortedHighlights.includes(part);
+    return matched ? (
+      <span
+        key={`${part}-${index}`}
+        className="rounded-md bg-primary/10 px-2 py-0.5 font-extrabold text-primary dark:bg-primary/20"
+      >
+        {part}
+      </span>
+    ) : (
+      <span key={`${part}-${index}`}>{part}</span>
+    );
+  });
+}
 
 export default function CourseDetailClient({
   hero,
+  aboutTitle,
   aboutDescription,
+  aboutHighlights = [],
   totalLessons,
   chapters,
   coursePurchased = false,
+  previewAllLessons = false,
   children,
   sidebar,
 }: CourseDetailClientProps) {
@@ -61,16 +87,16 @@ export default function CourseDetailClient({
   }, [lockedNotice]);
 
   const aboutParagraphs = useMemo(() => {
-    if (!aboutDescription?.trim()) return DEFAULT_ABOUT_PARAGRAPHS;
-    const normalized = aboutDescription
+    if (!aboutDescription?.trim()) return [];
+    return aboutDescription
       .split(/\n+/)
       .map((part) => part.trim())
       .filter(Boolean);
-    return normalized.length ? normalized : DEFAULT_ABOUT_PARAGRAPHS;
   }, [aboutDescription]);
 
   const handleLessonSelect = (lesson: Lesson) => {
     const canPlay =
+      previewAllLessons ||
       coursePurchased ||
       lesson.isUnlocked === true ||
       lesson.isFreePreview === true ||
@@ -115,13 +141,14 @@ export default function CourseDetailClient({
         shortDescription={hero.shortDescription}
         coverImage={hero.coverImage}
         introVideo={selectedPreviewVideo?.videoUrl || hero.introVideo}
+        introVideoDuration={hero.introVideoDuration}
         specialWords={hero.specialWords}
         isPreviewActive={Boolean(selectedPreviewVideo)}
         activeVideoTitle={selectedPreviewVideo?.title}
         activeVideoDuration={selectedPreviewVideo?.duration}
         onResetPreview={handleResetPreview}
         playTrigger={playerTick}
-        disableFallbackVideo={Boolean(selectedPreviewVideo)}
+        disableFallbackVideo
         missingVideoMessage={
           selectedPreviewVideo
             ? "ویدیوی این جلسه در حال حاضر قابل پخش نیست."
@@ -131,37 +158,27 @@ export default function CourseDetailClient({
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div className="lg:col-span-8 flex flex-col gap-6 md:gap-8 order-2 lg:order-1">
-          <section className="glass-panel rounded-[2rem] md:rounded-4xl p-6 md:p-8 lg:p-12 glass-card-hover">
-            <div className="flex items-center gap-3 md:gap-4 mb-6 md:mb-8">
-              <div className="size-10 md:size-12 rounded-xl md:rounded-2xl bg-gradient-to-br from-emerald-100 dark:from-emerald-900/30 to-white dark:to-gray-800 flex items-center justify-center text-primary shadow-sm border border-white/50 dark:border-gray-700 shrink-0">
-                <span className="material-symbols-outlined filled text-xl md:text-2xl">
-                  description
-                </span>
+          {aboutParagraphs.length > 0 ? (
+            <section className="glass-panel rounded-[2rem] md:rounded-4xl p-6 md:p-8 lg:p-12 glass-card-hover">
+              <div className="flex items-center gap-3 md:gap-4 mb-6 md:mb-8">
+                <div className="size-10 md:size-12 rounded-xl md:rounded-2xl bg-gradient-to-br from-emerald-100 dark:from-emerald-900/30 to-white dark:to-gray-800 flex items-center justify-center text-primary shadow-sm border border-white/50 dark:border-gray-700 shrink-0">
+                  <span className="material-symbols-outlined filled text-xl md:text-2xl">
+                    description
+                  </span>
+                </div>
+                <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white">
+                  {aboutTitle || "درباره این دوره"}
+                </h2>
               </div>
-              <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white">
-                درباره این دوره
-              </h2>
-            </div>
-            <div className="prose prose-base md:prose-lg max-w-none text-gray-600 dark:text-gray-300 leading-8 md:leading-9 font-medium text-justify md:text-right">
-              {aboutParagraphs.map((paragraph, index) => (
-                <p key={paragraph.slice(0, 40) + index} className={index === 0 ? "mb-4" : ""}>
-                  {index === 0 ? (
-                    <>
-                      {paragraph.replace(
-                        "طرز تفکر مهندسی",
-                        ""
-                      )}
-                      <span className="text-primary font-bold bg-primary/10 dark:bg-primary/20 px-2 py-0.5 rounded-md inline-block my-1 md:my-0">
-                        طرز تفکر مهندسی
-                      </span>
-                    </>
-                  ) : (
-                    paragraph
-                  )}
-                </p>
-              ))}
-            </div>
-          </section>
+              <div className="prose prose-base md:prose-lg max-w-none text-gray-600 dark:text-gray-300 leading-8 md:leading-9 font-medium text-justify md:text-right">
+                {aboutParagraphs.map((paragraph, index) => (
+                  <p key={paragraph.slice(0, 40) + index} className={index < aboutParagraphs.length - 1 ? "mb-4" : ""}>
+                    {renderHighlightedText(paragraph, aboutHighlights)}
+                  </p>
+                ))}
+              </div>
+            </section>
+          ) : null}
 
           {lockedNotice && (
             <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-amber-700 dark:text-amber-300 text-sm font-bold">
@@ -169,14 +186,16 @@ export default function CourseDetailClient({
             </div>
           )}
 
-          <CourseCurriculum
-            totalLessons={totalLessons}
-            chapters={chapters}
-            activeLessonId={selectedPreviewVideo?.lessonId || null}
-            coursePurchased={coursePurchased}
-            onLessonSelect={handleLessonSelect}
-            onLockedLessonClick={() => setLockedNotice("برای مشاهده این جلسه باید دوره را تهیه کنید")}
-          />
+          {(chapters?.length ?? 0) > 0 ? (
+            <CourseCurriculum
+              totalLessons={totalLessons}
+              chapters={chapters}
+              activeLessonId={selectedPreviewVideo?.lessonId || null}
+              coursePurchased={coursePurchased}
+              onLessonSelect={handleLessonSelect}
+              onLockedLessonClick={() => setLockedNotice("برای مشاهده این جلسه باید دوره را تهیه کنید")}
+            />
+          ) : null}
 
           {children}
         </div>

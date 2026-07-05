@@ -10,6 +10,7 @@ export type InstructorCourseLessonDraftDto = {
   duration: string;
   type: string;
   access: "free" | "locked";
+  videoUrl?: string;
 };
 
 export type InstructorCourseChapterDraftDto = {
@@ -99,12 +100,14 @@ function normalizeLesson(value: unknown, index: number): InstructorCourseLessonD
   const title = readString(value.title);
   if (!title) return null;
   const access = value.access === "free" ? "free" : "locked";
+  const videoUrl = readString(value.videoUrl);
   return {
     id: readString(value.id, `lesson-${Date.now()}-${index}`),
     title,
     duration: readString(value.duration, "00:00"),
     type: readString(value.type, "video"),
     access,
+    ...(videoUrl ? { videoUrl } : {}),
   };
 }
 

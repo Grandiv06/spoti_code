@@ -7,6 +7,7 @@ import {
   toAdminReviewRequestsResponseDto,
   type ReviewApprovalStatus,
 } from "@/server/dto/admin-review-requests.dto";
+import { resolveUserDisplayName, isGenericUserDisplayName } from "@/server/utils/user-display-name";
 
 export type AdminReviewRequestFilterInput = {
   status?: string;
@@ -60,21 +61,46 @@ type ReviewRequestRow = {
   rating: number | null;
   authorName: string;
   authorAvatar: string;
+  authorId: string | null;
+  userFullName: string | null;
+  userOccupation: string | null;
+  userPhone: string | null;
+  userEmail: string | null;
+  userAvatar: string | null;
   approvalStatus: string | null;
   createdAt: Date | string;
   courseTitle: string;
   instructorName: string;
 };
 
+function resolveReviewAuthorName(row: ReviewRequestRow) {
+  const resolved = resolveUserDisplayName({
+    fullName: row.userFullName,
+    phone: row.userPhone,
+    email: row.userEmail,
+    profile: { occupation: row.userOccupation },
+  });
+
+  if (!isGenericUserDisplayName(resolved)) return resolved;
+
+  const stored = row.authorName?.trim();
+  if (stored && !isGenericUserDisplayName(stored)) return stored;
+
+  return resolved;
+}
+
 function rowToReviewComment(row: ReviewRequestRow) {
+  const authorName = resolveReviewAuthorName(row);
+  const authorAvatar = row.userAvatar?.trim() || row.authorAvatar;
+
   return {
     id: row.id,
     courseId: row.courseId,
     parentId: row.parentId,
     content: row.content,
     rating: row.rating,
-    authorName: row.authorName,
-    authorAvatar: row.authorAvatar,
+    authorName,
+    authorAvatar,
     approvalStatus: row.approvalStatus,
     createdAt: row.createdAt,
     course: {
@@ -120,6 +146,12 @@ async function findReviewRequestRows(input: {
       c."rating",
       c."authorName",
       c."authorAvatar",
+      c."authorId",
+      u."fullName" as "userFullName",
+      up."occupation" as "userOccupation",
+      u."phone" as "userPhone",
+      u."email" as "userEmail",
+      up."image" as "userAvatar",
       c."approvalStatus",
       c."createdAt",
       co."title" as "courseTitle",
@@ -127,6 +159,8 @@ async function findReviewRequestRows(input: {
     FROM "Comment" c
     INNER JOIN "Course" co ON co."id" = c."courseId"
     INNER JOIN "Instructor" i ON i."id" = co."instructorId"
+    LEFT JOIN "User" u ON u."id" = c."authorId"
+    LEFT JOIN "UserProfile" up ON up."userId" = u."id"
     WHERE ${where}
     ORDER BY c."createdAt" ${orderBy}
   `;
@@ -189,6 +223,12 @@ export async function updateAdminReviewRequestStatus(
       c."rating",
       c."authorName",
       c."authorAvatar",
+      c."authorId",
+      u."fullName" as "userFullName",
+      up."occupation" as "userOccupation",
+      u."phone" as "userPhone",
+      u."email" as "userEmail",
+      up."image" as "userAvatar",
       c."approvalStatus",
       c."createdAt",
       co."title" as "courseTitle",
@@ -196,6 +236,8 @@ export async function updateAdminReviewRequestStatus(
     FROM "Comment" c
     INNER JOIN "Course" co ON co."id" = c."courseId"
     INNER JOIN "Instructor" i ON i."id" = co."instructorId"
+    LEFT JOIN "User" u ON u."id" = c."authorId"
+    LEFT JOIN "UserProfile" up ON up."userId" = u."id"
     WHERE c."id" = ${decodedId}
     LIMIT 1
   `;

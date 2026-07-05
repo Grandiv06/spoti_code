@@ -40,5 +40,10 @@ export async function ensureCourseApprovalSchema() {
     `ALTER TABLE "Instructor" ADD COLUMN "canPublishWithoutApproval" BOOLEAN NOT NULL DEFAULT 0`
   );
 
+  // Prisma SQLite cannot deserialize NULL in JSON columns (P2023).
+  await prisma.$executeRaw`
+    UPDATE "Course" SET "draftData" = '{}' WHERE "draftData" IS NULL
+  `;
+
   courseApprovalColumnsReady = true;
 }
