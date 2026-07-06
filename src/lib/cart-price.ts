@@ -22,5 +22,16 @@ export function formatCartPrice(price: string | number): string {
 }
 
 export function formatCartPriceLabel(price: string | number): string {
-  return parseCartPrice(price).toLocaleString("fa-IR");
+  const numeric = parseCartPrice(price);
+  if (numeric <= 0) return "رایگان";
+  return numeric.toLocaleString("fa-IR");
+}
+
+export function formatCoursePriceWithUnit(price: string | number): string {
+  const label = formatCartPriceLabel(price);
+  return label === "رایگان" ? label : `${label} تومان`;
+}
+
+export function isFreeCoursePrice(price: string | number): boolean {
+  return parseCartPrice(price) <= 0;
 }

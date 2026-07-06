@@ -1,3 +1,8 @@
+import {
+  formatCartPriceLabel,
+  isFreeCoursePrice,
+} from "@/lib/cart-price";
+
 type CoursePriceDisplayProps = {
   price: string | number;
   originalPrice?: string | number | null;
@@ -5,23 +10,22 @@ type CoursePriceDisplayProps = {
   compact?: boolean;
 };
 
-function formatPrice(value: string | number) {
-  return typeof value === "number" ? value.toLocaleString("fa-IR") : value;
-}
-
 export default function CoursePriceDisplay({
   price,
   originalPrice,
   discountPercent,
   compact = false,
 }: CoursePriceDisplayProps) {
-  const formattedPrice = formatPrice(price);
+  const formattedPrice = formatCartPriceLabel(price);
+  const isFree = isFreeCoursePrice(price);
   const formattedOriginal =
-    originalPrice != null && originalPrice !== "" ? formatPrice(originalPrice) : null;
+    originalPrice != null && originalPrice !== "" ? formatCartPriceLabel(originalPrice) : null;
   const hasDiscount =
+    !isFree &&
     discountPercent != null &&
     discountPercent > 0 &&
     formattedOriginal != null &&
+    formattedOriginal !== "رایگان" &&
     formattedOriginal !== formattedPrice;
 
   if (!hasDiscount) {
@@ -32,7 +36,7 @@ export default function CoursePriceDisplay({
         }`}
       >
         <span>{formattedPrice}</span>
-        <span className="text-[10px] font-bold opacity-75">تومان</span>
+        {!isFree ? <span className="text-[10px] font-bold opacity-75">تومان</span> : null}
       </div>
     );
   }

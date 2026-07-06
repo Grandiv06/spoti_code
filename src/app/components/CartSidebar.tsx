@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCart } from "../../context/CartContext";
-import { formatCartPriceLabel } from "@/lib/cart-price";
+import { formatCartPriceLabel, isFreeCoursePrice } from "@/lib/cart-price";
 import { useEffect, useRef } from "react";
 
 function CartItemImage({ src, alt }: { src: string; alt: string }) {
@@ -133,7 +133,9 @@ export default function CartSidebar() {
                     </span>
                     <span className="flex items-center gap-1 text-sm font-black text-primary">
                       {formatCartPriceLabel(item.price)}
-                      <span className="text-[10px] font-bold opacity-80">تومان</span>
+                      {!isFreeCoursePrice(item.price) ? (
+                        <span className="text-[10px] font-bold opacity-80">تومان</span>
+                      ) : null}
                     </span>
                   </div>
                 </div>
@@ -150,7 +152,9 @@ export default function CartSidebar() {
                 <span className="text-2xl font-black text-gray-900 dark:text-white">
                   {formattedTotalPrice}
                 </span>
-                <span className="text-xs font-bold text-gray-500 dark:text-gray-400">تومان</span>
+                {!isFreeCoursePrice(totalPrice) ? (
+                  <span className="text-xs font-bold text-gray-500 dark:text-gray-400">تومان</span>
+                ) : null}
               </div>
             </div>
             <button

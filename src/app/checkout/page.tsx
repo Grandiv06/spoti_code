@@ -8,7 +8,7 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { apiPostNoMock } from "@/lib/api";
 import { getAuthHeaders } from "@/lib/auth-tokens";
-import { formatCartPriceLabel, parseCartPrice } from "@/lib/cart-price";
+import { formatCartPriceLabel, formatCoursePriceWithUnit, parseCartPrice } from "@/lib/cart-price";
 
 type DiscountPreview = {
   subtotal: number;
@@ -308,7 +308,7 @@ export default function CheckoutPage() {
                     </div>
                     <div className="flex items-center justify-between gap-4 md:justify-end">
                       <span className="text-lg font-black text-primary">
-                        {formatCartPriceLabel(item.price)} تومان
+                        {formatCoursePriceWithUnit(item.price)}
                       </span>
                       <button
                         type="button"
@@ -427,7 +427,7 @@ export default function CheckoutPage() {
                                   : "text-gray-700 dark:text-gray-200"
                               }
                             >
-                              {formatCartPriceLabel(line.originalPrice)} تومان
+                              {formatCoursePriceWithUnit(line.originalPrice)}
                             </span>
                           </div>
 
@@ -442,7 +442,7 @@ export default function CheckoutPage() {
                               </div>
                               <div className="flex items-center justify-between rounded-xl bg-primary/10 px-2.5 py-2 text-sm font-black text-primary ring-1 ring-primary/15">
                                 <span className="text-gray-700 dark:text-gray-200">مبلغ این دوره</span>
-                                <span>{formatCartPriceLabel(line.finalPrice)} تومان</span>
+                                <span>{formatCoursePriceWithUnit(line.finalPrice)}</span>
                               </div>
                             </>
                           ) : null}
@@ -455,7 +455,7 @@ export default function CheckoutPage() {
                 <div className={`space-y-3 p-4 ${appliedCode && invoiceLines.length > 0 ? "border-t border-dashed border-gray-200/80 dark:border-white/10" : ""}`}>
                   <div className="flex items-center justify-between text-sm font-bold text-gray-500 dark:text-gray-400">
                     <span>جمع جزء</span>
-                    <span className="text-gray-700 dark:text-gray-200">{formatted.subtotal} تومان</span>
+                    <span className="text-gray-700 dark:text-gray-200">{formatCoursePriceWithUnit(formatted.subtotal)}</span>
                   </div>
                   {appliedCode ? (
                     <div className="flex items-center justify-between rounded-xl bg-amber-500/10 px-3 py-2.5 text-sm font-bold text-amber-700 ring-1 ring-amber-500/15 dark:text-amber-300">
@@ -468,7 +468,7 @@ export default function CheckoutPage() {
                   ) : null}
                   <div className="flex items-center justify-between rounded-2xl bg-primary/10 px-3.5 py-3 ring-1 ring-primary/20">
                     <span className="text-base font-black text-gray-900 dark:text-white">مبلغ نهایی</span>
-                    <span className="text-lg font-black text-primary">{formatted.total} تومان</span>
+                    <span className="text-lg font-black text-primary">{formatCoursePriceWithUnit(formatted.total)}</span>
                   </div>
                 </div>
               </div>
