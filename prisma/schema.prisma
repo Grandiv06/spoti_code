@@ -2,10 +2,9 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// Local: SQLite (file:./dev.db)
-// Railway: set provider to "postgresql" and DATABASE_URL to your Postgres URL
+// PostgreSQL (Runflare production + optional local remote connection)
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
