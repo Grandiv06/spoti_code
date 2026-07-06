@@ -73,8 +73,16 @@ function optionalString(value: unknown): string | null | undefined {
 }
 
 function normalizeRole(value: unknown): AppUserRole {
-  const normalized = String(value ?? "").trim().toUpperCase().replace(/-/g, "_");
-  if (normalized === "ADMIN" || normalized === "SUPER_ADMIN" || normalized === "SUPERADMIN") return "ADMIN";
+  const normalized = String(value ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/-/g, "_");
+  if (
+    normalized === "ADMIN" ||
+    normalized === "SUPER_ADMIN" ||
+    normalized === "SUPERADMIN"
+  )
+    return "ADMIN";
   if (normalized === "INSTRUCTOR") return "INSTRUCTOR";
   return "USER";
 }
@@ -86,9 +94,12 @@ function normalizeRoleFilter(value: unknown): AppUserRole | undefined {
 }
 
 function normalizeStatus(input: AdminUserPayload): string | undefined {
-  if (typeof input.isActive === "boolean") return input.isActive ? "active" : "inactive";
+  if (typeof input.isActive === "boolean")
+    return input.isActive ? "active" : "inactive";
 
-  const raw = String(input.status ?? input.accountStatus ?? "").trim().toLowerCase();
+  const raw = String(input.status ?? input.accountStatus ?? "")
+    .trim()
+    .toLowerCase();
   if (!raw) return undefined;
   if (["active", "enabled", "فعال", "true", "1"].includes(raw)) return "active";
   return "inactive";
@@ -120,7 +131,9 @@ function hashToGradientSeed(input: string): string {
     "from-cyan-400 to-blue-600",
     "from-red-400 to-rose-600",
   ];
-  const hash = input.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const hash = input
+    .split("")
+    .reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return palettes[hash % palettes.length];
 }
 
@@ -154,7 +167,9 @@ async function findAdminUserById(userId: string) {
   });
 }
 
-function mapCourse(enrollment: NonNullable<AdminUserRecord>["enrollments"][number]) {
+function mapCourse(
+  enrollment: NonNullable<AdminUserRecord>["enrollments"][number],
+) {
   return {
     id: enrollment.id,
     courseId: enrollment.courseId,
@@ -215,8 +230,12 @@ function mapAdminUser(user: NonNullable<AdminUserRecord>) {
     nationalCode: user.nationalCode || "",
     joinedAt: formatDate(user.createdAt),
     createdAt: formatDate(user.createdAt),
-    lastLogin: user.lastLoginAt ? formatDate(user.lastLoginAt) : formatDate(user.updatedAt),
-    lastLoginAt: user.lastLoginAt ? formatDate(user.lastLoginAt) : formatDate(user.updatedAt),
+    lastLogin: user.lastLoginAt
+      ? formatDate(user.lastLoginAt)
+      : formatDate(user.updatedAt),
+    lastLoginAt: user.lastLoginAt
+      ? formatDate(user.lastLoginAt)
+      : formatDate(user.updatedAt),
     coursesCount: user.enrollments.length,
     enrolledCoursesCount: user.enrollments.length,
     purchasesCount: user.orders.length,
@@ -235,17 +254,29 @@ function mapAdminUser(user: NonNullable<AdminUserRecord>) {
   };
 }
 
-async function attachInstructorPublishPermissions<T extends { id: string; role: string }>(users: T[]): Promise<T[]> {
-  const instructorUserIds = users.filter((user) => user.role === "INSTRUCTOR").map((user) => user.id);
+async function attachInstructorPublishPermissions<
+  T extends { id: string; role: string },
+>(users: T[]): Promise<T[]> {
+  const instructorUserIds = users
+    .filter((user) => user.role === "INSTRUCTOR")
+    .map((user) => user.id);
   if (instructorUserIds.length === 0) return users;
 
   await ensureCourseApprovalSchema();
-  const rows = await prisma.$queryRaw<Array<{ id: string; canPublishWithoutApproval: boolean | number | null }>>`
+  const rows = await prisma.$queryRaw<
+    Array<{ id: string; canPublishWithoutApproval: boolean | number | null }>
+  >`
     SELECT "id", "canPublishWithoutApproval"
     FROM "Instructor"
     WHERE "id" IN (${Prisma.join(instructorUserIds)})
   `;
-  const permissions = new Map(rows.map((row) => [row.id, row.canPublishWithoutApproval === true || row.canPublishWithoutApproval === 1]));
+  const permissions = new Map(
+    rows.map((row) => [
+      row.id,
+      row.canPublishWithoutApproval === true ||
+        row.canPublishWithoutApproval === 1,
+    ]),
+  );
 
   return users.map((user) => ({
     ...user,
@@ -253,25 +284,39 @@ async function attachInstructorPublishPermissions<T extends { id: string; role: 
   }));
 }
 
-function matchesSearch(user: ReturnType<typeof mapAdminUser>, query: AdminUsersQuery) {
+function matchesSearch(
+  user: ReturnType<typeof mapAdminUser>,
+  query: AdminUsersQuery,
+) {
   const search = query.search?.trim().toLowerCase();
   const email = query.email?.trim().toLowerCase();
   const phoneNumber = query.phoneNumber?.trim();
   const nationalCode = query.nationalCode?.trim();
 
   if (search) {
-    const haystack = [user.id, user.name, user.phone, user.email, user.role, user.status]
+    const haystack = [
+      user.id,
+      user.name,
+      user.phone,
+      user.email,
+      user.role,
+      user.status,
+    ]
       .join(" ")
       .toLowerCase();
     if (!haystack.includes(search)) return false;
   }
   if (email && !user.email.toLowerCase().includes(email)) return false;
   if (phoneNumber && !user.phone.includes(phoneNumber)) return false;
-  if (nationalCode && !String(user.nationalCode).includes(nationalCode)) return false;
+  if (nationalCode && !String(user.nationalCode).includes(nationalCode))
+    return false;
   return true;
 }
 
-export async function getAdminUsers(adminUser: User, query: AdminUsersQuery = {}) {
+export async function getAdminUsers(
+  adminUser: User,
+  query: AdminUsersQuery = {},
+) {
   assertAdmin(adminUser);
 
   const page = Math.max(1, query.page ?? 1);
@@ -283,9 +328,9 @@ export async function getAdminUsers(adminUser: User, query: AdminUsersQuery = {}
     orderBy: { createdAt: "desc" },
   });
 
-  const mappedUsers = (await attachInstructorPublishPermissions(users.map(mapAdminUser))).filter((user) =>
-    matchesSearch(user, query)
-  );
+  const mappedUsers = (
+    await attachInstructorPublishPermissions(users.map(mapAdminUser))
+  ).filter((user) => matchesSearch(user, query));
   const start = (page - 1) * limit;
 
   return {
@@ -302,7 +347,9 @@ export async function getAdminUserOverview(adminUser: User, userId: string) {
   assertAdmin(adminUser);
   const user = await findAdminUserById(userId);
   if (!user) return null;
-  const [mapped] = await attachInstructorPublishPermissions([mapAdminUser(user)]);
+  const [mapped] = await attachInstructorPublishPermissions([
+    mapAdminUser(user),
+  ]);
   return mapped;
 }
 
@@ -311,7 +358,10 @@ export async function getAdminUserCourses(adminUser: User, userId: string) {
   return user?.purchasedCourses ?? null;
 }
 
-export async function getAdminUserTransactions(adminUser: User, userId: string) {
+export async function getAdminUserTransactions(
+  adminUser: User,
+  userId: string,
+) {
   const user = await getAdminUserOverview(adminUser, userId);
   return user?.recentTransactions ?? null;
 }
@@ -345,7 +395,8 @@ export async function getAdminUserActivities(adminUser: User, userId: string) {
       id: `ACT-${order.id}`,
       kind: "payment",
       title: isPaidStatus(order.status) ? "پرداخت موفق" : "ثبت تراکنش",
-      description: order.productTitle || order.description || "تراکنش مالی ثبت شد.",
+      description:
+        order.productTitle || order.description || "تراکنش مالی ثبت شد.",
       timestamp: formatDate(order.createdAt),
     })),
     ...user.tickets.map((ticket) => ({
@@ -355,12 +406,19 @@ export async function getAdminUserActivities(adminUser: User, userId: string) {
       description: ticket.title,
       timestamp: formatDate(ticket.createdAt),
     })),
-  ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  ].sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+  );
 }
 
-export async function getAdminUserInternalNote(adminUser: User, userId: string) {
+export async function getAdminUserInternalNote(
+  adminUser: User,
+  userId: string,
+) {
   assertAdmin(adminUser);
-  const rows = await prisma.$queryRaw<Array<{ internalAdminNote: string | null }>>`
+  const rows = await prisma.$queryRaw<
+    Array<{ internalAdminNote: string | null }>
+  >`
     SELECT "internalAdminNote"
     FROM "User"
     WHERE "id" = ${userId}
@@ -371,7 +429,11 @@ export async function getAdminUserInternalNote(adminUser: User, userId: string) 
   return user ? { note: user.internalAdminNote || "" } : null;
 }
 
-export async function updateAdminUserInternalNote(adminUser: User, userId: string, note: unknown) {
+export async function updateAdminUserInternalNote(
+  adminUser: User,
+  userId: string,
+  note: unknown,
+) {
   assertAdmin(adminUser);
   const nextNote = optionalString(note) ?? null;
   const result = await prisma.$executeRaw`
@@ -387,7 +449,10 @@ export async function updateAdminUserInternalNote(adminUser: User, userId: strin
   return { note: nextNote || "" };
 }
 
-export async function createAdminUser(adminUser: User, input: AdminUserPayload) {
+export async function createAdminUser(
+  adminUser: User,
+  input: AdminUserPayload,
+) {
   assertAdmin(adminUser);
 
   const phone = normalizeIranPhone(input.phoneNumber ?? input.phone);
@@ -411,7 +476,8 @@ export async function createAdminUser(adminUser: User, input: AdminUserPayload) 
       status: normalizeStatus(input) ?? "active",
       plan: normalizePlan(input.plan) ?? "Starter",
       nationalCode: optionalString(input.nationalCode) ?? null,
-      internalAdminNote: optionalString(input.internalAdminNote ?? input.internalNotes) ?? null,
+      internalAdminNote:
+        optionalString(input.internalAdminNote ?? input.internalNotes) ?? null,
     },
     include: adminUserInclude,
   });
@@ -429,11 +495,17 @@ export async function createAdminUser(adminUser: User, input: AdminUserPayload) 
     }
   }
 
-  const [mapped] = await attachInstructorPublishPermissions([mapAdminUser(user)]);
+  const [mapped] = await attachInstructorPublishPermissions([
+    mapAdminUser(user),
+  ]);
   return mapped;
 }
 
-export async function updateAdminUser(adminUser: User, userId: string, input: AdminUserPayload) {
+export async function updateAdminUser(
+  adminUser: User,
+  userId: string,
+  input: AdminUserPayload,
+) {
   assertAdmin(adminUser);
 
   const data: {
@@ -455,7 +527,8 @@ export async function updateAdminUser(adminUser: User, userId: string, input: Ad
   if (input.phoneNumber !== undefined || input.phone !== undefined) {
     data.phone = normalizeIranPhone(input.phoneNumber ?? input.phone);
   }
-  if (input.email !== undefined) data.email = optionalString(input.email) ?? null;
+  if (input.email !== undefined)
+    data.email = optionalString(input.email) ?? null;
   if (input.roleName !== undefined || input.role !== undefined) {
     data.role = normalizeRole(input.roleName ?? input.role);
   }
@@ -463,9 +536,14 @@ export async function updateAdminUser(adminUser: User, userId: string, input: Ad
   if (status) data.status = status;
   const plan = normalizePlan(input.plan);
   if (plan) data.plan = plan;
-  if (input.nationalCode !== undefined) data.nationalCode = optionalString(input.nationalCode) ?? null;
-  if (input.internalAdminNote !== undefined || input.internalNotes !== undefined) {
-    data.internalAdminNote = optionalString(input.internalAdminNote ?? input.internalNotes) ?? null;
+  if (input.nationalCode !== undefined)
+    data.nationalCode = optionalString(input.nationalCode) ?? null;
+  if (
+    input.internalAdminNote !== undefined ||
+    input.internalNotes !== undefined
+  ) {
+    data.internalAdminNote =
+      optionalString(input.internalAdminNote ?? input.internalNotes) ?? null;
   }
 
   const user = await prisma.user.update({
@@ -474,7 +552,10 @@ export async function updateAdminUser(adminUser: User, userId: string, input: Ad
     include: adminUserInclude,
   });
 
-  if (input.canPublishWithoutApproval !== undefined && user.role === "INSTRUCTOR") {
+  if (
+    input.canPublishWithoutApproval !== undefined &&
+    user.role === "INSTRUCTOR"
+  ) {
     await ensureCourseApprovalSchema();
     const instructor = await resolveInstructorForUser(user);
     await prisma.$executeRaw`
@@ -485,6 +566,8 @@ export async function updateAdminUser(adminUser: User, userId: string, input: Ad
     `;
   }
 
-  const [mapped] = await attachInstructorPublishPermissions([mapAdminUser(user)]);
+  const [mapped] = await attachInstructorPublishPermissions([
+    mapAdminUser(user),
+  ]);
   return mapped;
 }
