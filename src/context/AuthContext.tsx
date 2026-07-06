@@ -5,9 +5,11 @@ import {
   ACCESS_TOKEN_KEY,
   clearAuthTokens,
   getAccessToken,
+  getSessionId,
   onAuthSessionExpired,
   setAuthTokens,
 } from "@/lib/auth-tokens";
+import { API_BASE_URL } from "@/lib/api-config";
 import { setupApiClient } from "@/lib/setup-api-client";
 
 const AUTH_STORAGE_KEY = "spoticode-auth";
@@ -24,7 +26,7 @@ type AuthContextType = {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (user: AuthUser, token?: string, refreshToken?: string) => void;
+  login: (user: AuthUser, token?: string, refreshToken?: string, sessionId?: string) => void;
   logout: () => void;
 };
 
@@ -82,19 +84,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const login = useCallback((u: AuthUser, token?: string, refreshToken?: string) => {
+  const login = useCallback((u: AuthUser, token?: string, refreshToken?: string, sessionId?: string) => {
     setUser(u);
     saveToStorage(u);
 
     if (typeof window !== "undefined") {
       const nextToken = token || getAccessToken() || "";
       if (nextToken) {
-        setAuthTokens(nextToken, refreshToken);
+        setAuthTokens(nextToken, refreshToken, sessionId);
       }
     }
   }, []);
 
   const logout = useCallback(() => {
+    const sessionId = getSessionId();
+    const token = getAccessToken();
+    if (sessionId && token) {
+      const params = new URLSearchParams({ sessionId });
+      void fetch(`${API_BASE_URL}/api/dashboard/sessions?${params.toString()}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      }).catch(() => {});
+    }
+
     setUser(null);
     saveToStorage(null);
     clearAuthTokens();

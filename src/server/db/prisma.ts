@@ -10,13 +10,16 @@ function createPrismaClient() {
   });
 }
 
-function hasDiscountModels(client: PrismaClient) {
-  return typeof client.discountCode?.findMany === "function";
+function isPrismaClientCurrent(client: PrismaClient) {
+  return (
+    typeof client.discountCode?.findMany === "function" &&
+    typeof client.userSession?.deleteMany === "function"
+  );
 }
 
 function getPrismaClient() {
   const cached = globalForPrisma.prisma;
-  if (cached && hasDiscountModels(cached)) {
+  if (cached && isPrismaClientCurrent(cached)) {
     return cached;
   }
 

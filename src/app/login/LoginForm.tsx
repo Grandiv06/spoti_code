@@ -9,7 +9,8 @@ import Link from "next/link";
 import { apiPostNoMock } from "@/lib/api";
 import { extractTokensFromAuthResponse } from "@/lib/auth-tokens";
 import { useLoginByPhoneMutation } from "@/hooks/api/useAuthMutations";
-import { normalizeDigits, PHONE_ROLE_MAP, toIranIntlPhone, extractOtpFromAuthResponse, extractAuthErrorMessage, isRequiresFullNameResponse } from "@/lib/phone-auth";
+import { normalizeDigits, PHONE_ROLE_MAP, toIranIntlPhone, extractOtpFromAuthResponse, extractAuthErrorMessage, isRequiresFullNameResponse, isRequiresSessionChoiceResponse, parseSessionChoiceResponse, type ActiveSessionItem } from "@/lib/phone-auth";
+import { deviceTypeIcon, formatSessionDate } from "@/lib/panel-sessions";
 
 const OTP_LENGTH = 6;
 
@@ -42,7 +43,7 @@ function resolveAppRole(result: {
 }
 
 export default function LoginForm() {
-  const [step, setStep] = useState<"phone" | "otp" | "profile">("phone");
+  const [step, setStep] = useState<"phone" | "otp" | "profile" | "sessions">("phone");
   const [phoneInput, setPhoneInput] = useState("");
   const [phone, setPhone] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -52,6 +53,9 @@ export default function LoginForm() {
   const [sentOtp, setSentOtp] = useState("");
   const [otpExpiresIn, setOtpExpiresIn] = useState(0);
   const [error, setError] = useState("");
+  const [pendingLoginToken, setPendingLoginToken] = useState("");
+  const [activeSessions, setActiveSessions] = useState<ActiveSessionItem[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState("");
   const { login } = useAuth();
   const loginMutation = useLoginByPhoneMutation();
   const router = useRouter();
@@ -68,9 +72,10 @@ export default function LoginForm() {
         role: AppRole;
       },
       token?: string,
-      refreshToken?: string
+      refreshToken?: string,
+      sessionId?: string
     ) => {
-      login(user, token, refreshToken);
+      login(user, token, refreshToken, sessionId);
 
       const fallbackPath =
         user.role === "admin"
@@ -97,6 +102,57 @@ export default function LoginForm() {
     }, 1000);
     return () => window.clearInterval(intervalId);
   }, [step, otpExpiresIn]);
+
+  const finishAuthResult = useCallback(
+    (result: unknown, normalizedPhone: string, fallbackName?: string) => {
+      const authResult = result as {
+        data?: {
+          id?: string;
+          fullName?: string | null;
+          displayName?: string;
+          userName?: string;
+          phoneNumber?: string;
+          phone?: string;
+          role?: string;
+          roles?: Array<{ name?: string }>;
+        };
+        user?: {
+          id?: string;
+          fullName?: string | null;
+          displayName?: string;
+          userName?: string;
+          phone?: string;
+          phoneNumber?: string;
+          role?: string;
+          roles?: Array<{ name?: string }>;
+        };
+      };
+
+      const { accessToken, refreshToken, sessionId } = extractTokensFromAuthResponse(authResult);
+      const apiUser = authResult?.data || authResult?.user;
+      const role = resolveAppRole(authResult, normalizedPhone);
+      const userPhone = apiUser?.phoneNumber || apiUser?.phone || normalizedPhone;
+      const displayName =
+        apiUser?.fullName ||
+        apiUser?.displayName ||
+        apiUser?.userName ||
+        fallbackName ||
+        "کاربر اسپاتی‌کد";
+
+      completeLogin(
+        {
+          id: apiUser?.id || `${role}-${userPhone}`,
+          phone: userPhone,
+          displayName,
+          role,
+        },
+        accessToken,
+        refreshToken,
+        sessionId
+      );
+    },
+    [completeLogin]
+  );
 
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,52 +203,22 @@ export default function LoginForm() {
         return;
       }
 
-      const authResult = result as {
-        accessToken?: string;
-        token?: string;
-        data?: {
-          accessToken?: string;
-          token?: string;
-          id?: string;
-          userName?: string;
-          fullName?: string | null;
-          displayName?: string;
-          phoneNumber?: string;
-          phone?: string;
-          role?: string;
-          roles?: Array<{ name?: string }>;
-        };
-        user?: {
-          id?: string;
-          phone?: string;
-          phoneNumber?: string;
-          userName?: string;
-          fullName?: string | null;
-          displayName?: string;
-          role?: string;
-          roles?: Array<{ name?: string }>;
-        };
-      };
+      if (isRequiresSessionChoiceResponse(result)) {
+        const parsed = parseSessionChoiceResponse(result);
+        setPendingLoginToken(parsed.pendingLoginToken);
+        setActiveSessions(parsed.sessions);
+        setSelectedSessionId(parsed.sessions[0]?.id ?? "");
+        setStep("sessions");
+        return;
+      }
 
-      const { accessToken, refreshToken } = extractTokensFromAuthResponse(authResult);
-
-      const apiUser = authResult?.data || authResult?.user;
-      const role = resolveAppRole(authResult, normalizedPhone);
-      const userPhone = apiUser?.phoneNumber || apiUser?.phone || normalizedPhone;
-      const displayName = apiUser?.fullName || apiUser?.displayName || apiUser?.userName || "کاربر اسپاتی‌کد";
-
-      completeLogin({
-        id: apiUser?.id || `${role}-${userPhone}`,
-        phone: userPhone,
-        displayName,
-        role,
-      }, accessToken, refreshToken);
-    } catch {
-      setError("کد تایید نامعتبر است یا ورود انجام نشد.");
+      finishAuthResult(result, normalizedPhone);
+    } catch (error) {
+      setError(extractAuthErrorMessage(error, "کد تایید نامعتبر است یا ورود انجام نشد."));
     } finally {
       setOtpSubmitting(false);
     }
-  }, [completeLogin, loginMutation, otp, otpSubmitting, phone]);
+  }, [finishAuthResult, loginMutation, otp, otpSubmitting, phone]);
 
   const completeProfileAndLogin = useCallback(async () => {
     if (otpSubmitting || loginMutation.isPending) return;
@@ -213,45 +239,42 @@ export default function LoginForm() {
       const result = await loginMutation.mutateAsync({
         phone: normalizedPhone,
         fullName,
-      }) as {
-        data?: {
-          id?: string;
-          fullName?: string | null;
-          displayName?: string;
-          phoneNumber?: string;
-          phone?: string;
-          role?: string;
-          roles?: Array<{ name?: string }>;
-        };
-        user?: {
-          id?: string;
-          fullName?: string | null;
-          displayName?: string;
-          phone?: string;
-          phoneNumber?: string;
-          role?: string;
-          roles?: Array<{ name?: string }>;
-        };
-      };
+      });
 
-      const { accessToken, refreshToken } = extractTokensFromAuthResponse(result);
-      const apiUser = result?.data || result?.user;
-      const role = resolveAppRole(result, normalizedPhone);
-      const userPhone = apiUser?.phoneNumber || apiUser?.phone || normalizedPhone;
-      const displayName = apiUser?.fullName || apiUser?.displayName || fullName;
+      if (isRequiresSessionChoiceResponse(result)) {
+        const parsed = parseSessionChoiceResponse(result);
+        setPendingLoginToken(parsed.pendingLoginToken);
+        setActiveSessions(parsed.sessions);
+        setSelectedSessionId(parsed.sessions[0]?.id ?? "");
+        setStep("sessions");
+        return;
+      }
 
-      completeLogin({
-        id: apiUser?.id || `${role}-${userPhone}`,
-        phone: userPhone,
-        displayName,
-        role,
-      }, accessToken, refreshToken);
+      finishAuthResult(result, normalizedPhone, fullName);
     } catch (error) {
       setError(extractAuthErrorMessage(error, "ثبت نام انجام نشد. دوباره تلاش کنید."));
     } finally {
       setOtpSubmitting(false);
     }
-  }, [completeLogin, firstName, lastName, loginMutation, otpSubmitting, phone]);
+  }, [finishAuthResult, firstName, lastName, loginMutation, otpSubmitting, phone]);
+
+  const handleRevokeSessionAndLogin = useCallback(async () => {
+    if (otpSubmitting || !pendingLoginToken || !selectedSessionId) return;
+    setError("");
+    setOtpSubmitting(true);
+
+    try {
+      const result = await apiPostNoMock<unknown>("/api/auth/revoke-session-and-login", {
+        pendingLoginToken,
+        revokeSessionId: selectedSessionId,
+      });
+      finishAuthResult(result, toIranIntlPhone(phone));
+    } catch (error) {
+      setError(extractAuthErrorMessage(error, "ورود انجام نشد. دوباره تلاش کنید."));
+    } finally {
+      setOtpSubmitting(false);
+    }
+  }, [finishAuthResult, otpSubmitting, pendingLoginToken, phone, selectedSessionId]);
 
   useEffect(() => {
     if (step !== "otp" || otpExpiresIn <= 0 || !isOtpComplete(otp)) {
@@ -279,6 +302,9 @@ export default function LoginForm() {
     setOtpExpiresIn(0);
     setFirstName("");
     setLastName("");
+    setPendingLoginToken("");
+    setActiveSessions([]);
+    setSelectedSessionId("");
   };
 
   const handleResendOtp = async () => {
@@ -301,6 +327,64 @@ export default function LoginForm() {
 
   const inputClassName =
     "w-full h-14 px-6 pr-14 rounded-[2.5rem] border border-gray-300 dark:border-slate-700/85 bg-gray-50 dark:bg-[#171922] text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-[#00c853]/20 focus:border-[#00c853] focus:bg-white dark:focus:bg-[#14161d] outline-none transition-all duration-300 placeholder:text-gray-400 dark:placeholder:text-gray-500 placeholder:text-base placeholder:tracking-normal font-medium text-base tracking-normal";
+
+  if (step === "sessions") {
+    return (
+      <div className="text-center mb-8">
+        <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">
+          محدودیت دستگاه
+        </h1>
+        <p className="text-gray-500 dark:text-gray-400 font-medium text-sm leading-relaxed">
+          شما با ۲ دستگاه وارد شده‌اید. برای ورود با این دستگاه، یکی از نشست‌های قبلی را حذف کنید.
+        </p>
+
+        <div className="space-y-3 mt-8 text-right">
+          {activeSessions.map((session) => (
+            <label
+              key={session.id}
+              className={`flex items-center gap-3 rounded-2xl border px-4 py-4 cursor-pointer transition-all ${
+                selectedSessionId === session.id
+                  ? "border-primary bg-primary/5"
+                  : "border-gray-200 dark:border-white/10 bg-white dark:bg-white/5"
+              }`}
+            >
+              <input
+                type="radio"
+                name="revoke-session"
+                checked={selectedSessionId === session.id}
+                onChange={() => setSelectedSessionId(session.id)}
+                className="accent-[#00c853]"
+              />
+              <span className="material-symbols-outlined text-primary">{deviceTypeIcon(session.deviceType)}</span>
+              <div className="flex-1 min-w-0 text-right">
+                <p className="font-bold text-gray-900 dark:text-white truncate">{session.deviceLabel}</p>
+                <p className="text-xs text-gray-500 mt-1">آخرین فعالیت: {formatSessionDate(session.lastActiveAt)}</p>
+              </div>
+            </label>
+          ))}
+        </div>
+
+        {error && <p className="text-red-500 text-sm font-medium mt-4">{error}</p>}
+
+        <button
+          type="button"
+          onClick={() => void handleRevokeSessionAndLogin()}
+          disabled={!selectedSessionId || otpSubmitting}
+          className="w-full h-14 mt-6 bg-[#00c853] hover:bg-[#009624] disabled:opacity-50 text-white text-lg font-bold rounded-[2.5rem] shadow-lg cursor-pointer"
+        >
+          {otpSubmitting ? "در حال ورود..." : "حذف دستگاه انتخاب‌شده و ورود"}
+        </button>
+
+        <button
+          type="button"
+          onClick={handleBackToPhone}
+          className="mt-4 text-sm font-bold text-gray-500 hover:text-[#00c853] cursor-pointer"
+        >
+          انصراف و بازگشت
+        </button>
+      </div>
+    );
+  }
 
   if (step === "profile") {
     return (

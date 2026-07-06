@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getClientIp, parseDeviceInfo } from "@/server/auth/device-info";
 import { verifyPhoneLogin } from "@/server/auth/phone-auth.service";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,12 @@ export async function POST(request: NextRequest) {
       fullName?: string;
     };
     const otp = body.otp ?? body.code;
-    const data = await verifyPhoneLogin(body.phoneNumber ?? "", otp, body.fullName);
+    const userAgent = request.headers.get("user-agent");
+    const data = await verifyPhoneLogin(body.phoneNumber ?? "", otp, body.fullName, {
+      device: parseDeviceInfo(userAgent),
+      userAgent,
+      ipAddress: getClientIp(request),
+    });
     return NextResponse.json({ data });
   } catch (error) {
     const message = error instanceof Error ? error.message : "ورود انجام نشد";

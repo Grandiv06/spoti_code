@@ -4,6 +4,7 @@ import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { Moon, Sun, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ActiveSessionsPanel from "./ActiveSessionsPanel";
 
 export default function SettingsPage() {
   const { theme, setTheme, resolvedTheme } = useTheme();
@@ -79,6 +80,8 @@ export default function SettingsPage() {
           </p>
         </div>
       </div>
+
+      <ActiveSessionsPanel />
     </div>
   );
 }

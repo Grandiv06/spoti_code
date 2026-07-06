@@ -3,10 +3,12 @@ import { unwrapResponse } from "@/lib/admin-tickets";
 
 export const ACCESS_TOKEN_KEY = "accessToken";
 export const REFRESH_TOKEN_KEY = "refreshToken";
+export const SESSION_ID_KEY = "sessionId";
 
 type AuthTokenPayload = {
   accessToken?: string;
   refreshToken?: string;
+  sessionId?: string;
   token?: string;
   data?: AuthTokenPayload;
 };
@@ -28,13 +30,25 @@ export function getRefreshToken(): string | null {
   return localStorage.getItem(REFRESH_TOKEN_KEY);
 }
 
-export function setAuthTokens(accessToken: string, refreshToken?: string | null): void {
+export function setAuthTokens(
+  accessToken: string,
+  refreshToken?: string | null,
+  sessionId?: string | null
+): void {
   if (!isBrowser()) return;
 
   localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
   if (refreshToken) {
     localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
   }
+  if (sessionId) {
+    localStorage.setItem(SESSION_ID_KEY, sessionId);
+  }
+}
+
+export function getSessionId(): string | null {
+  if (!isBrowser()) return null;
+  return localStorage.getItem(SESSION_ID_KEY);
 }
 
 export function clearAuthTokens(): void {
@@ -42,6 +56,7 @@ export function clearAuthTokens(): void {
 
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem(SESSION_ID_KEY);
 }
 
 export function getAuthHeaders(): HeadersInit | undefined {
@@ -52,6 +67,7 @@ export function getAuthHeaders(): HeadersInit | undefined {
 export function extractTokensFromAuthResponse(response: unknown): {
   accessToken?: string;
   refreshToken?: string;
+  sessionId?: string;
 } {
   const unwrapped = unwrapResponse(response);
   const source =
@@ -79,7 +95,14 @@ export function extractTokensFromAuthResponse(response: unknown): {
       ? (response as AuthTokenPayload).refreshToken
       : undefined);
 
-  return { accessToken, refreshToken };
+  const sessionId =
+    source.sessionId ||
+    nested?.sessionId ||
+    (typeof response === "object" && response !== null
+      ? (response as AuthTokenPayload).sessionId
+      : undefined);
+
+  return { accessToken, refreshToken, sessionId };
 }
 
 export function onAuthSessionExpired(listener: () => void): () => void {
@@ -131,14 +154,15 @@ export async function refreshAccessToken(): Promise<string | null> {
       }
 
       const payload = (await response.json()) as unknown;
-      const { accessToken, refreshToken: nextRefreshToken } = extractTokensFromAuthResponse(payload);
+      const { accessToken, refreshToken: nextRefreshToken, sessionId } =
+        extractTokensFromAuthResponse(payload);
 
       if (!accessToken) {
         notifyAuthSessionExpired();
         return null;
       }
 
-      setAuthTokens(accessToken, nextRefreshToken ?? refreshToken);
+      setAuthTokens(accessToken, nextRefreshToken ?? refreshToken, sessionId);
       return accessToken;
     } catch {
       return null;

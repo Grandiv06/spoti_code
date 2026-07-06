@@ -2,6 +2,19 @@ import { randomBytes } from "crypto";
 import type { User } from "@prisma/client";
 import { prisma } from "@/server/db/prisma";
 import { OTP_EXPIRY_SECONDS } from "@/server/auth/phone-auth.constants";
+import type { DeviceInfo } from "@/server/auth/device-info";
+import {
+  buildAuthResponseForUser,
+  consumePendingLogin,
+  countActiveUserSessions,
+  createPendingLogin,
+  findSessionByRefreshToken,
+  listUserSessionDtos,
+  MAX_USER_SESSIONS,
+  revokeUserSession,
+  rotateSessionRefreshToken,
+  shouldEnforceSessionLimit,
+} from "@/server/auth/session.service";
 import {
   isMelipayamakConfigured,
   sendMelipayamakOtp,
@@ -18,27 +31,25 @@ type OtpChallenge = {
 const SIGNUP_COMPLETION_WINDOW_MS = 10 * 60 * 1000;
 
 export type PhoneAuthResult =
-  | ReturnType<typeof buildAuthResponse>
+  | Awaited<ReturnType<typeof buildAuthResponseForUser>>
   | {
       requiresFullName: true;
       phoneNumber: string;
+    }
+  | {
+      requiresSessionChoice: true;
+      phoneNumber: string;
+      pendingLoginToken: string;
+      sessions: Awaited<ReturnType<typeof listUserSessionDtos>>;
+      maxSessions: number;
     };
-
-type SessionRecord = {
-  userId: string;
-  expiresAt: number;
-};
 
 const globalForAuth = globalThis as typeof globalThis & {
   __otpChallenges?: Map<string, OtpChallenge>;
-  __refreshSessions?: Map<string, SessionRecord>;
 };
 
 const otpChallenges = globalForAuth.__otpChallenges ?? new Map<string, OtpChallenge>();
-const refreshSessions = globalForAuth.__refreshSessions ?? new Map<string, SessionRecord>();
-
 globalForAuth.__otpChallenges = otpChallenges;
-globalForAuth.__refreshSessions = refreshSessions;
 
 function normalizeDigits(value: string): string {
   const persian = "۰۱۲۳۴۵۶۷۸۹";
@@ -59,10 +70,6 @@ export function normalizeIranPhone(input: string): string {
     throw new Error("شماره موبایل معتبر نیست");
   }
   return `+98${value}`;
-}
-
-function createToken(prefix: string): string {
-  return `${prefix}_${randomBytes(24).toString("hex")}`;
 }
 
 export function createAccessToken(userId: string): string {
@@ -143,24 +150,40 @@ async function upsertUser(phone: string, fullName?: string): Promise<User> {
   });
 }
 
-function buildAuthResponse(user: User) {
-  const accessToken = createAccessToken(user.id);
-  const refreshToken = createToken("refresh");
+type LoginDeviceContext = {
+  device: DeviceInfo;
+  userAgent?: string | null;
+  ipAddress?: string | null;
+};
 
-  refreshSessions.set(refreshToken, {
-    userId: user.id,
-    expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+async function issueLoginForUser(user: User, context: LoginDeviceContext): Promise<PhoneAuthResult> {
+  if (shouldEnforceSessionLimit(user)) {
+    const activeCount = await countActiveUserSessions(user.id);
+    if (activeCount >= MAX_USER_SESSIONS) {
+      const pendingLoginToken = createPendingLogin(
+        user.id,
+        user.phone,
+        context.device,
+        context.userAgent,
+        context.ipAddress
+      );
+
+      return {
+        requiresSessionChoice: true,
+        phoneNumber: user.phone,
+        pendingLoginToken,
+        sessions: await listUserSessionDtos(user.id),
+        maxSessions: MAX_USER_SESSIONS,
+      };
+    }
+  }
+
+  return buildAuthResponseForUser(user, {
+    deviceLabel: context.device.label,
+    deviceType: context.device.deviceType,
+    userAgent: context.userAgent ?? null,
+    ipAddress: context.ipAddress ?? null,
   });
-
-  return {
-    id: user.id,
-    accessToken,
-    refreshToken,
-    phoneNumber: user.phone,
-    fullName: user.fullName,
-    role: user.role.toLowerCase(),
-    roles: [{ name: user.role }],
-  };
 }
 
 export async function sendVerificationCode(phoneInput: string, fullName?: string) {
@@ -187,11 +210,15 @@ export async function registerByPhone(phoneInput: string, fullName?: string) {
 export async function verifyPhoneLogin(
   phoneInput: string,
   otp?: string,
-  fullName?: string
+  fullName?: string,
+  context?: LoginDeviceContext
 ): Promise<PhoneAuthResult> {
   const phone = normalizeIranPhone(phoneInput);
   const challenge = otpChallenges.get(phone);
   const trimmedName = fullName?.trim();
+  const deviceContext = context ?? {
+    device: { label: "مرورگر — سیستم‌عامل", deviceType: "desktop" as const },
+  };
 
   if (trimmedName && challenge?.verifiedAt) {
     if (Date.now() - challenge.verifiedAt > SIGNUP_COMPLETION_WINDOW_MS) {
@@ -201,13 +228,15 @@ export async function verifyPhoneLogin(
 
     const existing = await prisma.user.findUnique({ where: { phone } });
     if (existing) {
+      const result = await issueLoginForUser(existing, deviceContext);
       otpChallenges.delete(phone);
-      return buildAuthResponse(existing);
+      return result;
     }
 
     const user = await upsertUser(phone, trimmedName);
+    const result = await issueLoginForUser(user, deviceContext);
     otpChallenges.delete(phone);
-    return buildAuthResponse(user);
+    return result;
   }
 
   if (!otp || !verifyOtpCode(phone, otp)) {
@@ -230,8 +259,31 @@ export async function verifyPhoneLogin(
   }
 
   const user = await upsertUser(phone, challenge?.fullName);
+  const result = await issueLoginForUser(user, deviceContext);
   otpChallenges.delete(phone);
-  return buildAuthResponse(user);
+  return result;
+}
+
+export async function revokeSessionAndLogin(
+  pendingLoginToken: string,
+  revokeSessionId: string
+): Promise<Awaited<ReturnType<typeof buildAuthResponseForUser>>> {
+  const pending = consumePendingLogin(pendingLoginToken);
+  if (!pending) {
+    throw new Error("زمان انتخاب دستگاه منقضی شده است. دوباره وارد شوید.");
+  }
+
+  const revoked = await revokeUserSession(revokeSessionId, pending.userId);
+  if (!revoked) {
+    throw new Error("دستگاه انتخاب‌شده پیدا نشد.");
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: pending.userId } });
+  if (!user) {
+    throw new Error("کاربر پیدا نشد");
+  }
+
+  return buildAuthResponseForUser(user, pending.meta);
 }
 
 export async function refreshAuthToken(refreshToken?: string) {
@@ -239,9 +291,8 @@ export async function refreshAuthToken(refreshToken?: string) {
     throw new Error("توکن معتبر نیست");
   }
 
-  const session = refreshSessions.get(refreshToken);
-  if (!session || Date.now() > session.expiresAt) {
-    refreshSessions.delete(refreshToken ?? "");
+  const session = await findSessionByRefreshToken(refreshToken);
+  if (!session) {
     throw new Error("نشست منقضی شده است");
   }
 
@@ -250,11 +301,10 @@ export async function refreshAuthToken(refreshToken?: string) {
     throw new Error("کاربر پیدا نشد");
   }
 
-  refreshSessions.delete(refreshToken);
-  const nextRefreshToken = createToken("refresh");
-  refreshSessions.set(nextRefreshToken, session);
+  const nextRefreshToken = await rotateSessionRefreshToken(session.id);
 
   return {
+    sessionId: session.id,
     accessToken: createAccessToken(user.id),
     refreshToken: nextRefreshToken,
   };

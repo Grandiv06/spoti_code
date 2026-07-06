@@ -74,8 +74,8 @@ export default function RegisterForm() {
   };
 
   const completeLogin = useCallback(
-    (user: { id: string; phone: string; displayName: string; role: AppRole }, token?: string, refreshToken?: string) => {
-      login(user, token, refreshToken);
+    (user: { id: string; phone: string; displayName: string; role: AppRole }, token?: string, refreshToken?: string, sessionId?: string) => {
+      login(user, token, refreshToken, sessionId);
       const fallbackPath =
         user.role === "admin"
           ? "/admin"
@@ -145,7 +145,7 @@ export default function RegisterForm() {
         };
       };
 
-      const { accessToken, refreshToken } = extractTokensFromAuthResponse(result);
+      const { accessToken, refreshToken, sessionId } = extractTokensFromAuthResponse(result);
       const apiUser = result?.data;
       const role = resolveAppRole(result, phone);
       const userPhone = apiUser?.phoneNumber || apiUser?.phone || phone;
@@ -159,7 +159,8 @@ export default function RegisterForm() {
           role,
         },
         accessToken,
-        refreshToken
+        refreshToken,
+        sessionId
       );
     } catch {
       setError("کد تایید نامعتبر است.");

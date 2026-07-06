@@ -60,7 +60,69 @@ export function extractAuthErrorMessage(error: unknown, fallback: string): strin
   return fallback;
 }
 
+export function isRequiresSessionChoiceResponse(response: unknown): response is {
+  requiresSessionChoice: true;
+  pendingLoginToken: string;
+  sessions: ActiveSessionItem[];
+  maxSessions: number;
+  phoneNumber?: string;
+} {
+  const payload = response as {
+    requiresSessionChoice?: boolean;
+    pendingLoginToken?: string;
+    sessions?: ActiveSessionItem[];
+    maxSessions?: number;
+    phoneNumber?: string;
+    data?: {
+      requiresSessionChoice?: boolean;
+      pendingLoginToken?: string;
+      sessions?: ActiveSessionItem[];
+      maxSessions?: number;
+      phoneNumber?: string;
+    };
+  };
+
+  const data = payload.data ?? payload;
+  return (
+    data.requiresSessionChoice === true &&
+    Boolean(data.pendingLoginToken) &&
+    Array.isArray(data.sessions)
+  );
+}
+
+export type ActiveSessionItem = {
+  id: string;
+  deviceLabel: string;
+  deviceType: string;
+  ipAddress: string | null;
+  lastActiveAt: string;
+  createdAt: string;
+  isCurrent: boolean;
+};
+
 export function isRequiresFullNameResponse(response: unknown): boolean {
   const payload = response as { requiresFullName?: boolean; data?: { requiresFullName?: boolean } };
   return payload?.requiresFullName === true || payload?.data?.requiresFullName === true;
+}
+
+export function parseSessionChoiceResponse(response: unknown) {
+  const payload = response as {
+    pendingLoginToken?: string;
+    sessions?: ActiveSessionItem[];
+    maxSessions?: number;
+    phoneNumber?: string;
+    data?: {
+      pendingLoginToken?: string;
+      sessions?: ActiveSessionItem[];
+      maxSessions?: number;
+      phoneNumber?: string;
+    };
+  };
+  const data = payload.data ?? payload;
+  return {
+    pendingLoginToken: String(data.pendingLoginToken ?? ""),
+    sessions: Array.isArray(data.sessions) ? data.sessions : [],
+    maxSessions: Number(data.maxSessions ?? 2),
+    phoneNumber: data.phoneNumber,
+  };
 }
