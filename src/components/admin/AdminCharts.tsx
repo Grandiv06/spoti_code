@@ -17,6 +17,10 @@ import {
 
 type Point = { label: string; value: number };
 
+function formatUserCount(value: number) {
+  return value.toLocaleString("fa-IR");
+}
+
 export function MiniAreaChart({ data, trendLabel }: { data: Point[]; trendLabel?: string }) {
   const chartConfig = {
     revenue: { label: "درآمد", color: "#22c55e" },
@@ -116,11 +120,11 @@ export function DonutChannels({
   return (
     <div className="rounded-3xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-[#1c1e26] p-4 md:p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-bold text-gray-900 dark:text-white">کانال جذب کاربر</h3>
+        <h3 className="text-sm font-bold text-gray-900 dark:text-white">تعداد کاربران</h3>
         <div className="relative group">
           <AlertCircle className="h-4 w-4 text-gray-400 hover:text-primary transition-colors" />
           <div className="pointer-events-none absolute left-0 top-6 z-20 hidden w-64 rounded-xl border border-gray-200 bg-white p-2.5 text-[10px] font-bold leading-relaxed text-gray-600 shadow-xl group-hover:block dark:border-white/10 dark:bg-[#14161c] dark:text-gray-300">
-            این شاخص را ما با استفاده از پاسخ‌هایی که از کاربران دریافت می‌کنیم محاسبه می‌کنیم.
+            تعداد کاربران پلتفرم بر اساس نقش (دانشجو، مدرس و ادمین) نمایش داده می‌شود.
           </div>
         </div>
       </div>
@@ -129,7 +133,7 @@ export function DonutChannels({
           <ChartContainer config={chartConfig} className="h-36 w-36 shrink-0">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Tooltip content={<ChartTooltipContent formatter={(value) => `${value}%`} />} />
+                <Tooltip content={<ChartTooltipContent formatter={(value) => formatUserCount(Number(value))} />} />
                 <Pie
                   data={data}
                   dataKey="value"
@@ -153,7 +157,7 @@ export function DonutChannels({
               <div key={item.label} className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
                 <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
                 <span>{item.label}</span>
-                <span className="font-semibold">{item.value}%</span>
+                <span className="font-semibold">{formatUserCount(item.value)}</span>
               </div>
             ))}
           </div>

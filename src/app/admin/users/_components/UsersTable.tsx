@@ -4,7 +4,7 @@ import React, { useMemo, useState } from "react";
 import { Eye, Edit3, Inbox, Copy, Check } from "lucide-react";
 import { User } from "./types";
 import { UserRoleBadge, UserStatusBadge } from "./Badges";
-import { toPersianDigits, formatPrice, formatPhone, formatPersianDate } from "./utils";
+import { toPersianDigits, formatPhone, formatPersianDate } from "./utils";
 import { toEnglishDigits } from "@/lib/digits";
 import AdminTablePagination from "@/components/admin/AdminTablePagination";
 
@@ -93,18 +93,26 @@ export default function UsersTable({
 
   return (
     <div className="bg-white dark:bg-[#1c1e26] rounded-3xl border border-gray-100 dark:border-white/5 shadow-sm transition-all duration-300">
-      <div className="overflow-x-auto w-full">
-        <table className="w-full text-right border-collapse text-sm min-w-[960px]">
+      <div className="w-full overflow-x-auto">
+        <table className="w-full table-fixed border-collapse text-right text-sm">
+          <colgroup>
+            <col className="w-[13%]" />
+            <col className="w-[19%]" />
+            <col className="w-[14%]" />
+            <col className="w-[12%]" />
+            <col className="w-[8%]" />
+            <col className="w-[13%]" />
+            <col className="w-[21%]" />
+          </colgroup>
           <thead>
-            <tr className="border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-black/10">
-              <th className="py-4 px-6 text-xs font-bold text-gray-400 dark:text-gray-500 w-24">شناسه</th>
-              <th className="py-4 px-6 text-xs font-bold text-gray-400 dark:text-gray-500">کاربر</th>
-              <th className="py-4 px-6 text-xs font-bold text-gray-400 dark:text-gray-500 whitespace-nowrap min-w-[8.5rem]">شماره تماس</th>
-              <th className="py-4 px-6 text-xs font-bold text-gray-400 dark:text-gray-500">وضعیت حساب</th>
-              <th className="py-4 px-6 text-xs font-bold text-gray-400 dark:text-gray-500 text-center w-24">دوره‌ها</th>
-              <th className="py-4 px-6 text-xs font-bold text-gray-400 dark:text-gray-500 whitespace-nowrap min-w-[7.5rem]">ارزش کل (LTV)</th>
-              <th className="py-4 px-6 text-xs font-bold text-gray-400 dark:text-gray-500 w-32">تاریخ عضویت</th>
-              <th className="py-4 px-6 text-xs font-bold text-gray-400 dark:text-gray-500 text-center w-48">عملیات</th>
+            <tr className="border-b border-gray-100 bg-gray-50/50 dark:border-white/5 dark:bg-black/10">
+              <th className="px-4 py-4 text-right text-xs font-bold text-gray-400 dark:text-gray-500">شناسه</th>
+              <th className="px-4 py-4 text-right text-xs font-bold text-gray-400 dark:text-gray-500">کاربر</th>
+              <th className="px-4 py-4 text-center text-xs font-bold text-gray-400 dark:text-gray-500">شماره تماس</th>
+              <th className="px-4 py-4 text-center text-xs font-bold text-gray-400 dark:text-gray-500">وضعیت حساب</th>
+              <th className="px-4 py-4 text-center text-xs font-bold text-gray-400 dark:text-gray-500">دوره‌ها</th>
+              <th className="px-4 py-4 text-center text-xs font-bold text-gray-400 dark:text-gray-500">تاریخ عضویت</th>
+              <th className="px-4 py-4 text-center text-xs font-bold text-gray-400 dark:text-gray-500">عملیات</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-white/5">
@@ -112,25 +120,25 @@ export default function UsersTable({
               <tr
                 key={user.id}
                 onClick={() => onShowDetails(user)}
-                className="hover:bg-gray-50/30 dark:hover:bg-white/[0.02] transition-colors duration-200 cursor-pointer"
+                className="cursor-pointer transition-colors duration-200 hover:bg-gray-50/30 dark:hover:bg-white/[0.02]"
               >
-                {/* ID Column */}
-                <td className="py-4 px-6" onClick={(event) => event.stopPropagation()}>
-                  <CopyUserIdButton userId={user.id} />
+                <td className="px-4 py-4 align-middle" onClick={(event) => event.stopPropagation()}>
+                  <div className="flex justify-start">
+                    <CopyUserIdButton userId={user.id} />
+                  </div>
                 </td>
 
-                {/* Name / User Info Column */}
-                <td className="py-4 px-6">
-                  <div className="flex items-center gap-3">
+                <td className="px-4 py-4 align-middle">
+                  <div className="flex items-center justify-start gap-3">
                     <div
-                      className={`w-10 h-10 rounded-2xl bg-gradient-to-br ${
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${
                         user.avatarColor || "from-emerald-400 to-teal-600"
-                      } flex items-center justify-center text-white text-xs font-black shadow-sm shrink-0`}
+                      } text-xs font-black text-white shadow-sm`}
                     >
                       {getInitials(user.name)}
                     </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="font-black text-gray-900 dark:text-white text-sm truncate">
+                    <div className="min-w-0">
+                      <span className="block truncate text-sm font-black text-gray-900 dark:text-white">
                         {user.name}
                       </span>
                       <div className="mt-0.5">
@@ -140,44 +148,34 @@ export default function UsersTable({
                   </div>
                 </td>
 
-                {/* Phone Column */}
-                <td className="py-4 px-6">
+                <td className="px-4 py-4 align-middle text-center">
                   <span
                     dir="ltr"
-                    className="font-bold text-gray-700 dark:text-gray-300 text-xs inline-block text-left whitespace-nowrap [unicode-bidi:plaintext]"
+                    className="inline-block whitespace-nowrap text-xs font-bold text-gray-700 dark:text-gray-300 [unicode-bidi:plaintext]"
                   >
                     {formatPhone(user.phone)}
                   </span>
                 </td>
 
-                {/* Status Column */}
-                <td className="py-4 px-6">
-                  <UserStatusBadge status={user.status} />
+                <td className="px-4 py-4 text-center align-middle">
+                  <div className="flex justify-center">
+                    <UserStatusBadge status={user.status} />
+                  </div>
                 </td>
 
-                {/* Course Count Column */}
-                <td className="py-4 px-6 text-center">
-                  <span className="inline-block px-2.5 py-1 rounded-xl bg-gray-100 dark:bg-black/20 text-gray-800 dark:text-gray-300 font-black text-xs min-w-[32px]">
+                <td className="px-4 py-4 text-center align-middle">
+                  <span className="inline-block min-w-[32px] rounded-xl bg-gray-100 px-2.5 py-1 text-xs font-black text-gray-800 dark:bg-black/20 dark:text-gray-300">
                     {toPersianDigits(user.courses)}
                   </span>
                 </td>
 
-                {/* LTV Column */}
-                <td className="py-4 px-6">
-                  <span className="inline-block font-black text-gray-900 dark:text-white text-xs whitespace-nowrap">
-                    {formatPrice(user.ltv)}
-                  </span>
-                </td>
-
-                {/* Joined At Column */}
-                <td className="py-4 px-6">
-                  <span className="text-gray-500 dark:text-gray-400 text-xs font-semibold">
+                <td className="px-4 py-4 text-center align-middle">
+                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
                     {formatPersianDate(user.joinedAt)}
                   </span>
                 </td>
 
-                {/* Actions Column */}
-                <td className="py-4 px-6 text-center">
+                <td className="px-4 py-4 text-center align-middle">
                   <div className="flex items-center justify-center gap-2">
                     <button
                       onClick={(e) => {
