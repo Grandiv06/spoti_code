@@ -20,43 +20,45 @@ export type ProfileSettings = {
   bannerImage?: string;
 };
 
-const DEFAULT: ProfileSettings = {
+export const EMPTY_PROFILE_SETTINGS: ProfileSettings = {
   bannerColor: "#22c55e",
   useDefaultBanner: true,
   displayName: "",
   bio: "",
-  location: "تهران، ایران",
+  location: "",
   githubUrl: "",
   linkedinUrl: "",
   telegramUrl: "",
   websiteUrl: "",
-  mbti: "INTJ",
-  skills: ["JavaScript", "React", "Next.js", "TypeScript", "Tailwind CSS", "Git", "Figma"],
+  mbti: "",
+  skills: [],
   avatarImage: "",
   bannerImage: "",
 };
 
+const DEFAULT = EMPTY_PROFILE_SETTINGS;
+
 type ProfileSettingsContextType = {
   settings: ProfileSettings;
   updateSettings: (updates: Partial<ProfileSettings>) => void;
+  hydrateSettings: (updates: Partial<ProfileSettings>) => void;
 };
 
 const Context = createContext<ProfileSettingsContextType | undefined>(undefined);
 
 function loadFromStorage(): ProfileSettings {
-  if (typeof window === "undefined") return { ...DEFAULT };
+  if (typeof window === "undefined") return { ...EMPTY_PROFILE_SETTINGS };
   try {
     const raw = localStorage.getItem(PROFILE_SETTINGS_KEY);
-    if (!raw) return { ...DEFAULT };
+    if (!raw) return { ...EMPTY_PROFILE_SETTINGS };
     const parsed = JSON.parse(raw) as Partial<ProfileSettings>;
-    const merged = { ...DEFAULT, ...parsed };
-    // Migration: existing users had custom banner, keep it
+    const merged = { ...EMPTY_PROFILE_SETTINGS, ...parsed };
     if (parsed && !("useDefaultBanner" in parsed) && parsed.bannerColor) {
       merged.useDefaultBanner = false;
     }
     return merged;
   } catch {
-    return { ...DEFAULT };
+    return { ...EMPTY_PROFILE_SETTINGS };
   }
 }
 
@@ -82,8 +84,16 @@ export function ProfileSettingsProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const hydrateSettings = useCallback((updates: Partial<ProfileSettings>) => {
+    setSettings(() => {
+      const next = { ...EMPTY_PROFILE_SETTINGS, ...updates };
+      saveToStorage(next);
+      return next;
+    });
+  }, []);
+
   return (
-    <Context.Provider value={{ settings, updateSettings }}>
+    <Context.Provider value={{ settings, updateSettings, hydrateSettings }}>
       {children}
     </Context.Provider>
   );
@@ -91,6 +101,12 @@ export function ProfileSettingsProvider({ children }: { children: ReactNode }) {
 
 export function useProfileSettings() {
   const ctx = useContext(Context);
-  if (!ctx) return { settings: DEFAULT, updateSettings: () => {} };
+  if (!ctx) {
+    return {
+      settings: EMPTY_PROFILE_SETTINGS,
+      updateSettings: () => {},
+      hydrateSettings: () => {},
+    };
+  }
   return ctx;
 }

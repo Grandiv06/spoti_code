@@ -2,54 +2,56 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { useSocial } from "@/context/SocialContext";
-import { useProfileSettings } from "@/context/ProfileSettingsContext";
+import { useAuth } from "@/context/AuthContext";
 import { fetchMyProfile, getProfileSocialLinks } from "@/lib/panel-profile";
+import type { ProfileSettings } from "@/context/ProfileSettingsContext";
 import ProfileHeader from "../../social/profile/_components/ProfileHeader";
 import ProfileSidebar from "../../social/profile/_components/ProfileSidebar";
 import ProjectsTabs from "../../social/profile/_components/ProjectsTabs";
 import ActivityTabs from "../../social/profile/_components/ActivityTabs";
 import { SocialButton } from "@/components/social/SocialButton";
 
-type ApiProfile = Partial<ReturnType<typeof useProfileSettings>["settings"]> & {
+type ApiProfile = ProfileSettings & {
   role?: string;
   joinDate?: string;
 };
 
 export default function PanelProfilePage() {
   const router = useRouter();
-  const { currentUser } = useSocial();
-  const { settings } = useProfileSettings();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [apiProfile, setApiProfile] = React.useState<ApiProfile | null>(null);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
+    if (authLoading) return;
+
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
     const loadProfile = async () => {
       setLoading(true);
       try {
         const result = await fetchMyProfile();
-        setApiProfile(Object.keys(result).length > 0 ? (result as ApiProfile) : null);
+        if (!cancelled) setApiProfile(result as ApiProfile);
       } catch {
-        setApiProfile(null);
+        if (!cancelled) setApiProfile(null);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
+
     void loadProfile();
-  }, []);
 
-  if (!currentUser) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">لطفاً وارد شوید</h2>
-        <SocialButton variant="primary" onClick={() => router.push("/login")}>
-          ورود
-        </SocialButton>
-      </div>
-    );
-  }
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, isAuthenticated]);
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <main className="min-h-screen pb-20 animate-pulse">
         <div className="container mx-auto max-w-7xl px-4 md:px-6 pt-4 space-y-8">
@@ -63,48 +65,54 @@ export default function PanelProfilePage() {
     );
   }
 
-  const mergedProfile = {
-    displayName:
-      apiProfile?.displayName || settings.displayName || currentUser.displayName,
-    bio:
-      apiProfile?.bio?.trim() ||
-      settings.bio?.trim() ||
-      "هنوز بیویی ننوشته‌اید. از ویرایش پروفایل می‌توانید خودتان را معرفی کنید.",
-    avatarImage:
-      apiProfile?.avatarImage || settings.avatarImage || currentUser.avatarUrl || "/images/student1.jpg",
-    githubUrl: apiProfile?.githubUrl || settings.githubUrl || "",
-    linkedinUrl: apiProfile?.linkedinUrl || settings.linkedinUrl || "",
-    telegramUrl: apiProfile?.telegramUrl || settings.telegramUrl || "",
-    websiteUrl: apiProfile?.websiteUrl || settings.websiteUrl || "",
-    skills:
-      apiProfile?.skills && apiProfile.skills.length > 0
-        ? apiProfile.skills
-        : settings.skills.length > 0
-          ? settings.skills
-          : [],
-    role: apiProfile?.role || "یادگیرنده",
-    joinDate: apiProfile?.joinDate || "—",
+  if (!isAuthenticated) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">لطفاً وارد شوید</h2>
+        <SocialButton variant="primary" onClick={() => router.push("/login")}>
+          ورود
+        </SocialButton>
+      </div>
+    );
+  }
+
+  const profile = apiProfile ?? {
+    displayName: "",
+    bio: "",
+    avatarImage: "",
+    githubUrl: "",
+    linkedinUrl: "",
+    telegramUrl: "",
+    websiteUrl: "",
+    skills: [],
+    role: "یادگیرنده",
+    joinDate: "—",
+    bannerColor: "#22c55e",
+    useDefaultBanner: true,
+    location: "",
+    mbti: "",
+    bannerImage: "",
   };
 
-  const socials = getProfileSocialLinks(mergedProfile);
+  const socials = getProfileSocialLinks(profile);
 
   const userProfileData = {
-    displayName: mergedProfile.displayName,
-    username: currentUser.username,
-    description: mergedProfile.bio,
-    bannerUrl: settings.bannerImage || "",
-    avatarUrl: mergedProfile.avatarImage,
-    role: mergedProfile.role,
-    mbti: "",
-    joinDate: mergedProfile.joinDate,
+    displayName: profile.displayName,
+    username: "",
+    description: profile.bio,
+    bannerUrl: profile.bannerImage || "",
+    avatarUrl: profile.avatarImage || "",
+    role: profile.role || "یادگیرنده",
+    mbti: profile.mbti || "",
+    joinDate: profile.joinDate || "—",
     socials,
     stats: {
       daysActive: 0,
       reputation: 0,
-      followers: currentUser.followersCount || 0,
-      following: currentUser.followingCount || 0,
+      followers: 0,
+      following: 0,
     },
-    skills: mergedProfile.skills,
+    skills: profile.skills,
   };
 
   return (

@@ -39,7 +39,6 @@ function mapProfile(user: User, profile: Awaited<ReturnType<typeof findUserProfi
     email: user.email,
     profile,
   });
-  const occupation = profile?.occupation?.trim() || displayName;
 
   return {
     id: profile?.id ?? `PRF-${user.id}`,
@@ -47,7 +46,7 @@ function mapProfile(user: User, profile: Awaited<ReturnType<typeof findUserProfi
     fullName: displayName,
     displayName,
     phone: user.phone,
-    occupation,
+    occupation: profile?.occupation?.trim() || "",
     about: profile?.about?.trim() || "",
     location: profile?.location?.trim() || "",
     githubLink: profile?.githubLink?.trim() || "",

@@ -1,5 +1,6 @@
 import type { UpsertProfileDto } from "@/types/api-dtos";
 import type { ProfileSettings } from "@/context/ProfileSettingsContext";
+import { EMPTY_PROFILE_SETTINGS } from "@/context/ProfileSettingsContext";
 import { unwrapResponse } from "@/lib/admin-tickets";
 import { apiGetNoMock, apiPutNoMock } from "@/lib/api";
 import { getAuthHeaders } from "@/lib/auth-tokens";
@@ -131,7 +132,7 @@ export function mapProfileResponseToSettings(value: unknown): Partial<ProfileSet
   const skills = parseSkills(row.skills ?? row.capabilities);
 
   return {
-    displayName: pickString(row, ["displayName", "occupation", "fullName", "name"]),
+    displayName: pickString(row, ["displayName", "fullName", "name", "occupation"]),
     bio: pickString(row, ["about", "bio"]),
     location: pickString(row, ["location"]),
     githubUrl: pickString(row, ["githubLink", "githubUrl"]),
@@ -170,9 +171,16 @@ export function buildUpsertProfilePayload(settings: ProfileSettings): UpsertProf
   };
 }
 
-export async function fetchMyProfile(): Promise<Partial<ProfileSettings>> {
+export function mapApiProfileToSettings(value: unknown): ProfileSettings {
+  return {
+    ...EMPTY_PROFILE_SETTINGS,
+    ...mapProfileResponseToSettings(value),
+  };
+}
+
+export async function fetchMyProfile(): Promise<ProfileSettings> {
   const response = await apiGetNoMock<unknown>("/api/profiles/me", getAuthHeaders());
-  return mapProfileResponseToSettings(response);
+  return mapApiProfileToSettings(response);
 }
 
 export async function fetchPublicProfile(userId: string): Promise<Partial<ProfileSettings>> {
@@ -182,14 +190,14 @@ export async function fetchPublicProfile(userId: string): Promise<Partial<Profil
   return mapProfileResponseToSettings(response);
 }
 
-export async function updateMyProfile(settings: ProfileSettings): Promise<Partial<ProfileSettings>> {
+export async function updateMyProfile(settings: ProfileSettings): Promise<ProfileSettings> {
   const normalizedSettings = normalizeProfileSocials(settings);
   const response = await apiPutNoMock<unknown>(
     "/api/profiles/me",
     buildUpsertProfilePayload(normalizedSettings),
     getAuthHeaders()
   );
-  const mapped = mapProfileResponseToSettings(response);
+  const mapped = mapApiProfileToSettings(response);
   return {
     ...mapped,
     displayName: normalizedSettings.displayName.trim() || mapped.displayName,

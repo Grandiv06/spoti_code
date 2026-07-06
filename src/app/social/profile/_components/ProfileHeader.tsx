@@ -12,6 +12,7 @@ import {
   Sparkles,
   Edit3,
   Send,
+  User,
 } from "lucide-react";
 
 interface ProfileHeaderProps {
@@ -54,13 +55,19 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isOwnProfile }) => 
           {/* Avatar */}
           <div className="relative shrink-0">
             <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white dark:border-[#14161c] overflow-hidden shadow-2xl bg-white dark:bg-[#1c1e26]">
-              <Image
-                src={user.avatarUrl}
-                alt={user.displayName}
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 128px, 160px"
-              />
+              {user.avatarUrl ? (
+                <Image
+                  src={user.avatarUrl}
+                  alt={user.displayName || "پروفایل"}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 128px, 160px"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-gray-100 dark:bg-white/5">
+                  <User className="h-12 w-12 text-gray-300 dark:text-gray-600" />
+                </div>
+              )}
             </div>
             {/* Vertical connector line - profile to growth path */}
             <div
@@ -76,7 +83,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isOwnProfile }) => 
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
               <div className="flex flex-col items-center md:items-start text-center md:text-right">
                 <h1 className="text-2xl md:text-4xl font-black text-gray-900 dark:text-gray-100 transition-all">
-                  {user.displayName}
+                  {user.displayName || "کاربر"}
                 </h1>
 
                 <div className="flex items-center justify-center md:justify-start gap-4 mt-6 text-sm text-gray-600 dark:text-gray-400 flex-wrap">
@@ -90,9 +97,15 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isOwnProfile }) => 
                   </span>
                 </div>
 
-                <p className="mt-4 text-gray-700 dark:text-gray-300 max-w-2xl leading-relaxed">
-                  {user.description}
-                </p>
+                {user.description ? (
+                  <p className="mt-4 text-gray-700 dark:text-gray-300 max-w-2xl leading-relaxed">
+                    {user.description}
+                  </p>
+                ) : (
+                  <p className="mt-4 text-sm text-gray-400 dark:text-gray-500 max-w-2xl leading-relaxed">
+                    هنوز بیویی ثبت نشده است.
+                  </p>
+                )}
               </div>
 
               {/* Actions & Socials */}

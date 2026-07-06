@@ -3,7 +3,6 @@
 import React, { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { useSocial } from "@/context/SocialContext";
 import { useProfileSettings } from "@/context/ProfileSettingsContext";
 import { fetchMyProfile, updateMyProfile, validateProfileSocials, type ProfileSocialField } from "@/lib/panel-profile";
 import { cn } from "@/lib/utils";
@@ -31,8 +30,7 @@ function ProfileEditContent() {
   const router = useRouter();
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const { isAuthenticated, user: authUser } = useAuth();
-  const { currentUser } = useSocial();
-  const { settings, updateSettings } = useProfileSettings();
+  const { settings, updateSettings, hydrateSettings } = useProfileSettings();
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saveError, setSaveError] = useState("");
@@ -53,12 +51,14 @@ function ProfileEditContent() {
       setLoading(true);
       try {
         const profile = await fetchMyProfile();
-        if (!cancelled && Object.keys(profile).length > 0) {
-          updateSettings(profile);
+        if (!cancelled) {
+          hydrateSettings(profile);
         }
       } catch {
-        if (!cancelled && authUser?.displayName && !settings.displayName) {
-          updateSettings({ displayName: authUser.displayName });
+        if (!cancelled) {
+          hydrateSettings({
+            displayName: authUser?.displayName?.trim() || "",
+          });
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -70,7 +70,7 @@ function ProfileEditContent() {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, authUser?.displayName]);
+  }, [authUser?.displayName, hydrateSettings, isAuthenticated]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -104,9 +104,7 @@ function ProfileEditContent() {
     setSaving(true);
     try {
       const savedProfile = await updateMyProfile(settings);
-      if (Object.keys(savedProfile).length > 0) {
-        updateSettings(savedProfile);
-      }
+      hydrateSettings(savedProfile);
       router.push("/panel/profile");
     } catch {
       setSaveError("ذخیره تغییرات انجام نشد. لطفاً دوباره تلاش کنید.");
@@ -278,8 +276,8 @@ function ProfileEditContent() {
             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-4">تصویر پروفایل</label>
             <div className="relative inline-block group">
               <div className="w-32 h-32 rounded-full border-4 border-white dark:border-[#14161c] overflow-hidden shadow-xl bg-gray-100 dark:bg-white/5 mx-auto">
-                {settings.avatarImage || currentUser?.avatarUrl ? (
-                  <Image src={settings.avatarImage || currentUser?.avatarUrl || ""} alt="آواتار" width={128} height={128} className="object-cover w-full h-full" />
+                {settings.avatarImage ? (
+                  <Image src={settings.avatarImage} alt="آواتار" width={128} height={128} className="object-cover w-full h-full" />
                 ) : (
                   <User className="w-full h-full p-6 text-gray-300" />
                 )}
