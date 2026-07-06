@@ -10,6 +10,7 @@ import {
 } from "@/lib/panel-sessions";
 import type { ActiveSessionItem } from "@/lib/phone-auth";
 import { cn } from "@/lib/utils";
+import RevokeSessionConfirmModal from "./RevokeSessionConfirmModal";
 
 export default function ActiveSessionsPanel() {
   const { logout } = useAuth();
@@ -18,6 +19,8 @@ export default function ActiveSessionsPanel() {
   const [loading, setLoading] = useState(true);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [sessionToRevoke, setSessionToRevoke] = useState<ActiveSessionItem | null>(null);
+  const [modalError, setModalError] = useState("");
 
   const loadSessions = useCallback(async () => {
     setLoading(true);
@@ -38,22 +41,38 @@ export default function ActiveSessionsPanel() {
     void loadSessions();
   }, [loadSessions]);
 
-  const handleRevoke = async (session: ActiveSessionItem) => {
+  const handleRevokeClick = (session: ActiveSessionItem) => {
     if (revokingId) return;
+    setModalError("");
+    setSessionToRevoke(session);
+  };
+
+  const handleRevokeCancel = () => {
+    if (revokingId) return;
+    setSessionToRevoke(null);
+    setModalError("");
+  };
+
+  const handleRevokeConfirm = async () => {
+    if (!sessionToRevoke || revokingId) return;
+
+    const session = sessionToRevoke;
     setRevokingId(session.id);
+    setModalError("");
     setError("");
 
     try {
       const result = await revokeActiveSession(session.id);
       setSessions(result.sessions);
       setMaxSessions(result.maxSessions);
+      setSessionToRevoke(null);
 
       if (session.isCurrent) {
         logout();
         return;
       }
     } catch {
-      setError("حذف نشست انجام نشد.");
+      setModalError("حذف نشست انجام نشد.");
     } finally {
       setRevokingId(null);
     }
@@ -121,11 +140,11 @@ export default function ActiveSessionsPanel() {
                   )}
                   <button
                     type="button"
-                    onClick={() => void handleRevoke(session)}
+                    onClick={() => handleRevokeClick(session)}
                     disabled={revokingId === session.id}
                     className="text-xs font-bold text-red-500 hover:text-red-600 disabled:opacity-50 cursor-pointer"
                   >
-                    {revokingId === session.id ? "در حال حذف..." : "خروج از دستگاه"}
+                    {session.isCurrent ? "حذف این دستگاه" : "خروج از دستگاه"}
                   </button>
                 </div>
               </div>
@@ -133,6 +152,15 @@ export default function ActiveSessionsPanel() {
           </div>
         )}
       </div>
+
+      <RevokeSessionConfirmModal
+        isOpen={Boolean(sessionToRevoke)}
+        session={sessionToRevoke}
+        isPending={Boolean(sessionToRevoke && revokingId === sessionToRevoke.id)}
+        error={modalError}
+        onCancel={handleRevokeCancel}
+        onConfirm={() => void handleRevokeConfirm()}
+      />
     </div>
   );
 }
