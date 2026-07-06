@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   LogOut,
   Menu,
@@ -22,6 +22,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useInstructorData } from "@/context/InstructorDataContext";
 import { useAuth } from "@/context/AuthContext";
+import { fetchMyProfile } from "@/lib/panel-profile";
+import { formatIranPhoneForDisplay } from "@/lib/format-phone";
 
 const navItems = [
   { href: "/instructor/dashboard", label: "داشبورد استاد", icon: LayoutDashboard },
@@ -35,10 +37,53 @@ const navItems = [
 export default function InstructorShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { profile, toasts } = useInstructorData();
-  const { logout } = useAuth();
+  const { toasts } = useInstructorData();
+  const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [profileAvatar, setProfileAvatar] = useState("");
+
+  useEffect(() => {
+    if (!user) {
+      setProfileName("");
+      setProfileAvatar("");
+      return;
+    }
+
+    if (user.displayName?.trim()) {
+      setProfileName(user.displayName.trim());
+    }
+
+    let cancelled = false;
+
+    const loadProfile = async () => {
+      try {
+        const profile = await fetchMyProfile();
+        if (cancelled) return;
+        if (profile.displayName?.trim()) {
+          setProfileName(profile.displayName.trim());
+        }
+        if (profile.avatarImage?.trim()) {
+          setProfileAvatar(profile.avatarImage.trim());
+        }
+      } catch {
+        if (!cancelled && !user.displayName?.trim()) {
+          setProfileName("");
+        }
+      }
+    };
+
+    void loadProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.displayName, user?.id]);
+
+  const sidebarDisplayName = profileName || user?.displayName || "مدرس";
+  const sidebarPhone = user?.phone?.trim() ? formatIranPhoneForDisplay(user.phone) : "";
+  const sidebarAvatar = profileAvatar || user?.avatarUrl || "";
 
   const handleLogout = () => {
     logout();
@@ -91,22 +136,40 @@ export default function InstructorShell({ children }: { children: React.ReactNod
         </div>
 
         {/* Instructor Profile Card */}
-        <div className="px-4 mb-4">
-          <div className="rounded-2xl bg-white dark:bg-white/5 border border-gray-200/60 dark:border-white/5 p-4 flex flex-row-reverse items-center gap-3">
-            <div className="w-12 h-12 rounded-full border-2 border-primary/50 overflow-hidden flex items-center justify-center bg-primary/10 dark:bg-primary/20 shrink-0">
-              {profile.avatar ? (
-                <Image src={profile.avatar} alt={profile.name} width={48} height={48} className="object-cover w-full h-full" />
-              ) : (
-                <User className="text-primary w-6 h-6" strokeWidth={2} />
-              )}
-            </div>
-            <div className="flex flex-col items-end min-w-0 flex-1 overflow-hidden">
-              <p className="text-sm font-bold text-gray-900 dark:text-white truncate w-full text-right">
-                {profile.name}
-              </p>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate w-full text-right">
-                {profile.specialty}
-              </p>
+        <div className="mb-4 px-4">
+          <div className="flex w-full justify-center">
+            <div className="flex w-full items-center justify-center overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 transition-all duration-300 dark:border-white/5 dark:bg-white/10">
+              <div dir="rtl" className="flex w-full items-center gap-3">
+                <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-primary/50 bg-primary/10 transition-all duration-300 dark:bg-primary/20">
+                  {sidebarAvatar ? (
+                    sidebarAvatar.startsWith("data:") || sidebarAvatar.startsWith("blob:") ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={sidebarAvatar} alt="" className="size-full object-cover" />
+                    ) : (
+                      <Image
+                        src={sidebarAvatar}
+                        alt=""
+                        width={56}
+                        height={56}
+                        className="size-full object-cover"
+                        unoptimized
+                      />
+                    )
+                  ) : (
+                    <User className="size-7 text-primary" strokeWidth={2} />
+                  )}
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5 overflow-hidden text-right">
+                  <p className="w-full truncate text-base font-bold leading-snug text-gray-900 dark:text-white">
+                    {sidebarDisplayName}
+                  </p>
+                  {sidebarPhone && (
+                    <p className="w-full truncate text-right text-sm leading-snug text-gray-600 dark:text-gray-400" dir="rtl">
+                      {sidebarPhone}
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
