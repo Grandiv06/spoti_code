@@ -125,17 +125,6 @@ export default function LoginPasswordPage() {
                   </span>
                 </div>
               </div>
-              <div>
-                <p className="text-gray-500 dark:text-gray-400 font-medium text-sm">
-                  هنوز حساب کاربری ندارید؟{" "}
-                  <Link
-                    href="/register"
-                    className="text-[#00c853] dark:text-green-400 font-black hover:underline decoration-2 underline-offset-4 mr-1"
-                  >
-                    ثبت‌نام
-                  </Link>
-                </p>
-              </div>
             </div>
           </div>
         </div>

@@ -7,6 +7,7 @@ import type { CreateCommentDto } from "@/types/api-dtos";
 import { apiPostNoMock, apiGetNoMock } from "@/lib/api";
 import { SkeletonBox } from "@/components/ui/Skeleton";
 import { useAuth } from "@/context/AuthContext";
+import { canAccessSocial } from "@/lib/social-access";
 
 export interface ReviewReply {
   author: string;
@@ -197,6 +198,9 @@ function ReviewReplyBlock({ reply }: { reply: ReviewReply }) {
 }
 
 function ReviewCard({ review, isLast }: { review: Review; isLast?: boolean }) {
+  const { user } = useAuth();
+  const showSocialProfile = canAccessSocial(user?.role) && Boolean(review.userId);
+
   return (
     <article
       className={`group px-4 py-5 transition-colors hover:bg-gray-50/60 dark:hover:bg-white/[0.02] md:px-6 md:py-6 ${
@@ -204,7 +208,7 @@ function ReviewCard({ review, isLast }: { review: Review; isLast?: boolean }) {
       }`}
     >
       <div className="flex items-start gap-3 md:gap-4">
-        {review.userId ? (
+        {showSocialProfile ? (
           <Link
             href={`/social/profile/${review.userId}`}
             className="group/profile shrink-0"
@@ -223,7 +227,7 @@ function ReviewCard({ review, isLast }: { review: Review; isLast?: boolean }) {
           <div className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 dark:border-white/10 dark:bg-white/[0.03] md:px-5 md:py-4">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
               <div className="min-w-0">
-                {review.userId ? (
+                {showSocialProfile ? (
                   <Link
                     href={`/social/profile/${review.userId}`}
                     className="truncate text-sm font-black text-gray-900 transition-colors hover:text-primary dark:text-white md:text-base"

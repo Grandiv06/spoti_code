@@ -2,7 +2,7 @@ import { CourseCategory } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { getPublicCourses } from "@/server/services/course.service";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 const VALID_CATEGORIES = new Set<string>(Object.values(CourseCategory));
 

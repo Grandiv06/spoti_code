@@ -192,7 +192,7 @@ export default function Header() {
                     }}
                   />
                 )}
-                <span className="relative z-10">ورود / ثبت‌نام</span>
+                <span className="relative z-10">ورود</span>
                 <span className="material-symbols-outlined relative z-10 text-xl">
                   login
                 </span>

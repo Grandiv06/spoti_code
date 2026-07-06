@@ -133,7 +133,7 @@ export default function AboutPage() {
             <div className="glass-panel rounded-4xl p-6 flex flex-col items-center text-center gap-4 hover:-translate-y-2 transition-transform duration-300 group">
               <div className="relative size-32 rounded-full p-1 bg-gradient-to-b from-primary/50 to-transparent">
                 <Image
-                  alt="Professional portrait of Ali, Senior Backend Engineer"
+                  alt="Professional portrait of Soroush Mashayekhi, Front-end Developer"
                   className="w-full h-full rounded-full object-cover border-4 border-white dark:border-gray-800 grayscale group-hover:grayscale-0 transition-all duration-500"
                   src="/images/inst5.jpg"
                   width={128}
@@ -145,7 +145,7 @@ export default function AboutPage() {
                   سروش مشایخی{" "}
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-widest font-bold">
-                  Senior Backend
+                  Front-end Developer
                 </p>
               </div>
               <div className="flex gap-2 mt-2">
@@ -172,7 +172,7 @@ export default function AboutPage() {
             <div className="glass-panel rounded-4xl p-6 flex flex-col items-center text-center gap-4 hover:-translate-y-2 transition-transform duration-300 group">
               <div className="relative size-32 rounded-full p-1 bg-gradient-to-b from-primary/50 to-transparent">
                 <Image
-                  alt="Professional portrait of Maryam, Lead UI/UX Designer"
+                  alt="Professional portrait of Donya Goodarzi, Product Manager"
                   className="w-full h-full rounded-full object-cover border-4 border-white dark:border-gray-800 grayscale group-hover:grayscale-0 transition-all duration-500"
                   src="/images/inst6.jpg"
                   width={128}
@@ -184,7 +184,7 @@ export default function AboutPage() {
                   دنیا گودرزی{" "}
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-widest font-bold">
-                  Lead Designer
+                  Product Manager
                 </p>
               </div>
               <div className="flex gap-2 mt-2">
@@ -211,7 +211,7 @@ export default function AboutPage() {
             <div className="glass-panel rounded-4xl p-6 flex flex-col items-center text-center gap-4 hover:-translate-y-2 transition-transform duration-300 group">
               <div className="relative size-32 rounded-full p-1 bg-gradient-to-b from-primary/50 to-transparent">
                 <Image
-                  alt="Professional portrait of Reza, DevOps Specialist"
+                  alt="Professional portrait of Amirreza Abdolrahimi, Backend Developer (Node.js)"
                   className="w-full h-full rounded-full object-cover border-4 border-white dark:border-gray-800 grayscale group-hover:grayscale-0 transition-all duration-500"
                   src="/images/about1.jpg"
                   width={128}
@@ -223,7 +223,7 @@ export default function AboutPage() {
                   امیررضا عبدالرحیمی{" "}
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-widest font-bold">
-                  DevOps Lead
+                  Backend · Node.js
                 </p>
               </div>
               <div className="flex gap-2 mt-2">
@@ -250,9 +250,9 @@ export default function AboutPage() {
             <div className="glass-panel rounded-4xl p-6 flex flex-col items-center text-center gap-4 hover:-translate-y-2 transition-transform duration-300 group">
               <div className="relative size-32 rounded-full p-1 bg-gradient-to-b from-primary/50 to-transparent">
                 <Image
-                  alt="Professional portrait of Sara, Frontend Architect"
+                  alt="Professional portrait of Iliya Moradi, Backend Developer (.NET)"
                   className="w-full h-full rounded-full object-cover border-4 border-white dark:border-gray-800 grayscale group-hover:grayscale-0 transition-all duration-500"
-                  src="/images/about2.jpg"
+                  src="/images/inst3.jpg"
                   width={128}
                   height={128}
                 />
@@ -262,7 +262,7 @@ export default function AboutPage() {
                   ایلیا مرادی{" "}
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-widest font-bold">
-                  Frontend Architect
+                  Backend · .NET
                 </p>
               </div>
               <div className="flex gap-2 mt-2">

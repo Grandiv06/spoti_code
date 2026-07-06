@@ -22,14 +22,7 @@ function OTPSlot(props: SlotProps) {
           "border-[#00c853] dark:border-green-400 ring-2 ring-[#00c853]/20 dark:ring-green-500/20",
       )}
     >
-      <div
-        className={cn(
-          "tabular-nums text-gray-900 dark:text-white",
-          "group-has-[input[data-input-otp-placeholder-shown]]:opacity-30",
-        )}
-      >
-        {props.char ?? props.placeholderChar}
-      </div>
+      <div className="tabular-nums text-gray-900 dark:text-white">{props.char}</div>
       {props.hasFakeCaret && (
         <div className="absolute pointer-events-none inset-0 flex items-center justify-center">
           <div className="animate-caret-blink w-px h-6 bg-[#00c853] dark:bg-green-400" />

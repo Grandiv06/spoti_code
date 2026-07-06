@@ -1,7 +1,6 @@
-import React from "react";
 import SocialRouteBlocker from "@/components/social/SocialRouteBlocker";
 
-export default function PanelSocialLayout({
+export default function PanelNotificationsLayout({
   children,
 }: {
   children: React.ReactNode;

@@ -2,6 +2,7 @@ import React from "react";
 import { SocialProvider } from "@/context/SocialContext";
 import { ProfileSettingsProvider } from "@/context/ProfileSettingsContext";
 import SocialLayoutContent from "@/components/social/SocialLayoutContent";
+import SocialAdminGuard from "@/components/social/SocialAdminGuard";
 
 export default function SocialLayout({
   children,
@@ -9,15 +10,17 @@ export default function SocialLayout({
   children: React.ReactNode;
 }) {
   return (
-    <SocialProvider>
-      <ProfileSettingsProvider>
-        <div
-          className="min-h-screen bg-gray-50 dark:bg-[#14161c] font-sans"
-          dir="rtl"
-        >
-          <SocialLayoutContent>{children}</SocialLayoutContent>
-        </div>
-      </ProfileSettingsProvider>
-    </SocialProvider>
+    <SocialAdminGuard>
+      <SocialProvider>
+        <ProfileSettingsProvider>
+          <div
+            className="min-h-screen bg-gray-50 dark:bg-[#14161c] font-sans"
+            dir="rtl"
+          >
+            <SocialLayoutContent>{children}</SocialLayoutContent>
+          </div>
+        </ProfileSettingsProvider>
+      </SocialProvider>
+    </SocialAdminGuard>
   );
 }

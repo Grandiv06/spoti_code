@@ -5,7 +5,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { InputOTP } from "@/components/ui/input-otp";
 import OtpCodeDisplay from "@/components/auth/OtpCodeDisplay";
 import { useAuth } from "@/context/AuthContext";
-import Link from "next/link";
 import { apiPostNoMock } from "@/lib/api";
 import { extractTokensFromAuthResponse } from "@/lib/auth-tokens";
 import { useLoginByPhoneMutation } from "@/hooks/api/useAuthMutations";
@@ -509,7 +508,6 @@ export default function LoginForm() {
                 setError("");
                 setOtp(normalizeDigits(v).replace(/[^0-9]/g, "").slice(0, OTP_LENGTH));
               }}
-              placeholder="•"
               textAlign="left"
               dir="ltr"
               autoFocus
@@ -539,18 +537,6 @@ export default function LoginForm() {
           </button>
 
         </form>
-
-        <div className="mt-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400 font-medium text-sm">
-            حساب کاربری ندارید؟{" "}
-            <Link
-              href="/register"
-              className="text-[#00c853] dark:text-green-400 font-black mr-1"
-            >
-              ایجاد حساب
-            </Link>
-          </p>
-        </div>
       </div>
     );
   }
@@ -563,9 +549,6 @@ export default function LoginForm() {
         </h1>
         <p className="text-gray-500 dark:text-gray-400 font-medium text-sm leading-relaxed">
           برای استفاده از خدمات آکادمی، شماره موبایل خود را وارد کنید
-        </p>
-        <p className="text-gray-400 dark:text-gray-500 font-medium text-xs leading-relaxed mt-2">
-          با هر شماره موبایل معتبر می‌توانید وارد شوید؛ اگر حساب ندارید از صفحه ثبت‌نام استفاده کنید.
         </p>
 
       </div>
@@ -609,20 +592,6 @@ export default function LoginForm() {
           <span>{loginMutation.isPending ? "در حال ارسال..." : "دریافت کد تایید"}</span>
         </button>
       </form>
-
-      <div className="mt-8 space-y-5 text-center">
-        <div>
-          <p className="text-gray-500 dark:text-gray-400 font-medium text-sm">
-            حساب کاربری ندارید؟{" "}
-            <Link
-              href="/register"
-              className="text-[#00c853] dark:text-green-400 font-black mr-1"
-            >
-              ایجاد حساب
-            </Link>
-          </p>
-        </div>
-      </div>
     </>
   );
 }
