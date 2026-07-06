@@ -17,6 +17,7 @@ import {
   Users,
 } from "lucide-react";
 import { useInstructorData } from "@/context/InstructorDataContext";
+import InstructorPublishStatusBanner from "@/app/instructor/profile/_components/InstructorPublishStatusBanner";
 
 const inputFallbackAvatar = "/images/inst1.jpg";
 
@@ -65,6 +66,8 @@ export default function InstructorProfilePage() {
     <div dir="rtl" className="min-h-screen bg-background-dark text-text-dark">
       <div className="mesh-bg" />
       <main className="mx-auto max-w-[1440px] px-4 py-8 md:px-8 lg:px-12 lg:py-12">
+        <InstructorPublishStatusBanner canPublishWithoutApproval={profile.canPublishWithoutApproval} />
+
         <div className="mb-6 flex items-center justify-between gap-3 rounded-[1.75rem] border border-white/10 bg-white/5 px-5 py-4 backdrop-blur-xl">
           <div className="flex items-center gap-3 text-gray-300">
             <span className="inline-flex size-9 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -158,8 +161,10 @@ export default function InstructorProfilePage() {
                   <HeroStat
                     icon={<BadgeCheck className="h-4 w-4" />}
                     label="وضعیت"
-                    value="تایید شده"
-                    description="مدرس اسپاتی‌کد"
+                    value={profile.canPublishWithoutApproval ? "تاییدشده" : "نیاز به بررسی"}
+                    description={
+                      profile.canPublishWithoutApproval ? "مدرس تاییدشده اسپاتی‌کد" : "انتشار با تایید ادمین"
+                    }
                   />
                 </div>
               </div>

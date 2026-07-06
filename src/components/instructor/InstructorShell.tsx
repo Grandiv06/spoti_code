@@ -15,6 +15,7 @@ import {
   MessageSquare,
   CircleDollarSign,
   UserRound,
+  Settings,
   CheckCircle2,
   AlertCircle,
   Info
@@ -32,6 +33,7 @@ const navItems = [
   { href: "/instructor/reviews", label: "نظرات دانشجویان", icon: MessageSquare },
   { href: "/instructor/earnings", label: "درآمد", icon: CircleDollarSign },
   { href: "/instructor/profile", label: "پروفایل مدرس", icon: UserRound },
+  { href: "/instructor/settings", label: "تنظیمات", icon: Settings },
 ];
 
 export default function InstructorShell({ children }: { children: React.ReactNode }) {

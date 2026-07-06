@@ -29,6 +29,8 @@ export type InstructorProfilePageProfileDto = {
     phone: boolean;
     socials: boolean;
   };
+  canPublishWithoutApproval: boolean;
+  verified: boolean;
 };
 
 export type InstructorProfilePageCourseDto = {
@@ -181,6 +183,8 @@ export function toInstructorProfilePageDto(
       email: publicVisibility.email ? (socials.email ?? "") : "",
       phone: publicVisibility.phone ? (socials.phone ?? "") : "",
       publicVisibility,
+      canPublishWithoutApproval: instructor.canPublishWithoutApproval === true,
+      verified: instructor.verified !== false,
     },
     stats: {
       publishedCourses: publishedCourses.length,

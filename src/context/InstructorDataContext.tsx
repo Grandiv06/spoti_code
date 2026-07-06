@@ -211,6 +211,8 @@ export interface InstructorProfile {
     phone: boolean;
     socials: boolean;
   };
+  canPublishWithoutApproval: boolean;
+  verified: boolean;
 }
 
 export interface Toast {
@@ -370,6 +372,8 @@ function normalizeInstructorProfile(raw: unknown): InstructorProfile | null {
       phone: publicVisibility.phone === true,
       socials: publicVisibility.socials !== false,
     },
+    canPublishWithoutApproval: raw.canPublishWithoutApproval === true,
+    verified: raw.verified !== false,
   };
 }
 
@@ -587,6 +591,8 @@ const emptyInstructorProfile: InstructorProfile = {
     phone: false,
     socials: true,
   },
+  canPublishWithoutApproval: false,
+  verified: false,
 };
 
 // Legacy mock data kept for local-only flows; real instructor pages load from API.
@@ -620,6 +626,8 @@ const initialProfile: InstructorProfile = {
     phone: true,
     socials: true,
   },
+  canPublishWithoutApproval: false,
+  verified: true,
 };
 
 const initialCourses: Course[] = [
