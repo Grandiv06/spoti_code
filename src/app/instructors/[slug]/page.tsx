@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import PublicInstructorProfilePageClient from "./PublicInstructorProfilePageClient";
 import {
   getPublicInstructorProfile,
-  getPublicInstructorSlugs,
 } from "@/server/services/instructor.service";
 
 export const dynamic = "force-dynamic";
@@ -34,11 +33,6 @@ export async function generateMetadata({
       images: instructor.avatar ? [{ url: instructor.avatar }] : undefined,
     },
   };
-}
-
-export async function generateStaticParams() {
-  const slugs = await getPublicInstructorSlugs();
-  return slugs.map((slug) => ({ slug }));
 }
 
 export default async function PublicInstructorProfilePage({
