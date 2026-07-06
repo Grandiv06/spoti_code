@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuthUser } from "@/server/auth/request-auth";
 import { handleApiRouteError } from "@/server/http/api-error";
-import { getInstructorCourseDetail } from "@/server/services/instructor-course-draft.service";
+import { getInstructorCourseDetail } from "@/server/services/instructor-course-detail.service";
 
 export const dynamic = "force-dynamic";
 

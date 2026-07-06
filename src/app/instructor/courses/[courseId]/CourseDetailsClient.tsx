@@ -27,6 +27,8 @@ import {
   ChevronUp,
   ArrowUp,
   ArrowDown,
+  ArrowUpDown,
+  Filter,
   FileText,
   Image as ImageIcon,
   HelpCircle as QuizIcon,
@@ -38,7 +40,7 @@ import {
   CheckCircle2,
   MoreVertical
 } from "lucide-react";
-import { useInstructorData, type Course, type Chapter, type Lesson } from "@/context/InstructorDataContext";
+import { useInstructorData, type Course, type Chapter, type Lesson, type LessonAttachment } from "@/context/InstructorDataContext";
 import { apiGetNoMock } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import InstructorQuestionsBoard from "@/components/instructor/InstructorQuestionsBoard";
@@ -117,6 +119,21 @@ const COURSE_ID_ALIASES: Record<string, string> = {
   typescript: "CRS-407",
 };
 
+const studentProgressFilterOptions = [
+  { value: "all", label: "همه پیشرفت‌ها" },
+  { value: "high", label: "پیشرفت بالا (۷۰٪ به بالا)" },
+  { value: "mid", label: "پیشرفت متوسط (۴۰٪ تا ۶۹٪)" },
+  { value: "low", label: "پیشرفت پایین (زیر ۴۰٪)" },
+];
+
+const studentDateSortOptions = [
+  { value: "newest", label: "جدیدترین ثبت‌نام" },
+  { value: "oldest", label: "قدیمی‌ترین ثبت‌نام" },
+];
+
+const filterSelectClassName =
+  "h-full [&>div]:h-full [&_button]:h-full [&_button]:min-h-[46px] [&_button]:text-xs [&_button]:px-4";
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -154,11 +171,33 @@ function mapApiStatus(value: unknown, approvalStatus?: unknown): CourseStatus {
   return "draft";
 }
 
+function mapApiAttachments(value: unknown): LessonAttachment[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item, index) => {
+      const row = isRecord(item) ? item : {};
+      const name = String(row.name ?? "").trim();
+      const url = String(row.url ?? "").trim();
+      if (!name || !url || url.startsWith("blob:")) return null;
+      return {
+        id: String(row.id ?? `file-${index + 1}`),
+        name,
+        url,
+        ...(typeof row.size === "string" ? { size: row.size } : {}),
+      };
+    })
+    .filter((item): item is LessonAttachment => item !== null);
+}
+
 function mapApiLessons(rawLessons: unknown): Lesson[] {
   if (!Array.isArray(rawLessons)) return [];
   return rawLessons.map((item, index) => {
     const row = isRecord(item) ? item : {};
     const type = row.type;
+    const videoUrl = typeof row.videoUrl === "string" ? row.videoUrl.trim() : "";
+    const description = typeof row.description === "string" ? row.description.trim() : "";
+    const attachments = mapApiAttachments(row.attachments);
     return {
       id: String(row.id ?? `LES-${index + 1}`),
       title: String(row.title ?? "درس بدون عنوان"),
@@ -169,8 +208,41 @@ function mapApiLessons(rawLessons: unknown): Lesson[] {
       duration: String(row.duration ?? "10:00"),
       isFree: row.isFree === true || row.access === "free",
       status: row.status === "draft" || row.status === "locked" ? row.status : "published",
+      ...(videoUrl && !videoUrl.startsWith("blob:") ? { videoUrl } : {}),
+      ...(description ? { description } : {}),
+      ...(attachments.length ? { attachments } : {}),
     };
   });
+}
+
+function buildLessonMediaMapsFromChapters(chapters: Chapter[]) {
+  const videos: Record<string, { name: string; url: string }> = {};
+  const descriptions: Record<string, string> = {};
+  const files: Record<string, { id: string; name: string; url: string }[]> = {};
+
+  for (const chapter of chapters) {
+    for (const lesson of chapter.lessons) {
+      const videoUrl = lesson.videoUrl?.trim();
+      if (videoUrl && !videoUrl.startsWith("blob:")) {
+        videos[lesson.id] = { name: lesson.title, url: videoUrl };
+      }
+
+      const description = lesson.description?.trim();
+      if (description) {
+        descriptions[lesson.id] = description;
+      }
+
+      if (lesson.attachments?.length) {
+        files[lesson.id] = lesson.attachments.map((file) => ({
+          id: file.id,
+          name: file.name,
+          url: file.url,
+        }));
+      }
+    }
+  }
+
+  return { videos, descriptions, files };
 }
 
 function mapApiChapters(value: unknown): Chapter[] {
@@ -341,13 +413,24 @@ export default function CourseDetailsPage() {
     const loadCourse = async () => {
       setIsLoadingCourse(true);
       try {
-        const response = await apiGetNoMock<unknown>(
-          `/api/instructor-dashboard/courses/${encodeURIComponent(canonicalCourseId)}`
-        );
+        let response: unknown;
+        try {
+          response = await apiGetNoMock<unknown>(
+            `/api/instructor-dashboard/courses/${encodeURIComponent(canonicalCourseId)}`
+          );
+        } catch {
+          response = await apiGetNoMock<unknown>(
+            `/api/instructor-dashboard/courses/${encodeURIComponent(canonicalCourseId)}/draft`
+          );
+        }
         if (cancelled) return;
         const mapped = mapInstructorCourseApiToCourse(response);
         if (mapped) {
           upsertCourseSilent(mapped);
+          const media = buildLessonMediaMapsFromChapters(mapped.chapters);
+          setLessonVideoMap(media.videos);
+          setLessonDescriptionMap(media.descriptions);
+          setLessonFileMap(media.files);
         }
         setCourseStudents(extractApiStudents(response));
       } catch {
@@ -378,6 +461,26 @@ export default function CourseDetailsPage() {
     if (!firstChapterId) return;
     setExpandedChapters((prev) => (prev[firstChapterId] ? prev : { ...prev, [firstChapterId]: true }));
   }, [course?.chapters]);
+
+  useEffect(() => {
+    if (!course?.chapters.length) return;
+    const media = buildLessonMediaMapsFromChapters(course.chapters);
+    setLessonVideoMap((prev) => ({ ...media.videos, ...prev }));
+    setLessonDescriptionMap((prev) => ({ ...media.descriptions, ...prev }));
+    setLessonFileMap((prev) => ({ ...media.files, ...prev }));
+  }, [course?.chapters]);
+
+  const resolveLessonVideo = (lesson: Lesson) =>
+    lessonVideoMap[lesson.id] ??
+    (lesson.videoUrl ? { name: lesson.title, url: lesson.videoUrl } : undefined);
+
+  const resolveLessonDescription = (lesson: Lesson) =>
+    lessonDescriptionMap[lesson.id] ?? lesson.description ?? "";
+
+  const resolveLessonFiles = (lesson: Lesson) =>
+    lessonFileMap[lesson.id] ??
+    lesson.attachments?.map((file) => ({ id: file.id, name: file.name, url: file.url })) ??
+    [];
 
   // Current Active Tab
   const [activeTab, setActiveTab] = useState("overview");
@@ -412,6 +515,11 @@ export default function CourseDetailsPage() {
   const [lessonDescriptionMap, setLessonDescriptionMap] = useState<Record<string, string>>({});
   const [lessonDescriptionEditor, setLessonDescriptionEditor] = useState<{ open: boolean; lessonId: string; value: string }>({ open: false, lessonId: "", value: "" });
   const [lessonFilesModal, setLessonFilesModal] = useState<{ open: boolean; lessonId: string }>({ open: false, lessonId: "" });
+  const [lessonVideoPreview, setLessonVideoPreview] = useState<{ open: boolean; title: string; url: string }>({
+    open: false,
+    title: "",
+    url: "",
+  });
   const [lessonFilesError, setLessonFilesError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; title: string; message: string; action: (() => void) | null }>({
     open: false,
@@ -1363,7 +1471,11 @@ export default function CourseDetailsPage() {
                             {ch.lessons.length === 0 ? (
                               <span className="text-[8px] text-gray-400 block font-bold">هیچ درسی به این فصل اضافه نشده است.</span>
                             ) : (
-                              ch.lessons.map((les) => (
+                              ch.lessons.map((les) => {
+                                const lessonVideo = resolveLessonVideo(les);
+                                const lessonDescription = resolveLessonDescription(les);
+                                const lessonFiles = resolveLessonFiles(les);
+                                return (
                                 <div key={les.id} className="flex items-center justify-between p-1.5 rounded-lg bg-gray-50 dark:bg-white/5 text-[9px] font-bold">
                                   <div className="flex items-center gap-1.5">
                                     <span className="material-symbols-outlined text-xs text-primary">{les.isFree ? "play_circle" : "lock"}</span>
@@ -1420,7 +1532,7 @@ export default function CourseDetailsPage() {
                                       </button>
                                     )}
                                     <div className="inline-flex items-center gap-1 p-1 rounded-lg border border-emerald-200/70 dark:border-emerald-400/20 bg-emerald-50/50 dark:bg-emerald-500/10">
-                                      {!lessonVideoMap[les.id] && (
+                                      {!lessonVideo && (
                                         <label className="size-6 inline-flex items-center justify-center rounded-md border border-blue-200/80 dark:border-blue-400/20 bg-blue-50 dark:bg-blue-500/10 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all cursor-pointer overflow-hidden">
                                           <input
                                             type="file"
@@ -1438,9 +1550,19 @@ export default function CourseDetailsPage() {
                                           )}
                                         </label>
                                       )}
-                                      {lessonVideoMap[les.id] && typeof lessonUploadProgress[les.id] !== "number" && (
+                                      {lessonVideo && typeof lessonUploadProgress[les.id] !== "number" && (
                                         <>
-                                          <button type="button" onClick={() => window.open(lessonVideoMap[les.id].url, "_blank", "noopener,noreferrer")} className="h-6 px-2 inline-flex items-center justify-center rounded-md border border-emerald-200/80 dark:border-emerald-400/20 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all text-[8px] font-black cursor-pointer">
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              setLessonVideoPreview({
+                                                open: true,
+                                                title: les.title,
+                                                url: lessonVideo.url,
+                                              })
+                                            }
+                                            className="h-6 px-2 inline-flex items-center justify-center rounded-md border border-emerald-200/80 dark:border-emerald-400/20 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all text-[8px] font-black cursor-pointer"
+                                          >
                                             ویدیو
                                           </button>
                                           <button type="button" onClick={() => openDeleteConfirm("حذف ویدیو", "آیا از حذف ویدیوی این جلسه مطمئن هستید؟", () => removeLessonVideo(les.id))} className="size-6 inline-flex items-center justify-center rounded-md border border-red-200/80 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all cursor-pointer">
@@ -1455,7 +1577,7 @@ export default function CourseDetailsPage() {
                                         onClick={() => setLessonFilesModal({ open: true, lessonId: les.id })}
                                         className="h-6 px-2 inline-flex items-center justify-center rounded-md border border-amber-200/80 dark:border-amber-400/20 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-all text-[8px] font-black cursor-pointer"
                                       >
-                                        فایل ({lessonFileMap[les.id]?.length || 0})
+                                        فایل ({lessonFiles.length})
                                       </button>
                                       <button
                                         type="button"
@@ -1463,11 +1585,11 @@ export default function CourseDetailsPage() {
                                           setLessonDescriptionEditor({
                                             open: true,
                                             lessonId: les.id,
-                                            value: lessonDescriptionMap[les.id] || "",
+                                            value: lessonDescription,
                                           })
                                         }
                                         className={`h-6 px-2 inline-flex items-center justify-center rounded-md border transition-all text-[8px] font-black cursor-pointer ${
-                                          lessonDescriptionMap[les.id]
+                                          lessonDescription
                                             ? "border-indigo-200/80 dark:border-indigo-400/20 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/20"
                                             : "border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10"
                                         }`}
@@ -1482,7 +1604,8 @@ export default function CourseDetailsPage() {
                                     </div>
                                   </div>
                                 </div>
-                              ))
+                              );
+                              })
                             )}
                           </div>
                         )}
@@ -1522,25 +1645,25 @@ export default function CourseDetailsPage() {
                   لیست شرکت‌کنندگان در دوره و پیشرفت تماشای ویدیوها توسط آن‌ها
                 </p>
               </div>
-              <div className="w-full md:w-auto grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <select
+              <div className="w-full md:w-auto grid grid-cols-1 sm:grid-cols-2 gap-3 min-h-[46px]">
+                <CustomSelect
+                  options={studentProgressFilterOptions}
                   value={studentProgressFilter}
-                  onChange={(e) => setStudentProgressFilter(e.target.value)}
-                  className="px-3 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-[10px] font-bold text-gray-700 dark:text-gray-300 focus:border-primary focus:outline-none"
-                >
-                  <option value="all">همه پیشرفت‌ها</option>
-                  <option value="high">پیشرفت بالا (۷۰٪ به بالا)</option>
-                  <option value="mid">پیشرفت متوسط (۴۰٪ تا ۶۹٪)</option>
-                  <option value="low">پیشرفت پایین (زیر ۴۰٪)</option>
-                </select>
-                <select
+                  onChange={setStudentProgressFilter}
+                  placeholder="پیشرفت"
+                  size="md"
+                  className={filterSelectClassName}
+                  icon={<Filter className="h-4 w-4" />}
+                />
+                <CustomSelect
+                  options={studentDateSortOptions}
                   value={studentDateSort}
-                  onChange={(e) => setStudentDateSort(e.target.value)}
-                  className="px-3 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-[10px] font-bold text-gray-700 dark:text-gray-300 focus:border-primary focus:outline-none"
-                >
-                  <option value="newest">جدیدترین ثبت‌نام</option>
-                  <option value="oldest">قدیمی‌ترین ثبت‌نام</option>
-                </select>
+                  onChange={setStudentDateSort}
+                  placeholder="مرتب‌سازی"
+                  size="md"
+                  className={filterSelectClassName}
+                  icon={<ArrowUpDown className="h-4 w-4" />}
+                />
               </div>
             </div>
 
@@ -2709,6 +2832,32 @@ export default function CourseDetailsPage() {
         </div>
       )}
 
+      {lessonVideoPreview.open && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-3xl rounded-2xl bg-white dark:bg-[#1c1e26] border border-gray-200/70 dark:border-white/10 p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <h4 className="text-sm font-black text-gray-900 dark:text-white truncate">{lessonVideoPreview.title}</h4>
+              <button
+                type="button"
+                onClick={() => setLessonVideoPreview({ open: false, title: "", url: "" })}
+                className="size-8 inline-flex items-center justify-center rounded-lg border border-gray-200/80 dark:border-white/10 text-gray-500"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="overflow-hidden rounded-xl bg-black aspect-video">
+              <video
+                key={lessonVideoPreview.url}
+                src={lessonVideoPreview.url}
+                controls
+                playsInline
+                className="w-full h-full object-contain"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {lessonDescriptionEditor.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-[#1c1e26] border border-gray-200/70 dark:border-white/10 p-4 space-y-3">
@@ -2739,12 +2888,18 @@ export default function CourseDetailsPage() {
         </div>
       )}
 
-      {lessonFilesModal.open && (
+      {lessonFilesModal.open && (() => {
+        const modalLesson = course?.chapters
+          .flatMap((chapter) => chapter.lessons)
+          .find((lesson) => lesson.id === lessonFilesModal.lessonId);
+        const modalFiles = modalLesson ? resolveLessonFiles(modalLesson) : lessonFileMap[lessonFilesModal.lessonId] || [];
+
+        return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-xl rounded-2xl bg-white dark:bg-[#1c1e26] border border-gray-200/70 dark:border-white/10 p-4 space-y-3">
             <div className="flex items-center justify-between">
               <h4 className="text-xs font-black text-gray-900 dark:text-white">فایل‌های ضمیمه جلسه</h4>
-              <span className="text-[10px] font-bold text-gray-500 dark:text-gray-300">تعداد فایل‌ها: {lessonFileMap[lessonFilesModal.lessonId]?.length || 0}</span>
+              <span className="text-[10px] font-bold text-gray-500 dark:text-gray-300">تعداد فایل‌ها: {modalFiles.length}</span>
             </div>
             <div className="rounded-xl border border-dashed border-amber-300/50 p-3 bg-amber-50/40 dark:bg-amber-500/10">
               <input
@@ -2759,9 +2914,9 @@ export default function CourseDetailsPage() {
                 }}
               />
               <label
-                htmlFor={(lessonFileMap[lessonFilesModal.lessonId]?.length || 0) >= MAX_LESSON_FILES ? undefined : "lesson-files-input"}
+                htmlFor={modalFiles.length >= MAX_LESSON_FILES ? undefined : "lesson-files-input"}
                 className={`h-10 px-3 inline-flex items-center justify-center rounded-lg border text-[10px] font-black ${
-                  (lessonFileMap[lessonFilesModal.lessonId]?.length || 0) >= MAX_LESSON_FILES
+                  modalFiles.length >= MAX_LESSON_FILES
                     ? "border-gray-200/80 text-gray-400 cursor-not-allowed bg-gray-50 dark:bg-white/5"
                     : "border-amber-200/80 text-amber-700 dark:text-amber-300 cursor-pointer bg-white dark:bg-white/5"
                 }`}
@@ -2772,10 +2927,10 @@ export default function CourseDetailsPage() {
               {lessonFilesError && <p className="text-[9px] text-red-500 mt-1">{lessonFilesError}</p>}
             </div>
             <div className="space-y-2 max-h-52 overflow-y-auto">
-              {(lessonFileMap[lessonFilesModal.lessonId] || []).length === 0 ? (
+              {modalFiles.length === 0 ? (
                 <p className="text-[10px] text-gray-400 font-bold">هنوز فایلی اضافه نشده است.</p>
               ) : (
-                (lessonFileMap[lessonFilesModal.lessonId] || []).map((f) => (
+                modalFiles.map((f) => (
                   <div key={f.id} className="flex items-center justify-between rounded-lg border border-gray-200/70 dark:border-white/10 p-2 bg-gray-50 dark:bg-white/5">
                     <button type="button" onClick={() => window.open(f.url, "_blank", "noopener,noreferrer")} className="text-[10px] text-primary font-black truncate">{f.name}</button>
                     <button type="button" onClick={() => openDeleteConfirm("حذف فایل ضمیمه", "آیا می‌خواهید این فایل حذف شود؟", () => removeLessonFile(lessonFilesModal.lessonId, f.id))} className="size-6 inline-flex items-center justify-center rounded-md border border-red-200/80 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500">
@@ -2790,7 +2945,8 @@ export default function CourseDetailsPage() {
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {confirmDelete.open && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-4">

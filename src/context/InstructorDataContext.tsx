@@ -5,6 +5,13 @@ import { apiGetNoMock, apiPatchNoMock, apiPutNoMock } from "@/lib/api";
 import { buildQaRepliesFromSource, dedupeQaReplies, mergeQaReplies } from "@/lib/course-qa";
 
 // --- TYPES ---
+export interface LessonAttachment {
+  id: string;
+  name: string;
+  url: string;
+  size?: string;
+}
+
 export interface Lesson {
   id: string;
   title: string;
@@ -14,6 +21,9 @@ export interface Lesson {
   status: "published" | "draft" | "locked";
   fileName?: string;
   fileSize?: string;
+  videoUrl?: string;
+  description?: string;
+  attachments?: LessonAttachment[];
 }
 
 export interface Chapter {
