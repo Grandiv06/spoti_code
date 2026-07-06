@@ -12,6 +12,7 @@ import UsersTableSkeleton from "./_components/UsersTableSkeleton";
 import EditUserModal from "./_components/EditUserModal";
 import AddUserModal from "./_components/AddUserModal";
 import { useAdminUsersQuery, useCreateAdminUserMutation } from "@/hooks/api/useAdminUsersQuery";
+import type { AdminUserCreateInput } from "@/lib/admin-users";
 
 interface Toast {
   id: string;
@@ -142,7 +143,7 @@ export default function AdminUsersPage() {
     showToast(`مشخصات کاربر «${updatedUser.name}» با موفقیت ویرایش شد.`, "success");
   };
 
-  const handleAddUser = (newUser: User) => {
+  const handleAddUser = (newUser: AdminUserCreateInput) => {
     createUserMutation.mutate(newUser, {
       onSuccess: (createdUser) => {
         setUsers((prev) => [createdUser, ...prev.filter((user) => user.id !== createdUser.id)]);

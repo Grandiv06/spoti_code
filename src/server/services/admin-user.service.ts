@@ -16,6 +16,8 @@ type AdminUsersQuery = {
 };
 
 type AdminUserPayload = {
+  firstName?: unknown;
+  lastName?: unknown;
   fullName?: unknown;
   name?: unknown;
   phoneNumber?: unknown;
@@ -31,6 +33,7 @@ type AdminUserPayload = {
   internalNotes?: unknown;
   nationalCode?: unknown;
   canPublishWithoutApproval?: unknown;
+  sendWelcomeSms?: unknown;
 };
 
 const PAID_STATUSES = ["success", "paid", "completed", "successful"];
@@ -389,9 +392,14 @@ export async function createAdminUser(adminUser: User, input: AdminUserPayload) 
   assertAdmin(adminUser);
 
   const phone = normalizeIranPhone(input.phoneNumber ?? input.phone);
-  const fullName = optionalString(input.fullName ?? input.name);
+  const firstName = optionalString(input.firstName);
+  const lastName = optionalString(input.lastName);
+  const fullName =
+    (optionalString(input.fullName ?? input.name) ??
+      [firstName, lastName].filter(Boolean).join(" ").trim()) ||
+    null;
   if (!fullName) {
-    throw new AuthError("نام کامل کاربر الزامی است", 400);
+    throw new AuthError("نام و نام خانوادگی کاربر الزامی است", 400);
   }
 
   const user = await prisma.user.create({
@@ -408,6 +416,19 @@ export async function createAdminUser(adminUser: User, input: AdminUserPayload) 
     },
     include: adminUserInclude,
   });
+
+  if (user.role === "INSTRUCTOR") {
+    await ensureCourseApprovalSchema();
+    const instructor = await resolveInstructorForUser(user);
+    if (instructor) {
+      await prisma.$executeRaw`
+        UPDATE "Instructor"
+        SET "canPublishWithoutApproval" = ${input.canPublishWithoutApproval === true},
+            "updatedAt" = ${new Date()}
+        WHERE "id" = ${instructor.id}
+      `;
+    }
+  }
 
   const [mapped] = await attachInstructorPublishPermissions([mapAdminUser(user)]);
   return mapped;

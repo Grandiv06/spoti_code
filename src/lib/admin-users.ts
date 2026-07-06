@@ -242,6 +242,43 @@ export function isValidIranPhone(phone: string): boolean {
   return /^09\d{9}$/.test(digits) || /^989\d{9}$/.test(digits);
 }
 
+export type AdminUserCreateInput = {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  status: User["status"];
+  role: ApplicationMainRole;
+  internalNotes: string;
+  canPublishWithoutApproval?: boolean;
+  sendWelcomeSms?: boolean;
+};
+
+export function buildAdminUserCreatePayload(input: AdminUserCreateInput): Record<string, unknown> {
+  const fullName = [input.firstName.trim(), input.lastName.trim()].filter(Boolean).join(" ").trim();
+  const isActive = input.status === "فعال";
+  const payload: Record<string, unknown> = {
+    firstName: input.firstName.trim(),
+    lastName: input.lastName.trim(),
+    fullName,
+    phoneNumber: normalizePhoneForApi(input.phone),
+    isActive,
+    status: input.status,
+    roleName: input.role,
+    sendWelcomeSms: input.sendWelcomeSms === true,
+  };
+
+  const note = input.internalNotes.trim();
+  if (note) {
+    payload.internalAdminNote = note;
+  }
+
+  if (input.role === ApplicationMainRoles.INSTRUCTOR && input.canPublishWithoutApproval !== undefined) {
+    payload.canPublishWithoutApproval = input.canPublishWithoutApproval;
+  }
+
+  return payload;
+}
+
 export function buildAdminUserUpdatePayload(input: AdminUserUpdateInput): Record<string, unknown> {
   const isActive = input.status === "فعال";
   const payload: Record<string, unknown> = {
