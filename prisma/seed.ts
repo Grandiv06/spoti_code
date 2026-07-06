@@ -24,6 +24,12 @@ const users = [
     fullName: "مدرس اسپاتی‌کد",
     role: "INSTRUCTOR" as const,
   },
+  {
+    id: "USR-INST-002",
+    phone: "+989196979921",
+    fullName: "ایلیا مرادی",
+    role: "INSTRUCTOR" as const,
+  },
 ];
 
 const courses = [

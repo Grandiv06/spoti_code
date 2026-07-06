@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { AuthError, requireAuthUser } from "@/server/auth/request-auth";
+import { requireAuthUser } from "@/server/auth/request-auth";
+import { handleApiRouteError } from "@/server/http/api-error";
 import {
   getInstructorProfile,
   updateInstructorProfile,
@@ -14,12 +15,7 @@ export async function GET(request: NextRequest) {
     const data = await getInstructorProfile(user);
     return NextResponse.json({ data });
   } catch (error) {
-    if (error instanceof AuthError) {
-      return NextResponse.json({ message: error.message }, { status: error.status });
-    }
-
-    console.error("[GET /api/instructor-dashboard/profile]", error);
-    return NextResponse.json({ message: "خطا در دریافت پروفایل مدرس" }, { status: 500 });
+    return handleApiRouteError(error, "GET /api/instructor-dashboard/profile", "خطا در دریافت پروفایل مدرس");
   }
 }
 
@@ -30,11 +26,6 @@ export async function PUT(request: NextRequest) {
     const data = await updateInstructorProfile(user, body);
     return NextResponse.json({ data });
   } catch (error) {
-    if (error instanceof AuthError) {
-      return NextResponse.json({ message: error.message }, { status: error.status });
-    }
-
-    console.error("[PUT /api/instructor-dashboard/profile]", error);
-    return NextResponse.json({ message: "خطا در ذخیره پروفایل مدرس" }, { status: 500 });
+    return handleApiRouteError(error, "PUT /api/instructor-dashboard/profile", "خطا در ذخیره پروفایل مدرس");
   }
 }

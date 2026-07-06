@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { AuthError, requireAuthUser } from "@/server/auth/request-auth";
+import { requireAuthUser } from "@/server/auth/request-auth";
+import { handleApiRouteError } from "@/server/http/api-error";
 import { getInstructorDashboardCourses } from "@/server/services/instructor-dashboard.service";
 
 export const dynamic = "force-dynamic";
@@ -19,11 +20,6 @@ export async function GET(request: NextRequest) {
     );
     return NextResponse.json({ data });
   } catch (error) {
-    if (error instanceof AuthError) {
-      return NextResponse.json({ message: error.message }, { status: error.status });
-    }
-
-    console.error("[GET /api/instructor-dashboard/my-courses]", error);
-    return NextResponse.json({ message: "خطا در دریافت دوره‌های استاد" }, { status: 500 });
+    return handleApiRouteError(error, "GET /api/instructor-dashboard/my-courses", "خطا در دریافت دوره‌های استاد");
   }
 }

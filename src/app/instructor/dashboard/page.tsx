@@ -59,22 +59,20 @@ export default function InstructorDashboardPage() {
   useEffect(() => {
     let cancelled = false;
 
-    fetchMyProfile()
-      .then((profile) => {
+    const loadDashboard = async () => {
+      try {
+        const profile = await fetchMyProfile();
         if (cancelled) return;
         const name = profile.displayName?.trim();
         setProfileName(name || null);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setProfileName(null);
-      })
-      .finally(() => {
+      } catch {
+        if (!cancelled) setProfileName(null);
+      } finally {
         if (!cancelled) setProfileLoading(false);
-      });
+      }
 
-    apiGetNoMock<unknown>("/api/instructor-dashboard/overview")
-      .then((res) => {
+      try {
+        const res = await apiGetNoMock<unknown>("/api/instructor-dashboard/overview");
         if (cancelled) return;
         const raw = unwrapApiPayload(res);
         setOverview(
@@ -84,27 +82,24 @@ export default function InstructorDashboardPage() {
               : null
           )
         );
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setOverview(normalizeOverview(null));
-      })
-      .finally(() => {
+      } catch {
+        if (!cancelled) setOverview(normalizeOverview(null));
+      } finally {
         if (!cancelled) setOverviewLoading(false);
-      });
+      }
 
-    apiGetNoMock<unknown>("/api/instructor-dashboard/my-courses?limit=100")
-      .then((res) => {
+      try {
+        const res = await apiGetNoMock<unknown>("/api/instructor-dashboard/my-courses?limit=100");
         if (cancelled) return;
         setApiCourses(extractApiList(res).map(normalizeCourseRow));
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setApiCourses([]);
-      })
-      .finally(() => {
+      } catch {
+        if (!cancelled) setApiCourses([]);
+      } finally {
         if (!cancelled) setCoursesLoading(false);
-      });
+      }
+    };
+
+    void loadDashboard();
 
     return () => {
       cancelled = true;

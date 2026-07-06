@@ -18,8 +18,7 @@ export type InstructorReviewFilterInput = {
 };
 
 function canManageAllInstructorReviews(user: User) {
-  // The seeded instructor login is used as an aggregate demo panel across seeded courses.
-  return user.role === "ADMIN" || user.id === "USR-INST-001" || user.phone === "+989000000002";
+  return user.role === "ADMIN";
 }
 
 async function requireInstructorRecord(user: User) {

@@ -234,8 +234,8 @@ export default function ActiveSessionsPanel() {
         </div>
       )}
 
-      <div className="relative mt-6 flex items-start gap-2 rounded-2xl border border-dashed border-gray-200 bg-gray-50/70 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]">
-        <span className="material-symbols-outlined mt-0.5 text-base text-gray-400">info</span>
+      <div className="relative mt-6 flex items-center gap-2.5 rounded-2xl border border-dashed border-gray-200 bg-gray-50/70 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]">
+        <span className="material-symbols-outlined shrink-0 text-[18px] leading-none text-gray-400">info</span>
         <p className="text-xs leading-relaxed text-gray-500 dark:text-gray-400">
           حداکثر {maxSessions.toLocaleString("fa-IR")} دستگاه می‌تواند همزمان وارد حساب شما باشد. با حذف یک نشست،
           آن دستگاه از حساب خارج می‌شود.

@@ -1014,10 +1014,15 @@ export default function CreateCourseWizardPage() {
     return typeof candidate === "string" ? candidate : "";
   };
 
-  const buildCourseDraftPayload = (currentStep = step, overrides?: Partial<WizardFormData>) => {
+  const buildCourseDraftPayload = (
+    currentStep = step,
+    overrides?: Partial<WizardFormData>,
+    courseIdOverride?: string | null
+  ) => {
     const source = { ...formData, ...overrides };
+    const resolvedCourseId = courseIdOverride ?? createdCourseId ?? draftCourseId ?? undefined;
     return {
-    courseId: createdCourseId ?? undefined,
+    courseId: resolvedCourseId,
     step: currentStep,
     title: source.title,
     category: mapCategoryToApi(source.category),
@@ -1928,22 +1933,25 @@ export default function CreateCourseWizardPage() {
 
   // Navigation handlers
   const persistCourseDraft = async (currentStep = step): Promise<string | null> => {
+    const existingCourseId = createdCourseId ?? draftCourseId;
     let mediaOverrides: Partial<WizardFormData> = {};
     const initialResponse = await apiPostNoMock<unknown>(
       "/api/instructor-dashboard/courses/drafts",
-      buildCourseDraftPayload(currentStep, mediaOverrides)
+      buildCourseDraftPayload(currentStep, mediaOverrides, existingCourseId)
     );
-    const courseId = extractCourseId(initialResponse) || createdCourseId;
+    const courseId = extractCourseId(initialResponse) || existingCourseId;
 
     if (!courseId) {
       return null;
     }
 
+    setCreatedCourseId(courseId);
+
     mediaOverrides = await uploadPendingCourseMedia(courseId);
     if (Object.keys(mediaOverrides).length > 0) {
       await apiPostNoMock<unknown>(
         "/api/instructor-dashboard/courses/drafts",
-        buildCourseDraftPayload(currentStep, mediaOverrides)
+        buildCourseDraftPayload(currentStep, mediaOverrides, courseId)
       );
     }
 
@@ -2079,18 +2087,19 @@ export default function CreateCourseWizardPage() {
       setIsSavingStep1(true);
       const initialResponse = await apiPostNoMock<unknown>(
         "/api/instructor-dashboard/courses/drafts",
-        buildCourseDraftPayload(5)
+        buildCourseDraftPayload(5, undefined, createdCourseId ?? draftCourseId)
       );
-      const courseId = extractCourseId(initialResponse) || createdCourseId;
+      const courseId = extractCourseId(initialResponse) || createdCourseId || draftCourseId;
       if (!courseId) {
         throw new Error("شناسه دوره از سرور دریافت نشد.");
       }
+      setCreatedCourseId(courseId);
 
       const mediaOverrides = await uploadPendingCourseMedia(courseId);
       if (Object.keys(mediaOverrides).length > 0) {
         await apiPostNoMock<unknown>(
           "/api/instructor-dashboard/courses/drafts",
-          buildCourseDraftPayload(5, mediaOverrides)
+          buildCourseDraftPayload(5, mediaOverrides, courseId)
         );
       }
 

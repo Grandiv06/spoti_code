@@ -188,6 +188,37 @@ function mapApiChapters(value: unknown): Chapter[] {
   });
 }
 
+type CourseStudentRow = {
+  id: string;
+  name: string;
+  date: string;
+  enrolledAt: string;
+  progress: number;
+  status: string;
+  avatar: string | null;
+};
+
+function extractApiStudents(payload: unknown): CourseStudentRow[] {
+  const root = isRecord(payload) && isRecord(payload.data) ? payload.data : isRecord(payload) ? payload : null;
+  if (!root || !Array.isArray(root.students)) return [];
+
+  return root.students
+    .map((item, index) => {
+      const row = isRecord(item) ? item : {};
+      const enrolledAt = String(row.enrolledAt ?? row.createdAt ?? "");
+      return {
+        id: String(row.id ?? `STU-${index + 1}`),
+        name: String(row.name ?? "دانشجو"),
+        date: String(row.date ?? ""),
+        enrolledAt,
+        progress: Number(row.progress ?? 0),
+        status: String(row.status ?? "فعال"),
+        avatar: typeof row.avatar === "string" && row.avatar.trim() ? row.avatar.trim() : null,
+      };
+    })
+    .filter((student) => student.id);
+}
+
 function mapInstructorCourseApiToCourse(payload: unknown): Course | null {
   const root = isRecord(payload) && isRecord(payload.data) ? payload.data : isRecord(payload) ? payload : null;
   if (!root) return null;
@@ -238,6 +269,7 @@ function mapInstructorCourseApiToCourse(payload: unknown): Course | null {
 
   const cover = String(root.cover ?? root.thumbnail ?? "/images/course1.jpg");
   const introVideo = String(root.introVideo ?? draftData.introVideo ?? "").trim();
+  const overview = isRecord(root.overview) ? root.overview : {};
 
   return {
     id: courseId,
@@ -253,11 +285,11 @@ function mapInstructorCourseApiToCourse(payload: unknown): Course | null {
     description: String(root.description ?? root.aboutDescription ?? ""),
     price: Number(root.price ?? 0),
     instructorId: String(root.instructorId ?? ""),
-    studentsCount: 0,
-    rating: 0,
-    reviewsCount: 0,
-    revenue: 0,
-    completionRate: 0,
+    studentsCount: Number(root.studentsCount ?? overview.studentsCount ?? 0),
+    rating: Number(root.rating ?? overview.rating ?? 0),
+    reviewsCount: Number(root.reviewsCount ?? overview.reviewsCount ?? 0),
+    revenue: Number(root.revenue ?? root.instructorRevenue ?? overview.revenue ?? 0),
+    completionRate: Number(root.completionRate ?? overview.completionRate ?? 0),
     chapters: mapApiChapters(root.chapters ?? draftData.chapters),
     reviews: [],
     questions: [],
@@ -301,6 +333,7 @@ export default function CourseDetailsPage() {
   } = useInstructorData();
 
   const [isLoadingCourse, setIsLoadingCourse] = useState(true);
+  const [courseStudents, setCourseStudents] = useState<CourseStudentRow[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -309,14 +342,18 @@ export default function CourseDetailsPage() {
       setIsLoadingCourse(true);
       try {
         const response = await apiGetNoMock<unknown>(
-          `/api/instructor-dashboard/courses/${encodeURIComponent(canonicalCourseId)}/draft`
+          `/api/instructor-dashboard/courses/${encodeURIComponent(canonicalCourseId)}`
         );
         if (cancelled) return;
         const mapped = mapInstructorCourseApiToCourse(response);
-        if (!mapped) return;
-        upsertCourseSilent(mapped);
+        if (mapped) {
+          upsertCourseSilent(mapped);
+        }
+        setCourseStudents(extractApiStudents(response));
       } catch {
-        // Keep any locally cached course as fallback.
+        if (!cancelled) {
+          setCourseStudents([]);
+        }
       } finally {
         if (!cancelled) {
           setIsLoadingCourse(false);
@@ -335,6 +372,12 @@ export default function CourseDetailsPage() {
   const course = useMemo(() => {
     return courses.find((c) => c.id === canonicalCourseId || c.slug === courseId);
   }, [courses, canonicalCourseId, courseId]);
+
+  useEffect(() => {
+    const firstChapterId = course?.chapters[0]?.id;
+    if (!firstChapterId) return;
+    setExpandedChapters((prev) => (prev[firstChapterId] ? prev : { ...prev, [firstChapterId]: true }));
+  }, [course?.chapters]);
 
   // Current Active Tab
   const [activeTab, setActiveTab] = useState("overview");
@@ -1456,15 +1499,7 @@ export default function CourseDetailsPage() {
         {activeTab === "students" && (
           <div className="space-y-6 animate-in fade-in duration-300">
             {(() => {
-              const students = [
-                { name: "نیما احمدی", date: "1404/12/18", progress: 95, status: "فعال", avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150&auto=format&fit=crop" },
-                { name: "رضا ملکی", date: "1404/12/15", progress: 68, status: "فعال", avatar: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?q=80&w=150&auto=format&fit=crop" },
-                { name: "زهرا کیانی", date: "1404/12/10", progress: 82, status: "فعال", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=150&auto=format&fit=crop" },
-                { name: "آرمان ابراهیمی", date: "1404/12/05", progress: 10, status: "فعال", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=150&auto=format&fit=crop" },
-                { name: "مهسا زمانی", date: "1404/11/25", progress: 42, status: "غیرفعال", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=150&auto=format&fit=crop" },
-              ];
-
-              const filteredStudents = students
+              const filteredStudents = courseStudents
                 .filter((st) => {
                   if (studentProgressFilter === "high") return st.progress >= 70;
                   if (studentProgressFilter === "mid") return st.progress >= 40 && st.progress < 70;
@@ -1472,11 +1507,10 @@ export default function CourseDetailsPage() {
                   return true;
                 })
                 .sort((a, b) => {
-                  const parseFaDate = (d: string) => {
-                    const [y, m, day] = d.split("/").map((v) => Number(v));
-                    return y * 10000 + m * 100 + day;
-                  };
-                  return studentDateSort === "newest" ? parseFaDate(b.date) - parseFaDate(a.date) : parseFaDate(a.date) - parseFaDate(b.date);
+                  const aTime = Date.parse(a.enrolledAt || "");
+                  const bTime = Date.parse(b.enrolledAt || "");
+                  if (Number.isNaN(aTime) || Number.isNaN(bTime)) return 0;
+                  return studentDateSort === "newest" ? bTime - aTime : aTime - bTime;
                 });
 
               return (
@@ -1510,11 +1544,16 @@ export default function CourseDetailsPage() {
               </div>
             </div>
 
-            {/* Students Grid cards */}
+            {filteredStudents.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-gray-200 dark:border-white/10 bg-gray-50/40 dark:bg-white/[0.03] px-6 py-12 text-center">
+                <Users className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                <p className="text-sm font-black text-gray-700 dark:text-gray-300">هنوز دانشجویی در این دوره ثبت‌نام نکرده است.</p>
+              </div>
+            ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-              {filteredStudents.map((st, idx) => (
+              {filteredStudents.map((st) => (
                 <div
-                  key={idx}
+                  key={st.id}
                   className="rounded-3xl bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 p-5 flex items-center gap-4 hover:border-primary/20 hover:shadow-lg transition-all duration-300"
                 >
                   <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 bg-primary/10 border-2 border-primary/20 flex items-center justify-center">
@@ -1536,9 +1575,8 @@ export default function CourseDetailsPage() {
                       </span>
                     </div>
 
-                    <p className="text-[8px] text-gray-400 font-bold">ثبت‌نام: {st.date.toLocaleString()}</p>
+                    <p className="text-[8px] text-gray-400 font-bold">ثبت‌نام: {st.date}</p>
                     
-                    {/* progress */}
                     <div className="space-y-1">
                       <div className="flex justify-between text-[8px] font-bold text-gray-400">
                         <span>میزان پیشرفت:</span>
@@ -1552,6 +1590,7 @@ export default function CourseDetailsPage() {
                 </div>
               ))}
             </div>
+            )}
                 </>
               );
             })()}

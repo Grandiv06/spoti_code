@@ -10,7 +10,6 @@ import {
   type UpdateInstructorProfilePageDto,
 } from "@/server/dto/instructor-profile-page.dto";
 import { prisma } from "@/server/db/prisma";
-import { ensureCourseApprovalSchema } from "@/server/services/course-approval-schema.service";
 
 const INSTRUCTOR_REVENUE_SHARE = 0.7;
 const DEFAULT_COURSE_COVER = "/images/course1.jpg";
@@ -29,14 +28,8 @@ function resolvePersistableCover(nextCover: string, existingCover?: string | nul
   return DEFAULT_COURSE_COVER;
 }
 
-type InstructorCourse = Course & {
+type InstructorCourseListItem = Course & {
   enrollments: Array<{ id: string }>;
-  comments: Array<{
-    id: string;
-    parentId: string | null;
-    isInstructorReply: boolean;
-    replies: Array<{ id: string; isInstructorReply: boolean }>;
-  }>;
 };
 
 export type UpdateInstructorProfileInput = UpdateInstructorProfilePageDto & {
@@ -84,16 +77,36 @@ async function ensureUniqueSlug(base: string) {
   return slug;
 }
 
+const INSTRUCTOR_CACHE_TTL_MS = 30_000;
+
+const instructorCache = new Map<string, { instructor: Instructor; expiresAt: number }>();
+const instructorCoursesCache = new Map<
+  string,
+  { courses: InstructorCourseListItem[]; expiresAt: number }
+>();
+const inflightInstructorResolution = new Map<string, Promise<Instructor | null>>();
+const inflightCoursesLookups = new Map<string, Promise<InstructorCourseListItem[]>>();
+
 export async function resolveInstructorForUser(user: User): Promise<Instructor | null> {
-  if (user.id === "USR-INST-001" || user.phone === "+989395063084") {
-    const seeded = await prisma.instructor.findFirst({
-      where: {
-        OR: [{ id: user.id }, { id: "INS-101" }],
-      },
-    });
-    if (seeded) return seeded;
+  const cached = instructorCache.get(user.id);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.instructor;
   }
 
+  const inflight = inflightInstructorResolution.get(user.id);
+  if (inflight) {
+    return inflight;
+  }
+
+  const resolution = resolveInstructorForUserUncached(user).finally(() => {
+    inflightInstructorResolution.delete(user.id);
+  });
+
+  inflightInstructorResolution.set(user.id, resolution);
+  return resolution;
+}
+
+async function resolveInstructorForUserUncached(user: User): Promise<Instructor | null> {
   const fullName = user.fullName?.trim();
   const profile = await prisma.userProfile.findUnique({
     where: { userId: user.id },
@@ -103,23 +116,29 @@ export async function resolveInstructorForUser(user: User): Promise<Instructor |
     (name): name is string => Boolean(name)
   );
 
+  const idMatch = await prisma.instructor.findUnique({
+    where: { id: user.id },
+  });
+  if (idMatch) {
+    instructorCache.set(user.id, { instructor: idMatch, expiresAt: Date.now() + INSTRUCTOR_CACHE_TTL_MS });
+    return idMatch;
+  }
+
   if (candidateNames.length > 0) {
     const exact = await prisma.instructor.findFirst({
       where: { name: { in: candidateNames } },
     });
-    if (exact) return exact;
+    if (exact) {
+      instructorCache.set(user.id, { instructor: exact, expiresAt: Date.now() + INSTRUCTOR_CACHE_TTL_MS });
+      return exact;
+    }
   }
-
-  const idMatch = await prisma.instructor.findUnique({
-    where: { id: user.id },
-  });
-  if (idMatch) return idMatch;
 
   if (user.role === "INSTRUCTOR") {
     const fullName = user.fullName?.trim() || "مدرس اسپاتی‌کد";
     const slug = await ensureUniqueSlug(slugifyInstructor(user.id));
 
-    return prisma.instructor.create({
+    const created = await prisma.instructor.create({
       data: {
         id: user.id,
         slug,
@@ -134,6 +153,8 @@ export async function resolveInstructorForUser(user: User): Promise<Instructor |
         publicVisibility: { email: false, phone: false, socials: true },
       },
     });
+    instructorCache.set(user.id, { instructor: created, expiresAt: Date.now() + INSTRUCTOR_CACHE_TTL_MS });
+    return created;
   }
 
   return null;
@@ -163,7 +184,7 @@ function mapCourseStatus(status: Course["status"], approvalStatus?: string | nul
   return status === "published" ? "published" : "draft";
 }
 
-function courseToDashboardRow(course: InstructorCourse, approval?: { approvalStatus?: string | null; draftStep?: number | null }) {
+function courseToDashboardRow(course: InstructorCourseListItem, approval?: { approvalStatus?: string | null; draftStep?: number | null }) {
   const mappedStatus = mapCourseStatus(course.status, approval?.approvalStatus);
   return {
     id: course.id,
@@ -194,32 +215,52 @@ function courseToDashboardRow(course: InstructorCourse, approval?: { approvalSta
   };
 }
 
-async function findInstructorCourses(instructorId: string): Promise<InstructorCourse[]> {
-  return prisma.course.findMany({
-    where: { instructorId },
-    include: {
-      enrollments: {
-        select: { id: true },
+async function findInstructorCoursesLight(instructorId: string) {
+  const cached = instructorCoursesCache.get(instructorId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.courses;
+  }
+
+  const inflight = inflightCoursesLookups.get(instructorId);
+  if (inflight) {
+    return inflight;
+  }
+
+  const lookup = prisma.course
+    .findMany({
+      where: { instructorId },
+      include: {
+        enrollments: {
+          select: { id: true },
+        },
       },
-      comments: {
-        where: {
-          parentId: null,
-          isInstructorReply: false,
-        },
-        select: {
-          id: true,
-          parentId: true,
-          isInstructorReply: true,
-          replies: {
-            select: {
-              id: true,
-              isInstructorReply: true,
-            },
-          },
-        },
+      orderBy: { updatedAt: "desc" },
+    })
+    .then((courses) => {
+      instructorCoursesCache.set(instructorId, {
+        courses,
+        expiresAt: Date.now() + INSTRUCTOR_CACHE_TTL_MS,
+      });
+      return courses;
+    })
+    .finally(() => {
+      inflightCoursesLookups.delete(instructorId);
+    });
+
+  inflightCoursesLookups.set(instructorId, lookup);
+  return lookup;
+}
+
+async function countUnreadInstructorComments(instructorId: string) {
+  return prisma.comment.count({
+    where: {
+      parentId: null,
+      isInstructorReply: false,
+      course: { instructorId },
+      replies: {
+        none: { isInstructorReply: true },
       },
     },
-    orderBy: { updatedAt: "desc" },
   });
 }
 
@@ -257,15 +298,7 @@ export async function getInstructorProfile(user: User) {
     return toInstructorProfilePageDto(null, []);
   }
 
-  const courses = await prisma.course.findMany({
-    where: { instructorId: instructor.id },
-    include: {
-      enrollments: {
-        select: { id: true },
-      },
-    },
-    orderBy: { updatedAt: "desc" },
-  });
+  const courses = await findInstructorCoursesLight(instructor.id);
   return toInstructorProfilePageDto(instructor, courses);
 }
 
@@ -383,7 +416,7 @@ export async function getInstructorDashboardOverview(user: User) {
     };
   }
 
-  const courses = await findInstructorCourses(instructor.id);
+  const courses = await findInstructorCoursesLight(instructor.id);
   const publishedCourses = courses.filter((course) => course.status === "published");
   const studentsCount = publishedCourses.reduce(
     (sum, course) => sum + resolveStudentsCount(course),
@@ -395,14 +428,7 @@ export async function getInstructorDashboardOverview(user: User) {
   );
   const totalRevenue = publishedCourses.reduce((sum, course) => sum + toNumber(course.revenue), 0);
   const avgCourseStars = calculateAverageRating(publishedCourses);
-  const unreadCommentsCount = courses.reduce(
-    (sum, course) =>
-      sum +
-      course.comments.filter(
-        (comment) => !comment.replies.some((reply) => reply.isInstructorReply)
-      ).length,
-    0
-  );
+  const unreadCommentsCount = await countUnreadInstructorComments(instructor.id);
 
   return {
     instructor: {
@@ -428,7 +454,6 @@ export async function getInstructorDashboardOverview(user: User) {
 
 export async function getInstructorDashboardCourses(user: User, limit?: number) {
   assertInstructor(user);
-  await ensureCourseApprovalSchema();
 
   const instructor = await resolveInstructorForUser(user);
   if (!instructor) {
@@ -439,14 +464,13 @@ export async function getInstructorDashboardCourses(user: User, limit?: number) 
     };
   }
 
-  const courses = await findInstructorCourses(instructor.id);
-  const approvalRows = await prisma.$queryRaw<Array<{ id: string; approvalStatus: string | null; draftStep: number | null }>>`
-    SELECT "id", "approvalStatus", "draftStep"
-    FROM "Course"
-    WHERE "instructorId" = ${instructor.id}
-  `;
-  const approvalById = new Map(approvalRows.map((row) => [row.id, row]));
-  const rows = courses.map((course) => courseToDashboardRow(course, approvalById.get(course.id)));
+  const courses = await findInstructorCoursesLight(instructor.id);
+  const rows = courses.map((course) =>
+    courseToDashboardRow(course, {
+      approvalStatus: course.approvalStatus,
+      draftStep: course.draftStep,
+    })
+  );
   const limitedRows = limit && limit > 0 ? rows.slice(0, limit) : rows;
 
   return {

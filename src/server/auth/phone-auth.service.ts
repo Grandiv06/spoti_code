@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 import type { User } from "@prisma/client";
 import { prisma } from "@/server/db/prisma";
-import { OTP_EXPIRY_SECONDS } from "@/server/auth/phone-auth.constants";
+import { OTP_EXPIRY_SECONDS, STATIC_OTP_BY_PHONE } from "@/server/auth/phone-auth.constants";
 import type { DeviceInfo } from "@/server/auth/device-info";
 import {
   buildAuthResponseForUser,
@@ -99,7 +99,15 @@ function shouldExposeDevOtp(): boolean {
   );
 }
 
+function getStaticOtpForPhone(phone: string): string | null {
+  const code = STATIC_OTP_BY_PHONE[phone];
+  return code?.trim() || null;
+}
+
 async function createOtpCode(phone: string): Promise<string> {
+  const staticOtp = getStaticOtpForPhone(phone);
+  if (staticOtp) return staticOtp;
+
   if (isMelipayamakConfigured()) {
     return sendMelipayamakOtp(toLocalIranMobile(phone));
   }
@@ -116,6 +124,12 @@ function storeOtpChallenge(phone: string, code: string, fullName?: string) {
 
 function verifyOtpCode(phone: string, otp: string): boolean {
   const normalizedOtp = normalizeDigits(otp).replace(/[^0-9]/g, "");
+  const staticOtp = getStaticOtpForPhone(phone);
+  if (staticOtp) {
+    const expectedStatic = normalizeDigits(staticOtp).replace(/[^0-9]/g, "");
+    if (expectedStatic === normalizedOtp) return true;
+  }
+
   const challenge = otpChallenges.get(phone);
   if (!challenge) return false;
   if (Date.now() > challenge.expiresAt) return false;

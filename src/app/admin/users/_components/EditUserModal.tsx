@@ -28,6 +28,12 @@ const roleOptions = APPLICATION_MAIN_ROLE_OPTIONS;
 const modalSelectClassName =
   "[&_button]:h-11 [&_button]:min-h-[44px] [&_button]:rounded-2xl [&_button]:text-xs [&_button]:px-4";
 
+function normalizeOptionalEmail(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === "—" || trimmed === "-") return "";
+  return trimmed;
+}
+
 function EditUserModalSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
@@ -77,7 +83,7 @@ export default function EditUserModal({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setName(user.name);
       setPhone(user.phone);
-      setEmail(user.email);
+      setEmail(normalizeOptionalEmail(user.email));
       setStatus(user.status);
       setRole(user.role);
       setCanPublishWithoutApproval(Boolean(user.canPublishWithoutApproval));
@@ -101,9 +107,8 @@ export default function EditUserModal({
       newErrors.phone = "شماره موبایل نامعتبر است. باید ۱۱ رقم بوده و با ۰۹ شروع شود یا با +۹۸ باشد.";
     }
 
-    if (!email.trim()) {
-      newErrors.email = "لطفاً آدرس ایمیل کاربر را وارد کنید.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    const normalizedEmail = normalizeOptionalEmail(email);
+    if (normalizedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
       newErrors.email = "آدرس ایمیل وارد شده نامعتبر است.";
     }
 
@@ -118,7 +123,15 @@ export default function EditUserModal({
     try {
       const updatedUser = await updateMutation.mutateAsync({
         userId,
-        input: { name, phone, email, status, role, internalNotes, canPublishWithoutApproval },
+        input: {
+          name,
+          phone,
+          email: normalizeOptionalEmail(email),
+          status,
+          role,
+          internalNotes,
+          canPublishWithoutApproval,
+        },
       });
       onSave({ ...user, ...updatedUser });
     } catch (err) {
@@ -212,7 +225,9 @@ export default function EditUserModal({
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block">پست الکترونیک (ایمیل)</label>
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block">
+                  پست الکترونیک (ایمیل) <span className="text-gray-400 font-medium">(اختیاری)</span>
+                </label>
                 <div className="relative">
                   <input
                     type="text"

@@ -333,11 +333,11 @@ function normalizeInstructorProfile(raw: unknown): InstructorProfile | null {
   const publicVisibility = isRecord(raw.publicVisibility) ? raw.publicVisibility : {};
 
   return {
-    ...initialProfile,
-    name: normalizeString(raw.name ?? raw.fullName ?? raw.displayName, initialProfile.name),
-    displayName: normalizeString(raw.displayName ?? raw.fullName ?? raw.name, initialProfile.displayName),
-    specialty: normalizeString(raw.specialty ?? raw.headline ?? raw.displayTitle, initialProfile.specialty),
-    headline: normalizeString(raw.headline ?? raw.specialty ?? raw.displayTitle, initialProfile.headline),
+    ...emptyInstructorProfile,
+    name: normalizeString(raw.name ?? raw.fullName ?? raw.displayName, emptyInstructorProfile.name),
+    displayName: normalizeString(raw.displayName ?? raw.fullName ?? raw.name, emptyInstructorProfile.displayName),
+    specialty: normalizeString(raw.specialty ?? raw.headline ?? raw.displayTitle, emptyInstructorProfile.specialty),
+    headline: normalizeString(raw.headline ?? raw.specialty ?? raw.displayTitle, emptyInstructorProfile.headline),
     location: normalizeString(raw.location, ""),
     email: normalizeString(raw.email, ""),
     phone: normalizeString(raw.phone, ""),
@@ -345,7 +345,7 @@ function normalizeInstructorProfile(raw: unknown): InstructorProfile | null {
     fullBiography: normalizeString(raw.fullBiography, ""),
     teachingStyle: normalizeString(raw.teachingStyle, ""),
     professionalBackground: normalizeString(raw.professionalBackground, ""),
-    avatar: normalizeString(raw.avatar, initialProfile.avatar),
+    avatar: normalizeString(raw.avatar, emptyInstructorProfile.avatar),
     coverImage: normalizeString(raw.coverImage, ""),
     yearsOfExperience: normalizeString(raw.yearsOfExperience, ""),
     skills: parseStringList(raw.skills),
@@ -555,7 +555,31 @@ function normalizeStudentQuestion(raw: unknown, index: number): StudentQuestion 
   };
 }
 
-// --- INITIAL MOCK DATA ---
+const emptyInstructorProfile: InstructorProfile = {
+  name: "",
+  displayName: "",
+  specialty: "",
+  headline: "",
+  location: "",
+  email: "",
+  phone: "",
+  bio: "",
+  fullBiography: "",
+  teachingStyle: "",
+  professionalBackground: "",
+  avatar: "",
+  coverImage: "",
+  yearsOfExperience: "",
+  skills: [],
+  socials: {},
+  publicVisibility: {
+    email: false,
+    phone: false,
+    socials: true,
+  },
+};
+
+// Legacy mock data kept for local-only flows; real instructor pages load from API.
 const initialProfile: InstructorProfile = {
   name: "اصغر رضایی",
   displayName: "استاد رضایی",
@@ -838,23 +862,12 @@ function readStoredValue<T>(key: string, fallback: T): T {
 }
 
 export function InstructorDataProvider({ children }: { children: React.ReactNode }) {
-  const [courses, setCourses] = useState<Course[]>(() => {
-    const stored = readStoredValue<Course[]>("spoticode_inst_courses", initialCourses);
-    return stored.map(normalizeCourseRecord);
-  });
-  const [profileCourses, setProfileCourses] = useState<Course[]>(() =>
-    courses.filter((course) => course.status === "published")
-  );
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [profileCourses, setProfileCourses] = useState<Course[]>([]);
   const [questions, setQuestions] = useState<StudentQuestion[]>([]);
-  const [transactions] = useState<SaleTransaction[]>(() =>
-    readStoredValue<SaleTransaction[]>("spoticode_inst_transactions", initialTransactions)
-  );
-  const [payouts, setPayouts] = useState<PayoutRequest[]>(() =>
-    readStoredValue<PayoutRequest[]>("spoticode_inst_payouts", initialPayouts)
-  );
-  const [profile, setProfile] = useState<InstructorProfile>(() =>
-    readStoredValue<InstructorProfile>("spoticode_inst_profile", initialProfile)
-  );
+  const [transactions] = useState<SaleTransaction[]>(initialTransactions);
+  const [payouts, setPayouts] = useState<PayoutRequest[]>(initialPayouts);
+  const [profile, setProfile] = useState<InstructorProfile>(emptyInstructorProfile);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const isLoading = false;
 
@@ -885,6 +898,11 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
     let cancelled = false;
 
     const loadInstructorProfile = async () => {
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, 1200);
+      });
+      if (cancelled) return;
+
       try {
         const response = await apiGetNoMock<unknown>("/api/instructor-dashboard/profile");
         const payload = unwrapApiPayload(response);
@@ -896,11 +914,12 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
         if (remoteProfile) {
           syncProfile(remoteProfile);
         }
-        if (Array.isArray(payload.courses)) {
+        if (remoteCourses.length > 0) {
           setProfileCourses(remoteCourses);
+          syncCourses(remoteCourses);
         }
       } catch {
-        // Keep cached/local instructor data available when the backend is unreachable.
+        // Keep empty instructor data when the backend is unreachable.
       }
     };
 

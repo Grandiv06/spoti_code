@@ -12,11 +12,43 @@ export class AuthError extends Error {
   }
 }
 
+const USER_CACHE_TTL_MS = 60_000;
+
+const userCache = new Map<string, { user: User; expiresAt: number }>();
+const inflightUserLookups = new Map<string, Promise<User | null>>();
+
 function extractBearerToken(request: NextRequest): string | null {
   const header = request.headers.get("authorization");
   if (!header?.startsWith("Bearer ")) return null;
   const token = header.slice("Bearer ".length).trim();
   return token || null;
+}
+
+async function loadAuthUserById(userId: string): Promise<User | null> {
+  const cached = userCache.get(userId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.user;
+  }
+
+  const inflight = inflightUserLookups.get(userId);
+  if (inflight) {
+    return inflight;
+  }
+
+  const lookup = prisma.user
+    .findUnique({ where: { id: userId } })
+    .then((user) => {
+      if (user) {
+        userCache.set(userId, { user, expiresAt: Date.now() + USER_CACHE_TTL_MS });
+      }
+      return user;
+    })
+    .finally(() => {
+      inflightUserLookups.delete(userId);
+    });
+
+  inflightUserLookups.set(userId, lookup);
+  return lookup;
 }
 
 export async function requireAuthUser(request: NextRequest): Promise<User> {
@@ -30,7 +62,7 @@ export async function requireAuthUser(request: NextRequest): Promise<User> {
     throw new AuthError("نشست شما منقضی شده است. دوباره وارد شوید");
   }
 
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const user = await loadAuthUserById(userId);
   if (!user) {
     throw new AuthError("کاربر پیدا نشد");
   }

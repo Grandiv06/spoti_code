@@ -19,6 +19,7 @@ export function toIranIntlPhone(input: string): string {
 export const PHONE_ROLE_MAP: Record<string, "admin" | "user" | "instructor"> = {
   "+989104138412": "admin",
   "+989395063084": "instructor",
+  "+989196979921": "instructor",
 };
 
 type AuthOtpPayload = {

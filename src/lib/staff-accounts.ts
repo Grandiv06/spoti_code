@@ -21,4 +21,10 @@ export const STAFF_PHONE_ACCOUNTS = {
     fullName: "مدرس اسپاتی‌کد",
     role: "INSTRUCTOR",
   },
+  INSTRUCTOR_ILIA: {
+    id: "USR-INST-002",
+    phone: "+989196979921",
+    fullName: "ایلیا مرادی",
+    role: "INSTRUCTOR",
+  },
 } as const satisfies Record<string, StaffPhoneAccount>;

@@ -34,8 +34,7 @@ async function requireInstructorRecord(user: User) {
 }
 
 function canManageAllInstructorQuestions(user: User) {
-  // The seeded instructor account is a demo aggregate panel, not a real single-instructor login.
-  return user.role === "ADMIN" || user.id === "USR-INST-001" || user.phone === "+989000000002";
+  return user.role === "ADMIN";
 }
 
 function normalizeStatusFilter(value?: string) {
