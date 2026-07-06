@@ -1,5 +1,3 @@
-import "@fontsource/material-icons-round";
-import "@fontsource-variable/material-symbols-outlined";
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
@@ -31,6 +29,21 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        <link
+          rel="preload"
+          href="/fonts/material-symbols-outlined.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href="/fonts/material-icons-round.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+        <link rel="stylesheet" href="/material-icons.css" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -44,6 +57,28 @@ export default function RootLayout({
                     root.classList.remove('dark');
                   }
                 } catch (e) {}
+              })();
+            `,
+          }}
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                var root = document.documentElement;
+                root.classList.add('material-icons-loading');
+                function markReady() {
+                  root.classList.remove('material-icons-loading');
+                  root.classList.add('material-icons-ready');
+                }
+                if (!document.fonts || !document.fonts.load) {
+                  markReady();
+                  return;
+                }
+                Promise.all([
+                  document.fonts.load('400 24px "Material Symbols Outlined Variable"'),
+                  document.fonts.load('400 24px "Material Icons Round"'),
+                ]).then(markReady).catch(markReady);
               })();
             `,
           }}

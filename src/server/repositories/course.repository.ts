@@ -1,6 +1,37 @@
 import type { CourseCategory, Prisma } from "@prisma/client";
 import { prisma } from "@/server/db/prisma";
 
+export const publicCourseListSelect = {
+  id: true,
+  slug: true,
+  title: true,
+  shortDescription: true,
+  description: true,
+  category: true,
+  categoryTitle: true,
+  cover: true,
+  thumbnail: true,
+  difficulty: true,
+  level: true,
+  durationHours: true,
+  studentsCount: true,
+  price: true,
+  rating: true,
+  status: true,
+  instructor: {
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      avatar: true,
+    },
+  },
+} satisfies Prisma.CourseSelect;
+
+export type PublicCourseListRecord = Prisma.CourseGetPayload<{
+  select: typeof publicCourseListSelect;
+}>;
+
 function parseJsonColumn(value: unknown): Prisma.JsonValue | null {
   if (value == null) return null;
   if (typeof value === "string") {
@@ -57,7 +88,7 @@ export async function findPublishedCourses({
   const [items, totalItems] = await Promise.all([
     prisma.course.findMany({
       where,
-      include: { instructor: true },
+      select: publicCourseListSelect,
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * limit,
       take: limit,

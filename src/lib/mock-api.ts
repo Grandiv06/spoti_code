@@ -1067,9 +1067,8 @@ export function getMockApiResponse<T>({ method, path, body }: MockRequest): T | 
     const payload = body as { phoneNumber?: string } | undefined;
     const phoneNumber = payload?.phoneNumber ?? "+989000000003";
     const roleByPhone: Record<string, string> = {
-      "+989000000001": "ADMIN",
-      "+989000000002": "INSTRUCTOR",
-      "+989000000003": "USER",
+      "+989104138412": "ADMIN",
+      "+989395063084": "INSTRUCTOR",
     };
     const roleName = roleByPhone[phoneNumber] ?? "USER";
     return json({

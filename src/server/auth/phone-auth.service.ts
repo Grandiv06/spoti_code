@@ -1,18 +1,28 @@
 import { randomBytes } from "crypto";
-import type { AppUserRole, User } from "@prisma/client";
+import type { User } from "@prisma/client";
 import { prisma } from "@/server/db/prisma";
+import { OTP_EXPIRY_SECONDS } from "@/server/auth/phone-auth.constants";
 import {
-  OTP_EXPIRY_SECONDS,
-  TEST_OTP_CODE,
-  TEST_PHONE_ACCOUNTS,
-  type AuthAppRole,
-} from "@/server/auth/phone-auth.constants";
+  isMelipayamakConfigured,
+  sendMelipayamakOtp,
+  toLocalIranMobile,
+} from "@/server/sms/melipayamak-otp.service";
 
 type OtpChallenge = {
   code: string;
   expiresAt: number;
   fullName?: string;
+  verifiedAt?: number;
 };
+
+const SIGNUP_COMPLETION_WINDOW_MS = 10 * 60 * 1000;
+
+export type PhoneAuthResult =
+  | ReturnType<typeof buildAuthResponse>
+  | {
+      requiresFullName: true;
+      phoneNumber: string;
+    };
 
 type SessionRecord = {
   userId: string;
@@ -27,10 +37,8 @@ const globalForAuth = globalThis as typeof globalThis & {
 const otpChallenges = globalForAuth.__otpChallenges ?? new Map<string, OtpChallenge>();
 const refreshSessions = globalForAuth.__refreshSessions ?? new Map<string, SessionRecord>();
 
-if (process.env.NODE_ENV !== "production") {
-  globalForAuth.__otpChallenges = otpChallenges;
-  globalForAuth.__refreshSessions = refreshSessions;
-}
+globalForAuth.__otpChallenges = otpChallenges;
+globalForAuth.__refreshSessions = refreshSessions;
 
 function normalizeDigits(value: string): string {
   const persian = "۰۱۲۳۴۵۶۷۸۹";
@@ -51,14 +59,6 @@ export function normalizeIranPhone(input: string): string {
     throw new Error("شماره موبایل معتبر نیست");
   }
   return `+98${value}`;
-}
-
-function toPrismaRole(role: AuthAppRole): AppUserRole {
-  return role;
-}
-
-function toApiRoleName(role: AppUserRole): AuthAppRole {
-  return role;
 }
 
 function createToken(prefix: string): string {
@@ -84,9 +84,24 @@ function generateOtpCode(): string {
   return String(Math.floor(100_000 + Math.random() * 900_000));
 }
 
-function storeOtpChallenge(phone: string, fullName?: string) {
+function shouldExposeDevOtp(): boolean {
+  if (isMelipayamakConfigured()) return false;
+  return (
+    process.env.SHOW_DEV_OTP === "true" ||
+    process.env.NEXT_PUBLIC_SHOW_DEV_OTP === "true"
+  );
+}
+
+async function createOtpCode(phone: string): Promise<string> {
+  if (isMelipayamakConfigured()) {
+    return sendMelipayamakOtp(toLocalIranMobile(phone));
+  }
+  return generateOtpCode();
+}
+
+function storeOtpChallenge(phone: string, code: string, fullName?: string) {
   otpChallenges.set(phone, {
-    code: generateOtpCode(),
+    code,
     expiresAt: Date.now() + OTP_EXPIRY_SECONDS * 1000,
     fullName,
   });
@@ -97,36 +112,24 @@ function verifyOtpCode(phone: string, otp: string): boolean {
   const challenge = otpChallenges.get(phone);
   if (!challenge) return false;
   if (Date.now() > challenge.expiresAt) return false;
-  return challenge.code === normalizedOtp;
+
+  const expected = normalizeDigits(challenge.code).replace(/[^0-9]/g, "");
+  return expected === normalizedOtp;
 }
 
 async function upsertUser(phone: string, fullName?: string): Promise<User> {
-  const testAccount = TEST_PHONE_ACCOUNTS[phone];
-  if (testAccount) {
-    return prisma.user.upsert({
+  const existing = await prisma.user.findUnique({ where: { phone } });
+  const now = new Date();
+
+  if (existing) {
+    const nextFullName = fullName?.trim();
+    return prisma.user.update({
       where: { phone },
-      update: {
-        fullName: fullName?.trim() || testAccount.fullName,
-        role: toPrismaRole(testAccount.role),
-      },
-      create: {
-        id: testAccount.id,
-        phone,
-        fullName: fullName?.trim() || testAccount.fullName,
-        role: toPrismaRole(testAccount.role),
+      data: {
+        ...(nextFullName && existing.role === "USER" ? { fullName: nextFullName } : {}),
+        lastLoginAt: now,
       },
     });
-  }
-
-  const existing = await prisma.user.findUnique({ where: { phone } });
-  if (existing) {
-    if (fullName?.trim()) {
-      return prisma.user.update({
-        where: { phone },
-        data: { fullName: fullName.trim() },
-      });
-    }
-    return existing;
   }
 
   return prisma.user.create({
@@ -135,6 +138,7 @@ async function upsertUser(phone: string, fullName?: string): Promise<User> {
       phone,
       fullName: fullName?.trim() || "کاربر اسپاتی‌کد",
       role: "USER",
+      lastLoginAt: now,
     },
   });
 }
@@ -154,20 +158,20 @@ function buildAuthResponse(user: User) {
     refreshToken,
     phoneNumber: user.phone,
     fullName: user.fullName,
-    role: toApiRoleName(user.role).toLowerCase(),
-    roles: [{ name: toApiRoleName(user.role) }],
+    role: user.role.toLowerCase(),
+    roles: [{ name: user.role }],
   };
 }
 
 export async function sendVerificationCode(phoneInput: string, fullName?: string) {
   const phone = normalizeIranPhone(phoneInput);
-  storeOtpChallenge(phone, fullName?.trim() || undefined);
-  const challenge = otpChallenges.get(phone);
+  const code = await createOtpCode(phone);
+  storeOtpChallenge(phone, code, fullName?.trim() || undefined);
 
   return {
-    otp: challenge?.code ?? TEST_OTP_CODE,
     phoneNumber: phone,
     secondsToExpire: OTP_EXPIRY_SECONDS,
+    ...(shouldExposeDevOtp() ? { otp: code } : {}),
   };
 }
 
@@ -180,16 +184,53 @@ export async function registerByPhone(phoneInput: string, fullName?: string) {
   return sendVerificationCode(phone, fullName.trim());
 }
 
-export async function verifyPhoneLogin(phoneInput: string, otp: string) {
+export async function verifyPhoneLogin(
+  phoneInput: string,
+  otp?: string,
+  fullName?: string
+): Promise<PhoneAuthResult> {
   const phone = normalizeIranPhone(phoneInput);
-  if (!verifyOtpCode(phone, otp)) {
+  const challenge = otpChallenges.get(phone);
+  const trimmedName = fullName?.trim();
+
+  if (trimmedName && challenge?.verifiedAt) {
+    if (Date.now() - challenge.verifiedAt > SIGNUP_COMPLETION_WINDOW_MS) {
+      otpChallenges.delete(phone);
+      throw new Error("زمان تکمیل ثبت‌نام منقضی شده است. دوباره وارد شوید.");
+    }
+
+    const existing = await prisma.user.findUnique({ where: { phone } });
+    if (existing) {
+      otpChallenges.delete(phone);
+      return buildAuthResponse(existing);
+    }
+
+    const user = await upsertUser(phone, trimmedName);
+    otpChallenges.delete(phone);
+    return buildAuthResponse(user);
+  }
+
+  if (!otp || !verifyOtpCode(phone, otp)) {
     throw new Error("کد تایید نامعتبر است");
   }
 
-  const challenge = otpChallenges.get(phone);
+  const existing = await prisma.user.findUnique({ where: { phone } });
+  if (!existing) {
+    otpChallenges.set(phone, {
+      code: challenge!.code,
+      expiresAt: challenge!.expiresAt,
+      fullName: challenge?.fullName,
+      verifiedAt: Date.now(),
+    });
+
+    return {
+      requiresFullName: true,
+      phoneNumber: phone,
+    };
+  }
+
   const user = await upsertUser(phone, challenge?.fullName);
   otpChallenges.delete(phone);
-
   return buildAuthResponse(user);
 }
 

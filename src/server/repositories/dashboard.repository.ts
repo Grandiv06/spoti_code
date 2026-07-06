@@ -31,12 +31,41 @@ export async function findUserRootComments(userId: string) {
   });
 }
 
+export async function countUserRootComments(userId: string) {
+  return prisma.comment.count({
+    where: {
+      authorId: userId,
+      parentId: null,
+      isInstructorReply: false,
+    },
+  });
+}
+
+export async function countUserAcceptedRootComments(userId: string) {
+  return prisma.comment.count({
+    where: {
+      authorId: userId,
+      parentId: null,
+      isInstructorReply: false,
+      replies: { some: { isInstructorReply: true } },
+    },
+  });
+}
+
 export async function findUserEnrollmentsWithCourses(userId: string) {
   return prisma.courseEnrollment.findMany({
     where: { userId },
-    include: {
+    select: {
+      id: true,
+      courseId: true,
+      progress: true,
       course: {
-        include: {
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          thumbnail: true,
+          cover: true,
           instructor: {
             select: {
               id: true,

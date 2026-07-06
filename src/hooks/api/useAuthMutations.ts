@@ -16,6 +16,7 @@ type LoginPayload = {
   phone: string;
   otp?: string;
   code?: string;
+  fullName?: string;
 };
 
 export function useRegisterByPhoneMutation() {
@@ -32,6 +33,15 @@ export function useLoginByPhoneMutation() {
   return useMutation({
     mutationFn: (payload: LoginPayload) => {
       const normalizedOtp = payload.otp ?? payload.code;
+      const trimmedName = payload.fullName?.trim();
+
+      if (trimmedName) {
+        return apiPostNoMock(LOGIN_PATH, {
+          phoneNumber: payload.phone,
+          fullName: trimmedName,
+        });
+      }
+
       return apiPostNoMock(
         normalizedOtp ? LOGIN_PATH : SEND_OTP_PATH,
         normalizedOtp

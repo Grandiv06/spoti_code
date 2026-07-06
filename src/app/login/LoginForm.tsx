@@ -9,9 +9,15 @@ import Link from "next/link";
 import { apiPostNoMock } from "@/lib/api";
 import { extractTokensFromAuthResponse } from "@/lib/auth-tokens";
 import { useLoginByPhoneMutation } from "@/hooks/api/useAuthMutations";
-import { normalizeDigits, PHONE_ROLE_MAP, toIranIntlPhone, extractOtpFromAuthResponse, extractAuthErrorMessage } from "@/lib/phone-auth";
+import { normalizeDigits, PHONE_ROLE_MAP, toIranIntlPhone, extractOtpFromAuthResponse, extractAuthErrorMessage, isRequiresFullNameResponse } from "@/lib/phone-auth";
+
+const OTP_LENGTH = 6;
 
 type AppRole = "admin" | "user" | "instructor";
+
+function isOtpComplete(value: string) {
+  return value.length === OTP_LENGTH;
+}
 
 function resolveAppRole(result: {
   user?: { role?: string; roles?: Array<{ name?: string }> };
@@ -36,9 +42,11 @@ function resolveAppRole(result: {
 }
 
 export default function LoginForm() {
-  const [step, setStep] = useState<"phone" | "otp">("phone");
+  const [step, setStep] = useState<"phone" | "otp" | "profile">("phone");
   const [phoneInput, setPhoneInput] = useState("");
   const [phone, setPhone] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [otp, setOtp] = useState("");
   const [otpSubmitting, setOtpSubmitting] = useState(false);
   const [sentOtp, setSentOtp] = useState("");
@@ -123,7 +131,7 @@ export default function LoginForm() {
   const verifyOtpAndLogin = useCallback(async () => {
     if (otpSubmitting || loginMutation.isPending) return;
     setError("");
-    if (otp.length !== 6) return;
+    if (!isOtpComplete(otp)) return;
     const normalizedOtp = normalizeDigits(otp).replace(/[^0-9]/g, "");
     setOtpSubmitting(true);
 
@@ -132,7 +140,14 @@ export default function LoginForm() {
       const result = await loginMutation.mutateAsync({
         phone: normalizedPhone,
         otp: normalizedOtp,
-      }) as {
+      });
+
+      if (isRequiresFullNameResponse(result)) {
+        setStep("profile");
+        return;
+      }
+
+      const authResult = result as {
         accessToken?: string;
         token?: string;
         data?: {
@@ -159,10 +174,10 @@ export default function LoginForm() {
         };
       };
 
-      const { accessToken, refreshToken } = extractTokensFromAuthResponse(result);
+      const { accessToken, refreshToken } = extractTokensFromAuthResponse(authResult);
 
-      const apiUser = result?.data || result?.user;
-      const role = resolveAppRole(result, normalizedPhone);
+      const apiUser = authResult?.data || authResult?.user;
+      const role = resolveAppRole(authResult, normalizedPhone);
       const userPhone = apiUser?.phoneNumber || apiUser?.phone || normalizedPhone;
       const displayName = apiUser?.fullName || apiUser?.displayName || apiUser?.userName || "کاربر اسپاتی‌کد";
 
@@ -172,7 +187,6 @@ export default function LoginForm() {
         displayName,
         role,
       }, accessToken, refreshToken);
-      return;
     } catch {
       setError("کد تایید نامعتبر است یا ورود انجام نشد.");
     } finally {
@@ -180,8 +194,67 @@ export default function LoginForm() {
     }
   }, [completeLogin, loginMutation, otp, otpSubmitting, phone]);
 
+  const completeProfileAndLogin = useCallback(async () => {
+    if (otpSubmitting || loginMutation.isPending) return;
+    setError("");
+
+    const trimmedFirstName = firstName.trim();
+    const trimmedLastName = lastName.trim();
+    if (!trimmedFirstName || !trimmedLastName) {
+      setError("نام و نام خانوادگی الزامی است.");
+      return;
+    }
+
+    const fullName = `${trimmedFirstName} ${trimmedLastName}`;
+    setOtpSubmitting(true);
+
+    try {
+      const normalizedPhone = toIranIntlPhone(phone);
+      const result = await loginMutation.mutateAsync({
+        phone: normalizedPhone,
+        fullName,
+      }) as {
+        data?: {
+          id?: string;
+          fullName?: string | null;
+          displayName?: string;
+          phoneNumber?: string;
+          phone?: string;
+          role?: string;
+          roles?: Array<{ name?: string }>;
+        };
+        user?: {
+          id?: string;
+          fullName?: string | null;
+          displayName?: string;
+          phone?: string;
+          phoneNumber?: string;
+          role?: string;
+          roles?: Array<{ name?: string }>;
+        };
+      };
+
+      const { accessToken, refreshToken } = extractTokensFromAuthResponse(result);
+      const apiUser = result?.data || result?.user;
+      const role = resolveAppRole(result, normalizedPhone);
+      const userPhone = apiUser?.phoneNumber || apiUser?.phone || normalizedPhone;
+      const displayName = apiUser?.fullName || apiUser?.displayName || fullName;
+
+      completeLogin({
+        id: apiUser?.id || `${role}-${userPhone}`,
+        phone: userPhone,
+        displayName,
+        role,
+      }, accessToken, refreshToken);
+    } catch (error) {
+      setError(extractAuthErrorMessage(error, "ثبت نام انجام نشد. دوباره تلاش کنید."));
+    } finally {
+      setOtpSubmitting(false);
+    }
+  }, [completeLogin, firstName, lastName, loginMutation, otpSubmitting, phone]);
+
   useEffect(() => {
-    if (step !== "otp" || otpExpiresIn <= 0 || otp.length !== 6) {
+    if (step !== "otp" || otpExpiresIn <= 0 || !isOtpComplete(otp)) {
       lastAutoSubmitCodeRef.current = "";
       return;
     }
@@ -204,6 +277,8 @@ export default function LoginForm() {
     setOtp("");
     setSentOtp("");
     setOtpExpiresIn(0);
+    setFirstName("");
+    setLastName("");
   };
 
   const handleResendOtp = async () => {
@@ -223,6 +298,91 @@ export default function LoginForm() {
       setError(extractAuthErrorMessage(error, "ارسال مجدد کد تایید انجام نشد."));
     }
   };
+
+  const inputClassName =
+    "w-full h-14 px-6 pr-14 rounded-[2.5rem] border border-gray-300 dark:border-slate-700/85 bg-gray-50 dark:bg-[#171922] text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-[#00c853]/20 focus:border-[#00c853] focus:bg-white dark:focus:bg-[#14161d] outline-none transition-all duration-300 placeholder:text-gray-400 dark:placeholder:text-gray-500 placeholder:text-base placeholder:tracking-normal font-medium text-base tracking-normal";
+
+  if (step === "profile") {
+    return (
+      <div className="text-center mb-8">
+        <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">
+          تکمیل حساب کاربری
+        </h1>
+        <p className="text-gray-500 dark:text-gray-400 font-medium text-sm leading-relaxed">
+          شماره {phone} تایید شد. برای نمایش در سایت، نام خود را وارد کنید.
+        </p>
+
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void completeProfileAndLogin();
+          }}
+          className="space-y-5 mt-8 text-right"
+        >
+          {error && (
+            <p className="text-red-500 dark:text-red-400 text-sm font-medium text-center">{error}</p>
+          )}
+
+          <div className="space-y-2">
+            <label htmlFor="firstName" className="block text-gray-700 dark:text-gray-300 text-sm font-bold pr-1">
+              نام
+            </label>
+            <div className="relative group">
+              <input
+                id="firstName"
+                name="firstName"
+                type="text"
+                value={firstName}
+                onChange={(event) => setFirstName(event.target.value)}
+                className={inputClassName}
+                placeholder="علی"
+                autoFocus
+              />
+              <span className="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#00c853] dark:group-focus-within:text-green-400 transition-colors text-2xl">
+                person
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="lastName" className="block text-gray-700 dark:text-gray-300 text-sm font-bold pr-1">
+              نام خانوادگی
+            </label>
+            <div className="relative group">
+              <input
+                id="lastName"
+                name="lastName"
+                type="text"
+                value={lastName}
+                onChange={(event) => setLastName(event.target.value)}
+                className={inputClassName}
+                placeholder="محمدی"
+              />
+              <span className="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#00c853] dark:group-focus-within:text-green-400 transition-colors text-2xl">
+                badge
+              </span>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={otpSubmitting || loginMutation.isPending}
+            className="w-full h-14 bg-[#00c853] hover:bg-[#009624] dark:bg-[#00c853] dark:hover:bg-[#009624] disabled:opacity-50 disabled:cursor-not-allowed text-white text-lg font-bold rounded-[2.5rem] shadow-lg shadow-green-500/20 hover:shadow-green-600/30 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 mt-4 cursor-pointer"
+          >
+            <span>{otpSubmitting || loginMutation.isPending ? "در حال ثبت..." : "ثبت و ورود"}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleBackToPhone}
+            className="text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-[#00c853] dark:hover:text-green-400 transition-colors cursor-pointer"
+          >
+            تغییر شماره موبایل
+          </button>
+        </form>
+      </div>
+    );
+  }
 
   if (step === "otp") {
     return (
@@ -258,13 +418,12 @@ export default function LoginForm() {
           )}
           <div className="flex justify-center" dir="ltr">
             <InputOTP
-              maxLength={6}
+              maxLength={OTP_LENGTH}
               pattern="^[0-9۰-۹٠-٩]+$"
               value={otp}
               onChange={(v) => {
                 setError("");
-                const normalized = normalizeDigits(v).replace(/[^0-9]/g, "").slice(0, 6);
-                setOtp(normalized);
+                setOtp(normalizeDigits(v).replace(/[^0-9]/g, "").slice(0, OTP_LENGTH));
               }}
               placeholder="•"
               textAlign="left"
@@ -275,7 +434,7 @@ export default function LoginForm() {
 
           <button
             type="submit"
-            disabled={otp.length !== 6 || otpSubmitting || loginMutation.isPending || otpExpiresIn <= 0}
+            disabled={!isOtpComplete(otp) || otpSubmitting || loginMutation.isPending || otpExpiresIn <= 0}
             className="w-full h-14 bg-[#00c853] hover:bg-[#009624] dark:bg-[#00c853] dark:hover:bg-[#009624] disabled:opacity-50 disabled:cursor-not-allowed text-white text-lg font-bold rounded-[2.5rem] shadow-lg shadow-green-500/20 hover:shadow-green-600/30 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 mt-4 cursor-pointer"
           >
             <span>

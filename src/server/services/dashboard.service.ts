@@ -5,10 +5,11 @@ import type { PanelTransactionDto } from "@/server/dto/panel-dashboard.dto";
 import type { PanelMyCommentDto } from "@/server/dto/panel-dashboard.dto";
 import {
   countUserActiveOrders,
+  countUserAcceptedRootComments,
   countUserEnrollments,
+  countUserRootComments,
   findUserCommentsWithCourses,
   findUserEnrollmentsWithCourses,
-  findUserRootComments,
   findUserTransactions,
 } from "@/server/repositories/dashboard.repository";
 import { findUserProfileByUserId } from "@/server/repositories/profile.repository";
@@ -37,14 +38,14 @@ export async function getPanelDashboardOverview(user: User): Promise<PanelDashbo
     profile,
   });
 
-  const [enrolledCoursesCount, activeOrdersCount, rootComments] = await Promise.all([
-    countUserEnrollments(user.id),
-    countUserActiveOrders(user.id),
-    findUserRootComments(user.id),
-  ]);
+  const [enrolledCoursesCount, activeOrdersCount, myCommentsCount, acceptedCommentsCount] =
+    await Promise.all([
+      countUserEnrollments(user.id),
+      countUserActiveOrders(user.id),
+      countUserRootComments(user.id),
+      countUserAcceptedRootComments(user.id),
+    ]);
 
-  const myCommentsCount = rootComments.length;
-  const acceptedCommentsCount = rootComments.filter((comment) => comment.replies.length > 0).length;
   const waitingCommentsCount = myCommentsCount - acceptedCommentsCount;
 
   return {

@@ -85,9 +85,12 @@ async function ensureUniqueSlug(base: string) {
 }
 
 export async function resolveInstructorForUser(user: User): Promise<Instructor | null> {
-  // Seeded instructor auth user is not explicitly related to Instructor yet.
-  if (user.id === "USR-INST-001" || user.phone === "+989000000002") {
-    const seeded = await prisma.instructor.findUnique({ where: { id: "INS-101" } });
+  if (user.id === "USR-INST-001" || user.phone === "+989395063084") {
+    const seeded = await prisma.instructor.findFirst({
+      where: {
+        OR: [{ id: user.id }, { id: "INS-101" }],
+      },
+    });
     if (seeded) return seeded;
   }
 

@@ -1,4 +1,5 @@
-import type { Course, CourseCategory, CourseLevel, Instructor } from "@prisma/client";
+import type { CourseCategory, CourseLevel } from "@prisma/client";
+import type { PublicCourseListRecord } from "@/server/repositories/course.repository";
 
 /** Nested instructor shape used by landing & courses pages */
 export interface PublicCourseInstructorDto {
@@ -71,7 +72,7 @@ export interface PublicCourseListQueryDto {
   search?: string;
 }
 
-type CourseWithInstructor = Course & { instructor: Instructor };
+type CourseWithInstructor = PublicCourseListRecord;
 
 export function toPublicCourseListItemDto(course: CourseWithInstructor): PublicCourseListItemDto {
   const instructor = course.instructor;

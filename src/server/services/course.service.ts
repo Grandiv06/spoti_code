@@ -20,24 +20,29 @@ async function enrichPublicCourseListItems(
 ): Promise<PublicCourseListItemDto[]> {
   if (items.length === 0) return items;
 
-  const displayMap = await getDisplayDiscountMapForCourses(
-    items.map((course) => ({ id: course.id, price: course.price }))
-  );
+  try {
+    const displayMap = await getDisplayDiscountMapForCourses(
+      items.map((course) => ({ id: course.id, price: course.price }))
+    );
 
-  return items.map((course) => {
-    const display = displayMap.get(course.id);
-    if (!display || display.displayPrice >= display.originalPrice) {
-      return course;
-    }
+    return items.map((course) => {
+      const display = displayMap.get(course.id);
+      if (!display || display.displayPrice >= display.originalPrice) {
+        return course;
+      }
 
-    return {
-      ...course,
-      originalPrice: display.originalPrice,
-      displayPrice: display.displayPrice,
-      finalPrice: display.displayPrice,
-      discountPercent: display.discountPercent,
-    };
-  });
+      return {
+        ...course,
+        originalPrice: display.originalPrice,
+        displayPrice: display.displayPrice,
+        finalPrice: display.displayPrice,
+        discountPercent: display.discountPercent,
+      };
+    });
+  } catch (error) {
+    console.error("[getPublicCourses] discount enrichment failed:", error);
+    return items;
+  }
 }
 
 const DEFAULT_LIMIT = 50;

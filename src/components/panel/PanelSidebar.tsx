@@ -38,6 +38,10 @@ export default function PanelSidebar() {
       return;
     }
 
+    if (user.displayName?.trim()) {
+      setProfileName(user.displayName.trim());
+    }
+
     let cancelled = false;
 
     const loadProfile = async () => {
@@ -51,9 +55,8 @@ export default function PanelSidebar() {
           setProfileAvatar(profile.avatarImage.trim());
         }
       } catch {
-        if (!cancelled) {
+        if (!cancelled && !user.displayName?.trim()) {
           setProfileName("");
-          setProfileAvatar("");
         }
       }
     };
@@ -63,7 +66,7 @@ export default function PanelSidebar() {
     return () => {
       cancelled = true;
     };
-  }, [user?.id]);
+  }, [user?.displayName, user?.id]);
 
   const sidebarDisplayName = profileName || user?.displayName || "کاربر مهمان";
   const sidebarPhone = user?.phone?.trim() ? formatIranPhoneForDisplay(user.phone) : "";

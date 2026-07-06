@@ -128,8 +128,8 @@ function publicChapters(input: InstructorCourseDraftDto) {
   }));
 }
 
-function draftJson(input: InstructorCourseDraftDto) {
-  return JSON.stringify(input);
+function draftDataValue(input: InstructorCourseDraftDto): Prisma.InputJsonValue {
+  return input as unknown as Prisma.InputJsonValue;
 }
 
 function parseDraftData(value: unknown): unknown {
@@ -353,7 +353,7 @@ export async function upsertInstructorCourseDraft(user: User, rawInput: unknown)
         chapters: publicChapters(input) as Prisma.InputJsonValue,
         faqs: input.faqs as Prisma.InputJsonValue,
         specialWord: JSON.stringify(input.specialWords),
-        draftData: draftJson(input) as Prisma.InputJsonValue,
+        draftData: draftDataValue(input),
       },
     });
   } else {
@@ -379,21 +379,23 @@ export async function upsertInstructorCourseDraft(user: User, rawInput: unknown)
         chapters: publicChapters(input) as Prisma.InputJsonValue,
         faqs: input.faqs as Prisma.InputJsonValue,
         specialWord: JSON.stringify(input.specialWords),
-        draftData: draftJson(input) as Prisma.InputJsonValue,
+        draftData: draftDataValue(input),
         status: "draft",
+        approvalStatus: "draft",
+        draftStep: input.step,
       },
     });
   }
 
-  await prisma.$executeRaw`
-    UPDATE "Course"
-    SET "approvalStatus" = 'draft',
-        "draftStep" = ${input.step},
-        "draftData" = ${draftJson(input)},
-        "approvalNote" = NULL,
-        "updatedAt" = ${new Date()}
-    WHERE "id" = ${courseId}
-  `;
+  await prisma.course.update({
+    where: { id: courseId },
+    data: {
+      approvalStatus: "draft",
+      draftStep: input.step,
+      draftData: draftDataValue(input),
+      approvalNote: null,
+    },
+  });
 
   return readCourseRow(courseId);
 }

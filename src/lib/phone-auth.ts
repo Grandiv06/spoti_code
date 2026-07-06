@@ -17,9 +17,8 @@ export function toIranIntlPhone(input: string): string {
 }
 
 export const PHONE_ROLE_MAP: Record<string, "admin" | "user" | "instructor"> = {
-  "+989000000001": "admin",
-  "+989000000002": "instructor",
-  "+989000000003": "user",
+  "+989104138412": "admin",
+  "+989395063084": "instructor",
 };
 
 type AuthOtpPayload = {
@@ -59,4 +58,9 @@ export function extractAuthErrorMessage(error: unknown, fallback: string): strin
     }
   }
   return fallback;
+}
+
+export function isRequiresFullNameResponse(response: unknown): boolean {
+  const payload = response as { requiresFullName?: boolean; data?: { requiresFullName?: boolean } };
+  return payload?.requiresFullName === true || payload?.data?.requiresFullName === true;
 }

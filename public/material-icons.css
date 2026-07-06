@@ -1,0 +1,16 @@
+/* Self-hosted Material icon fonts — loaded from <head> to avoid FOUT in production */
+@font-face {
+  font-family: "Material Symbols Outlined Variable";
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url("/fonts/material-symbols-outlined.woff2") format("woff2-variations");
+}
+
+@font-face {
+  font-family: "Material Icons Round";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("/fonts/material-icons-round.woff2") format("woff2");
+}

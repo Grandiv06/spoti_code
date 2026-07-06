@@ -12,6 +12,12 @@ import { normalizeDigits, PHONE_ROLE_MAP, toIranIntlPhone, extractOtpFromAuthRes
 
 type AppRole = "admin" | "user" | "instructor";
 
+const OTP_LENGTH = 6;
+
+function isOtpComplete(value: string) {
+  return value.length === OTP_LENGTH;
+}
+
 function resolveAppRole(result: {
   user?: { role?: string; roles?: Array<{ name?: string }> };
   data?: { role?: string; roles?: Array<{ name?: string }>; phoneNumber?: string; phone?: string };
@@ -117,7 +123,7 @@ export default function RegisterForm() {
   const verifyOtpAndLogin = useCallback(async () => {
     if (otpSubmitting || loginMutation.isPending) return;
     setError("");
-    if (otp.length !== 6) return;
+    if (!isOtpComplete(otp)) return;
 
     const normalizedOtp = normalizeDigits(otp).replace(/[^0-9]/g, "");
     setOtpSubmitting(true);
@@ -163,7 +169,7 @@ export default function RegisterForm() {
   }, [completeLogin, fullName, loginMutation, otp, otpSubmitting, phone]);
 
   useEffect(() => {
-    if (step !== "otp" || otpExpiresIn <= 0 || otp.length !== 6) {
+    if (step !== "otp" || otpExpiresIn <= 0 || !isOtpComplete(otp)) {
       lastAutoSubmitCodeRef.current = "";
       return;
     }
@@ -235,12 +241,12 @@ export default function RegisterForm() {
           ) : null}
           <div className="flex justify-center" dir="ltr">
             <InputOTP
-              maxLength={6}
+              maxLength={OTP_LENGTH}
               pattern="^[0-9۰-۹٠-٩]+$"
               value={otp}
               onChange={(value) => {
                 setError("");
-                setOtp(normalizeDigits(value).replace(/[^0-9]/g, "").slice(0, 6));
+                setOtp(normalizeDigits(value).replace(/[^0-9]/g, "").slice(0, OTP_LENGTH));
               }}
               placeholder="•"
               textAlign="left"
@@ -251,7 +257,7 @@ export default function RegisterForm() {
 
           <button
             type="submit"
-            disabled={otp.length !== 6 || otpSubmitting || loginMutation.isPending || otpExpiresIn <= 0}
+            disabled={!isOtpComplete(otp) || otpSubmitting || loginMutation.isPending || otpExpiresIn <= 0}
             className="w-full h-14 bg-[#00c853] hover:bg-[#009624] dark:bg-[#00c853] dark:hover:bg-[#009624] disabled:opacity-50 disabled:cursor-not-allowed text-white text-lg font-bold rounded-[2.5rem] shadow-lg shadow-green-500/20 hover:shadow-green-600/30 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 mt-4 cursor-pointer"
           >
             <span>
