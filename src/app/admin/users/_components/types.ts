@@ -38,7 +38,7 @@ export interface User {
   phone: string;
   email: string;
   plan: "Starter" | "Pro" | "Enterprise";
-  status: "فعال" | "غیرفعال" | "معلق";
+  status: "فعال" | "غیرفعال";
   role: ApplicationMainRole;
   joinedAt: string;
   courses: number;
@@ -186,7 +186,7 @@ export const initialUsersData: User[] = [
     phone: "09125555555",
     email: "mahsa.zamani@gmail.com",
     plan: "Starter",
-    status: "معلق",
+    status: "غیرفعال",
     role: "USER",
     joinedAt: "1404/10/01",
     courses: 3,
@@ -197,7 +197,7 @@ export const initialUsersData: User[] = [
     successfulTransactionsCount: 2,
     supportTicketsCount: 1,
     lastCourseViewed: "React Performance",
-    internalNotes: "به دلیل استفاده چند کاربره از اکانت، حساب به صورت موقت معلق شده است.",
+    internalNotes: "به دلیل استفاده چند کاربره از اکانت، حساب غیرفعال شده است.",
     purchasedCourses: [
       { name: "React Performance", purchaseDate: "1404/10/01", status: "دسترسی محدود", progress: 5 }
     ],

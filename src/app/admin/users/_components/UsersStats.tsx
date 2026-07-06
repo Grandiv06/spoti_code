@@ -3,7 +3,6 @@ import {
   Users, 
   UserCheck, 
   UserX, 
-  UserMinus, 
   Wallet 
 } from "lucide-react";
 import { User } from "./types";
@@ -17,7 +16,6 @@ export default function UsersStats({ users }: UsersStatsProps) {
   const totalUsers = users.length;
   const activeUsers = users.filter((u) => u.status === "فعال").length;
   const inactiveUsers = users.filter((u) => u.status === "غیرفعال").length;
-  const suspendedUsers = users.filter((u) => u.status === "معلق").length;
   const totalLTV = users.reduce((sum, u) => sum + u.ltv, 0);
 
   const stats = [
@@ -46,14 +44,6 @@ export default function UsersStats({ users }: UsersStatsProps) {
       bgGlow: "bg-zinc-500/5",
     },
     {
-      label: "کاربران معلق",
-      value: toPersianDigits(suspendedUsers),
-      desc: "تعلیق موقت دسترسی",
-      icon: <UserMinus className="w-5 h-5 text-amber-400" />,
-      color: "from-amber-500/10 to-orange-500/5 border-amber-500/20",
-      bgGlow: "bg-amber-500/5",
-    },
-    {
       label: "مجموع درآمد (LTV)",
       value: formatPrice(totalLTV),
       desc: "ارزش چرخه عمر کل",
@@ -65,7 +55,7 @@ export default function UsersStats({ users }: UsersStatsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
+    <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-2 xl:grid-cols-4">
       {stats.map((stat, i) => (
         <div
           key={i}

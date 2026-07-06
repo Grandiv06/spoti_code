@@ -7,7 +7,7 @@ import {
 } from "@/lib/application-roles";
 
 interface StatusBadgeProps {
-  status: "فعال" | "غیرفعال" | "معلق" | string;
+  status: "فعال" | "غیرفعال" | string;
 }
 
 export function UserStatusBadge({ status }: StatusBadgeProps) {
@@ -22,10 +22,6 @@ export function UserStatusBadge({ status }: StatusBadgeProps) {
     case "غیرفعال":
       classes = "bg-zinc-500/10 text-zinc-400 border-zinc-500/20";
       dotClass = "bg-zinc-400";
-      break;
-    case "معلق":
-      classes = "bg-amber-500/10 text-amber-400 border-amber-500/20";
-      dotClass = "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]";
       break;
     default:
       classes = "bg-gray-500/10 text-gray-400 border-gray-500/20";

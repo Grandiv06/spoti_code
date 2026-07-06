@@ -49,7 +49,7 @@ export const usersData = [
   { id: "USR-991", name: "هانیه عابدی", phone: "09122222222", plan: "Starter", status: "غیرفعال", joinedAt: "1404/09/02", courses: 2, ltv: "2,120,000" },
   { id: "USR-990", name: "رضا ملکی", phone: "09123333333", plan: "Pro", status: "فعال", joinedAt: "1404/07/20", courses: 6, ltv: "8,900,000" },
   { id: "USR-989", name: "زهرا کیانی", phone: "09124444444", plan: "Enterprise", status: "فعال", joinedAt: "1404/06/15", courses: 13, ltv: "21,700,000" },
-  { id: "USR-988", name: "مهسا زمانی", phone: "09125555555", plan: "Starter", status: "معلق", joinedAt: "1404/10/01", courses: 3, ltv: "3,240,000" },
+  { id: "USR-988", name: "مهسا زمانی", phone: "09125555555", plan: "Starter", status: "غیرفعال", joinedAt: "1404/10/01", courses: 3, ltv: "3,240,000" },
   { id: "USR-987", name: "آرمان ابراهیمی", phone: "09126666666", plan: "Pro", status: "فعال", joinedAt: "1404/11/11", courses: 5, ltv: "7,060,000" },
   { id: "USR-986", name: "سمیه فراهانی", phone: "09127777777", plan: "Pro", status: "فعال", joinedAt: "1404/05/09", courses: 9, ltv: "13,850,000" },
 ];

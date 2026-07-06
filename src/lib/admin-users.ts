@@ -125,7 +125,6 @@ function normalizeStatus(value: unknown): User["status"] {
   const raw = String(value ?? "").trim().toLowerCase();
   if (!raw) return "فعال";
   if (["active", "enabled", "activeuser", "فعال", "true", "1"].includes(raw)) return "فعال";
-  if (["pending", "suspended", "blocked", "معلق"].includes(raw)) return "معلق";
   return "غیرفعال";
 }
 

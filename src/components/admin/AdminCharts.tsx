@@ -177,7 +177,6 @@ export function StatusPill({ status }: { status: string }) {
         status === "لغو شده" && "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300",
         status === "فعال" && "bg-emerald-100 text-emerald-700 dark:bg-primary/20 dark:text-emerald-300",
         status === "غیرفعال" && "bg-gray-200 text-gray-700 dark:bg-gray-500/20 dark:text-gray-300",
-        status === "معلق" && "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300",
         status === "منتشر شده" && "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300",
         status === "پیش‌نویس" && "bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300",
         status === "باز" && "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300",

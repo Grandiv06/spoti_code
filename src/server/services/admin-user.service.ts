@@ -91,7 +91,6 @@ function normalizeStatus(input: AdminUserPayload): string | undefined {
   const raw = String(input.status ?? input.accountStatus ?? "").trim().toLowerCase();
   if (!raw) return undefined;
   if (["active", "enabled", "فعال", "true", "1"].includes(raw)) return "active";
-  if (["pending", "suspended", "blocked", "معلق"].includes(raw)) return "pending";
   return "inactive";
 }
 
