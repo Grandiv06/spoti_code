@@ -76,13 +76,32 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const sidebarPhone = user?.phone?.trim() ? formatIranPhoneForDisplay(user.phone) : "";
   const sidebarAvatar = profileAvatar || user?.avatarUrl || "";
 
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) setOpen(false);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const handleLogout = () => {
     logout();
     router.replace("/login");
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#14161c] text-gray-900 dark:text-white" dir="rtl">
+    <div className="relative min-h-screen overflow-x-hidden bg-gray-50 dark:bg-[#14161c] text-gray-900 dark:text-white" dir="rtl">
       {/* Mobile Overlay */}
       {open && (
         <div

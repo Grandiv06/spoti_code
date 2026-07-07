@@ -17,6 +17,16 @@ const USER_CACHE_TTL_MS = 60_000;
 const userCache = new Map<string, { user: User; expiresAt: number }>();
 const inflightUserLookups = new Map<string, Promise<User | null>>();
 
+/**
+ * Drops the cached user record so the next {@link requireAuthUser} reads fresh
+ * state from the database. Call this after mutating user fields (e.g. TOTP
+ * enable/disable) to avoid serving stale auth data for up to the cache TTL.
+ */
+export function invalidateAuthUser(userId: string): void {
+  userCache.delete(userId);
+  inflightUserLookups.delete(userId);
+}
+
 function extractBearerToken(request: NextRequest): string | null {
   const header = request.headers.get("authorization");
   if (!header?.startsWith("Bearer ")) return null;

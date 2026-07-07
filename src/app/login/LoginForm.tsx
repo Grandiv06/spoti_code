@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { apiPostNoMock } from "@/lib/api";
 import { extractTokensFromAuthResponse } from "@/lib/auth-tokens";
 import { useLoginByPhoneMutation } from "@/hooks/api/useAuthMutations";
-import { normalizeDigits, PHONE_ROLE_MAP, toIranIntlPhone, extractOtpFromAuthResponse, extractAuthErrorMessage, isRequiresFullNameResponse, isRequiresSessionChoiceResponse, parseSessionChoiceResponse, type ActiveSessionItem } from "@/lib/phone-auth";
+import { normalizeDigits, PHONE_ROLE_MAP, toIranIntlPhone, extractOtpFromAuthResponse, extractAuthErrorMessage, isRequiresFullNameResponse, isRequiresSessionChoiceResponse, isRequiresTotpResponse, parseSessionChoiceResponse, type ActiveSessionItem } from "@/lib/phone-auth";
 import { deviceTypeIcon, formatSessionDate } from "@/lib/panel-sessions";
 
 const OTP_LENGTH = 6;
@@ -42,12 +42,14 @@ function resolveAppRole(result: {
 }
 
 export default function LoginForm() {
-  const [step, setStep] = useState<"phone" | "otp" | "profile" | "sessions">("phone");
+  const [step, setStep] = useState<"phone" | "otp" | "totp" | "profile" | "sessions">("phone");
   const [phoneInput, setPhoneInput] = useState("");
   const [phone, setPhone] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [otp, setOtp] = useState("");
+  const [recoveryCode, setRecoveryCode] = useState("");
+  const [useRecoveryCode, setUseRecoveryCode] = useState(false);
   const [otpSubmitting, setOtpSubmitting] = useState(false);
   const [sentOtp, setSentOtp] = useState("");
   const [otpExpiresIn, setOtpExpiresIn] = useState(0);
@@ -168,6 +170,16 @@ export default function LoginForm() {
       const result = await apiPostNoMock<unknown>("/api/auth/resend-verification-code", {
         phoneNumber: normalizedPhone,
       });
+
+      if (isRequiresTotpResponse(result)) {
+        setPhone(normalizedPhone);
+        setOtp("");
+        setSentOtp("");
+        setOtpExpiresIn(0);
+        setStep("totp");
+        return;
+      }
+
       const { otp, secondsToExpire } = extractOtpFromAuthResponse(result);
       setPhone(normalizedPhone);
       setSentOtp(otp);
@@ -218,6 +230,40 @@ export default function LoginForm() {
       setOtpSubmitting(false);
     }
   }, [finishAuthResult, loginMutation, otp, otpSubmitting, phone]);
+
+  const verifyRecoveryAndLogin = useCallback(async () => {
+    if (otpSubmitting || loginMutation.isPending) return;
+    setError("");
+    const trimmedCode = recoveryCode.trim();
+    if (trimmedCode.length < 8) {
+      setError("کد بازیابی معتبر نیست.");
+      return;
+    }
+    setOtpSubmitting(true);
+
+    try {
+      const normalizedPhone = toIranIntlPhone(phone);
+      const result = await loginMutation.mutateAsync({
+        phone: normalizedPhone,
+        otp: trimmedCode,
+      });
+
+      if (isRequiresSessionChoiceResponse(result)) {
+        const parsed = parseSessionChoiceResponse(result);
+        setPendingLoginToken(parsed.pendingLoginToken);
+        setActiveSessions(parsed.sessions);
+        setSelectedSessionId(parsed.sessions[0]?.id ?? "");
+        setStep("sessions");
+        return;
+      }
+
+      finishAuthResult(result, normalizedPhone);
+    } catch (error) {
+      setError(extractAuthErrorMessage(error, "کد بازیابی نامعتبر است."));
+    } finally {
+      setOtpSubmitting(false);
+    }
+  }, [finishAuthResult, loginMutation, otpSubmitting, phone, recoveryCode]);
 
   const completeProfileAndLogin = useCallback(async () => {
     if (otpSubmitting || loginMutation.isPending) return;
@@ -276,7 +322,9 @@ export default function LoginForm() {
   }, [finishAuthResult, otpSubmitting, pendingLoginToken, phone, selectedSessionId]);
 
   useEffect(() => {
-    if (step !== "otp" || otpExpiresIn <= 0 || !isOtpComplete(otp)) {
+    const isCodeStep = step === "otp" || step === "totp";
+    const smsExpired = step === "otp" && otpExpiresIn <= 0;
+    if (!isCodeStep || smsExpired || !isOtpComplete(otp)) {
       lastAutoSubmitCodeRef.current = "";
       return;
     }
@@ -297,6 +345,8 @@ export default function LoginForm() {
   const handleBackToPhone = () => {
     setStep("phone");
     setOtp("");
+    setRecoveryCode("");
+    setUseRecoveryCode(false);
     setSentOtp("");
     setOtpExpiresIn(0);
     setFirstName("");
@@ -463,6 +513,120 @@ export default function LoginForm() {
             تغییر شماره موبایل
           </button>
         </form>
+      </div>
+    );
+  }
+
+  if (step === "totp") {
+    return (
+      <div className="text-center mb-8">
+        <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+          <span className="material-symbols-outlined text-[28px]">shield_lock</span>
+        </div>
+        <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">
+          {useRecoveryCode ? "کد بازیابی" : "کد Google Authenticator"}
+        </h1>
+        <p className="text-gray-500 dark:text-gray-400 font-medium text-sm leading-relaxed">
+          {useRecoveryCode
+            ? "یکی از کدهای بازیابی ذخیره‌شده هنگام فعال‌سازی را وارد کنید"
+            : "کد ۶ رقمی نمایش داده‌شده در اپلیکیشن Authenticator را وارد کنید"}
+        </p>
+
+        {useRecoveryCode ? (
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              void verifyRecoveryAndLogin();
+            }}
+            className="space-y-6 mt-8 text-right"
+          >
+            {error && (
+              <p className="text-red-500 dark:text-red-400 text-sm font-medium text-center">{error}</p>
+            )}
+            <div className="relative group">
+              <input
+                type="text"
+                dir="ltr"
+                value={recoveryCode}
+                onChange={(event) => {
+                  setError("");
+                  setRecoveryCode(event.target.value.toUpperCase());
+                }}
+                className={`${inputClassName} text-center tracking-widest`}
+                placeholder="XXXXX-XXXXX"
+                autoFocus
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={recoveryCode.trim().length < 8 || otpSubmitting || loginMutation.isPending}
+              className="w-full h-14 bg-[#00c853] hover:bg-[#009624] dark:bg-[#00c853] dark:hover:bg-[#009624] disabled:opacity-50 disabled:cursor-not-allowed text-white text-lg font-bold rounded-[2.5rem] shadow-lg shadow-green-500/20 hover:shadow-green-600/30 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 mt-4 cursor-pointer"
+            >
+              <span>{otpSubmitting || loginMutation.isPending ? "در حال تایید..." : "تایید و ورود"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setUseRecoveryCode(false);
+                setRecoveryCode("");
+                setError("");
+              }}
+              className="text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-[#00c853] dark:hover:text-green-400 transition-colors cursor-pointer"
+            >
+              بازگشت به کد Authenticator
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleOtpSubmit} className="space-y-6 mt-8">
+            {error && (
+              <p className="text-red-500 dark:text-red-400 text-sm font-medium text-center">{error}</p>
+            )}
+            <div className="flex justify-center" dir="ltr">
+              <InputOTP
+                maxLength={OTP_LENGTH}
+                pattern="^[0-9۰-۹٠-٩]+$"
+                value={otp}
+                onChange={(v) => {
+                  setError("");
+                  setOtp(normalizeDigits(v).replace(/[^0-9]/g, "").slice(0, OTP_LENGTH));
+                }}
+                textAlign="left"
+                dir="ltr"
+                autoFocus
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={!isOtpComplete(otp) || otpSubmitting || loginMutation.isPending}
+              className="w-full h-14 bg-[#00c853] hover:bg-[#009624] dark:bg-[#00c853] dark:hover:bg-[#009624] disabled:opacity-50 disabled:cursor-not-allowed text-white text-lg font-bold rounded-[2.5rem] shadow-lg shadow-green-500/20 hover:shadow-green-600/30 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 mt-4 cursor-pointer"
+            >
+              <span>{otpSubmitting || loginMutation.isPending ? "در حال تایید..." : "تایید و ورود"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setUseRecoveryCode(true);
+                setOtp("");
+                setError("");
+              }}
+              className="block w-full text-xs font-bold text-gray-400 dark:text-gray-500 hover:text-[#00c853] dark:hover:text-green-400 transition-colors cursor-pointer"
+            >
+              دسترسی به اپلیکیشن را از دست داده‌اید؟ استفاده از کد بازیابی
+            </button>
+
+            <button
+              type="button"
+              onClick={handleBackToPhone}
+              className="text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-[#00c853] dark:hover:text-green-400 transition-colors cursor-pointer"
+            >
+              تغییر شماره موبایل
+            </button>
+          </form>
+        )}
       </div>
     );
   }

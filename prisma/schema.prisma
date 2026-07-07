@@ -61,6 +61,10 @@ model User {
   nationalCode String?           @unique
   internalAdminNote String?
   lastLoginAt DateTime?
+  authMethod  String             @default("sms")
+  totpEnabled Boolean            @default(false)
+  totpSecret  String?
+  totpRecoveryCodes String?
   enrollments        CourseEnrollment[]
   orders             UserOrder[]
   tickets            SupportTicket[]

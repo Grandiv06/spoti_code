@@ -106,6 +106,11 @@ export function isRequiresFullNameResponse(response: unknown): boolean {
   return payload?.requiresFullName === true || payload?.data?.requiresFullName === true;
 }
 
+export function isRequiresTotpResponse(response: unknown): boolean {
+  const payload = response as { requiresTotp?: boolean; data?: { requiresTotp?: boolean } };
+  return payload?.requiresTotp === true || payload?.data?.requiresTotp === true;
+}
+
 export function parseSessionChoiceResponse(response: unknown) {
   const payload = response as {
     pendingLoginToken?: string;

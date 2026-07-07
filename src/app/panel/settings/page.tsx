@@ -2,6 +2,7 @@
 
 import ThemeSettingsPanel from "@/components/settings/ThemeSettingsPanel";
 import ActiveSessionsPanel from "./ActiveSessionsPanel";
+import SecuritySettingsPanel from "./SecuritySettingsPanel";
 
 export default function SettingsPage() {
   return (
@@ -12,6 +13,8 @@ export default function SettingsPage() {
       </div>
 
       <ThemeSettingsPanel />
+
+      <SecuritySettingsPanel />
 
       <ActiveSessionsPanel />
     </div>

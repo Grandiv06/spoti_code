@@ -21,11 +21,11 @@ import type { AdminDashboardViewModel } from "@/lib/admin-dashboard";
 function DashboardSkeleton() {
   return (
     <div className="animate-pulse">
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-8">
+      <section className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4 mb-8">
         {Array.from({ length: 4 }).map((_, index) => (
           <div
             key={index}
-            className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm dark:border-white/5 dark:bg-[#1c1e26]"
+            className="rounded-3xl border border-gray-100 bg-white p-4 sm:p-5 shadow-sm dark:border-white/5 dark:bg-[#1c1e26]"
           >
             <div className="mb-4 flex items-center justify-between">
               <div className="h-3 w-20 rounded-full bg-gray-200 dark:bg-white/10" />
@@ -244,23 +244,23 @@ export default function AdminDashboardPage() {
             </section>
           ) : null}
 
-          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-8">
+          <section className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4 mb-8">
             {dashboard.kpis.map((kpi, index) => {
               const KpiIcon = kpiIcons[index] ?? UserRound;
 
               return (
                 <div
                   key={kpi.title}
-                  className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm dark:border-white/5 dark:bg-[#1c1e26] relative overflow-hidden"
+                  className="rounded-3xl border border-gray-100 bg-white p-4 sm:p-5 shadow-sm dark:border-white/5 dark:bg-[#1c1e26] relative overflow-hidden"
                 >
                   <div className="absolute -top-10 -left-10 h-24 w-24 rounded-full blur-2xl bg-primary/10 pointer-events-none" />
-                  <div className="mb-3 flex items-center justify-between">
+                  <div className="mb-3 flex items-center justify-between gap-2">
                     <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">{kpi.title}</p>
-                    <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-400/20 bg-emerald-500/10 text-emerald-300">
+                    <div className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-400/20 bg-emerald-500/10 text-emerald-300">
                       <KpiIcon className="h-4.5 w-4.5" />
                     </div>
                   </div>
-                  <p className="mt-3 text-2xl font-black tracking-tight text-gray-900 dark:text-white">
+                  <p className="mt-3 text-xl sm:text-2xl font-black tracking-tight text-gray-900 dark:text-white">
                     {kpi.value}
                     {kpi.unit ? <span className="mr-1 text-sm font-semibold text-gray-500">{kpi.unit}</span> : null}
                   </p>

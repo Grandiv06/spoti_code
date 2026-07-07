@@ -20,6 +20,7 @@ import {
   sendMelipayamakOtp,
   toLocalIranMobile,
 } from "@/server/sms/melipayamak-otp.service";
+import { isTotpLogin, verifyAndConsumeLoginCode } from "@/server/services/user-security.service";
 
 type OtpChallenge = {
   code: string;
@@ -29,6 +30,17 @@ type OtpChallenge = {
 };
 
 const SIGNUP_COMPLETION_WINDOW_MS = 10 * 60 * 1000;
+
+export type SendVerificationResult =
+  | {
+      phoneNumber: string;
+      secondsToExpire: number;
+      otp?: string;
+    }
+  | {
+      phoneNumber: string;
+      requiresTotp: true;
+    };
 
 export type PhoneAuthResult =
   | Awaited<ReturnType<typeof buildAuthResponseForUser>>
@@ -200,8 +212,19 @@ async function issueLoginForUser(user: User, context: LoginDeviceContext): Promi
   });
 }
 
-export async function sendVerificationCode(phoneInput: string, fullName?: string) {
+export async function sendVerificationCode(
+  phoneInput: string,
+  fullName?: string
+): Promise<SendVerificationResult> {
   const phone = normalizeIranPhone(phoneInput);
+
+  // Users who enabled Google Authenticator log in with a TOTP code instead of
+  // an SMS OTP — skip sending an SMS and tell the client to prompt for the app code.
+  const existing = await prisma.user.findUnique({ where: { phone } });
+  if (existing && isTotpLogin(existing)) {
+    return { phoneNumber: phone, requiresTotp: true };
+  }
+
   const code = await createOtpCode(phone);
   storeOtpChallenge(phone, code, fullName?.trim() || undefined);
 
@@ -233,6 +256,16 @@ export async function verifyPhoneLogin(
   const deviceContext = context ?? {
     device: { label: "مرورگر — سیستم‌عامل", deviceType: "desktop" as const },
   };
+
+  // Google Authenticator (TOTP) users: verify the app/recovery code and log in.
+  const totpUser = await prisma.user.findUnique({ where: { phone } });
+  if (totpUser && isTotpLogin(totpUser)) {
+    if (!otp || !(await verifyAndConsumeLoginCode(totpUser, otp))) {
+      throw new Error("کد تایید نامعتبر است");
+    }
+    await prisma.user.update({ where: { id: totpUser.id }, data: { lastLoginAt: new Date() } });
+    return issueLoginForUser(totpUser, deviceContext);
+  }
 
   if (trimmedName && challenge?.verifiedAt) {
     if (Date.now() - challenge.verifiedAt > SIGNUP_COMPLETION_WINDOW_MS) {
