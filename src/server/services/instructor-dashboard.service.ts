@@ -1,4 +1,4 @@
-import type { Course, Instructor, User } from "@prisma/client";
+import type { Course, Instructor, Prisma, User } from "@prisma/client";
 import { AuthError } from "@/server/auth/request-auth";
 import {
   readInstructorProfileSkills,
@@ -14,6 +14,21 @@ import { prisma } from "@/server/db/prisma";
 const INSTRUCTOR_REVENUE_SHARE = 0.7;
 const DEFAULT_COURSE_COVER = "/images/course1.jpg";
 
+// Logs how long a DB operation took. Always logs in development; in production it
+// only logs slow calls (>500ms) so real regressions surface without noise.
+const SLOW_DB_THRESHOLD_MS = 500;
+async function timeDb<T>(label: string, run: () => Promise<T>): Promise<T> {
+  const start = performance.now();
+  try {
+    return await run();
+  } finally {
+    const ms = performance.now() - start;
+    if (process.env.NODE_ENV !== "production" || ms > SLOW_DB_THRESHOLD_MS) {
+      console.log(`[instructor-dashboard][db] ${label}: ${ms.toFixed(1)}ms`);
+    }
+  }
+}
+
 function resolvePersistableCover(nextCover: string, existingCover?: string | null) {
   const trimmed = nextCover.trim();
   if (trimmed && !trimmed.startsWith("blob:")) {
@@ -28,9 +43,34 @@ function resolvePersistableCover(nextCover: string, existingCover?: string | nul
   return DEFAULT_COURSE_COVER;
 }
 
-type InstructorCourseListItem = Course & {
-  enrollments: Array<{ id: string }>;
-};
+// Only the columns the dashboard/profile actually render — deliberately excludes
+// the heavy JSON blobs (chapters/faqs/draftData/description) and uses `_count`
+// instead of hydrating every enrollment row just to count students.
+const INSTRUCTOR_COURSE_SELECT = {
+  id: true,
+  slug: true,
+  title: true,
+  cover: true,
+  thumbnail: true,
+  status: true,
+  approvalStatus: true,
+  draftStep: true,
+  categoryTitle: true,
+  studentsCount: true,
+  revenue: true,
+  rating: true,
+  price: true,
+  level: true,
+  shortDescription: true,
+  durationHours: true,
+  createdAt: true,
+  updatedAt: true,
+  _count: { select: { enrollments: true } },
+} satisfies Prisma.CourseSelect;
+
+type InstructorCourseListItem = Prisma.CourseGetPayload<{
+  select: typeof INSTRUCTOR_COURSE_SELECT;
+}>;
 
 export type UpdateInstructorProfileInput = UpdateInstructorProfilePageDto & {
   profile?: Record<string, unknown>;
@@ -107,6 +147,16 @@ export async function resolveInstructorForUser(user: User): Promise<Instructor |
 }
 
 async function resolveInstructorForUserUncached(user: User): Promise<Instructor | null> {
+  // Fast path first: the instructor row shares the user id (primary-key lookup).
+  // This is the common case, so we avoid the extra userProfile query entirely.
+  const idMatch = await timeDb("instructor.findUnique(byId)", () =>
+    prisma.instructor.findUnique({ where: { id: user.id } })
+  );
+  if (idMatch) {
+    instructorCache.set(user.id, { instructor: idMatch, expiresAt: Date.now() + INSTRUCTOR_CACHE_TTL_MS });
+    return idMatch;
+  }
+
   const fullName = user.fullName?.trim();
   const profile = await prisma.userProfile.findUnique({
     where: { userId: user.id },
@@ -115,14 +165,6 @@ async function resolveInstructorForUserUncached(user: User): Promise<Instructor 
   const candidateNames = [fullName, profile?.occupation?.trim()].filter(
     (name): name is string => Boolean(name)
   );
-
-  const idMatch = await prisma.instructor.findUnique({
-    where: { id: user.id },
-  });
-  if (idMatch) {
-    instructorCache.set(user.id, { instructor: idMatch, expiresAt: Date.now() + INSTRUCTOR_CACHE_TTL_MS });
-    return idMatch;
-  }
 
   if (candidateNames.length > 0) {
     const exact = await prisma.instructor.findFirst({
@@ -160,12 +202,17 @@ async function resolveInstructorForUserUncached(user: User): Promise<Instructor 
   return null;
 }
 
-function resolveStudentsCount(course: Pick<Course, "studentsCount"> & { enrollments?: Array<{ id: string }> }): number {
+function resolveStudentsCount(
+  course: { studentsCount: number } & {
+    _count?: { enrollments: number };
+    enrollments?: Array<{ id: string }>;
+  }
+): number {
   if (course.studentsCount > 0) {
     return course.studentsCount;
   }
 
-  return course.enrollments?.length ?? 0;
+  return course._count?.enrollments ?? course.enrollments?.length ?? 0;
 }
 
 function toNumber(value: bigint | number | null | undefined): number {
@@ -226,16 +273,13 @@ async function findInstructorCoursesLight(instructorId: string) {
     return inflight;
   }
 
-  const lookup = prisma.course
-    .findMany({
+  const lookup = timeDb("course.findMany(instructor courses)", () =>
+    prisma.course.findMany({
       where: { instructorId },
-      include: {
-        enrollments: {
-          select: { id: true },
-        },
-      },
+      select: INSTRUCTOR_COURSE_SELECT,
       orderBy: { updatedAt: "desc" },
     })
+  )
     .then((courses) => {
       instructorCoursesCache.set(instructorId, {
         courses,
@@ -416,7 +460,11 @@ export async function getInstructorDashboardOverview(user: User) {
     };
   }
 
-  const courses = await findInstructorCoursesLight(instructor.id);
+  // These two hit different tables and don't depend on each other — run in parallel.
+  const [courses, unreadCommentsCount] = await Promise.all([
+    findInstructorCoursesLight(instructor.id),
+    timeDb("comment.count(unread)", () => countUnreadInstructorComments(instructor.id)),
+  ]);
   const publishedCourses = courses.filter((course) => course.status === "published");
   const studentsCount = publishedCourses.reduce(
     (sum, course) => sum + resolveStudentsCount(course),
@@ -428,7 +476,6 @@ export async function getInstructorDashboardOverview(user: User) {
   );
   const totalRevenue = publishedCourses.reduce((sum, course) => sum + toNumber(course.revenue), 0);
   const avgCourseStars = calculateAverageRating(publishedCourses);
-  const unreadCommentsCount = await countUnreadInstructorComments(instructor.id);
 
   return {
     instructor: {
@@ -452,7 +499,7 @@ export async function getInstructorDashboardOverview(user: User) {
   };
 }
 
-export async function getInstructorDashboardCourses(user: User, limit?: number) {
+export async function getInstructorDashboardCourses(user: User, limit?: number, offset?: number) {
   assertInstructor(user);
 
   const instructor = await resolveInstructorForUser(user);
@@ -471,12 +518,20 @@ export async function getInstructorDashboardCourses(user: User, limit?: number) 
       draftStep: course.draftStep,
     })
   );
-  const limitedRows = limit && limit > 0 ? rows.slice(0, limit) : rows;
+
+  // Pagination is applied over the shared (cached) list so overview/profile/
+  // my-courses still resolve to a single DB round-trip. `total` stays the full
+  // count so the UI can show the real number regardless of the page window.
+  const start = offset && offset > 0 ? offset : 0;
+  const end = limit && limit > 0 ? start + limit : undefined;
+  const pageRows = start > 0 || end !== undefined ? rows.slice(start, end) : rows;
 
   return {
-    items: limitedRows,
-    courses: limitedRows,
+    items: pageRows,
+    courses: pageRows,
     total: rows.length,
+    limit: limit && limit > 0 ? limit : undefined,
+    offset: start,
     instructor: {
       id: instructor.id,
       name: instructor.name,

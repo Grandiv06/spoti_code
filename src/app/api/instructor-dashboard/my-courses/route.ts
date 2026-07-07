@@ -16,7 +16,8 @@ export async function GET(request: NextRequest) {
     const user = await requireAuthUser(request);
     const data = await getInstructorDashboardCourses(
       user,
-      readNumber(request.nextUrl.searchParams.get("limit"))
+      readNumber(request.nextUrl.searchParams.get("limit")),
+      readNumber(request.nextUrl.searchParams.get("offset"))
     );
     return NextResponse.json({ data });
   } catch (error) {

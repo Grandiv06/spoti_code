@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -20,12 +20,10 @@ import {
   InstructorCoursesHeaderSkeleton,
 } from "@/app/instructor/courses/_components/InstructorCoursesSkeleton";
 import {
-  extractInstructorCourses,
   levelToDifficultyLabel,
-  normalizeInstructorCoursesProfile,
   type InstructorCourseRow,
 } from "@/app/instructor/courses/_lib/instructor-courses-data";
-import { apiGetNoMock } from "@/lib/api";
+import { useInstructorCoursesList, useInstructorProfileSummary } from "@/hooks/api/useInstructorDashboard";
 
 type StatusModalState = {
   open: boolean;
@@ -37,11 +35,15 @@ type StatusModalState = {
 
 export default function InstructorCoursesPage() {
   const router = useRouter();
-  const [courses, setCourses] = useState<InstructorCourseRow[]>([]);
-  const [instructorName, setInstructorName] = useState("");
-  const [instructorAvatar, setInstructorAvatar] = useState("");
-  const [coursesLoading, setCoursesLoading] = useState(true);
-  const [profileLoading, setProfileLoading] = useState(true);
+
+  // React Query keeps the course list cached and shared, so revisiting this page
+  // (or coming back from the dashboard) is instant instead of re-fetching.
+  const coursesQuery = useInstructorCoursesList();
+  const profileQuery = useInstructorProfileSummary();
+
+  const courses = useMemo<InstructorCourseRow[]>(() => coursesQuery.data ?? [], [coursesQuery.data]);
+  const instructorName = profileQuery.data?.name ?? "";
+  const instructorAvatar = profileQuery.data?.avatar ?? "";
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -52,7 +54,9 @@ export default function InstructorCoursesPage() {
     variant: "pending",
   });
 
-  const isLoading = coursesLoading || profileLoading;
+  // Courses are the main content; render them as soon as they arrive without
+  // waiting on the (lighter) profile request for the header name/avatar.
+  const isLoading = coursesQuery.isPending;
 
   const openStatusModal = (input: Omit<StatusModalState, "open">) => {
     setStatusModal({ ...input, open: true });
@@ -61,47 +65,6 @@ export default function InstructorCoursesPage() {
   const closeStatusModal = () => {
     setStatusModal((prev) => ({ ...prev, open: false, onConfirm: undefined }));
   };
-
-  useEffect(() => {
-    let cancelled = false;
-
-    apiGetNoMock<unknown>("/api/instructor-dashboard/my-courses")
-      .then((res) => {
-        if (cancelled) return;
-        setCourses(extractInstructorCourses(res));
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setCourses([]);
-      })
-      .finally(() => {
-        if (!cancelled) setCoursesLoading(false);
-      });
-
-    apiGetNoMock<unknown>("/api/instructor-dashboard/profile")
-      .then((res) => {
-        if (cancelled) return;
-        const payload =
-          typeof res === "object" && res !== null && "data" in res
-            ? (res as { data?: unknown }).data
-            : res;
-        const profile = normalizeInstructorCoursesProfile(payload);
-        setInstructorName(profile.name);
-        setInstructorAvatar(profile.avatar);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setInstructorName("");
-        setInstructorAvatar("");
-      })
-      .finally(() => {
-        if (!cancelled) setProfileLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const filteredCourses = useMemo(() => {
     let result = [...courses];

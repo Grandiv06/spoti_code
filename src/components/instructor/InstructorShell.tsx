@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   LogOut,
   Menu,
@@ -23,7 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useInstructorData } from "@/context/InstructorDataContext";
 import { useAuth } from "@/context/AuthContext";
-import { fetchMyProfile } from "@/lib/panel-profile";
+import { useMyProfile } from "@/hooks/api/useInstructorDashboard";
 import { formatIranPhoneForDisplay } from "@/lib/format-phone";
 
 const navItems = [
@@ -43,45 +43,10 @@ export default function InstructorShell({ children }: { children: React.ReactNod
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [profileName, setProfileName] = useState("");
-  const [profileAvatar, setProfileAvatar] = useState("");
+  const { data: profile } = useMyProfile(Boolean(user));
 
-  useEffect(() => {
-    if (!user) {
-      setProfileName("");
-      setProfileAvatar("");
-      return;
-    }
-
-    if (user.displayName?.trim()) {
-      setProfileName(user.displayName.trim());
-    }
-
-    let cancelled = false;
-
-    const loadProfile = async () => {
-      try {
-        const profile = await fetchMyProfile();
-        if (cancelled) return;
-        if (profile.displayName?.trim()) {
-          setProfileName(profile.displayName.trim());
-        }
-        if (profile.avatarImage?.trim()) {
-          setProfileAvatar(profile.avatarImage.trim());
-        }
-      } catch {
-        if (!cancelled && !user.displayName?.trim()) {
-          setProfileName("");
-        }
-      }
-    };
-
-    void loadProfile();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.displayName, user?.id]);
+  const profileName = profile?.displayName?.trim() ?? "";
+  const profileAvatar = profile?.avatarImage?.trim() ?? "";
 
   const sidebarDisplayName = profileName || user?.displayName || "مدرس";
   const sidebarPhone = user?.phone?.trim() ? formatIranPhoneForDisplay(user.phone) : "";
@@ -154,7 +119,6 @@ export default function InstructorShell({ children }: { children: React.ReactNod
                         width={56}
                         height={56}
                         className="size-full object-cover"
-                        unoptimized
                       />
                     )
                   ) : (

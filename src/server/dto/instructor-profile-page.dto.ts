@@ -1,7 +1,11 @@
 import type { Course, Instructor } from "@prisma/client";
 
-type CourseWithEnrollmentCount = Course & {
+type CourseWithEnrollmentCount = Pick<
+  Course,
+  "id" | "slug" | "title" | "cover" | "status" | "level" | "shortDescription" | "studentsCount"
+> & {
   enrollments?: Array<{ id: string }>;
+  _count?: { enrollments: number };
 };
 
 export type InstructorProfilePageProfileDto = {
@@ -137,7 +141,7 @@ function parsePublicVisibility(value: unknown) {
 
 function resolveStudentsCount(course: CourseWithEnrollmentCount): number {
   if (course.studentsCount > 0) return course.studentsCount;
-  return course.enrollments?.length ?? 0;
+  return course._count?.enrollments ?? course.enrollments?.length ?? 0;
 }
 
 function mapCourseStatus(status: Course["status"]): InstructorProfilePageCourseDto["status"] {

@@ -177,6 +177,8 @@ model Course {
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 
+  @@index([instructorId])
+  @@index([instructorId, updatedAt])
   @@index([status])
   @@index([approvalStatus])
   @@index([category])

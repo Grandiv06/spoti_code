@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   Sparkles,
@@ -14,8 +15,6 @@ import {
   ChevronLeft,
   PlusCircle,
 } from "lucide-react";
-import { apiGetNoMock } from "@/lib/api";
-import { fetchMyProfile } from "@/lib/panel-profile";
 import {
   ActivityTimelineSkeleton,
   HeaderBannerSkeleton,
@@ -24,12 +23,10 @@ import {
 } from "@/app/instructor/dashboard/_components/InstructorDashboardSkeleton";
 import {
   countCourseStatuses,
-  extractApiList,
-  normalizeCourseRow,
   normalizeOverview,
-  unwrapApiPayload,
   type DashboardCourseRow,
 } from "@/app/instructor/dashboard/_lib/instructor-dashboard-data";
+import { useInstructorCourses, useInstructorOverview } from "@/hooks/api/useInstructorDashboard";
 
 const formatCurrency = (val: number) => val.toLocaleString("fa-IR") + " تومان";
 const formatPersian = (val: string | number) => val.toLocaleString("fa-IR");
@@ -47,64 +44,15 @@ function formatActivityDate(value: string) {
 export default function InstructorDashboardPage() {
   const router = useRouter();
 
-  const [profileName, setProfileName] = useState<string | null>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
+  // Both queries fire in parallel and are cached by React Query (like the user panel),
+  // so returning to the dashboard is instant instead of re-fetching everything.
+  const overviewQuery = useInstructorOverview();
+  const coursesQuery = useInstructorCourses();
 
-  const [overviewLoading, setOverviewLoading] = useState(true);
-  const [overview, setOverview] = useState<ReturnType<typeof normalizeOverview> | null>(null);
-
-  const [coursesLoading, setCoursesLoading] = useState(true);
-  const [apiCourses, setApiCourses] = useState<DashboardCourseRow[]>([]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadDashboard = async () => {
-      try {
-        const profile = await fetchMyProfile();
-        if (cancelled) return;
-        const name = profile.displayName?.trim();
-        setProfileName(name || null);
-      } catch {
-        if (!cancelled) setProfileName(null);
-      } finally {
-        if (!cancelled) setProfileLoading(false);
-      }
-
-      try {
-        const res = await apiGetNoMock<unknown>("/api/instructor-dashboard/overview");
-        if (cancelled) return;
-        const raw = unwrapApiPayload(res);
-        setOverview(
-          normalizeOverview(
-            raw && typeof raw === "object" && !Array.isArray(raw)
-              ? (raw as Record<string, unknown>)
-              : null
-          )
-        );
-      } catch {
-        if (!cancelled) setOverview(normalizeOverview(null));
-      } finally {
-        if (!cancelled) setOverviewLoading(false);
-      }
-
-      try {
-        const res = await apiGetNoMock<unknown>("/api/instructor-dashboard/my-courses?limit=100");
-        if (cancelled) return;
-        setApiCourses(extractApiList(res).map(normalizeCourseRow));
-      } catch {
-        if (!cancelled) setApiCourses([]);
-      } finally {
-        if (!cancelled) setCoursesLoading(false);
-      }
-    };
-
-    void loadDashboard();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const overview = overviewQuery.data ?? null;
+  const overviewLoading = overviewQuery.isPending;
+  const apiCourses = useMemo(() => coursesQuery.data ?? [], [coursesQuery.data]);
+  const coursesLoading = coursesQuery.isPending;
 
   const recentCourses = useMemo(() => apiCourses.slice(0, 4), [apiCourses]);
   const recentActivities = useMemo(
@@ -119,7 +67,7 @@ export default function InstructorDashboardPage() {
         })),
     [apiCourses]
   );
-  const dashboardName = profileName ?? overview?.instructorName ?? null;
+  const dashboardName = overview?.instructorName?.trim() || null;
 
   const stats = useMemo(() => {
     const base = overview ?? normalizeOverview(null);
@@ -154,7 +102,7 @@ export default function InstructorDashboardPage() {
 
   return (
     <div className="max-w-[1400px] mx-auto pb-20 animate-in fade-in duration-500" dir="rtl">
-      {profileLoading ? (
+      {overviewLoading ? (
         <HeaderBannerSkeleton />
       ) : (
         <div className="relative w-full rounded-[2.5rem] overflow-hidden bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-xl mb-8">
@@ -333,12 +281,23 @@ export default function InstructorDashboardPage() {
                   >
                     <div className="relative w-full sm:w-28 h-20 rounded-xl overflow-hidden shrink-0 bg-gray-200 dark:bg-white/10">
                       {c.cover ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={c.cover}
-                          alt=""
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                        />
+                        c.cover.startsWith("data:") || c.cover.startsWith("blob:") ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={c.cover}
+                            alt=""
+                            loading="lazy"
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          />
+                        ) : (
+                          <Image
+                            src={c.cover}
+                            alt=""
+                            fill
+                            sizes="(max-width: 640px) 100vw, 112px"
+                            className="object-cover group-hover:scale-110 transition-transform duration-500"
+                          />
+                        )
                       ) : null}
                       <div className="absolute inset-0 bg-black/10" />
                     </div>

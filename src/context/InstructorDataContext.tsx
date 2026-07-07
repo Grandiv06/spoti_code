@@ -916,11 +916,6 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
     let cancelled = false;
 
     const loadInstructorProfile = async () => {
-      await new Promise<void>((resolve) => {
-        window.setTimeout(resolve, 1200);
-      });
-      if (cancelled) return;
-
       try {
         const response = await apiGetNoMock<unknown>("/api/instructor-dashboard/profile");
         const payload = unwrapApiPayload(response);
