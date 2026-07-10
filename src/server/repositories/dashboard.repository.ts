@@ -1,4 +1,13 @@
 import { prisma } from "@/server/db/prisma";
+import { COURSE_QUESTION_APPROVAL_STATUS } from "@/server/utils/course-comment-classifier";
+
+const userProfileReviewWhere = {
+  parentId: null,
+  isInstructorReply: false,
+  rating: { gt: 0 },
+  approvalStatus: { not: COURSE_QUESTION_APPROVAL_STATUS },
+  NOT: { id: { startsWith: "qa-" } },
+} as const;
 
 export async function countUserEnrollments(userId: string) {
   return prisma.courseEnrollment.count({ where: { userId } });
@@ -17,8 +26,7 @@ export async function findUserRootComments(userId: string) {
   return prisma.comment.findMany({
     where: {
       authorId: userId,
-      parentId: null,
-      isInstructorReply: false,
+      ...userProfileReviewWhere,
     },
     select: {
       id: true,
@@ -35,8 +43,7 @@ export async function countUserRootComments(userId: string) {
   return prisma.comment.count({
     where: {
       authorId: userId,
-      parentId: null,
-      isInstructorReply: false,
+      ...userProfileReviewWhere,
     },
   });
 }
@@ -45,8 +52,7 @@ export async function countUserAcceptedRootComments(userId: string) {
   return prisma.comment.count({
     where: {
       authorId: userId,
-      parentId: null,
-      isInstructorReply: false,
+      ...userProfileReviewWhere,
       replies: { some: { isInstructorReply: true } },
     },
   });
@@ -91,8 +97,7 @@ export async function findUserCommentsWithCourses(userId: string) {
   return prisma.comment.findMany({
     where: {
       authorId: userId,
-      parentId: null,
-      isInstructorReply: false,
+      ...userProfileReviewWhere,
     },
     include: {
       course: {

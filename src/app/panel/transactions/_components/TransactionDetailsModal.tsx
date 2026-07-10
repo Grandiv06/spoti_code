@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { 
   X, 
   CheckCircle2, 
@@ -19,6 +19,7 @@ import {
 import { Transaction } from "../data";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { downloadTransactionReceipt } from "@/lib/transaction-receipt";
 
 interface TransactionDetailsModalProps {
   transaction: Transaction | null;
@@ -33,9 +34,22 @@ const statusMap = {
 };
 
 export default function TransactionDetailsModal({ transaction, onClose }: TransactionDetailsModalProps) {
+  const [downloading, setDownloading] = useState(false);
+
   if (!transaction) return null;
 
   const currentStatus = statusMap[transaction.status];
+  const canDownloadReceipt = transaction.status === "success" || transaction.status === "refunded";
+
+  const handleDownloadReceipt = async () => {
+    if (!canDownloadReceipt || downloading) return;
+    setDownloading(true);
+    try {
+      await downloadTransactionReceipt(transaction);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -109,9 +123,19 @@ export default function TransactionDetailsModal({ transaction, onClose }: Transa
 
 
             <div className="flex gap-4 pt-4">
-              <button className="flex-1 py-4 bg-primary hover:bg-primary-hover text-white rounded-2xl font-black shadow-xl shadow-primary/30 transition-all flex items-center justify-center gap-3 active:scale-[0.98]">
+              <button
+                type="button"
+                onClick={() => void handleDownloadReceipt()}
+                disabled={!canDownloadReceipt || downloading}
+                className={cn(
+                  "flex-1 py-4 rounded-2xl font-black transition-all flex items-center justify-center gap-3 active:scale-[0.98]",
+                  canDownloadReceipt && !downloading
+                    ? "bg-primary hover:bg-primary-hover text-white shadow-xl shadow-primary/30"
+                    : "bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-white/5 dark:text-gray-500"
+                )}
+              >
                 <Download className="w-5 h-5" />
-                <span>دریافت رسید پرداخت</span>
+                <span>{downloading ? "در حال آماده‌سازی رسید..." : "دریافت رسید پرداخت"}</span>
               </button>
               <button 
                 onClick={onClose}

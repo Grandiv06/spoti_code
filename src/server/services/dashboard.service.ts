@@ -1,4 +1,5 @@
 import type { User } from "@prisma/client";
+import { isProfileReviewComment } from "@/server/utils/course-comment-classifier";
 import type { PanelDashboardOverviewDto } from "@/server/dto/panel-dashboard.dto";
 import type { PanelMyCourseDto } from "@/server/dto/panel-dashboard.dto";
 import type { PanelTransactionDto } from "@/server/dto/panel-dashboard.dto";
@@ -115,12 +116,14 @@ export async function getPanelMyTransactions(user: User): Promise<PanelTransacti
 export async function getPanelMyComments(user: User): Promise<PanelMyCommentDto[]> {
   const comments = await findUserCommentsWithCourses(user.id);
 
-  return comments.map((comment) => ({
-    id: comment.id,
-    content: comment.content,
-    project: comment.course.title,
-    courseId: comment.course.id,
-    courseTitle: comment.course.title,
-    createdAt: comment.createdAt.toISOString(),
-  }));
+  return comments
+    .filter((comment) => isProfileReviewComment(comment))
+    .map((comment) => ({
+      id: comment.id,
+      content: comment.content,
+      project: comment.course.title,
+      courseId: comment.course.id,
+      courseTitle: comment.course.title,
+      createdAt: comment.createdAt.toISOString(),
+    }));
 }

@@ -16,6 +16,7 @@
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "db:reset-users": "tsx scripts/reset-auth-users.ts",
+    "migrate:uploads": "tsx scripts/migrate-uploads-to-disk.ts",
     "db:studio": "prisma studio",
     "postinstall": "npm run db:generate"
   },

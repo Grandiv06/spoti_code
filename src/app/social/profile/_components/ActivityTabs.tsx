@@ -14,6 +14,18 @@ type ProfileComment = {
   date: string;
 };
 
+function isProfileQuestionComment(comment: Pick<ProfileComment, "id" | "content">): boolean {
+  if (comment.id.startsWith("qa-")) return true;
+  try {
+    const parsed = JSON.parse(comment.content) as { kind?: unknown; lessonId?: unknown };
+    if (parsed?.kind === "lesson-qa" || parsed?.kind === "lesson-qa-reply") return true;
+    if (typeof parsed?.lessonId === "string" && parsed.lessonId.trim()) return true;
+  } catch {
+    // Plain-text course questions have no star rating on the server and are filtered out by the API.
+  }
+  return false;
+}
+
 export default function ActivityTabs() {
   const [activeTab, setActiveTab] = useState<"comments">("comments");
   const [comments, setComments] = useState<ProfileComment[]>([]);
@@ -34,15 +46,17 @@ export default function ActivityTabs() {
             ? ((result?.data as { items?: unknown[] }).items as unknown[])
             : [];
 
-        const mapped = rawList.map((item, index) => {
-          const row = (item ?? {}) as Record<string, unknown>;
-          return {
-            id: String(row.id ?? `comment-${index + 1}`),
-            project: String(row.project ?? row.courseTitle ?? row.title ?? "دوره"),
-            content: String(row.content ?? row.text ?? row.body ?? ""),
-            date: formatTicketDate(row.createdAt ?? row.date),
-          };
-        });
+        const mapped = rawList
+          .map((item, index) => {
+            const row = (item ?? {}) as Record<string, unknown>;
+            return {
+              id: String(row.id ?? `comment-${index + 1}`),
+              project: String(row.project ?? row.courseTitle ?? row.title ?? "دوره"),
+              content: String(row.content ?? row.text ?? row.body ?? ""),
+              date: formatTicketDate(row.createdAt ?? row.date),
+            };
+          })
+          .filter((comment) => !isProfileQuestionComment(comment));
 
         setComments(mapped);
       } catch {

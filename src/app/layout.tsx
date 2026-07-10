@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
-import ThemeWrapper from "./components/ThemeWrapper";
 import AppShell from "./components/AppShell";
 import { CartProvider } from "../context/CartContext";
 import { AuthProvider } from "../context/AuthContext";
@@ -49,9 +48,14 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
-                  const theme = localStorage.getItem('spoticode-theme');
+                  const stored = localStorage.getItem('spoticode-theme');
+                  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                   const root = document.documentElement;
-                  if (theme === 'dark') {
+                  const useDark =
+                    stored === 'dark' ||
+                    (stored === 'system' && prefersDark) ||
+                    (!stored && prefersDark);
+                  if (useDark) {
                     root.classList.add('dark');
                   } else {
                     root.classList.remove('dark');
@@ -87,21 +91,19 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <ThemeProvider
           attribute="class"
-          defaultTheme="light"
-          enableSystem={false}
+          defaultTheme="system"
+          enableSystem
           disableTransitionOnChange={false}
           storageKey="spoticode-theme"
         >
-          <ThemeWrapper>
-            <QueryProvider>
-              <AuthProvider>
-                <CartProvider>
-                  <AppShell>{children}</AppShell>
-                  <CartSidebar />
-                </CartProvider>
-              </AuthProvider>
-            </QueryProvider>
-          </ThemeWrapper>
+          <QueryProvider>
+            <AuthProvider>
+              <CartProvider>
+                <AppShell>{children}</AppShell>
+                <CartSidebar />
+              </CartProvider>
+            </AuthProvider>
+          </QueryProvider>
         </ThemeProvider>
       </body>
     </html>

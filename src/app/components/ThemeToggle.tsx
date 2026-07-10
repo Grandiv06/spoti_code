@@ -4,7 +4,7 @@ import { useTheme } from "next-themes";
 import { useEffect, useState, useRef } from "react";
 
 export default function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(
     null,
@@ -35,7 +35,7 @@ export default function ThemeToggle() {
     );
   }
 
-  const isDark = theme === "dark";
+  const isDark = resolvedTheme === "dark";
 
   return (
     <button

@@ -9,6 +9,7 @@ import {
   type CourseLearningQaThreadDto,
   type CreateCourseLearningQaDto,
 } from "@/server/dto/course-learning.dto";
+import { COURSE_QUESTION_APPROVAL_STATUS } from "@/server/utils/course-comment-classifier";
 import { parseLessonQaReplyPayload } from "@/server/dto/instructor-questions.dto";
 import { prisma } from "@/server/db/prisma";
 
@@ -277,6 +278,7 @@ export async function createCourseLearningLessonQa(
       authorRole: "دانشجو",
       authorAvatar: "/images/student1.jpg",
       rating: null,
+      approvalStatus: COURSE_QUESTION_APPROVAL_STATUS,
       content: stringifyQaPayload({
         lessonId: decodedLessonId,
         text,
@@ -312,6 +314,7 @@ export async function createCourseLearningCourseQa(
       authorRole: "دانشجو",
       authorAvatar: "/images/student1.jpg",
       rating: null,
+      approvalStatus: COURSE_QUESTION_APPROVAL_STATUS,
       content: stringifyQaPayload({
         lessonId,
         text,

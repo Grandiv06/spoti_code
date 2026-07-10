@@ -1,4 +1,8 @@
 import type { Comment, Course, Instructor } from "@prisma/client";
+import {
+  isCourseQuestionComment,
+  isProfileReviewComment,
+} from "@/server/utils/course-comment-classifier";
 
 export type InstructorReviewReplyDto = {
   text: string;
@@ -52,13 +56,22 @@ function readString(value: unknown, fallback = "") {
   return fallback;
 }
 
-function isLessonQaContent(content: string) {
-  try {
-    const parsed = JSON.parse(content) as { kind?: unknown };
-    return parsed?.kind === "lesson-qa" || parsed?.kind === "lesson-qa-reply";
-  } catch {
-    return false;
-  }
+export function isLessonQaComment(comment: Pick<Comment, "content" | "id">) {
+  return isCourseQuestionComment({
+    ...comment,
+    parentId: null,
+    rating: null,
+    approvalStatus: "approved",
+  });
+}
+
+export function isInstructorReviewComment(
+  comment: Pick<
+    Comment,
+    "content" | "parentId" | "rating" | "id" | "approvalStatus" | "isInstructorReply"
+  >
+) {
+  return isProfileReviewComment(comment);
 }
 
 function mapReply(reply: Comment): InstructorReviewReplyDto {
@@ -69,10 +82,6 @@ function mapReply(reply: Comment): InstructorReviewReplyDto {
     createdAtIso: reply.createdAt.toISOString(),
     authorName: reply.authorName,
   };
-}
-
-export function isInstructorReviewComment(comment: Pick<Comment, "content" | "parentId" | "rating">) {
-  return comment.parentId === null && comment.rating !== null && !isLessonQaContent(comment.content);
 }
 
 export function toInstructorReviewDto(comment: ReviewComment): InstructorReviewDto | null {
