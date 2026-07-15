@@ -74,16 +74,23 @@ export interface PublicCourseListQueryDto {
 
 type CourseWithInstructor = PublicCourseListRecord;
 
-export function toPublicCourseListItemDto(course: CourseWithInstructor): PublicCourseListItemDto {
+/** Accepts list rows (no full description) and detail rows (with description). */
+type CourseListSource = Omit<CourseWithInstructor, "description"> & {
+  description?: string | null;
+};
+
+export function toPublicCourseListItemDto(course: CourseListSource): PublicCourseListItemDto {
   const instructor = course.instructor;
+  const shortDescription = course.shortDescription ?? "";
+  const description = course.description?.trim() || shortDescription;
 
   return {
     id: course.id,
     slug: course.slug,
     title: course.title,
     name: course.title,
-    shortDescription: course.shortDescription,
-    description: course.description,
+    shortDescription,
+    description,
     category: course.category,
     categoryTitle: course.categoryTitle,
     categorySlug: course.category,

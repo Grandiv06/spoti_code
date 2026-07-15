@@ -5,6 +5,7 @@ export type CreateQaDto = {
 };
 
 export type UpsertProfileDto = {
+  username?: string;
   location?: string;
   githubLink?: string;
   linkedinLink?: string;

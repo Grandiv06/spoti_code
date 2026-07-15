@@ -101,7 +101,9 @@ export default function CoursesPage() {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const res = await apiGetNoMock<unknown>("/api/courses/public");
+        // Cap payload — catalog UI filters client-side; 100 covers the public catalog
+        // without defaulting to unbounded growth if the API ever raises its max.
+        const res = await apiGetNoMock<unknown>("/api/courses/public?limit=100");
         const rawList = getCourseList(res);
 
         const mapped = rawList.map((item, index) => {

@@ -101,7 +101,7 @@ export default function Home() {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const res = await apiGetNoMock<unknown>("/api/courses/public");
+        const res = await apiGetNoMock<unknown>("/api/courses/public?limit=6");
         const rawList = getCourseList(res);
 
         const mapped = rawList.slice(0, 6).map((item, index) => {

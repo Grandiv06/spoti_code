@@ -6,7 +6,6 @@ export const publicCourseListSelect = {
   slug: true,
   title: true,
   shortDescription: true,
-  description: true,
   category: true,
   categoryTitle: true,
   cover: true,

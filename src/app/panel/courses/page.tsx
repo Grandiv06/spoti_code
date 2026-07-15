@@ -2,31 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { fetchMyCourses, type PanelCourseItem } from "@/lib/panel-my-courses";
+import { usePanelMyCourses } from "@/hooks/api/usePanelMyCourses";
 import PanelCoursesSkeleton from "./PanelCoursesSkeleton";
 
 export default function PanelCourses() {
   const router = useRouter();
-  const [courses, setCourses] = useState<PanelCourseItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: courses = [], isPending, isError } = usePanelMyCourses();
 
-  useEffect(() => {
-    const loadCourses = async () => {
-      setLoading(true);
-      try {
-        setCourses(await fetchMyCourses());
-      } catch {
-        setCourses([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void loadCourses();
-  }, []);
-
-  if (loading) {
+  if (isPending) {
     return <PanelCoursesSkeleton />;
   }
 
@@ -44,7 +27,9 @@ export default function PanelCourses() {
             key={course.enrollmentId}
             role="button"
             tabIndex={0}
-            onClick={() => router.push(`/panel/courses/learn?courseId=${encodeURIComponent(course.id)}`)}
+            onClick={() =>
+              router.push(`/panel/courses/learn?courseId=${encodeURIComponent(course.id)}`)
+            }
             onKeyDown={(event) => {
               if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
@@ -56,7 +41,11 @@ export default function PanelCourses() {
             <div className="aspect-video rounded-2xl bg-gray-100 dark:bg-gray-800 relative overflow-hidden mb-4">
               {course.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={course.image} alt={course.title} className="absolute inset-0 w-full h-full object-cover" />
+                <img
+                  src={course.image}
+                  alt={course.title}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center text-gray-400 dark:text-gray-500">
                   <span className="material-symbols-outlined text-5xl">image</span>
@@ -83,7 +72,7 @@ export default function PanelCourses() {
                 ></div>
               </div>
             </div>
-            
+
             <Link
               href={`/panel/courses/learn?courseId=${encodeURIComponent(course.id)}`}
               onClick={(event) => event.stopPropagation()}
@@ -94,9 +83,11 @@ export default function PanelCourses() {
           </div>
         ))}
       </div>
-      {courses.length === 0 && (
+      {(isError || courses.length === 0) && (
         <div className="bg-white dark:bg-[#1c1e26] rounded-3xl p-8 border border-gray-100 dark:border-gray-800 shadow-sm text-center text-gray-500 dark:text-gray-400 font-semibold">
-          هنوز دوره‌ای برای نمایش وجود ندارد.
+          {isError
+            ? "خطا در دریافت دوره‌ها. لطفاً دوباره تلاش کنید."
+            : "هنوز دوره‌ای برای نمایش وجود ندارد."}
         </div>
       )}
     </div>

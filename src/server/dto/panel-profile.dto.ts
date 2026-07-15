@@ -1,6 +1,7 @@
 export type PanelProfileDto = {
   id: string;
   userId: string;
+  username: string;
   fullName: string;
   displayName: string;
   phone: string;
@@ -19,6 +20,7 @@ export type PanelProfileDto = {
 };
 
 export type UpsertPanelProfileInput = {
+  username?: string;
   occupation?: string;
   about?: string;
   location?: string;

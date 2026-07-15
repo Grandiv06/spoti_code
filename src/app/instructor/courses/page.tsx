@@ -23,7 +23,8 @@ import {
   levelToDifficultyLabel,
   type InstructorCourseRow,
 } from "@/app/instructor/courses/_lib/instructor-courses-data";
-import { useInstructorCoursesList, useInstructorProfileSummary } from "@/hooks/api/useInstructorDashboard";
+import { useInstructorData } from "@/context/InstructorDataContext";
+import { useInstructorCoursesList } from "@/hooks/api/useInstructorDashboard";
 
 type StatusModalState = {
   open: boolean;
@@ -38,12 +39,13 @@ export default function InstructorCoursesPage() {
 
   // React Query keeps the course list cached and shared, so revisiting this page
   // (or coming back from the dashboard) is instant instead of re-fetching.
+  // Name/avatar come from layout context (light profile summary) — no second API.
   const coursesQuery = useInstructorCoursesList();
-  const profileQuery = useInstructorProfileSummary();
+  const { profile } = useInstructorData();
 
   const courses = useMemo<InstructorCourseRow[]>(() => coursesQuery.data ?? [], [coursesQuery.data]);
-  const instructorName = profileQuery.data?.name ?? "";
-  const instructorAvatar = profileQuery.data?.avatar ?? "";
+  const instructorName = profile.displayName || profile.name || "";
+  const instructorAvatar = profile.avatar || "";
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");

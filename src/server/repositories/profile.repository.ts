@@ -4,9 +4,14 @@ export async function findUserProfileByUserId(userId: string) {
   return prisma.userProfile.findUnique({ where: { userId } });
 }
 
+export async function findUserProfileByUsername(username: string) {
+  return prisma.userProfile.findUnique({ where: { username } });
+}
+
 export async function upsertUserProfile(
   userId: string,
   data: {
+    username?: string | null;
     occupation?: string | null;
     about?: string | null;
     location?: string | null;

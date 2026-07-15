@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { 
   ArrowUpRight, 
   ArrowDownLeft, 
@@ -39,9 +40,12 @@ export default function TransactionTable({ transactions }: TransactionTableProps
         <p className="text-gray-500 dark:text-gray-400 font-medium mb-10 max-w-md mx-auto leading-relaxed">
           تمامی پرداخت‌ها، تمدید اشتراک‌ها و بازگشت وجه‌های شما در این لیست نمایش داده خواهد شد.
         </p>
-        <button className="px-8 py-4 bg-primary text-white rounded-2xl font-black shadow-xl shadow-primary/25 hover:scale-105 transition-transform active:scale-95">
+        <Link
+          href="/courses"
+          className="inline-flex px-8 py-4 bg-primary text-white rounded-2xl font-black shadow-xl shadow-primary/25 hover:scale-105 transition-transform active:scale-95 cursor-pointer"
+        >
           مشاهده دوره‌های آموزشی
-        </button>
+        </Link>
       </div>
     );
   }

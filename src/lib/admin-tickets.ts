@@ -70,6 +70,29 @@ function normalizeSender(value: unknown): Message["sender"] {
   return "user";
 }
 
+function mapMessageAttachments(row: Record<string, unknown>): Message["attachments"] {
+  const raw = row.attachments;
+  if (!Array.isArray(raw)) return undefined;
+
+  const attachments = raw
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+      const file = item as Record<string, unknown>;
+      const name = String(file.name ?? file.filename ?? "").trim();
+      const url = String(file.url ?? file.href ?? "").trim();
+      if (!name || !url) return null;
+      return {
+        name,
+        url,
+        size: typeof file.size === "number" ? file.size : Number(file.size ?? 0) || undefined,
+        type: typeof file.type === "string" ? file.type : undefined,
+      };
+    })
+    .filter(Boolean) as NonNullable<Message["attachments"]>;
+
+  return attachments.length > 0 ? attachments : undefined;
+}
+
 function mapMessages(source: unknown): Message[] {
   const items = findNestedArray(source, ["messages", "replies", "comments", "conversation"]);
   return items.map((item, index) => {
@@ -87,6 +110,7 @@ function mapMessages(source: unknown): Message[] {
       text: normalizeString(findByKeys(row, ["text", "message", "body", "content"]), ""),
       timestamp: normalizeString(findByKeys(row, ["timestamp", "createdAt", "date", "time"]), "—"),
       avatar: typeof findByKeys(row, ["avatar", "photo", "image"]) === "string" ? String(findByKeys(row, ["avatar", "photo", "image"])) : undefined,
+      attachments: mapMessageAttachments(row),
     };
   });
 }

@@ -12,6 +12,7 @@ import {
 import { COURSE_QUESTION_APPROVAL_STATUS } from "@/server/utils/course-comment-classifier";
 import { parseLessonQaReplyPayload } from "@/server/dto/instructor-questions.dto";
 import { prisma } from "@/server/db/prisma";
+import { invalidatePanelMyCoursesCache } from "@/server/services/dashboard.service";
 
 type CourseWithInstructor = Course & { instructor: Instructor };
 type QaComment = Comment & {
@@ -202,6 +203,7 @@ export async function completeCourseLearningLesson(user: User, courseIdOrSlug: s
     where: { id: enrollment.id },
     data: { progress },
   });
+  invalidatePanelMyCoursesCache(user.id);
 
   return {
     id: decodedLessonId,

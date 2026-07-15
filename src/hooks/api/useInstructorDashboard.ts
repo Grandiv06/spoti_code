@@ -6,8 +6,6 @@ import { getAuthHeaders } from "@/lib/auth-tokens";
 import { fetchMyProfile } from "@/lib/panel-profile";
 import type { ProfileSettings } from "@/context/ProfileSettingsContext";
 import {
-  extractApiList,
-  normalizeCourseRow,
   normalizeOverview,
   unwrapApiPayload,
   type DashboardCourseRow,
@@ -36,9 +34,18 @@ export function useMyProfile(enabled = true) {
 }
 
 export const instructorOverviewQueryKey = ["instructor-dashboard", "overview"] as const;
+/** Shared key for all my-courses consumers (dashboard + courses list). */
 export const instructorCoursesQueryKey = ["instructor-dashboard", "my-courses"] as const;
-export const instructorCoursesListQueryKey = ["instructor-dashboard", "courses-list"] as const;
+/** @deprecated Use instructorCoursesQueryKey — kept for import compatibility. */
+export const instructorCoursesListQueryKey = instructorCoursesQueryKey;
 export const instructorProfileSummaryQueryKey = ["instructor-dashboard", "profile-summary"] as const;
+
+const MY_COURSES_URL = "/api/instructor-dashboard/my-courses?limit=100";
+
+async function fetchInstructorCourses(): Promise<InstructorCourseRow[]> {
+  const res = await apiGetNoMock<unknown>(MY_COURSES_URL, getAuthHeaders());
+  return extractInstructorCourses(res);
+}
 
 export function useInstructorOverview() {
   return useQuery<DashboardOverview, Error>({
@@ -58,13 +65,7 @@ export function useInstructorOverview() {
 export function useInstructorCourses() {
   return useQuery<DashboardCourseRow[], Error>({
     queryKey: instructorCoursesQueryKey,
-    queryFn: async () => {
-      const res = await apiGetNoMock<unknown>(
-        "/api/instructor-dashboard/my-courses?limit=100",
-        getAuthHeaders()
-      );
-      return extractApiList(res).map(normalizeCourseRow);
-    },
+    queryFn: fetchInstructorCourses,
     staleTime: 30_000,
     retry: 1,
   });
@@ -72,28 +73,29 @@ export function useInstructorCourses() {
 
 export function useInstructorCoursesList() {
   return useQuery<InstructorCourseRow[], Error>({
-    queryKey: instructorCoursesListQueryKey,
-    queryFn: async () => {
-      const res = await apiGetNoMock<unknown>("/api/instructor-dashboard/my-courses", getAuthHeaders());
-      return extractInstructorCourses(res);
-    },
+    queryKey: instructorCoursesQueryKey,
+    queryFn: fetchInstructorCourses,
     staleTime: 30_000,
     retry: 1,
   });
 }
 
-export function useInstructorProfileSummary() {
+export function useInstructorProfileSummary(enabled = true) {
   return useQuery<InstructorCoursesProfile, Error>({
     queryKey: instructorProfileSummaryQueryKey,
     queryFn: async () => {
-      const res = await apiGetNoMock<unknown>("/api/instructor-dashboard/profile", getAuthHeaders());
+      const res = await apiGetNoMock<unknown>(
+        "/api/instructor-dashboard/profile?summary=1",
+        getAuthHeaders()
+      );
       const payload =
         typeof res === "object" && res !== null && "data" in res
           ? (res as { data?: unknown }).data
           : res;
       return normalizeInstructorCoursesProfile(payload);
     },
-    staleTime: 30_000,
+    enabled,
+    staleTime: 60_000,
     retry: 1,
   });
 }

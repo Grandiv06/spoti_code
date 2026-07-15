@@ -3,6 +3,7 @@ import type { PanelProfileDto, UpsertPanelProfileInput } from "@/server/dto/pane
 import { prisma } from "@/server/db/prisma";
 import {
   findUserProfileByUserId,
+  findUserProfileByUsername,
   upsertUserProfile,
 } from "@/server/repositories/profile.repository";
 import { resolveUserDisplayName } from "@/server/utils/user-display-name";
@@ -32,6 +33,12 @@ function formatJoinDate(value: Date): string {
   }
 }
 
+const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,30}$/;
+
+function isValidUsername(username: string): boolean {
+  return USERNAME_REGEX.test(username);
+}
+
 function mapProfile(user: User, profile: Awaited<ReturnType<typeof findUserProfileByUserId>>): PanelProfileDto {
   const displayName = resolveUserDisplayName({
     fullName: user.fullName,
@@ -43,6 +50,7 @@ function mapProfile(user: User, profile: Awaited<ReturnType<typeof findUserProfi
   return {
     id: profile?.id ?? `PRF-${user.id}`,
     userId: user.id,
+    username: profile?.username?.trim() || "",
     fullName: displayName,
     displayName,
     phone: user.phone,
@@ -65,13 +73,26 @@ export async function getPublicUserProfile(userId: string): Promise<PanelProfile
   const normalizedId = decodeURIComponent(userId).trim();
   if (!normalizedId) return null;
 
+  // First try by userId
   const user = await prisma.user.findUnique({
     where: { id: normalizedId },
   });
-  if (!user) return null;
 
-  const profile = await findUserProfileByUserId(user.id);
-  return mapProfile(user, profile);
+  if (user) {
+    const profile = await findUserProfileByUserId(user.id);
+    return mapProfile(user, profile);
+  }
+
+  // Then try by username
+  const profileByUsername = await findUserProfileByUsername(normalizedId);
+  if (!profileByUsername) return null;
+
+  const userByProfile = await prisma.user.findUnique({
+    where: { id: profileByUsername.userId },
+  });
+  if (!userByProfile) return null;
+
+  return mapProfile(userByProfile, profileByUsername);
 }
 
 export async function getMyProfile(user: User): Promise<PanelProfileDto> {
@@ -83,6 +104,7 @@ export async function updateMyProfile(
   user: User,
   input: UpsertPanelProfileInput
 ): Promise<PanelProfileDto> {
+  const username = asOptionalString(input.username);
   const occupation = asOptionalString(input.occupation);
   const about = asOptionalString(input.about);
   const location = asOptionalString(input.location);
@@ -94,7 +116,21 @@ export async function updateMyProfile(
   const image = asOptionalString(input.image);
   const bannerImage = asOptionalString(input.bannerImage);
 
+  // Validate username if provided
+  if (username && !isValidUsername(username)) {
+    throw new Error("آیدی پروفایل باید ۳ تا ۳۰ کاراکتر و فقط شامل حروف انگلیسی، اعداد، _ و - باشد.");
+  }
+
+  // Check username uniqueness if provided
+  if (username) {
+    const existing = await findUserProfileByUsername(username);
+    if (existing && existing.userId !== user.id) {
+      throw new Error("این آیدی قبلاً توسط کاربر دیگری انتخاب شده است.");
+    }
+  }
+
   const profile = await upsertUserProfile(user.id, {
+    username,
     occupation,
     about,
     location,

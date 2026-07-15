@@ -13,7 +13,10 @@ import {
   findPublishedCourseBySlug,
   findPublishedCourses,
 } from "@/server/repositories/course.repository";
-import { getDisplayDiscountMapForCourses } from "@/server/services/discount.service";
+import {
+  getDisplayDiscountMapForCourses,
+  warmAutomaticDiscountCache,
+} from "@/server/services/discount.service";
 
 async function enrichPublicCourseListItems(
   items: PublicCourseListItemDto[]
@@ -47,6 +50,19 @@ async function enrichPublicCourseListItems(
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
+const PUBLIC_COURSES_CACHE_TTL_MS = 60_000;
+
+type PublicCoursesCacheEntry = {
+  expiresAt: number;
+  value: PublicCourseListResponseDto;
+};
+
+const publicCoursesCache = new Map<string, PublicCoursesCacheEntry>();
+const inflightPublicCourses = new Map<string, Promise<PublicCourseListResponseDto>>();
+
+export function invalidatePublicCoursesCache() {
+  publicCoursesCache.clear();
+}
 
 function normalizePage(value?: number) {
   return Number.isFinite(value) && (value ?? 0) > 0 ? Math.floor(value!) : 1;
@@ -57,6 +73,42 @@ function normalizeLimit(value?: number) {
   return Math.min(Math.floor(value!), MAX_LIMIT);
 }
 
+function publicCoursesCacheKey(query: {
+  page: number;
+  limit: number;
+  category?: CourseCategory;
+  search?: string;
+}) {
+  return `${query.page}|${query.limit}|${query.category ?? ""}|${query.search ?? ""}`;
+}
+
+async function fetchPublicCoursesUncached(query: {
+  page: number;
+  limit: number;
+  category?: CourseCategory;
+  search?: string;
+}): Promise<PublicCourseListResponseDto> {
+  // Warm the discount cache while the published-list query runs so enrichment
+  // is usually an in-memory map after the DB round-trip returns.
+  const [{ items, totalItems }] = await Promise.all([
+    findPublishedCourses(query),
+    warmAutomaticDiscountCache(),
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(totalItems / query.limit));
+
+  return {
+    data: await enrichPublicCourseListItems(items.map(toPublicCourseListItemDto)),
+    meta: {
+      itemCount: items.length,
+      totalItems,
+      itemsPerPage: query.limit,
+      totalPages,
+      currentPage: query.page,
+    },
+  };
+}
+
 export async function getPublicCourses(
   query: PublicCourseListQueryDto = {}
 ): Promise<PublicCourseListResponseDto> {
@@ -64,26 +116,41 @@ export async function getPublicCourses(
   const limit = normalizeLimit(query.limit);
   const category = query.category as CourseCategory | undefined;
   const search = query.search?.trim() || undefined;
+  const normalized = { page, limit, category, search };
+  const cacheKey = publicCoursesCacheKey(normalized);
 
-  const { items, totalItems } = await findPublishedCourses({
-    page,
-    limit,
-    category,
-    search,
-  });
+  // Search results are ad-hoc — skip process cache.
+  if (!search) {
+    const cached = publicCoursesCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value;
+    }
 
-  const totalPages = Math.max(1, Math.ceil(totalItems / limit));
+    const inflight = inflightPublicCourses.get(cacheKey);
+    if (inflight) {
+      return inflight;
+    }
+  }
 
-  return {
-    data: await enrichPublicCourseListItems(items.map(toPublicCourseListItemDto)),
-    meta: {
-      itemCount: items.length,
-      totalItems,
-      itemsPerPage: limit,
-      totalPages,
-      currentPage: page,
-    },
-  };
+  const load = fetchPublicCoursesUncached(normalized)
+    .then((value) => {
+      if (!search) {
+        publicCoursesCache.set(cacheKey, {
+          value,
+          expiresAt: Date.now() + PUBLIC_COURSES_CACHE_TTL_MS,
+        });
+      }
+      return value;
+    })
+    .finally(() => {
+      inflightPublicCourses.delete(cacheKey);
+    });
+
+  if (!search) {
+    inflightPublicCourses.set(cacheKey, load);
+  }
+
+  return load;
 }
 
 export async function getPublicCourseBySlug(slug: string) {

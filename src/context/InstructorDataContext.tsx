@@ -162,6 +162,10 @@ export interface Course {
   publicDescription?: string;
   visibility?: "public" | "private" | "unlisted";
   needsReviewAfterChanges?: boolean;
+  /** Hours from Course.durationHours / draftData.duration */
+  durationHours?: number;
+  pricingType?: "free" | "paid";
+  draftStep?: number;
 }
 
 export interface SaleTransaction {
@@ -231,6 +235,7 @@ interface InstructorDataContextType {
   toasts: Toast[];
   isLoading: boolean;
   showToast: (message: string, type?: "success" | "error" | "info") => void;
+  hydrateCourses: (next: Course[]) => void;
   addCourse: (course: Partial<Course>) => string;
   upsertCourseSilent: (course: Course) => void;
   updateCourse: (courseId: string, updates: Partial<Course>) => void;
@@ -912,24 +917,30 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
     localStorage.setItem("spoticode_inst_profile", JSON.stringify(data));
   };
 
+  const hydrateCourses = (next: Course[]) => {
+    if (next.length === 0) return;
+    setProfileCourses(next);
+    syncCourses(next);
+  };
+
   useEffect(() => {
     let cancelled = false;
 
     const loadInstructorProfile = async () => {
       try {
-        const response = await apiGetNoMock<unknown>("/api/instructor-dashboard/profile");
+        // Layout only needs identity (name/avatar). Course lists are loaded by
+        // React Query on dashboard/courses pages, or lazily on the profile page.
+        const response = await apiGetNoMock<unknown>(
+          "/api/instructor-dashboard/profile?summary=1"
+        );
         const payload = unwrapApiPayload(response);
         if (!isRecord(payload) || cancelled) return;
 
-        const remoteProfile = normalizeInstructorProfile(payload.profile ?? payload.instructor);
-        const remoteCourses = extractApiArray(payload.courses, ["courses", "items"]).map(normalizeApiCourseRecord);
-
+        const remoteProfile = normalizeInstructorProfile(
+          payload.profile ?? payload.instructor ?? payload
+        );
         if (remoteProfile) {
           syncProfile(remoteProfile);
-        }
-        if (remoteCourses.length > 0) {
-          setProfileCourses(remoteCourses);
-          syncCourses(remoteCourses);
         }
       } catch {
         // Keep empty instructor data when the backend is unreachable.
@@ -1335,6 +1346,7 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
         toasts,
         isLoading,
         showToast,
+        hydrateCourses,
         addCourse,
         upsertCourseSilent,
         updateCourse,

@@ -1,10 +1,12 @@
 "use client";
 
+import { useEffect } from "react";
 import PanelSidebar from "@/components/panel/PanelSidebar";
 import PanelHeader from "@/components/panel/PanelHeader";
 import PanelAuthGuard from "@/components/panel/PanelAuthGuard";
 import { PanelSidebarProvider, usePanelSidebar } from "@/context/PanelSidebarContext";
 import { SocialProvider } from "@/context/SocialContext";
+import { usePrefetchPanelMyCourses } from "@/hooks/api/usePanelMyCourses";
 import { cn } from "@/lib/utils";
 
 export default function PanelLayout({
@@ -25,7 +27,14 @@ export default function PanelLayout({
 
 function PanelLayoutContent({ children }: { children: React.ReactNode }) {
   const { isCollapsed } = usePanelSidebar();
-  
+  const prefetchMyCourses = usePrefetchPanelMyCourses();
+
+  // Warm the my-courses cache as soon as the panel shell mounts so
+  // /panel/courses is usually already populated when the user opens it.
+  useEffect(() => {
+    prefetchMyCourses();
+  }, [prefetchMyCourses]);
+
   return (
     <div className="flex min-h-screen w-full overflow-x-hidden bg-gray-50 dark:bg-[#14161c]">
       <PanelSidebar />

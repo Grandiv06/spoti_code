@@ -41,7 +41,9 @@ import {
   MoreVertical
 } from "lucide-react";
 import { useInstructorData, type Course, type Chapter, type Lesson, type LessonAttachment } from "@/context/InstructorDataContext";
-import { apiGetNoMock } from "@/lib/api";
+import { apiGetNoMock, apiPostNoMock } from "@/lib/api";
+import { getAuthHeaders } from "@/lib/auth-tokens";
+import { uploadCourseMediaFile } from "@/lib/course-media-upload";
 import { cn } from "@/lib/utils";
 import InstructorQuestionsBoard from "@/components/instructor/InstructorQuestionsBoard";
 import CourseCard from "@/app/components/CourseCard";
@@ -151,11 +153,37 @@ function parseJsonValue(value: unknown): unknown {
 
 function mapApiCategory(value: unknown): CourseCategory {
   const raw = typeof value === "string" ? value.trim().toLowerCase() : "";
-  if (raw === "backend") return "Backend";
-  if (raw === "devops") return "DevOps";
-  if (raw === "mobile") return "Mobile";
-  if (raw === "base" || raw === "ui/ux") return "UI/UX";
+  if (raw === "backend" || raw.includes("بک") || raw.includes("backend")) return "Backend";
+  if (raw === "devops" || raw.includes("دواپس") || raw.includes("devops")) return "DevOps";
+  if (raw === "mobile" || raw.includes("موبایل") || raw.includes("mobile")) return "Mobile";
+  if (raw === "base" || raw === "ui/ux" || raw.includes("مبانی") || raw.includes("ui")) return "UI/UX";
+  if (raw === "ai" || raw.includes("هوش")) return "Frontend";
+  if (raw === "frontend" || raw.includes("فرانت")) return "Frontend";
   return "Frontend";
+}
+
+function mapCategoryToApi(category: CourseCategory): string {
+  switch (category) {
+    case "Backend":
+      return "backend";
+    case "DevOps":
+      return "devops";
+    case "Mobile":
+      return "mobile";
+    case "UI/UX":
+      return "base";
+    default:
+      return "frontend";
+  }
+}
+
+function readDurationHours(draftData: Record<string, unknown>, root: Record<string, unknown>): number {
+  const fromDraft = Number(draftData.duration ?? "");
+  if (Number.isFinite(fromDraft) && fromDraft >= 0 && String(draftData.duration ?? "").trim() !== "") {
+    return Math.round(fromDraft);
+  }
+  const fromColumn = Number(root.durationHours ?? root.duration ?? 0);
+  return Number.isFinite(fromColumn) && fromColumn >= 0 ? Math.round(fromColumn) : 0;
 }
 
 function mapApiLevel(value: unknown): CourseLevel {
@@ -339,41 +367,61 @@ function mapInstructorCourseApiToCourse(payload: unknown): Course | null {
   const courseId = String(root.id ?? root.courseId ?? "");
   if (!courseId) return null;
 
-  const cover = String(root.cover ?? root.thumbnail ?? "/images/course1.jpg");
-  const introVideo = String(root.introVideo ?? draftData.introVideo ?? "").trim();
+  // Prefer draftData (wizard source of truth) then Course columns.
+  const title = String(draftData.title ?? root.title ?? "دوره بدون عنوان").trim() || "دوره بدون عنوان";
+  const coverRaw = String(draftData.cover ?? root.cover ?? root.thumbnail ?? "").trim();
+  const cover = coverRaw.startsWith("blob:") ? "" : coverRaw;
+  const introVideo = String(draftData.introVideo ?? root.introVideo ?? "").trim();
   const overview = isRecord(root.overview) ? root.overview : {};
+  const price = Number(draftData.price ?? root.price ?? 0);
+  const pricingType: "free" | "paid" =
+    draftData.isPaid === "free" || draftData.isPaid === "paid"
+      ? draftData.isPaid
+      : price > 0
+        ? "paid"
+        : "free";
+  const durationHours = readDurationHours(draftData, root);
+  const shortDescription = String(draftData.shortDescription ?? root.shortDescription ?? "");
+  const aboutDescription = String(
+    draftData.aboutDescription ?? root.aboutDescription ?? root.description ?? ""
+  );
 
   return {
     id: courseId,
-    title: String(root.title ?? "دوره بدون عنوان"),
+    title,
     slug: String(root.slug ?? courseId),
-    cover: cover.startsWith("blob:") ? "/images/course1.jpg" : cover,
+    cover,
     introVideo: introVideo && !introVideo.startsWith("blob:") ? introVideo : undefined,
     status: mapApiStatus(root.status, root.approvalStatus),
-    category: mapApiCategory(root.categoryTitle ?? root.category),
-    level: mapApiLevel(root.level),
+    // Always prefer Prisma enum `category` over Persian `categoryTitle`.
+    category: mapApiCategory(root.category ?? draftData.category ?? root.categoryTitle),
+    level: mapApiLevel(draftData.level ?? root.level),
     language: String(draftData.language ?? "فارسی"),
-    shortDescription: String(root.shortDescription ?? ""),
-    description: String(root.description ?? root.aboutDescription ?? ""),
-    price: Number(root.price ?? 0),
+    shortDescription,
+    description: aboutDescription || String(root.description ?? ""),
+    price: pricingType === "free" ? 0 : Number.isFinite(price) ? price : 0,
     instructorId: String(root.instructorId ?? ""),
     studentsCount: Number(root.studentsCount ?? overview.studentsCount ?? 0),
     rating: Number(root.rating ?? overview.rating ?? 0),
     reviewsCount: Number(root.reviewsCount ?? overview.reviewsCount ?? 0),
     revenue: Number(root.revenue ?? root.instructorRevenue ?? overview.revenue ?? 0),
     completionRate: Number(root.completionRate ?? overview.completionRate ?? 0),
-    chapters: mapApiChapters(root.chapters ?? draftData.chapters),
+    chapters: mapApiChapters(
+      Array.isArray(draftData.chapters) && draftData.chapters.length > 0
+        ? draftData.chapters
+        : root.chapters
+    ),
     reviews: [],
     questions: [],
     createdAt: String(root.createdAt ?? ""),
     updatedAt: String(root.updatedAt ?? ""),
-    introText: String(draftData.shortDescription ?? root.shortDescription ?? ""),
+    introText: shortDescription,
     objectives: Array.isArray(draftData.aboutHighlights)
       ? draftData.aboutHighlights.map((item) => String(item))
       : [],
-    heroTitle: String(draftData.heroTitle ?? root.title ?? ""),
+    heroTitle: String(draftData.heroTitle ?? title),
     aboutTitle: String(draftData.aboutTitle ?? "درباره این دوره"),
-    aboutDescription: String(root.aboutDescription ?? root.description ?? draftData.aboutDescription ?? ""),
+    aboutDescription,
     aboutHighlights: Array.isArray(draftData.aboutHighlights)
       ? draftData.aboutHighlights.map((item) => String(item))
       : [],
@@ -381,6 +429,9 @@ function mapInstructorCourseApiToCourse(payload: unknown): Course | null {
     faqs,
     specialWords,
     visibility: "public",
+    durationHours,
+    pricingType,
+    draftStep: Number(draftData.step ?? root.draftStep ?? 5) || 5,
   };
 }
 
@@ -402,9 +453,11 @@ export default function CourseDetailsPage() {
     updateLesson,
     deleteLesson,
     replyToReview,
+    showToast,
   } = useInstructorData();
 
   const [isLoadingCourse, setIsLoadingCourse] = useState(true);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [courseStudents, setCourseStudents] = useState<CourseStudentRow[]>([]);
 
   useEffect(() => {
@@ -606,23 +659,24 @@ export default function CourseDetailsPage() {
   const [settingsEditingFeatureId, setSettingsEditingFeatureId] = useState<string | null>(null);
   const [settingsOpenFaqId, setSettingsOpenFaqId] = useState<string | null>(null);
 
-  // Load course details into settings form
+  // Load course details into settings form from real API-mapped course fields.
   useEffect(() => {
     if (course) {
+      const hours = Number.isFinite(course.durationHours) ? Math.max(0, Number(course.durationHours)) : 0;
       const nextSettingsForm: SettingsForm = {
         title: course.title,
         slug: course.slug,
         category: course.category,
         level: course.level,
-        cover: course.cover,
+        cover: course.cover || "",
         introVideo: course.introVideo || "",
         shortDescription: course.shortDescription,
         description: course.description,
         price: course.price,
         discountPrice: course.discountPrice || 0,
         status: course.status,
-        pricingType: course.price > 0 ? "paid" : "free",
-        duration: course.chapters.reduce((sum, ch) => sum + ch.lessons.length, 0).toLocaleString("fa-IR"),
+        pricingType: course.pricingType ?? (course.price > 0 ? "paid" : "free"),
+        duration: String(hours),
         heroTitle: course.heroTitle || course.title,
         introText: course.introText || course.shortDescription,
         specialWords: course.specialWords || { highlighted: [], underlined: [], color: "green" },
@@ -900,7 +954,10 @@ export default function CourseDetailsPage() {
   };
 
   const handleSettingsDurationChange = (value: string) => {
-    const digitsOnly = normalizeDigitsToEnglish(value).replace(/\D/g, "").replace(/^0+/, "");
+    // Keep "0" (and don't blank out Persian/English zeros). Only strip leading zeros when more digits follow.
+    const digitsOnly = normalizeDigitsToEnglish(value)
+      .replace(/\D/g, "")
+      .replace(/^0+(?=\d)/, "");
     setSettingsForm((prev) => ({ ...prev, duration: digitsOnly }));
   };
 
@@ -1147,6 +1204,7 @@ export default function CourseDetailsPage() {
   const handleSettingsMediaUpload = (field: "cover" | "introVideo", file?: File) => {
     if (!file) return;
     if (field === "cover") {
+      // Same persistable path as create wizard (data URL stored in draft/cover column).
       const reader = new FileReader();
       reader.onloadend = () => {
         setSettingsForm((prev) => ({ ...prev, cover: String(reader.result || prev.cover) }));
@@ -1154,39 +1212,135 @@ export default function CourseDetailsPage() {
       reader.readAsDataURL(file);
       return;
     }
-    setSettingsForm((prev) => ({ ...prev, introVideo: URL.createObjectURL(file) }));
+
+    void (async () => {
+      try {
+        const uploadedUrl = await uploadCourseMediaFile(course.id, file, "intro");
+        setSettingsForm((prev) => ({ ...prev, introVideo: uploadedUrl }));
+        showToast("ویدیوی معرفی آپلود شد.", "success");
+      } catch {
+        showToast("آپلود ویدیوی معرفی انجام نشد.", "error");
+      }
+    })();
   };
 
-  // Handle Settings Save
-  const handleSaveSettings = (e: React.FormEvent) => {
-    e.preventDefault();
-    const finalPrice = settingsForm.pricingType === "free" ? 0 : settingsForm.price;
+  const buildSettingsDraftChapters = () =>
+    course.chapters.map((chapter, index) => ({
+      id: chapter.id,
+      number: String(index + 1).padStart(2, "0"),
+      title: chapter.title,
+      subtitle: "",
+      lessons: chapter.lessons.map((lesson) => ({
+        id: lesson.id,
+        title: lesson.title,
+        duration: lesson.duration || "00:00",
+        type: lesson.type || "video",
+        access: lesson.isFree ? "free" : "locked",
+        ...(lesson.videoUrl && !lesson.videoUrl.startsWith("blob:")
+          ? { videoUrl: lesson.videoUrl }
+          : {}),
+        ...(lesson.description ? { description: lesson.description } : {}),
+        ...(lesson.attachments?.length ? { attachments: lesson.attachments } : {}),
+      })),
+    }));
 
-    updateCourse(course.id, {
-      title: settingsForm.title,
-      slug: settingsForm.slug,
-      category: settingsForm.category,
-      level: settingsForm.level,
-      cover: settingsForm.cover,
-      introVideo: settingsForm.introVideo || undefined,
-      status: settingsForm.status,
-      shortDescription: settingsForm.shortDescription,
-      description: settingsForm.aboutDescription,
-      price: finalPrice,
-      discountPrice: undefined,
-      heroTitle: settingsForm.heroTitle,
-      introText: settingsForm.shortDescription,
-      aboutTitle: settingsForm.aboutTitle,
-      aboutDescription: settingsForm.aboutDescription,
-      aboutHighlights: settingsForm.aboutHighlights,
-      publicDescription: settingsForm.aboutDescription,
-      objectives: settingsForm.aboutHighlights,
-      prerequisites: settingsForm.prerequisites,
-      targetAudience: settingsForm.targetAudience,
-      features: settingsForm.features,
-      faqs: settingsForm.faqs,
-      specialWords: settingsForm.specialWords,
-    });
+  // Persist Full Course Settings to the same drafts API the create wizard uses.
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSavingSettings) return;
+
+    const finalPrice = settingsForm.pricingType === "free" ? 0 : settingsForm.price;
+    const durationHours = Math.max(0, Number(settingsForm.duration || 0) || 0);
+    const persistableCover =
+      settingsForm.cover && !settingsForm.cover.startsWith("blob:") ? settingsForm.cover : course.cover;
+    const persistableIntro =
+      settingsForm.introVideo && !settingsForm.introVideo.startsWith("blob:")
+        ? settingsForm.introVideo
+        : course.introVideo || "";
+
+    setIsSavingSettings(true);
+    try {
+      await apiPostNoMock(
+        "/api/instructor-dashboard/courses/drafts",
+        {
+          courseId: course.id,
+          step: course.draftStep ?? 5,
+          title: settingsForm.title.trim(),
+          category: mapCategoryToApi(settingsForm.category),
+          level: settingsForm.level,
+          language: course.language || "فارسی",
+          duration: String(durationHours),
+          price: finalPrice,
+          isPaid: settingsForm.pricingType,
+          cover: persistableCover,
+          introVideo: persistableIntro,
+          shortDescription: settingsForm.shortDescription.trim(),
+          heroTitle: settingsForm.heroTitle.trim() || settingsForm.title.trim(),
+          specialWords: settingsForm.specialWords,
+          aboutTitle: settingsForm.aboutTitle.trim() || "درباره این دوره",
+          aboutDescription: settingsForm.aboutDescription.trim(),
+          aboutHighlights: settingsForm.aboutHighlights,
+          features: settingsForm.features.map((feature) => ({
+            id: feature.id,
+            title: feature.title,
+            icon: feature.icon,
+            color: feature.color,
+          })),
+          chapters: buildSettingsDraftChapters(),
+          faqs: settingsForm.faqs.map((faq) => ({
+            id: faq.id,
+            question: faq.question,
+            answer: faq.answer,
+          })),
+        },
+        getAuthHeaders()
+      );
+
+      // Reload from backend so the form reflects persisted columns + draftData.
+      let response: unknown;
+      try {
+        response = await apiGetNoMock<unknown>(
+          `/api/instructor-dashboard/courses/${encodeURIComponent(course.id)}`,
+          getAuthHeaders()
+        );
+      } catch {
+        response = await apiGetNoMock<unknown>(
+          `/api/instructor-dashboard/courses/${encodeURIComponent(course.id)}/draft`,
+          getAuthHeaders()
+        );
+      }
+      const mapped = mapInstructorCourseApiToCourse(response);
+      if (mapped) {
+        upsertCourseSilent(mapped);
+      } else {
+        upsertCourseSilent({
+          ...course,
+          title: settingsForm.title.trim(),
+          category: settingsForm.category,
+          level: settingsForm.level,
+          cover: persistableCover,
+          introVideo: persistableIntro || undefined,
+          shortDescription: settingsForm.shortDescription.trim(),
+          description: settingsForm.aboutDescription.trim(),
+          price: finalPrice,
+          heroTitle: settingsForm.heroTitle.trim() || settingsForm.title.trim(),
+          aboutTitle: settingsForm.aboutTitle.trim() || "درباره این دوره",
+          aboutDescription: settingsForm.aboutDescription.trim(),
+          aboutHighlights: settingsForm.aboutHighlights,
+          features: settingsForm.features,
+          faqs: settingsForm.faqs,
+          specialWords: settingsForm.specialWords,
+          durationHours,
+          pricingType: settingsForm.pricingType,
+        });
+      }
+      showToast("تنظیمات دوره در سرور ذخیره شد.", "success");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "خطا در ذخیره تنظیمات دوره";
+      showToast(message, "error");
+    } finally {
+      setIsSavingSettings(false);
+    }
   };
 
   const settingsInputClass =
@@ -1856,9 +2010,13 @@ export default function CourseDetailsPage() {
                   تمام بخش‌های دوره بعد از انتشار از همین صفحه مدیریت می‌شوند.
                 </p>
               </div>
-              <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3 text-xs font-black text-white shadow-lg shadow-primary/20 transition-transform hover:scale-[1.02]">
+              <button
+                type="submit"
+                disabled={isSavingSettings}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3 text-xs font-black text-white shadow-lg shadow-primary/20 transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
+              >
                 <Check className="w-4 h-4" />
-                ذخیره همه تغییرات
+                {isSavingSettings ? "در حال ذخیره..." : "ذخیره همه تغییرات"}
               </button>
             </div>
 
@@ -2012,14 +2170,14 @@ export default function CourseDetailsPage() {
 
                     <div className="flex flex-col gap-3">
                       <label className="text-xs font-bold text-gray-700 dark:text-gray-300">تصویر کاور دوره</label>
-                      <div className="group relative overflow-hidden rounded-2xl border-2 border-dashed border-gray-200/60 bg-gray-50/50 p-2.5 text-center transition-colors hover:border-primary/50 dark:border-white/5 dark:bg-white/5">
+                      <div className="group relative mx-auto w-full max-w-sm overflow-hidden rounded-2xl border-2 border-dashed border-gray-200/60 bg-gray-50/50 p-2 text-center transition-colors hover:border-primary/50 dark:border-white/5 dark:bg-white/5">
                         <input
                           type="file"
                           accept="image/*"
                           onChange={(e) => handleSettingsMediaUpload("cover", e.target.files?.[0])}
                           className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0"
                         />
-                        <div className="relative min-h-[128px] overflow-hidden rounded-[1.15rem]">
+                        <div className="relative aspect-video max-h-36 w-full overflow-hidden rounded-xl">
                           {settingsForm.cover ? (
                             <>
                               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -2033,8 +2191,8 @@ export default function CourseDetailsPage() {
                               </div>
                             </>
                           ) : (
-                            <div className="flex min-h-[128px] flex-col items-center justify-center px-4 text-center">
-                              <UploadCloud className="mb-1.5 h-8 w-8 text-gray-400" />
+                            <div className="flex h-full min-h-[9rem] flex-col items-center justify-center px-4 text-center">
+                              <UploadCloud className="mb-1.5 h-7 w-7 text-gray-400" />
                               <p className="mb-1 text-[10px] font-black text-gray-700 dark:text-gray-300">انتخاب یا رها کردن تصویر کاور</p>
                               <p className="text-[9px] font-bold text-gray-400">PNG, JPG حداکثر ۵ مگابایت (اندازه 16:9)</p>
                             </div>

@@ -4,10 +4,10 @@ import React, { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useProfileSettings } from "@/context/ProfileSettingsContext";
-import { fetchMyProfile, updateMyProfile, validateProfileSocials, type ProfileSocialField } from "@/lib/panel-profile";
+import { fetchMyProfile, fetchMyProfileUsername, updateMyProfile, validateProfileSocials, type ProfileSocialField } from "@/lib/panel-profile";
 import { cn } from "@/lib/utils";
 import { SocialButton } from "@/components/social/SocialButton";
-import { ArrowRight, User, Camera } from "lucide-react";
+import { ArrowRight, User, Camera, AtSign } from "lucide-react";
 import Image from "next/image";
 
 import { SkillSelect } from "@/components/social/SkillSelect";
@@ -35,6 +35,8 @@ function ProfileEditContent() {
   const [loading, setLoading] = useState(true);
   const [saveError, setSaveError] = useState("");
   const [socialErrors, setSocialErrors] = useState<Partial<Record<ProfileSocialField, string>>>({});
+  const [username, setUsername] = useState("");
+  const [usernameError, setUsernameError] = useState("");
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -50,9 +52,13 @@ function ProfileEditContent() {
     const loadProfile = async () => {
       setLoading(true);
       try {
-        const profile = await fetchMyProfile();
+        const [profile, existingUsername] = await Promise.all([
+          fetchMyProfile(),
+          fetchMyProfileUsername(),
+        ]);
         if (!cancelled) {
           hydrateSettings(profile);
+          setUsername(existingUsername ?? "");
         }
       } catch {
         if (!cancelled) {
@@ -89,10 +95,32 @@ function ProfileEditContent() {
     updateSettings({ skills: [...otherSkills, ...newSelected] });
   };
 
+  const validateUsername = (value: string): string => {
+    if (!value.trim()) return ""; // optional
+    if (value.length < 3) return "آیدی باید حداقل ۳ کاراکتر باشد.";
+    if (value.length > 30) return "آیدی نمیتواند بیشتر از ۳۰ کاراکتر باشد.";
+    if (!/^[a-zA-Z0-9_-]+$/.test(value)) return "فقط حروف انگلیسی، اعداد، _ و - مجاز است.";
+    return "";
+  };
+
+  const handleUsernameChange = (value: string) => {
+    setUsername(value);
+    setUsernameError(validateUsername(value));
+  };
+
   if (!isAuthenticated) return null;
 
   const handleSaveProfile = async () => {
     setSaveError("");
+
+    // Validate username
+    const uError = validateUsername(username);
+    if (uError) {
+      setUsernameError(uError);
+      setSaveError("لطفاً آیدی پروفایل را اصلاح کنید.");
+      return;
+    }
+
     const socialValidationErrors = validateProfileSocials(settings);
     if (Object.keys(socialValidationErrors).length > 0) {
       setSocialErrors(socialValidationErrors);
@@ -103,11 +131,17 @@ function ProfileEditContent() {
     setSocialErrors({});
     setSaving(true);
     try {
-      const savedProfile = await updateMyProfile(settings);
+      const savedProfile = await updateMyProfile({ ...settings, username: username.trim() || undefined });
       hydrateSettings(savedProfile);
       router.push("/panel/profile");
-    } catch {
-      setSaveError("ذخیره تغییرات انجام نشد. لطفاً دوباره تلاش کنید.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      if (message.includes("آیدی") || message.includes("username")) {
+        setUsernameError(message);
+        setSaveError(message);
+      } else {
+        setSaveError(message || "ذخیره تغییرات انجام نشد. لطفاً دوباره تلاش کنید.");
+      }
     } finally {
       setSaving(false);
     }
@@ -168,6 +202,38 @@ function ProfileEditContent() {
                   placeholder="نام شما"
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#14161c] text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                 />
+              </div>
+
+              <div>
+                <label htmlFor="username" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                  <span className="flex items-center gap-1.5">
+                    <AtSign className="w-4 h-4 text-green-500" />
+                    آیدی پروفایل
+                  </span>
+                </label>
+                <div className="relative">
+                  <input
+                    id="username"
+                    type="text"
+                    dir="ltr"
+                    value={username}
+                    onChange={(e) => handleUsernameChange(e.target.value)}
+                    placeholder="مثال: ali_dev"
+                    className={cn(
+                      "w-full px-4 py-3 rounded-xl border bg-white dark:bg-[#14161c] text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-left font-mono",
+                      usernameError
+                        ? "border-red-400 dark:border-red-500/50 focus:border-red-400 focus:ring-red-500/20"
+                        : "border-gray-200 dark:border-white/[0.08]"
+                    )}
+                  />
+                </div>
+                {usernameError ? (
+                  <p className="mt-2 text-xs font-bold text-red-500">{usernameError}</p>
+                ) : (
+                  <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
+                    این آیدی در لینک عمومی پروفایل شما استفاده میشه. فقط حروف انگلیسی، اعداد، _ و - مجاز است.
+                  </p>
+                )}
               </div>
 
               <div>

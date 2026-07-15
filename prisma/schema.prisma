@@ -96,6 +96,7 @@ model UserProfile {
   id                  String   @id
   userId              String   @unique
   user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  username            String?  @unique
   occupation          String?
   about               String?
   location            String?
@@ -180,6 +181,7 @@ model Course {
   @@index([instructorId])
   @@index([instructorId, updatedAt])
   @@index([status])
+  @@index([status, createdAt])
   @@index([approvalStatus])
   @@index([category])
 }
@@ -218,6 +220,7 @@ model CourseEnrollment {
 
   @@unique([userId, courseId])
   @@index([userId])
+  @@index([userId, updatedAt])
 }
 
 model UserOrder {

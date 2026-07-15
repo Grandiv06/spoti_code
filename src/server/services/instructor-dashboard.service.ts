@@ -44,8 +44,9 @@ function resolvePersistableCover(nextCover: string, existingCover?: string | nul
 }
 
 // Only the columns the dashboard/profile actually render — deliberately excludes
-// the heavy JSON blobs (chapters/faqs/draftData/description) and uses `_count`
-// instead of hydrating every enrollment row just to count students.
+// the heavy JSON blobs (chapters/faqs/draftData/description). Student totals use
+// the denormalized `studentsCount` column (maintained at checkout) so we never
+// pay for a correlated enrollment aggregate on every list load.
 const INSTRUCTOR_COURSE_SELECT = {
   id: true,
   slug: true,
@@ -65,7 +66,6 @@ const INSTRUCTOR_COURSE_SELECT = {
   durationHours: true,
   createdAt: true,
   updatedAt: true,
-  _count: { select: { enrollments: true } },
 } satisfies Prisma.CourseSelect;
 
 type InstructorCourseListItem = Prisma.CourseGetPayload<{
@@ -202,17 +202,8 @@ async function resolveInstructorForUserUncached(user: User): Promise<Instructor 
   return null;
 }
 
-function resolveStudentsCount(
-  course: { studentsCount: number } & {
-    _count?: { enrollments: number };
-    enrollments?: Array<{ id: string }>;
-  }
-): number {
-  if (course.studentsCount > 0) {
-    return course.studentsCount;
-  }
-
-  return course._count?.enrollments ?? course.enrollments?.length ?? 0;
+function resolveStudentsCount(course: { studentsCount: number }): number {
+  return Math.max(0, course.studentsCount || 0);
 }
 
 function toNumber(value: bigint | number | null | undefined): number {
@@ -334,12 +325,17 @@ function parseYearsOfExperience(value: unknown) {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
 }
 
-export async function getInstructorProfile(user: User) {
+export async function getInstructorProfile(user: User, options?: { summary?: boolean }) {
   assertInstructor(user);
 
   const instructor = await resolveInstructorForUser(user);
   if (!instructor) {
     return toInstructorProfilePageDto(null, []);
+  }
+
+  // Header/summary consumers only need identity fields — skip the course list.
+  if (options?.summary) {
+    return toInstructorProfilePageDto(instructor, []);
   }
 
   const courses = await findInstructorCoursesLight(instructor.id);
@@ -536,6 +532,7 @@ export async function getInstructorDashboardCourses(user: User, limit?: number, 
       id: instructor.id,
       name: instructor.name,
       fullName: instructor.name,
+      avatar: instructor.avatar,
     },
   };
 }

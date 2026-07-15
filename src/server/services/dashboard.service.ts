@@ -64,9 +64,23 @@ export async function getPanelDashboardOverview(user: User): Promise<PanelDashbo
   };
 }
 
-export async function getPanelMyCourses(user: User): Promise<PanelMyCourseDto[]> {
-  const enrollments = await findUserEnrollmentsWithCourses(user.id);
+const MY_COURSES_CACHE_TTL_MS = 45_000;
+const myCoursesCache = new Map<string, { expiresAt: number; value: PanelMyCourseDto[] }>();
+const inflightMyCourses = new Map<string, Promise<PanelMyCourseDto[]>>();
 
+export function invalidatePanelMyCoursesCache(userId?: string) {
+  if (userId) {
+    myCoursesCache.delete(userId);
+    inflightMyCourses.delete(userId);
+    return;
+  }
+  myCoursesCache.clear();
+  inflightMyCourses.clear();
+}
+
+function mapEnrollmentsToMyCourses(
+  enrollments: Awaited<ReturnType<typeof findUserEnrollmentsWithCourses>>
+): PanelMyCourseDto[] {
   return enrollments.map((enrollment) => ({
     id: enrollment.id,
     courseId: enrollment.courseId,
@@ -87,6 +101,34 @@ export async function getPanelMyCourses(user: User): Promise<PanelMyCourseDto[]>
       },
     },
   }));
+}
+
+export async function getPanelMyCourses(user: User): Promise<PanelMyCourseDto[]> {
+  const cached = myCoursesCache.get(user.id);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value;
+  }
+
+  const inflight = inflightMyCourses.get(user.id);
+  if (inflight) {
+    return inflight;
+  }
+
+  const load = findUserEnrollmentsWithCourses(user.id)
+    .then((enrollments) => {
+      const value = mapEnrollmentsToMyCourses(enrollments);
+      myCoursesCache.set(user.id, {
+        value,
+        expiresAt: Date.now() + MY_COURSES_CACHE_TTL_MS,
+      });
+      return value;
+    })
+    .finally(() => {
+      inflightMyCourses.delete(user.id);
+    });
+
+  inflightMyCourses.set(user.id, load);
+  return load;
 }
 
 function mapTransactionStatus(status: string): string {

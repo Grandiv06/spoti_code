@@ -47,6 +47,21 @@ function mapMessagesResponse(response: unknown): Message[] {
         createdAt && !Number.isNaN(createdAt.getTime())
           ? formatTicketDate(createdAt.toISOString())
           : formatTicketDate(row.timestamp ?? row.createdAt),
+      attachments: Array.isArray(row.attachments)
+        ? ((row.attachments as Array<Record<string, unknown>>)
+            .map((file) => {
+              const name = String(file.name ?? "").trim();
+              const url = String(file.url ?? "").trim();
+              if (!name || !url) return null;
+              return {
+                name,
+                url,
+                size: typeof file.size === "number" ? file.size : Number(file.size ?? 0) || undefined,
+                type: typeof file.type === "string" ? file.type : undefined,
+              };
+            })
+            .filter(Boolean) as NonNullable<Message["attachments"]>)
+        : undefined,
     };
   });
 }

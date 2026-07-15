@@ -2,12 +2,19 @@ import { randomBytes } from "crypto";
 import type { User } from "@prisma/client";
 import type { PanelTicketDto, PanelTicketMessageDto } from "@/server/dto/panel-ticket.dto";
 import {
+  parseTicketMessageBody,
+  serializeTicketMessageBody,
+  type TicketMessageAttachment,
+} from "@/server/utils/ticket-message-body";
+import {
   addTicketMessage,
   closeUserTicket,
   createUserTicket,
   findUserTicketById,
   findUserTickets,
 } from "@/server/repositories/ticket.repository";
+
+export type { TicketMessageAttachment };
 
 type TicketWithMessages = Awaited<ReturnType<typeof findUserTickets>>[number];
 
@@ -22,17 +29,19 @@ type TicketMessageRecord = {
 function mapMessage(message: TicketMessageRecord): PanelTicketMessageDto {
   const sender = message.senderType === "support" || message.senderType === "admin" ? "support" : "user";
   const createdAt = message.createdAt.toISOString();
+  const parsed = parseTicketMessageBody(message.body);
 
   return {
     id: message.id,
     sender,
     senderType: sender,
     senderName: message.senderName,
-    message: message.body,
-    text: message.body,
-    body: message.body,
+    message: parsed.text,
+    text: parsed.text,
+    body: parsed.text,
     timestamp: createdAt,
     createdAt,
+    attachments: parsed.attachments,
   };
 }
 
@@ -77,11 +86,17 @@ export async function createMyTicket(
     firstMessage?: string;
     category?: string;
     priority?: string;
+    attachments?: TicketMessageAttachment[];
   }
 ): Promise<PanelTicketDto> {
   const title = (input.subject ?? input.title ?? "").trim();
   const firstMessage = (input.firstMessage ?? input.description ?? "").trim();
   const category = (input.category ?? "other").trim() || "other";
+  const rawAttachments = Array.isArray(input.attachments) ? input.attachments : [];
+  if (rawAttachments.length > 1) {
+    throw new Error("فقط یک فایل می‌توانید پیوست کنید");
+  }
+  const attachments = rawAttachments;
 
   if (!title) throw new Error("عنوان تیکت الزامی است");
   if (!firstMessage) throw new Error("توضیحات تیکت الزامی است");
@@ -92,7 +107,7 @@ export async function createMyTicket(
     title,
     category,
     priority: input.priority,
-    firstMessage,
+    firstMessage: serializeTicketMessageBody(firstMessage, attachments),
     senderName: user.fullName?.trim() || "کاربر",
   });
 

@@ -8,6 +8,12 @@ export type PanelTicketMessageDto = {
   body: string;
   timestamp: string;
   createdAt: string;
+  attachments?: Array<{
+    name: string;
+    url: string;
+    size: number;
+    type: string;
+  }>;
 };
 
 export type PanelTicketDto = {

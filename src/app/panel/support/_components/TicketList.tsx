@@ -266,7 +266,7 @@ function SupportEmptyState({ onNewTicket }: { onNewTicket: () => void }) {
       
       <button 
         onClick={onNewTicket}
-        className="px-10 py-4 bg-primary hover:bg-primary-hover text-white rounded-2xl font-black shadow-xl shadow-primary/30 transition-all hover:scale-105 active:scale-95 flex items-center gap-3"
+        className="px-10 py-4 bg-primary hover:bg-primary-hover text-white rounded-2xl font-black shadow-xl shadow-primary/30 transition-all hover:scale-105 active:scale-95 flex items-center gap-3 cursor-pointer"
       >
         <span className="material-symbols-outlined">add</span>
         <span>ثبت اولین تیکت پشتیبانی</span>

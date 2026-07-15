@@ -4,6 +4,7 @@ import { getAuthHeaders } from "@/lib/auth-tokens";
 export type PanelCourseItem = {
   enrollmentId: string;
   id: string;
+  slug?: string;
   title: string;
   progress: number;
   image?: string;
@@ -48,6 +49,7 @@ export function mapMyCoursesResponse(result: unknown): PanelCourseItem[] {
         : null;
 
     const id = String(course.id ?? row.courseId ?? index + 1);
+    const slug = String(course.slug ?? row.slug ?? "").trim() || undefined;
     const enrollmentId = String(row.id ?? `${id}-${index}`);
     const title = String(course.title ?? course.name ?? row.title ?? row.name ?? "دوره بدون عنوان");
     const progressRaw = Number(
@@ -78,7 +80,7 @@ export function mapMyCoursesResponse(result: unknown): PanelCourseItem[] {
         "نامشخص"
     );
 
-    return { enrollmentId, id, title, progress, image, instructor };
+    return { enrollmentId, id, slug, title, progress, image, instructor };
   });
 }
 

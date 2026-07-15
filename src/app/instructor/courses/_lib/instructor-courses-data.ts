@@ -76,6 +76,36 @@ export type InstructorCoursesProfile = {
   avatar: string;
 };
 
+export function extractInstructorFromCoursesResponse(value: unknown): InstructorCoursesProfile {
+  const root =
+    typeof value === "object" && value !== null && "data" in value
+      ? (value as { data?: unknown }).data
+      : value;
+  if (typeof root !== "object" || root === null) {
+    return { name: "", avatar: "" };
+  }
+
+  const record = root as UnknownRecord;
+  const instructor =
+    typeof record.instructor === "object" && record.instructor !== null
+      ? (record.instructor as UnknownRecord)
+      : null;
+  if (!instructor) {
+    return { name: "", avatar: "" };
+  }
+
+  const name =
+    [instructor.fullName, instructor.name, instructor.displayName].find(
+      (entry): entry is string => typeof entry === "string" && entry.trim().length > 0
+    )?.trim() ?? "";
+  const avatar =
+    typeof instructor.avatar === "string" && instructor.avatar.trim()
+      ? instructor.avatar.trim()
+      : "";
+
+  return { name, avatar };
+}
+
 export function normalizeInstructorCoursesProfile(payload: unknown): InstructorCoursesProfile {
   if (typeof payload !== "object" || payload === null) {
     return { name: "", avatar: "" };

@@ -12,7 +12,8 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const user = await requireAuthUser(request);
-    const data = await getInstructorProfile(user);
+    const summary = request.nextUrl.searchParams.get("summary") === "1";
+    const data = await getInstructorProfile(user, { summary });
     return NextResponse.json({ data });
   } catch (error) {
     return handleApiRouteError(error, "GET /api/instructor-dashboard/profile", "خطا در دریافت پروفایل مدرس");

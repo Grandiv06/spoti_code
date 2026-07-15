@@ -1,3 +1,10 @@
+export interface MessageAttachment {
+  name: string;
+  url: string;
+  size?: number;
+  type?: string;
+}
+
 export interface Message {
   id: string;
   sender: "user" | "support";
@@ -5,6 +12,7 @@ export interface Message {
   text: string;
   timestamp: string;
   avatar?: string;
+  attachments?: MessageAttachment[];
 }
 
 export interface Attachment {

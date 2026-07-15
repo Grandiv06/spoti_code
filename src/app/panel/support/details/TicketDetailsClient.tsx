@@ -237,7 +237,7 @@ export default function TicketDetailsClient({ onBack }: TicketDetailsClientProps
             ticketId={ticket.id}
             ticketStatus={ticket.status}
             onSent={appendMessage}
-            onNewTicket={() => router.push("/panel/support")}
+            onNewTicket={() => router.push("/panel/support?create=1")}
           />
         </div>
       </div>

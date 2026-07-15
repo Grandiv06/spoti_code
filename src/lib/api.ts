@@ -41,10 +41,16 @@ function sanitizeApiErrorMessage(message: string, status: number): string {
   return trimmed;
 }
 
-function buildRequestHeaders(token: string | null, extra?: HeadersInit): Record<string, string> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
+function buildRequestHeaders(
+  token: string | null,
+  extra?: HeadersInit,
+  body?: unknown
+): Record<string, string> {
+  const headers: Record<string, string> = {};
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+  if (!isFormData) {
+    headers["Content-Type"] = "application/json";
+  }
 
   if (extra) {
     for (const [key, value] of Object.entries(extra as Record<string, string>)) {
@@ -80,8 +86,13 @@ export async function apiRequest<T>(
     const response = await fetch(url, {
       method: method.toUpperCase(),
       cache: "no-store",
-      headers: buildRequestHeaders(token, options.headers),
-      body: options.body ? JSON.stringify(options.body) : undefined,
+      headers: buildRequestHeaders(token, options.headers, options.body),
+      body:
+        options.body instanceof FormData
+          ? options.body
+          : options.body
+            ? JSON.stringify(options.body)
+            : undefined,
     });
 
     if (

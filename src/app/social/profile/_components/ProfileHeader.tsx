@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useMemo, useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Github,
   Linkedin,
@@ -13,7 +13,10 @@ import {
   Edit3,
   Send,
   User,
+  Check,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { buildPublicProfileUrl, copyTextToClipboard } from "@/lib/clipboard";
 
 interface ProfileHeaderProps {
   user: {
@@ -33,10 +36,52 @@ interface ProfileHeaderProps {
     };
   };
   isOwnProfile?: boolean;
+  profileId?: string;
 }
 
-const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isOwnProfile }) => {
+function resolveProfileId(pathname: string | null, profileId?: string, authUserId?: string) {
+  if (profileId?.trim()) return profileId.trim();
+
+  const match = pathname?.match(/\/social\/profile\/([^/]+)/);
+  if (match?.[1]) return decodeURIComponent(match[1]);
+
+  if (authUserId?.trim()) return authUserId.trim();
+  return "";
+}
+
+const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isOwnProfile, profileId }) => {
   const router = useRouter();
+  const pathname = usePathname();
+  const { user: authUser } = useAuth();
+  const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState(false);
+
+  const resolvedProfileId = useMemo(
+    () => resolveProfileId(pathname, profileId, authUser?.id),
+    [authUser?.id, pathname, profileId]
+  );
+
+  const handleShare = async () => {
+    if (!resolvedProfileId) {
+      setCopyError(true);
+      window.setTimeout(() => setCopyError(false), 2000);
+      return;
+    }
+
+    const url = buildPublicProfileUrl(resolvedProfileId);
+    const success = await copyTextToClipboard(url);
+
+    if (success) {
+      setCopied(true);
+      setCopyError(false);
+      window.setTimeout(() => setCopied(false), 2000);
+      return;
+    }
+
+    setCopyError(true);
+    window.setTimeout(() => setCopyError(false), 2000);
+  };
+
   return (
     <div className="relative w-full mb-12 md:mb-16 overflow-visible">
       {/* Banner - Default pattern */}
@@ -120,9 +165,27 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isOwnProfile }) => 
                       <span>ویرایش پروفایل</span>
                     </button>
                   )}
-                  <button className="p-3 bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 rounded-2xl hover:bg-gray-50 dark:hover:bg-white/20 text-gray-600 dark:text-gray-300 transition-all shadow-sm active:scale-90 cursor-pointer">
-                    <Share2 className="w-5 h-5" />
-                  </button>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => void handleShare()}
+                      aria-label={copied ? "لینک کپی شد" : "کپی لینک پروفایل"}
+                      title="کپی لینک عمومی پروفایل"
+                      className="p-3 bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 rounded-2xl hover:bg-gray-50 dark:hover:bg-white/20 text-gray-600 dark:text-gray-300 transition-all shadow-sm active:scale-90 cursor-pointer"
+                    >
+                      {copied ? <Check className="w-5 h-5 text-green-500" /> : <Share2 className="w-5 h-5" />}
+                    </button>
+                    {copied && (
+                      <div className="absolute -top-14 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-xl bg-gray-900 px-3 py-2 text-xs font-bold text-white shadow-lg dark:bg-white dark:text-gray-900">
+                        <span>کپی شد</span>
+                      </div>
+                    )}
+                    {copyError && !copied && (
+                      <div className="absolute -top-14 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-xl bg-red-600 px-3 py-2 text-xs font-bold text-white shadow-lg">
+                        <span>کپی انجام نشد</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-center md:justify-end gap-5 mt-2">

@@ -2,6 +2,13 @@ import type { DiscountApplyType, DiscountScope, DiscountType, User } from "@pris
 import { AuthError } from "@/server/auth/request-auth";
 import { prisma } from "@/server/db/prisma";
 
+function bustPublicCoursesCache() {
+  // Dynamic import avoids a course.service ↔ discount.service cycle.
+  void import("@/server/services/course.service").then((mod) => {
+    mod.invalidatePublicCoursesCache();
+  });
+}
+
 export type DiscountDto = {
   id: string;
   title: string;
@@ -313,7 +320,26 @@ async function loadDiscountByCode(code: string) {
   });
 }
 
-async function loadActiveAutomaticDiscounts() {
+const AUTOMATIC_DISCOUNTS_CACHE_TTL_MS = 60_000;
+let automaticDiscountsCache:
+  | { expiresAt: number; discounts: Awaited<ReturnType<typeof fetchActiveAutomaticDiscounts>> }
+  | null = null;
+let inflightAutomaticDiscounts: Promise<
+  Awaited<ReturnType<typeof fetchActiveAutomaticDiscounts>>
+> | null = null;
+
+export function invalidateAutomaticDiscountCache() {
+  automaticDiscountsCache = null;
+}
+
+/** Prefetch automatic discounts so list enrichment can reuse a warm cache. */
+export function warmAutomaticDiscountCache() {
+  return loadActiveAutomaticDiscounts().catch(() => [] as Awaited<
+    ReturnType<typeof fetchActiveAutomaticDiscounts>
+  >);
+}
+
+async function fetchActiveAutomaticDiscounts() {
   const now = new Date();
   const discounts = await prisma.discountCode.findMany({
     where: {
@@ -327,6 +353,30 @@ async function loadActiveAutomaticDiscounts() {
   });
 
   return discounts.filter((discount) => isDiscountUsable(discount, now));
+}
+
+async function loadActiveAutomaticDiscounts() {
+  if (automaticDiscountsCache && automaticDiscountsCache.expiresAt > Date.now()) {
+    return automaticDiscountsCache.discounts;
+  }
+
+  if (inflightAutomaticDiscounts) {
+    return inflightAutomaticDiscounts;
+  }
+
+  inflightAutomaticDiscounts = fetchActiveAutomaticDiscounts()
+    .then((discounts) => {
+      automaticDiscountsCache = {
+        discounts,
+        expiresAt: Date.now() + AUTOMATIC_DISCOUNTS_CACHE_TTL_MS,
+      };
+      return discounts;
+    })
+    .finally(() => {
+      inflightAutomaticDiscounts = null;
+    });
+
+  return inflightAutomaticDiscounts;
 }
 
 export async function getAdminDiscounts(adminUser: User) {
@@ -397,6 +447,8 @@ export async function createAdminDiscount(adminUser: User, rawInput: unknown) {
     include: { courses: { select: { courseId: true } } },
   });
 
+  invalidateAutomaticDiscountCache();
+  bustPublicCoursesCache();
   return toDto(created);
 }
 
@@ -451,6 +503,8 @@ export async function updateAdminDiscount(adminUser: User, discountId: string, r
     });
   });
 
+  invalidateAutomaticDiscountCache();
+  bustPublicCoursesCache();
   return toDto(updated);
 }
 
@@ -463,6 +517,8 @@ export async function deleteAdminDiscount(adminUser: User, discountId: string) {
   }
 
   await prisma.discountCode.delete({ where: { id: discountId } });
+  invalidateAutomaticDiscountCache();
+  bustPublicCoursesCache();
   return { success: true };
 }
 

@@ -6,7 +6,8 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { usePanelSidebar } from "@/context/PanelSidebarContext";
-import { fetchMyProfile } from "@/lib/panel-profile";
+import { useMyProfile } from "@/hooks/api/useInstructorDashboard";
+import { usePrefetchPanelMyCourses } from "@/hooks/api/usePanelMyCourses";
 import { formatIranPhoneForDisplay } from "@/lib/format-phone";
 import { cn } from "@/lib/utils";
 import { User, LogOut, X, ChevronRight, ChevronLeft } from "lucide-react";
@@ -28,49 +29,14 @@ export default function PanelSidebar() {
   const { user, logout } = useAuth();
   const { isMobileOpen, setMobileOpen, isCollapsed, setIsCollapsed, toggleCollapsed } = usePanelSidebar();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [profileName, setProfileName] = useState("");
-  const [profileAvatar, setProfileAvatar] = useState("");
+  const prefetchMyCourses = usePrefetchPanelMyCourses();
+  // Shared React Query profile — avoids a competing uncached /profiles/me on every panel page.
+  const { data: profile } = useMyProfile(Boolean(user));
 
-  useEffect(() => {
-    if (!user) {
-      setProfileName("");
-      setProfileAvatar("");
-      return;
-    }
-
-    if (user.displayName?.trim()) {
-      setProfileName(user.displayName.trim());
-    }
-
-    let cancelled = false;
-
-    const loadProfile = async () => {
-      try {
-        const profile = await fetchMyProfile();
-        if (cancelled) return;
-        if (profile.displayName?.trim()) {
-          setProfileName(profile.displayName.trim());
-        }
-        if (profile.avatarImage?.trim()) {
-          setProfileAvatar(profile.avatarImage.trim());
-        }
-      } catch {
-        if (!cancelled && !user.displayName?.trim()) {
-          setProfileName("");
-        }
-      }
-    };
-
-    void loadProfile();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.displayName, user?.id]);
-
-  const sidebarDisplayName = profileName || user?.displayName || "کاربر مهمان";
+  const sidebarDisplayName =
+    profile?.displayName?.trim() || user?.displayName || "کاربر مهمان";
   const sidebarPhone = user?.phone?.trim() ? formatIranPhoneForDisplay(user.phone) : "";
-  const sidebarAvatar = profileAvatar || user?.avatarUrl || "";
+  const sidebarAvatar = profile?.avatarImage?.trim() || user?.avatarUrl || "";
 
   useEffect(() => {
     try {
@@ -231,6 +197,12 @@ export default function PanelSidebar() {
                   key={item.href}
                   href={item.href}
                   onClick={closeMobile}
+                  onMouseEnter={() => {
+                    if (item.href === "/panel/courses") prefetchMyCourses();
+                  }}
+                  onFocus={() => {
+                    if (item.href === "/panel/courses") prefetchMyCourses();
+                  }}
                   className={cn(
                     "group relative flex items-center transition-all duration-300 cursor-pointer",
                     isCollapsed 

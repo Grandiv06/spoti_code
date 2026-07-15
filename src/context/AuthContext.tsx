@@ -1,6 +1,13 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useLayoutEffect,
+  useCallback,
+  ReactNode,
+} from "react";
 import {
   ACCESS_TOKEN_KEY,
   clearAuthTokens,
@@ -69,12 +76,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
+  // useLayoutEffect resolves session before paint so panel pages (e.g. my-courses)
+  // can start their API fetch immediately instead of waiting on a spinner frame.
+  useLayoutEffect(() => {
     setupApiClient();
 
     const stored = loadFromStorage();
-
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUser(stored);
     setIsLoading(false);
 

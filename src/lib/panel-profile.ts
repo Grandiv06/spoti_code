@@ -144,10 +144,11 @@ export function mapProfileResponseToSettings(value: unknown): Partial<ProfileSet
     avatarImage: pickString(row, ["image", "avatar", "avatarImage"]),
     role: pickString(row, ["role", "roleLabel"]),
     joinDate: pickString(row, ["joinDate", "memberSince"]),
-  } as Partial<ProfileSettings> & { role?: string; joinDate?: string };
+    username: pickString(row, ["username"]),
+  } as Partial<ProfileSettings> & { role?: string; joinDate?: string; username?: string };
 }
 
-export function buildUpsertProfilePayload(settings: ProfileSettings): UpsertProfileDto {
+export function buildUpsertProfilePayload(settings: ProfileSettings & { username?: string }): UpsertProfileDto {
   const normalized = normalizeProfileSocials(settings);
 
   const optionalFields: UpsertProfileDto = {
@@ -156,6 +157,7 @@ export function buildUpsertProfilePayload(settings: ProfileSettings): UpsertProf
     skills: settings.skills.length ? settings.skills.join(", ") : undefined,
     location: settings.location.trim() || undefined,
     image: settings.avatarImage?.trim() || undefined,
+    username: settings.username?.trim() || undefined,
   };
 
   const filteredOptional = Object.fromEntries(
@@ -178,6 +180,24 @@ export function mapApiProfileToSettings(value: unknown): ProfileSettings {
   };
 }
 
+export async function fetchMyProfileUserId(): Promise<string | null> {
+  const response = await apiGetNoMock<unknown>("/api/profiles/me", getAuthHeaders());
+  const payload = unwrapResponse(response);
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null;
+
+  const userId = (payload as Record<string, unknown>).userId;
+  return typeof userId === "string" && userId.trim() ? userId.trim() : null;
+}
+
+export async function fetchMyProfileUsername(): Promise<string | null> {
+  const response = await apiGetNoMock<unknown>("/api/profiles/me", getAuthHeaders());
+  const payload = unwrapResponse(response);
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null;
+
+  const username = (payload as Record<string, unknown>).username;
+  return typeof username === "string" && username.trim() ? username.trim() : null;
+}
+
 export async function fetchMyProfile(): Promise<ProfileSettings> {
   const response = await apiGetNoMock<unknown>("/api/profiles/me", getAuthHeaders());
   return mapApiProfileToSettings(response);
@@ -190,11 +210,11 @@ export async function fetchPublicProfile(userId: string): Promise<Partial<Profil
   return mapProfileResponseToSettings(response);
 }
 
-export async function updateMyProfile(settings: ProfileSettings): Promise<ProfileSettings> {
+export async function updateMyProfile(settings: ProfileSettings & { username?: string }): Promise<ProfileSettings> {
   const normalizedSettings = normalizeProfileSocials(settings);
   const response = await apiPutNoMock<unknown>(
     "/api/profiles/me",
-    buildUpsertProfilePayload(normalizedSettings),
+    buildUpsertProfilePayload({ ...normalizedSettings, username: settings.username }),
     getAuthHeaders()
   );
   const mapped = mapApiProfileToSettings(response);

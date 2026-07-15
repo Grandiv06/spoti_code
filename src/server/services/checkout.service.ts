@@ -1,6 +1,7 @@
 import type { User } from "@prisma/client";
 import { AuthError } from "@/server/auth/request-auth";
 import { prisma } from "@/server/db/prisma";
+import { invalidatePanelMyCoursesCache } from "@/server/services/dashboard.service";
 import { resolveCheckoutDiscount, buildCheckoutLineItems } from "@/server/services/discount.service";
 
 type CheckoutInput = {
@@ -150,6 +151,8 @@ export async function completeCheckout(user: User, rawInput: unknown) {
 
     return orders;
   });
+
+  invalidatePanelMyCoursesCache(user.id);
 
   return {
     trackingCode,

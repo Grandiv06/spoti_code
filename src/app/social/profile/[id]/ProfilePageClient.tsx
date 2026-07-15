@@ -23,6 +23,7 @@ type ApiProfile = {
   joinDate?: string;
   location?: string;
   mbti?: string;
+  username?: string;
 };
 
 function buildUsername(userId: string) {
@@ -140,7 +141,7 @@ export default function ProfilePageClient({ userId }: { userId: string }) {
       <div className="pointer-events-none fixed top-0 left-0 -z-10 h-[500px] w-full rounded-b-[100%] bg-green-500/10 blur-[120px]" />
 
       <div className="container mx-auto max-w-7xl px-4 md:px-6 pt-4">
-        <ProfileHeader user={userProfileData} />
+        <ProfileHeader user={userProfileData} profileId={apiProfile.username || userId} />
 
         <div className="mt-6 grid grid-cols-1 gap-8 md:mt-10 lg:grid-cols-12">
           <div className="order-2 space-y-8 lg:order-1 lg:col-span-8">

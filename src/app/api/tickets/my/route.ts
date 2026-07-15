@@ -14,6 +14,12 @@ export async function POST(request: NextRequest) {
       firstMessage?: string;
       category?: string;
       priority?: string;
+      attachments?: Array<{
+        name: string;
+        url: string;
+        size: number;
+        type: string;
+      }>;
     };
 
     const data = await createMyTicket(user, body);

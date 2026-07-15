@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { User, Headphones } from "lucide-react";
+import { User, Headphones, Paperclip } from "lucide-react";
 import { Message } from "../../data";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -63,6 +63,27 @@ export default function ConversationThread({ messages }: { messages: Message[] }
                 )}
               >
                 {msg.text}
+                {!!msg.attachments?.length && (
+                  <div className={cn("mt-4 flex flex-wrap gap-2", isUser ? "text-white/90" : "")}>
+                    {msg.attachments.map((file) => (
+                      <a
+                        key={file.url}
+                        href={file.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn(
+                          "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold transition-colors",
+                          isUser
+                            ? "border-white/20 bg-white/10 hover:bg-white/20"
+                            : "border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 dark:border-white/10 dark:bg-white/5 dark:text-gray-200 dark:hover:bg-white/10"
+                        )}
+                      >
+                        <Paperclip className="h-3.5 w-3.5" />
+                        <span className="max-w-[160px] truncate">{file.name}</span>
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>
