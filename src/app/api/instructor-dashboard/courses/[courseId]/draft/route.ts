@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AuthError, requireAuthUser } from "@/server/auth/request-auth";
-import { getInstructorCourseDraft } from "@/server/services/instructor-course-draft.service";
+import {
+  getInstructorCourseDraft,
+  updateInstructorCourseDraftStep,
+} from "@/server/services/instructor-course-draft.service";
 
 export const dynamic = "force-dynamic";
 
@@ -21,5 +24,22 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     console.error("[GET /api/instructor-dashboard/courses/:courseId/draft]", error);
     return NextResponse.json({ message: "خطا در دریافت پیش‌نویس دوره" }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest, context: RouteContext) {
+  try {
+    const user = await requireAuthUser(request);
+    const { courseId } = await context.params;
+    const body = (await request.json().catch(() => ({}))) as { step?: unknown };
+    const data = await updateInstructorCourseDraftStep(user, courseId, Number(body.step));
+    return NextResponse.json({ data });
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json({ message: error.message }, { status: error.status });
+    }
+
+    console.error("[PATCH /api/instructor-dashboard/courses/:courseId/draft]", error);
+    return NextResponse.json({ message: "خطا در به‌روزرسانی مرحله پیش‌نویس" }, { status: 500 });
   }
 }

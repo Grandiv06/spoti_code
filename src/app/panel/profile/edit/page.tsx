@@ -37,6 +37,8 @@ function ProfileEditContent() {
   const [socialErrors, setSocialErrors] = useState<Partial<Record<ProfileSocialField, string>>>({});
   const [username, setUsername] = useState("");
   const [usernameError, setUsernameError] = useState("");
+  /** Snapshot of persisted values after last successful load/save — used for dirty check. */
+  const savedSnapshotRef = useRef<{ settings: typeof settings; username: string } | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -58,7 +60,12 @@ function ProfileEditContent() {
         ]);
         if (!cancelled) {
           hydrateSettings(profile);
-          setUsername(existingUsername ?? "");
+          const initialUsername = existingUsername ?? "";
+          setUsername(initialUsername);
+          savedSnapshotRef.current = {
+            settings: { ...settings, ...profile },
+            username: initialUsername,
+          };
         }
       } catch {
         if (!cancelled) {
@@ -133,6 +140,7 @@ function ProfileEditContent() {
     try {
       const savedProfile = await updateMyProfile({ ...settings, username: username.trim() || undefined });
       hydrateSettings(savedProfile);
+      savedSnapshotRef.current = { settings: { ...settings, ...savedProfile }, username: username.trim() };
       router.push("/panel/profile");
     } catch (err) {
       const message = err instanceof Error ? err.message : "";
@@ -146,6 +154,29 @@ function ProfileEditContent() {
       setSaving(false);
     }
   };
+
+  const isDirty = (() => {
+    const snap = savedSnapshotRef.current;
+    if (!snap || loading) return false;
+    if (username.trim() !== snap.username) return true;
+    const s = settings;
+    const p = snap.settings;
+    return (
+      s.displayName !== p.displayName ||
+      s.bio !== p.bio ||
+      s.location !== p.location ||
+      s.githubUrl !== p.githubUrl ||
+      s.linkedinUrl !== p.linkedinUrl ||
+      s.telegramUrl !== p.telegramUrl ||
+      s.websiteUrl !== p.websiteUrl ||
+      s.mbti !== p.mbti ||
+      s.avatarImage !== p.avatarImage ||
+      s.bannerImage !== p.bannerImage ||
+      s.bannerColor !== p.bannerColor ||
+      s.useDefaultBanner !== p.useDefaultBanner ||
+      JSON.stringify(s.skills) !== JSON.stringify(p.skills)
+    );
+  })();
 
   const updateSocialField = (field: ProfileSocialField, value: string) => {
     setSocialErrors((prev) => {
@@ -220,7 +251,7 @@ function ProfileEditContent() {
                     onChange={(e) => handleUsernameChange(e.target.value)}
                     placeholder="مثال: ali_dev"
                     className={cn(
-                      "w-full px-4 py-3 rounded-xl border bg-white dark:bg-[#14161c] text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-left font-mono",
+                      "w-full px-4 py-3 rounded-xl border bg-white dark:bg-[#14161c] text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all",
                       usernameError
                         ? "border-red-400 dark:border-red-500/50 focus:border-red-400 focus:ring-red-500/20"
                         : "border-gray-200 dark:border-white/[0.08]"
@@ -358,13 +389,16 @@ function ProfileEditContent() {
 
           <div className="space-y-3 pt-4">
             {saveError && <p className="text-sm font-bold text-red-500 text-center">{saveError}</p>}
-            <SocialButton
-              variant="primary"
-              className="w-full py-4 text-base font-black shadow-lg shadow-green-500/20"
-              onClick={handleSaveProfile}
-            >
-              {saving ? "در حال ذخیره..." : "ذخیره تغییرات"}
-            </SocialButton>
+            {(isDirty || saving) && (
+              <SocialButton
+                variant="primary"
+                className="w-full py-4 text-base font-black shadow-lg shadow-green-500/20"
+                onClick={handleSaveProfile}
+                disabled={saving}
+              >
+                {saving ? "در حال ذخیره..." : "ذخیره تغییرات"}
+              </SocialButton>
+            )}
             <button onClick={() => router.back()} className="w-full py-3 text-sm font-bold text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer">انصراف و بازگشت</button>
           </div>
         </div>

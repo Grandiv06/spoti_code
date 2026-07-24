@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   DndContext,
   DragOverlay,
@@ -43,7 +44,9 @@ import {
   Layers,
   ChevronDown,
   ChevronUp,
-  GripVertical
+  GripVertical,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import { useInstructorData, type Course } from "@/context/InstructorDataContext";
 import CourseCard from "@/app/components/CourseCard";
@@ -53,7 +56,10 @@ import CustomSelect from "@/components/ui/CustomSelect";
 import HighlightableTextareaWithBadges from "@/components/ui/HighlightableTextareaWithBadges";
 import { apiGetNoMock, apiPatchNoMock, apiPostNoMock } from "@/lib/api";
 import { uploadCourseMediaFile } from "@/lib/course-media-upload";
+import { formatVideoDuration, readVideoDurationFromFile } from "@/lib/video-duration";
 import VideoPreviewModal from "@/app/instructor/courses/create/_components/VideoPreviewModal";
+import { instructorCoursesQueryKey } from "@/hooks/api/useInstructorDashboard";
+import type { InstructorCourseRow } from "@/app/instructor/courses/_lib/instructor-courses-data";
 import {
   CreateCourseCategory,
   CreateCourseDifficulty,
@@ -187,9 +193,6 @@ type LessonRowActions = {
   onStartEditTitle: (lessonId: string) => void;
   onChangeTitle: (chapterId: string, lessonId: string, value: string) => void;
   onEndEditTitle: (lessonId: string) => void;
-  onStartEditDuration: (lessonId: string) => void;
-  onChangeDuration: (chapterId: string, lessonId: string, value: string) => void;
-  onEndEditDuration: () => void;
   onToggleAccess: (chapterId: string, lessonId: string) => void;
   onOpenFilesModal: (lessonId: string) => void;
   onOpenDescriptionEditor: (lessonId: string) => void;
@@ -202,9 +205,7 @@ type LessonRowActions = {
 type SortableLessonRowProps = {
   chapterId: string;
   lesson: LessonModel;
-  isPaid: "free" | "paid";
   isEditingTitle: boolean;
-  isEditingDuration: boolean;
   isActiveTarget: boolean;
   lessonVideo?: { name: string; url: string };
   lessonUploadProgress?: number;
@@ -216,9 +217,7 @@ type SortableLessonRowProps = {
 function SortableLessonRow({
   chapterId,
   lesson,
-  isPaid,
   isEditingTitle,
-  isEditingDuration,
   isActiveTarget,
   lessonVideo,
   lessonUploadProgress,
@@ -229,6 +228,7 @@ function SortableLessonRow({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: lesson.id,
   });
+  const isOpen = lesson.access === "free";
 
   const style = {
     transform: isDragging ? undefined : CSS.Transform.toString(transform),
@@ -242,23 +242,25 @@ function SortableLessonRow({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center justify-between gap-2 p-1.5 rounded-lg text-[9px] font-bold border select-none ${
+      className={`group/lesson flex flex-col gap-2.5 rounded-xl border px-2.5 py-2.5 text-[9px] font-bold select-none transition-all sm:flex-row sm:flex-wrap sm:items-center sm:justify-between ${
         isDragging
           ? "opacity-0 border-primary/50 ring-2 ring-primary/25 bg-primary/5 shadow-lg"
           : isActiveTarget
             ? "border-dashed border-primary/40 ring-2 ring-primary/10 bg-primary/5"
-            : "bg-gray-50 dark:bg-white/5 border-transparent hover:border-gray-200/80 dark:hover:border-white/10"
+            : isOpen
+              ? "border-emerald-500/20 bg-gradient-to-l from-emerald-500/[0.06] to-transparent dark:from-emerald-500/[0.08] hover:border-emerald-500/30"
+              : "border-white/5 bg-[#14161c]/80 dark:bg-black/20 hover:border-white/10 hover:bg-[#171a22]"
       }`}
     >
-      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+      <div className="flex items-center gap-2 min-w-0 w-full sm:flex-1">
         <button
           type="button"
           aria-label="جابجایی ویدیو"
           title="جابجایی ویدیو"
-          className={`size-6 inline-flex items-center justify-center rounded-md border transition-all shrink-0 ${
+          className={`size-7 inline-flex items-center justify-center rounded-lg border transition-all shrink-0 ${
             isDragging
               ? "cursor-grabbing border-primary/40 bg-primary/10 text-primary"
-              : "cursor-grab active:cursor-grabbing border-gray-200/80 dark:border-white/10 bg-white/80 dark:bg-white/5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:border-primary/30"
+              : "cursor-grab active:cursor-grabbing border-white/10 bg-white/[0.04] text-gray-500 hover:text-gray-200 hover:border-primary/30"
           }`}
           style={{ touchAction: "none" }}
           {...attributes}
@@ -267,9 +269,18 @@ function SortableLessonRow({
           <GripVertical className="w-3.5 h-3.5" />
         </button>
 
-        <span className="material-symbols-outlined text-xs text-primary shrink-0">
-          {isPaid === "free" || lesson.access === "free" ? "play_circle" : "lock"}
-        </span>
+        <button
+          type="button"
+          onClick={() => actions.onToggleAccess(chapterId, lesson.id)}
+          title={isOpen ? "ویدیو باز است — کلیک برای قفل" : "ویدیو قفل است — کلیک برای باز کردن"}
+          className={`size-7 inline-flex items-center justify-center rounded-lg border transition-all shrink-0 cursor-pointer ${
+            isOpen
+              ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25"
+              : "border-amber-500/25 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"
+          }`}
+        >
+          {isOpen ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+        </button>
 
         {isEditingTitle ? (
           <input
@@ -281,63 +292,44 @@ function SortableLessonRow({
               if (e.key === "Enter") actions.onEndEditTitle(lesson.id);
             }}
             placeholder="عنوان جلسه"
-            className="h-7 min-w-[8rem] flex-1 px-2 rounded-md border border-blue-500/40 bg-white dark:bg-white/5 text-[9px] font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            className="h-8 min-w-0 flex-1 px-2.5 rounded-lg border border-primary/40 bg-white/5 text-[10px] font-black text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         ) : (
           <button
             type="button"
             onClick={() => actions.onStartEditTitle(lesson.id)}
-            className={`text-[9px] font-bold hover:text-primary transition-colors cursor-text truncate max-w-[13rem] text-right ${
-              lesson.title.trim() ? "" : "text-gray-400 dark:text-gray-500 italic"
+            className={`text-[10px] font-black hover:text-primary transition-colors cursor-text truncate min-w-0 flex-1 text-right ${
+              lesson.title.trim() ? "text-gray-800 dark:text-gray-100" : "text-gray-400 dark:text-gray-500 italic"
             }`}
             title={lesson.title.trim() || "ویرایش عنوان جلسه"}
           >
             {lesson.title.trim() || "عنوان جلسه"}
           </button>
         )}
+
+        <span
+          className={`shrink-0 inline-flex h-5 items-center rounded-md px-1.5 text-[8px] font-black tracking-wide ${
+            isOpen
+              ? "bg-emerald-500/15 text-emerald-400"
+              : "bg-amber-500/15 text-amber-400"
+          }`}
+        >
+          {isOpen ? "باز" : "قفل"}
+        </span>
       </div>
 
-      <div className="flex items-center gap-2 shrink-0">
-        {isPaid === "paid" && (
-          <button
-            type="button"
-            onClick={() => actions.onToggleAccess(chapterId, lesson.id)}
-            className={`h-6 px-2 inline-flex items-center justify-center rounded-md border text-[8px] font-black ${
-              lesson.access === "free"
-                ? "border-emerald-200/80 bg-emerald-50 text-emerald-600"
-                : "border-gray-200/80 bg-gray-50 text-gray-600"
-            }`}
-          >
-            {lesson.access === "free" ? "باز" : "قفل"}
-          </button>
-        )}
+      <div className="flex items-center gap-1.5 shrink-0 flex-wrap w-full sm:w-auto">
+        <span
+          dir="ltr"
+          title="مدت زمان از روی ویدیو محاسبه می‌شود"
+          className="h-7 px-2 inline-flex items-center rounded-lg border border-sky-500/20 bg-sky-500/10 text-[9px] font-semibold tabular-nums tracking-[0.08em] text-sky-300 select-none"
+        >
+          {lesson.duration}
+        </span>
 
-        {isEditingDuration ? (
-          <input
-            autoFocus
-            dir="ltr"
-            value={lesson.duration}
-            onChange={(e) => actions.onChangeDuration(chapterId, lesson.id, e.target.value)}
-            onBlur={actions.onEndEditDuration}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") actions.onEndEditDuration();
-            }}
-            className="h-6 w-16 px-1.5 rounded-md border border-blue-500/40 bg-white dark:bg-white/5 text-[8px] font-semibold tabular-nums tracking-[0.08em] text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => actions.onStartEditDuration(lesson.id)}
-            className="text-[8px] opacity-80 font-semibold tabular-nums tracking-[0.08em] text-gray-600 dark:text-gray-300 hover:text-primary transition-colors cursor-text"
-            title={lesson.duration}
-          >
-            {lesson.duration}
-          </button>
-        )}
-
-        <div className="inline-flex items-center gap-1 p-1 rounded-lg border border-emerald-200/70 dark:border-emerald-400/20 bg-emerald-50/50 dark:bg-emerald-500/10">
+        <div className="inline-flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1">
           {!lessonVideo && (
-            <label className="size-6 inline-flex items-center justify-center rounded-md border border-blue-200/80 dark:border-blue-400/20 bg-blue-50 dark:bg-blue-500/10 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all cursor-pointer overflow-hidden">
+            <label className="size-7 inline-flex items-center justify-center rounded-lg border border-sky-500/25 bg-sky-500/10 text-sky-400 hover:bg-sky-500/20 transition-all cursor-pointer overflow-hidden">
               <input
                 type="file"
                 accept="video/*"
@@ -359,14 +351,14 @@ function SortableLessonRow({
               <button
                 type="button"
                 onClick={() => actions.onOpenVideo(lessonVideo.url, lessonVideo.name || lesson.title)}
-                className="h-6 px-2 inline-flex items-center justify-center rounded-md border border-emerald-200/80 dark:border-emerald-400/20 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all text-[8px] font-black cursor-pointer"
+                className="h-7 px-2.5 inline-flex items-center justify-center rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-all text-[8px] font-black cursor-pointer"
               >
                 پیش‌نمایش
               </button>
               <button
                 type="button"
                 onClick={() => actions.onRequestDeleteVideo(lesson.id)}
-                className="size-6 inline-flex items-center justify-center rounded-md border border-red-200/80 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all cursor-pointer"
+                className="size-7 inline-flex items-center justify-center rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all cursor-pointer"
               >
                 <Trash2 className="w-3 h-3" />
               </button>
@@ -374,36 +366,34 @@ function SortableLessonRow({
           )}
         </div>
 
-        <div className="inline-flex items-center gap-1 p-1 rounded-lg border border-amber-200/70 dark:border-amber-400/20 bg-amber-50/40 dark:bg-amber-500/10">
+        <div className="inline-flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1">
           <button
             type="button"
             onClick={() => actions.onOpenFilesModal(lesson.id)}
-            className="h-6 px-2 inline-flex items-center justify-center rounded-md border border-amber-200/80 dark:border-amber-400/20 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-all text-[8px] font-black cursor-pointer"
+            className="h-7 px-2.5 inline-flex items-center justify-center rounded-lg border border-amber-500/25 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-all text-[8px] font-black cursor-pointer"
           >
             فایل ({lessonFileCount})
           </button>
           <button
             type="button"
             onClick={() => actions.onOpenDescriptionEditor(lesson.id)}
-            className={`h-6 px-2 inline-flex items-center justify-center rounded-md border transition-all text-[8px] font-black cursor-pointer ${
+            className={`h-7 px-2.5 inline-flex items-center justify-center rounded-lg border transition-all text-[8px] font-black cursor-pointer ${
               hasDescription
-                ? "border-indigo-200/80 dark:border-indigo-400/20 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/20"
-                : "border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10"
+                ? "border-indigo-500/25 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20"
+                : "border-white/10 bg-white/[0.03] text-gray-400 hover:bg-white/[0.06] hover:text-gray-200"
             }`}
           >
             توضیح
           </button>
         </div>
 
-        <div className="inline-flex items-center gap-1 p-1 rounded-lg border border-red-200/70 dark:border-red-400/20 bg-red-50/40 dark:bg-red-500/10">
-          <button
-            type="button"
-            onClick={() => actions.onRequestDeleteLesson(chapterId, lesson.id)}
-            className="size-6 inline-flex items-center justify-center rounded-md border border-red-200/80 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all cursor-pointer"
-          >
-            <X className="w-3 h-3" />
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => actions.onRequestDeleteLesson(chapterId, lesson.id)}
+          className="size-7 inline-flex items-center justify-center rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all cursor-pointer"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
       </div>
     </div>
   );
@@ -411,11 +401,9 @@ function SortableLessonRow({
 
 type ChapterLessonDropZoneProps = {
   chapter: ChapterModel;
-  isPaid: "free" | "paid";
   activeLessonId: string | null;
   lessonDropTargetId: string | null;
   editingLessonTitleId: string | null;
-  editingLessonDurationId: string | null;
   lessonUploadProgress: Record<string, number>;
   lessonVideoMap: Record<string, { name: string; url: string }>;
   lessonFileMap: Record<string, LessonAttachmentModel[]>;
@@ -425,11 +413,9 @@ type ChapterLessonDropZoneProps = {
 
 function ChapterLessonDropZone({
   chapter,
-  isPaid,
   activeLessonId,
   lessonDropTargetId,
   editingLessonTitleId,
-  editingLessonDurationId,
   lessonUploadProgress,
   lessonVideoMap,
   lessonFileMap,
@@ -442,19 +428,19 @@ function ChapterLessonDropZone({
     <SortableContext items={chapter.lessons.map((lesson) => lesson.id)} strategy={rectSortingStrategy}>
       <div
         ref={setNodeRef}
-        className={`space-y-1.5 pr-4 border-r border-gray-200/80 dark:border-white/10 min-h-10 rounded-xl transition-all ${
-          activeLessonId && isOver ? "bg-primary/5 border-primary/30" : ""
+        className={`space-y-2 min-h-12 rounded-2xl p-1 transition-all ${
+          activeLessonId && isOver ? "bg-primary/5 ring-1 ring-primary/25" : ""
         }`}
       >
         {chapter.lessons.length === 0 ? (
           <div
-            className={`rounded-md border border-dashed px-3 py-2 text-[8px] font-bold transition-all ${
+            className={`rounded-xl border border-dashed px-4 py-3.5 text-[10px] font-bold transition-all text-center ${
               activeLessonId && isOver
                 ? "border-primary/40 bg-primary/10 text-primary"
-                : "border-gray-200/80 dark:border-white/10 bg-white/40 dark:bg-white/5 text-gray-400"
+                : "border-white/10 bg-black/10 text-gray-500"
             }`}
           >
-            {activeLessonId ? "جلسه را برای قرارگیری در این فصل رها کنید." : "هنوز درسی به این فصل اضافه نشده است."}
+            {activeLessonId ? "جلسه را برای قرارگیری در این فصل رها کنید." : "هنوز ویدیویی به این سرفصل اضافه نشده است."}
           </div>
         ) : (
           chapter.lessons.map((lesson) => (
@@ -465,9 +451,7 @@ function ChapterLessonDropZone({
               <SortableLessonRow
                 chapterId={chapter.id}
                 lesson={lesson}
-                isPaid={isPaid}
                 isEditingTitle={editingLessonTitleId === lesson.id}
-                isEditingDuration={editingLessonDurationId === lesson.id}
                 isActiveTarget={lessonDropTargetId === lesson.id}
                 lessonVideo={lessonVideoMap[lesson.id]}
                 lessonUploadProgress={lessonUploadProgress[lesson.id]}
@@ -480,7 +464,7 @@ function ChapterLessonDropZone({
         )}
 
         {activeLessonId && isOver && chapter.lessons.length > 0 && (
-          <div className="rounded-md border border-dashed border-primary/30 bg-primary/5 px-3 py-2 text-[8px] font-black text-primary/80">
+          <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 px-3 py-2.5 text-[9px] font-black text-primary/80 text-center">
             رها کردن برای قرارگیری در انتهای این فصل
           </div>
         )}
@@ -491,24 +475,30 @@ function ChapterLessonDropZone({
 
 type LessonDragOverlayProps = {
   lesson?: LessonModel;
-  isPaid: "free" | "paid";
 };
 
-function LessonDragOverlay({ lesson, isPaid }: LessonDragOverlayProps) {
+function LessonDragOverlay({ lesson }: LessonDragOverlayProps) {
   if (!lesson) return null;
+  const isOpen = lesson.access === "free";
 
   return (
-    <div className="flex items-center justify-between gap-2 p-1.5 rounded-lg border border-primary/40 bg-[#1a1c23] shadow-[0_18px_40px_-20px_rgba(0,0,0,0.85)] text-[9px] font-bold w-[min(720px,calc(100vw-2rem))]">
-      <div className="flex items-center gap-1.5 min-w-0 flex-1">
-        <span className="size-6 inline-flex items-center justify-center rounded-md border border-primary/30 bg-primary/10 text-primary shrink-0">
+    <div className="flex items-center justify-between gap-2 rounded-xl border border-primary/40 bg-[#1a1c23] px-3 py-2.5 shadow-[0_18px_40px_-20px_rgba(0,0,0,0.85)] text-[9px] font-bold w-[min(720px,calc(100vw-2rem))]">
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <span className="size-7 inline-flex items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary shrink-0">
           <GripVertical className="w-3.5 h-3.5" />
         </span>
-        <span className="material-symbols-outlined text-xs text-primary shrink-0">
-          {isPaid === "free" || lesson.access === "free" ? "play_circle" : "lock"}
+        <span
+          className={`size-7 inline-flex items-center justify-center rounded-lg border shrink-0 ${
+            isOpen
+              ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-400"
+              : "border-amber-500/25 bg-amber-500/10 text-amber-400"
+          }`}
+        >
+          {isOpen ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
         </span>
         <span className="truncate text-white">{lesson.title}</span>
       </div>
-      <span className="text-[8px] font-semibold tabular-nums tracking-[0.08em] text-gray-300 shrink-0">{lesson.duration}</span>
+      <span className="text-[9px] font-semibold tabular-nums tracking-[0.08em] text-gray-300 shrink-0">{lesson.duration}</span>
     </div>
   );
 }
@@ -520,6 +510,34 @@ function clampWizardStep(value: number) {
 
 function readWizardStepFromParams(searchParams: Pick<URLSearchParams, "get">, fallback = 1) {
   return clampWizardStep(Number(searchParams.get("step") ?? String(fallback)));
+}
+
+/** Stable snapshot of wizard fields used to skip unnecessary draft POSTs. */
+function buildWizardDirtySnapshot(
+  form: WizardFormData,
+  lessonDescriptionMap: Record<string, string>,
+  lessonFileMap: Record<string, LessonAttachmentModel[]>
+) {
+  return JSON.stringify({
+    title: form.title,
+    category: form.category,
+    level: form.level,
+    language: form.language,
+    duration: form.duration,
+    price: form.price,
+    isPaid: form.isPaid,
+    cover: form.cover,
+    introVideo: form.introVideo,
+    shortDescription: form.shortDescription,
+    heroTitle: form.heroTitle,
+    specialWords: form.specialWords,
+    aboutTitle: form.aboutTitle,
+    aboutDescription: form.aboutDescription,
+    aboutHighlights: form.aboutHighlights,
+    features: form.features,
+    chapters: buildChaptersWithLessonMeta(form.chapters, lessonDescriptionMap, lessonFileMap),
+    faqs: form.faqs,
+  });
 }
 
 function normalizeCategoryForUi(category: unknown) {
@@ -601,12 +619,14 @@ const WIZARD_DROPZONE_CLASS =
 export default function CreateCourseWizardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const draftCourseId = searchParams.get("draftCourseId");
   const { addCourse, profile, updateCourse, showToast } = useInstructorData();
   const loadedDraftIdRef = useRef<string | null>(null);
   const userChangedStepRef = useRef(false);
   const userEditedFormRef = useRef(false);
   const heroTitleTouchedRef = useRef(false);
+  const lastSavedSnapshotRef = useRef<string | null>(null);
   const markFormEdited = () => {
     userEditedFormRef.current = true;
   };
@@ -689,6 +709,7 @@ export default function CreateCourseWizardPage() {
       loadedDraftIdRef.current = null;
       userChangedStepRef.current = false;
       userEditedFormRef.current = false;
+      lastSavedSnapshotRef.current = null;
       setMaxReachedStep(1);
       return;
     }
@@ -711,7 +732,8 @@ export default function CreateCourseWizardPage() {
         const draftStep = clampWizardStep(Number(data.draftStep ?? requestedStep));
         setMaxReachedStep((prev) => Math.max(prev, draftStep, requestedStep));
         if (!userChangedStepRef.current) {
-          setStep(requestedStep);
+          setStep(draftStep);
+          syncStepToUrl(draftStep, draftCourseId);
         }
         if (!userEditedFormRef.current && draftData) {
           const mergedCover = normalizeCoverForUi(
@@ -726,15 +748,6 @@ export default function CreateCourseWizardPage() {
           if (mergedIntroVideo) {
             setVideoFile(null);
           }
-          setFormData((prev) =>
-            mergeDraftIntoWizardForm(prev, draftData, {
-              category: data.category,
-              level: data.level,
-              cover: data.cover,
-              thumbnail: data.thumbnail,
-              introVideo: data.introVideo,
-            })
-          );
           const restoredLessonVideos: Record<string, { name: string; url: string }> = {};
           const restoredDescriptions: Record<string, string> = {};
           const restoredLessonFiles: Record<string, LessonAttachmentModel[]> = {};
@@ -771,6 +784,21 @@ export default function CreateCourseWizardPage() {
               }
             }
           }
+          setFormData((prev) => {
+            const merged = mergeDraftIntoWizardForm(prev, draftData, {
+              category: data.category,
+              level: data.level,
+              cover: data.cover,
+              thumbnail: data.thumbnail,
+              introVideo: data.introVideo,
+            });
+            lastSavedSnapshotRef.current = buildWizardDirtySnapshot(
+              merged,
+              restoredDescriptions,
+              restoredLessonFiles
+            );
+            return merged;
+          });
           if (Object.keys(restoredLessonVideos).length > 0) {
             setLessonVideoMap(restoredLessonVideos);
           }
@@ -780,6 +808,9 @@ export default function CreateCourseWizardPage() {
           if (Object.keys(restoredLessonFiles).length > 0) {
             setLessonFileMap(restoredLessonFiles);
           }
+        } else if (!userEditedFormRef.current) {
+          // Draft row exists but has empty draftData — treat current empty form as clean baseline.
+          lastSavedSnapshotRef.current = null;
         }
       })
       .catch(() => {
@@ -816,7 +847,6 @@ export default function CreateCourseWizardPage() {
   // Custom Lesson Editor Input
   const [selectedChapIdForLesson, setSelectedChapIdForLesson] = useState("");
   const [lesTitle, setLesTitle] = useState("");
-  const [lesDuration, setLesDuration] = useState("15:00");
   const [lesType, setLesType] = useState("video");
   const [lesAccess, setLesAccess] = useState("locked");
   const [editingLesId, setEditingLesId] = useState<string | null>(null);
@@ -827,7 +857,6 @@ export default function CreateCourseWizardPage() {
   const [editingFaqQuestionId, setEditingFaqQuestionId] = useState<string | null>(null);
   const [editingFaqAnswerId, setEditingFaqAnswerId] = useState<string | null>(null);
   const [editingLessonTitleId, setEditingLessonTitleId] = useState<string | null>(null);
-  const [editingLessonDurationId, setEditingLessonDurationId] = useState<string | null>(null);
   const [editingChapterTitleId, setEditingChapterTitleId] = useState<string | null>(null);
   const [lessonUploadProgress, setLessonUploadProgress] = useState<Record<string, number>>({});
   const [lessonVideoMap, setLessonVideoMap] = useState<Record<string, { name: string; url: string }>>({});
@@ -851,6 +880,8 @@ export default function CreateCourseWizardPage() {
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
   const [lessonDropTargetId, setLessonDropTargetId] = useState<string | null>(null);
   const [collapsedChapters, setCollapsedChapters] = useState<Record<string, boolean>>({});
+  /** Independent collapse state for the live curriculum preview panel. */
+  const [previewCollapsedChapters, setPreviewCollapsedChapters] = useState<Record<string, boolean>>({});
   const [draggedFaqId, setDraggedFaqId] = useState<string | null>(null);
   const [dragOverFaqId, setDragOverFaqId] = useState<string | null>(null);
   const [lessonFilesError, setLessonFilesError] = useState("");
@@ -912,17 +943,6 @@ export default function CreateCourseWizardPage() {
     setFormData((p) => ({
       ...p,
       price: withoutLeadingZeros ? Number(withoutLeadingZeros) : 0,
-    }));
-  };
-
-  const normalizeLessonsForPricing = (isPaid: string) => {
-    if (isPaid !== "free") return;
-    setFormData((prev) => ({
-      ...prev,
-      chapters: prev.chapters.map((chapter) => ({
-        ...chapter,
-        lessons: chapter.lessons.map((lesson) => ({ ...lesson, access: "free" })),
-      })),
     }));
   };
 
@@ -1355,9 +1375,9 @@ export default function CreateCourseWizardPage() {
     const newLes: LessonModel = {
       id: `les-${Math.random().toString(36).substr(2, 9)}`,
       title: "جلسه جدید",
-      duration: "15:00",
+      duration: "00:00",
       type: "video",
-      access: formData.isPaid === "free" ? "free" : "locked",
+      access: "locked",
     };
     setFormData((prev) => ({
       ...prev,
@@ -1526,9 +1546,8 @@ export default function CreateCourseWizardPage() {
               ? {
                   ...l,
                   title: lesTitle,
-                  duration: lesDuration,
                   type: lesType,
-                  access: (formData.isPaid === "free" ? "free" : lesAccess) as "free" | "locked",
+                  access: (lesAccess === "free" ? "free" : "locked") as "free" | "locked",
                 }
               : l
           )
@@ -1539,9 +1558,9 @@ export default function CreateCourseWizardPage() {
       const newLes: LessonModel = {
         id: `les-${Math.random().toString(36).substr(2, 9)}`,
         title: lesTitle,
-        duration: lesDuration,
+        duration: "00:00",
         type: lesType,
-        access: (formData.isPaid === "free" ? "free" : lesAccess) as "free" | "locked"
+        access: "locked",
       };
       setFormData(prev => ({
         ...prev,
@@ -1551,7 +1570,6 @@ export default function CreateCourseWizardPage() {
       }));
     }
     setLesTitle("");
-    setLesDuration("15:00");
   };
 
   const deleteLesson = (chapId: string, lesId: string) => {
@@ -1604,7 +1622,6 @@ export default function CreateCourseWizardPage() {
   const editLesson = (chapId: string, les: LessonModel) => {
     setSelectedChapIdForLesson(chapId);
     setLesTitle(les.title);
-    setLesDuration(les.duration);
     setLesType(les.type);
     setLesAccess(les.access);
     setEditingLesId(les.id);
@@ -1621,19 +1638,8 @@ export default function CreateCourseWizardPage() {
     }));
   };
 
-  const updateLessonDurationInline = (chapId: string, lesId: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      chapters: prev.chapters.map((c) =>
-        c.id === chapId
-          ? { ...c, lessons: c.lessons.map((l) => (l.id === lesId ? { ...l, duration: value } : l)) }
-          : c
-      ),
-    }));
-  };
-
   const toggleLessonAccess = (chapId: string, lesId: string) => {
-    if (formData.isPaid === "free") return;
+    markFormEdited();
     setFormData((prev) => ({
       ...prev,
       chapters: prev.chapters.map((chapter) =>
@@ -1651,6 +1657,25 @@ export default function CreateCourseWizardPage() {
     }));
   };
 
+  /** Lock or unlock every lesson in a chapter in one action. */
+  const toggleChapterAccess = (chapId: string) => {
+    markFormEdited();
+    setFormData((prev) => ({
+      ...prev,
+      chapters: prev.chapters.map((chapter) => {
+        if (chapter.id !== chapId) return chapter;
+        const allLocked =
+          chapter.lessons.length === 0 ||
+          chapter.lessons.every((lesson) => lesson.access === "locked");
+        const nextAccess: "free" | "locked" = allLocked ? "free" : "locked";
+        return {
+          ...chapter,
+          lessons: chapter.lessons.map((lesson) => ({ ...lesson, access: nextAccess })),
+        };
+      }),
+    }));
+  };
+
   const handleLessonVideoUpload = async (lessonId: string, file?: File) => {
     if (!file) return;
 
@@ -1665,6 +1690,24 @@ export default function CreateCourseWizardPage() {
       return { ...prev, [lessonId]: { name: file.name, url: previewUrl } };
     });
     applyLessonVideoUrl(lessonId, previewUrl, file.name);
+
+    void (async () => {
+      try {
+        const seconds = await readVideoDurationFromFile(file);
+        const durationLabel = formatVideoDuration(seconds);
+        setFormData((prev) => ({
+          ...prev,
+          chapters: prev.chapters.map((chapter) => ({
+            ...chapter,
+            lessons: chapter.lessons.map((lesson) =>
+              lesson.id === lessonId ? { ...lesson, duration: durationLabel } : lesson
+            ),
+          })),
+        }));
+      } catch {
+        // Keep previous duration if metadata cannot be read.
+      }
+    })();
 
     if (createdCourseId) {
       try {
@@ -1717,9 +1760,6 @@ export default function CreateCourseWizardPage() {
     onStartEditTitle: (lessonId) => setEditingLessonTitleId(lessonId),
     onChangeTitle: updateLessonTitleInline,
     onEndEditTitle: endEditLessonTitle,
-    onStartEditDuration: (lessonId) => setEditingLessonDurationId(lessonId),
-    onChangeDuration: updateLessonDurationInline,
-    onEndEditDuration: () => setEditingLessonDurationId(null),
     onToggleAccess: toggleLessonAccess,
     onOpenFilesModal: (lessonId) => setLessonFilesModal({ open: true, lessonId }),
     onOpenDescriptionEditor: (lessonId) =>
@@ -1931,10 +1971,54 @@ export default function CreateCourseWizardPage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const hasPendingWizardMedia = () => {
+    if (videoFile && (!formData.introVideo || formData.introVideo.startsWith("blob:"))) {
+      return true;
+    }
+    if (Object.keys(lessonVideoFilesRef.current).length > 0) return true;
+    return Object.values(lessonAttachmentFilesRef.current).some(
+      (filesById) => Object.keys(filesById).length > 0
+    );
+  };
+
+  const captureWizardSnapshot = (
+    form = formData,
+    descriptions = lessonDescriptionMap,
+    files = lessonFileMap
+  ) => buildWizardDirtySnapshot(form, descriptions, files);
+
+  const isWizardDirty = () => {
+    if (lastSavedSnapshotRef.current === null) return true;
+    if (hasPendingWizardMedia()) return true;
+    return captureWizardSnapshot() !== lastSavedSnapshotRef.current;
+  };
+
+  const syncCourseDraftStepInCache = (courseId: string, draftStep: number) => {
+    queryClient.setQueryData<InstructorCourseRow[]>(instructorCoursesQueryKey, (prev) => {
+      if (!prev) return prev;
+      return prev.map((course) =>
+        course.id === courseId ? { ...course, draftStep } : course
+      );
+    });
+    void queryClient.invalidateQueries({ queryKey: instructorCoursesQueryKey });
+  };
+
+  const persistDraftStepOnly = async (courseId: string, nextStep: number) => {
+    await apiPatchNoMock(
+      `/api/instructor-dashboard/courses/${encodeURIComponent(courseId)}/draft`,
+      { step: nextStep }
+    );
+    updateCourse(courseId, { draftStep: nextStep });
+    syncCourseDraftStepInCache(courseId, nextStep);
+  };
+
   // Navigation handlers
-  const persistCourseDraft = async (currentStep = step): Promise<string | null> => {
+  const persistCourseDraft = async (
+    currentStep = step,
+    options?: { silent?: boolean; formOverrides?: Partial<WizardFormData> }
+  ): Promise<string | null> => {
     const existingCourseId = createdCourseId ?? draftCourseId;
-    let mediaOverrides: Partial<WizardFormData> = {};
+    let mediaOverrides: Partial<WizardFormData> = { ...options?.formOverrides };
     const initialResponse = await apiPostNoMock<unknown>(
       "/api/instructor-dashboard/courses/drafts",
       buildCourseDraftPayload(currentStep, mediaOverrides, existingCourseId)
@@ -1947,15 +2031,41 @@ export default function CreateCourseWizardPage() {
 
     setCreatedCourseId(courseId);
 
-    mediaOverrides = await uploadPendingCourseMedia(courseId);
-    if (Object.keys(mediaOverrides).length > 0) {
+    const uploadedMedia = await uploadPendingCourseMedia(courseId);
+    if (Object.keys(uploadedMedia).length > 0) {
+      mediaOverrides = {
+        ...options?.formOverrides,
+        ...uploadedMedia,
+      };
       await apiPostNoMock<unknown>(
         "/api/instructor-dashboard/courses/drafts",
         buildCourseDraftPayload(currentStep, mediaOverrides, courseId)
       );
+      if (uploadedMedia.introVideo) {
+        setFormData((prev) => ({ ...prev, introVideo: uploadedMedia.introVideo as string }));
+      }
+      if (uploadedMedia.chapters) {
+        setFormData((prev) => ({ ...prev, chapters: uploadedMedia.chapters as ChapterModel[] }));
+      }
+      setVideoFile(null);
+    }
+
+    if (options?.formOverrides?.heroTitle) {
+      setFormData((prev) => ({
+        ...prev,
+        heroTitle: options.formOverrides?.heroTitle as string,
+      }));
     }
 
     const payload = buildStep1CoursePayload();
+    const nextFormForSnapshot = {
+      ...formData,
+      ...options?.formOverrides,
+      ...(uploadedMedia.introVideo ? { introVideo: uploadedMedia.introVideo } : {}),
+      ...(uploadedMedia.chapters ? { chapters: uploadedMedia.chapters as ChapterModel[] } : {}),
+    };
+    lastSavedSnapshotRef.current = captureWizardSnapshot(nextFormForSnapshot);
+    userEditedFormRef.current = false;
 
     if (courseId) {
       setCreatedCourseId(courseId);
@@ -1980,7 +2090,9 @@ export default function CreateCourseWizardPage() {
         faqs: formData.faqs,
         specialWords: formData.specialWords,
         cover: formData.cover,
+        draftStep: currentStep,
       });
+      syncCourseDraftStepInCache(courseId, currentStep);
     } else {
       const localCourseId = addCourse({
         title: formData.title,
@@ -1995,25 +2107,50 @@ export default function CreateCourseWizardPage() {
         cover: formData.cover,
       });
       setCreatedCourseId(localCourseId);
-      showToast("پیش‌نویس دوره ذخیره شد.", "success");
+      if (!options?.silent) {
+        showToast("پیش‌نویس دوره ذخیره شد.", "success");
+      }
       return localCourseId;
     }
 
-    showToast("پیش‌نویس دوره ذخیره شد.", "success");
+    if (!options?.silent) {
+      showToast("پیش‌نویس دوره ذخیره شد.", "success");
+    }
     return courseId;
   };
 
   const handleNext = async () => {
     if (!validateStep(step)) return;
 
+    const nextStep = clampWizardStep(step + 1);
+    const existingCourseId = createdCourseId ?? draftCourseId;
+    const heroTitlePrefill =
+      step === 1 && !heroTitleTouchedRef.current && !formData.heroTitle.trim() && formData.title.trim()
+        ? formData.title
+        : null;
+    const formOverrides = heroTitlePrefill ? { heroTitle: heroTitlePrefill } : undefined;
+
+    if (heroTitlePrefill) {
+      setFormData((prev) => ({ ...prev, heroTitle: heroTitlePrefill }));
+    }
+
+    const dirty =
+      Boolean(formOverrides) ||
+      isWizardDirty();
+
     try {
       setIsSavingStep1(true);
-      const savedCourseId = await persistCourseDraft(step);
-      if (!savedCourseId) return;
-      if (step === 1 && !heroTitleTouchedRef.current && !formData.heroTitle.trim()) {
-        setFormData((prev) => ({ ...prev, heroTitle: prev.title }));
+
+      let savedCourseId = existingCourseId;
+
+      if (dirty || !existingCourseId) {
+        // Persist form data and set resume position to the *next* step so leaving
+        // mid-wizard reopens on the step they advanced into.
+        savedCourseId = await persistCourseDraft(nextStep, { formOverrides });
+        if (!savedCourseId) return;
       }
-      const nextStep = step + 1;
+      // No field changes → skip draft payload POST; just advance the wizard UI.
+
       setMaxReachedStep((prev) => Math.max(prev, nextStep));
       goToStep(nextStep, true, savedCourseId);
     } catch (error) {
@@ -2085,22 +2222,36 @@ export default function CreateCourseWizardPage() {
 
     try {
       setIsSavingStep1(true);
-      const initialResponse = await apiPostNoMock<unknown>(
-        "/api/instructor-dashboard/courses/drafts",
-        buildCourseDraftPayload(5, undefined, createdCourseId ?? draftCourseId)
-      );
-      const courseId = extractCourseId(initialResponse) || createdCourseId || draftCourseId;
+      let courseId = createdCourseId ?? draftCourseId ?? null;
+      const dirty = isWizardDirty();
+
+      if (dirty || !courseId || hasPendingWizardMedia()) {
+        const initialResponse = await apiPostNoMock<unknown>(
+          "/api/instructor-dashboard/courses/drafts",
+          buildCourseDraftPayload(5, undefined, courseId)
+        );
+        courseId = extractCourseId(initialResponse) || courseId;
+        if (!courseId) {
+          throw new Error("شناسه دوره از سرور دریافت نشد.");
+        }
+        setCreatedCourseId(courseId);
+
+        const mediaOverrides = await uploadPendingCourseMedia(courseId);
+        if (Object.keys(mediaOverrides).length > 0) {
+          await apiPostNoMock<unknown>(
+            "/api/instructor-dashboard/courses/drafts",
+            buildCourseDraftPayload(5, mediaOverrides, courseId)
+          );
+        }
+        lastSavedSnapshotRef.current = captureWizardSnapshot();
+        userEditedFormRef.current = false;
+      } else if (courseId) {
+        // Ensure final resume step is 5 without re-sending unchanged draft payload.
+        await persistDraftStepOnly(courseId, 5);
+      }
+
       if (!courseId) {
         throw new Error("شناسه دوره از سرور دریافت نشد.");
-      }
-      setCreatedCourseId(courseId);
-
-      const mediaOverrides = await uploadPendingCourseMedia(courseId);
-      if (Object.keys(mediaOverrides).length > 0) {
-        await apiPostNoMock<unknown>(
-          "/api/instructor-dashboard/courses/drafts",
-          buildCourseDraftPayload(5, mediaOverrides, courseId)
-        );
       }
 
       if (status === "pending" || status === "published") {
@@ -2113,7 +2264,7 @@ export default function CreateCourseWizardPage() {
             ? ((publishResponse as { data?: Record<string, unknown> }).data ?? {})
             : {};
         const nextStatus = publishedRecord.status === "published" ? "published" : "pending";
-        updateCourse(courseId, { ...finalCoursePayload, status: nextStatus });
+        updateCourse(courseId, { ...finalCoursePayload, status: nextStatus, draftStep: 5 });
         showToast(
           nextStatus === "published"
             ? "دوره با موفقیت منتشر شد."
@@ -2121,11 +2272,12 @@ export default function CreateCourseWizardPage() {
           "success"
         );
       } else {
-        updateCourse(courseId, { ...finalCoursePayload, status: "draft" });
+        updateCourse(courseId, { ...finalCoursePayload, status: "draft", draftStep: 5 });
         showToast("دوره به عنوان پیش‌نویس ذخیره شد.", "success");
       }
 
       setCreatedCourseId(courseId);
+      syncCourseDraftStepInCache(courseId, 5);
       router.push("/instructor/courses");
     } catch (error) {
       console.error("Failed to submit course wizard", error);
@@ -2139,17 +2291,19 @@ export default function CreateCourseWizardPage() {
   const totalLessonsCount = formData.chapters.reduce((sum, ch) => sum + ch.lessons.length, 0);
 
   return (
-    <div className="max-w-[1440px] mx-auto px-4 lg:px-8 py-10 text-right min-h-screen" dir="rtl">
+    <div className="max-w-[1440px] mx-auto px-3 sm:px-4 lg:px-8 py-6 sm:py-10 text-right min-h-screen overflow-x-hidden" dir="rtl">
       
       {/* 1. Page Header */}
-      <div className="relative w-full rounded-[2rem] overflow-hidden bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-xl mb-10 p-6 md:p-8">
-        <div className="flex flex-col sm:flex-row items-center gap-6">
-          <div className="relative w-16 h-16 rounded-2xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary shrink-0">
-            <GraduationCap className="w-8 h-8" />
+      <div className="relative w-full rounded-2xl sm:rounded-[2rem] overflow-hidden bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-xl mb-6 sm:mb-10 p-4 sm:p-6 md:p-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
+          <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary shrink-0">
+            <GraduationCap className="w-6 h-6 sm:w-8 sm:h-8" />
           </div>
-          <div>
-            <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-2">استودیوی پیشرفته ایجاد دوره جدید</h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400 font-bold leading-relaxed">
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white mb-1 sm:mb-2 leading-snug">
+              استودیوی پیشرفته ایجاد دوره جدید
+            </h1>
+            <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 font-bold leading-relaxed">
               ساده، گام‌به‌گام و مجهز به پیش‌نمایش زنده و کاملاً هماهنگ با صفحه نهایی و واقعی دوره.
             </p>
           </div>
@@ -2157,10 +2311,33 @@ export default function CreateCourseWizardPage() {
       </div>
 
       {/* 2. Stepper Area */}
-      <div className="bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-lg rounded-[2rem] p-6 mb-10">
-        <div className="relative flex items-start justify-between overflow-x-auto sm:overflow-visible pt-2 pb-4 sm:pb-0 scrollbar-none gap-6">
+      <div className="bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-lg rounded-2xl sm:rounded-[2rem] p-4 sm:p-6 mb-6 sm:mb-10">
+        {/* Mobile: compact current-step banner */}
+        <div className="mb-4 flex items-center justify-between gap-3 sm:hidden">
+          <div className="min-w-0 text-right">
+            <p className="text-[10px] font-bold text-gray-500">
+              مرحله {step.toLocaleString("fa-IR")} از ۵
+            </p>
+            <p className="text-xs font-black text-gray-900 dark:text-white truncate">
+              {
+                [
+                  "اطلاعات کارت دوره",
+                  "معرفی و هیرو دوره",
+                  "جزئیات و محتوای دوره",
+                  "ویدیوها و جلسات",
+                  "بررسی نهایی",
+                ][step - 1]
+              }
+            </p>
+          </div>
+          <span className="shrink-0 rounded-full bg-primary/15 px-2.5 py-1 text-[10px] font-black text-primary">
+            {Math.round(((step - 1) / 4) * 100)}٪
+          </span>
+        </div>
+
+        <div className="relative flex items-start justify-between overflow-x-auto sm:overflow-visible pt-1 sm:pt-2 pb-2 sm:pb-0 scrollbar-none gap-3 sm:gap-6 -mx-1 px-1">
           {/* Connector Line behind steps */}
-          <div className="absolute left-6 right-6 top-8 -translate-y-1/2 h-[3px] bg-gray-100 dark:bg-white/10 z-0">
+          <div className="absolute left-4 right-4 sm:left-6 sm:right-6 top-6 sm:top-8 -translate-y-1/2 h-[2px] sm:h-[3px] bg-gray-100 dark:bg-white/10 z-0">
             {/* Active Connector Progress */}
             <div 
               className="absolute right-0 top-0 h-full bg-primary transition-all duration-500"
@@ -2171,11 +2348,11 @@ export default function CreateCourseWizardPage() {
           </div>
 
           {[
-            { stepNum: 1, label: "اطلاعات کارت دوره", desc: "تصویر، قیمت و مشخصات" },
-            { stepNum: 2, label: "معرفی و هیرو دوره", desc: "ویدیو، شعار و کلمات ویژه" },
-            { stepNum: 3, label: "جزئیات و محتوای دوره", desc: "ویژگی‌ها، توضیحات و سوالات" },
-            { stepNum: 4, label: "ویدیوها و جلسات", desc: "مدیریت سرفصل و فایل‌ها" },
-            { stepNum: 5, label: "بررسی نهایی", desc: "پیش‌نمایش کلی و انتشار" },
+            { stepNum: 1, label: "اطلاعات کارت دوره", shortLabel: "کارت", desc: "تصویر، قیمت و مشخصات" },
+            { stepNum: 2, label: "معرفی و هیرو دوره", shortLabel: "هیرو", desc: "ویدیو، شعار و کلمات ویژه" },
+            { stepNum: 3, label: "جزئیات و محتوای دوره", shortLabel: "جزئیات", desc: "ویژگی‌ها، توضیحات و سوالات" },
+            { stepNum: 4, label: "ویدیوها و جلسات", shortLabel: "ویدیو", desc: "مدیریت سرفصل و فایل‌ها" },
+            { stepNum: 5, label: "بررسی نهایی", shortLabel: "نهایی", desc: "پیش‌نمایش کلی و انتشار" },
           ].map((item) => {
             const isActive = step === item.stepNum;
             const isReachable = item.stepNum <= maxReachedStep;
@@ -2189,33 +2366,34 @@ export default function CreateCourseWizardPage() {
                 goToStep(item.stepNum, true);
               }}
               disabled={!isReachable}
-              className="relative z-10 flex flex-col items-center gap-2.5 cursor-pointer focus:outline-none disabled:cursor-not-allowed group shrink-0"
+              className="relative z-10 flex flex-col items-center gap-1.5 sm:gap-2.5 cursor-pointer focus:outline-none disabled:cursor-not-allowed group shrink-0 min-w-[3.25rem] sm:min-w-0"
             >
               <div
-                className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm transition-all duration-300 ${
+                className={`w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center font-black text-xs sm:text-sm transition-all duration-300 ${
                   isActive
-                    ? "bg-primary text-background-dark shadow-[0_0_20px_rgba(34,197,94,0.4)] scale-110 z-20"
+                    ? "bg-primary text-background-dark shadow-[0_0_20px_rgba(34,197,94,0.4)] scale-105 sm:scale-110 z-20"
                     : isVisited
                     ? "bg-[#e6fbf0] dark:bg-[#132d21] text-primary border border-primary/20 z-10"
                     : "bg-gray-100 dark:bg-[#252833] text-gray-400 dark:text-gray-600 border border-transparent z-10"
                 }`}
               >
-                {isVisited ? <Check className="w-5 h-5" /> : item.stepNum}
+                {isVisited ? <Check className="w-4 h-4 sm:w-5 sm:h-5" /> : item.stepNum}
               </div>
-              <div className="text-center max-w-[120px]">
+              <div className="text-center max-w-[72px] sm:max-w-[120px]">
                 <span
-                  className={`text-xs block transition-all duration-300 ${
+                  className={`text-[9px] sm:text-xs block transition-all duration-300 leading-tight ${
                     isActive
-                      ? "text-primary font-black scale-105 origin-top"
+                      ? "text-primary font-black"
                       : isVisited
                       ? "text-gray-800 dark:text-gray-200 font-bold"
                       : "text-gray-400 dark:text-gray-600 font-medium"
                   }`}
                 >
-                  {item.label}
+                  <span className="sm:hidden">{item.shortLabel}</span>
+                  <span className="hidden sm:inline">{item.label}</span>
                 </span>
                 <span 
-                  className={`text-[9px] font-bold block mt-1 transition-all duration-300 ${
+                  className={`hidden sm:block text-[9px] font-bold mt-1 transition-all duration-300 ${
                     isActive
                       ? "text-primary/70 dark:text-primary/60 font-black"
                       : isVisited
@@ -2243,7 +2421,7 @@ export default function CreateCourseWizardPage() {
         
         {/* --- RIGHT SIDE: FORM COMPONENT (7 cols on large screens) --- */}
         <div
-          className={`w-full bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-xl rounded-[2.5rem] p-5 md:p-6 lg:p-7 min-h-[520px] flex flex-col justify-between ${
+          className={`w-full bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-xl rounded-2xl sm:rounded-[2.5rem] p-4 sm:p-5 md:p-6 lg:p-7 min-h-0 sm:min-h-[520px] flex flex-col justify-between ${
             step === 1 ? "lg:col-span-6 lg:order-1" : ""
           }`}
         >
@@ -2326,7 +2504,6 @@ export default function CreateCourseWizardPage() {
                       type="button"
                       onClick={() => {
                         setFormData((p) => ({ ...p, isPaid: "free" }));
-                        normalizeLessonsForPricing("free");
                       }}
                       className={`p-3 rounded-xl border text-xs font-black transition-all cursor-pointer ${
                         formData.isPaid === "free"
@@ -2622,7 +2799,7 @@ export default function CreateCourseWizardPage() {
                           <button
                             type="button"
                             onClick={clearIntroVideo}
-                            className="rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-[10px] font-bold text-red-500 transition-colors hover:bg-red-100 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
+                            className="rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-[10px] font-bold text-red-500 transition-colors hover:bg-red-100 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400 cursor-pointer"
                           >
                             حذف
                           </button>
@@ -2944,36 +3121,44 @@ export default function CreateCourseWizardPage() {
 
             {/* STEP 4: LESSONS & CHAPTER CURRICULUM EDITOR */}
             {step === 4 && (
-              <div className="space-y-6">
+              <div className="space-y-5 sm:space-y-6">
                 <div>
-                  <h2 className="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
-                    <span className="w-2 h-6 bg-primary rounded-full" />
-                    مرحله چهارم: مدیریت ویدیوها و جلسات
+                  <h2 className="text-base sm:text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
+                    <span className="w-2 h-5 sm:h-6 bg-primary rounded-full shrink-0" />
+                    <span className="leading-snug">مرحله چهارم: مدیریت ویدیوها و جلسات</span>
                   </h2>
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold mt-1">
-                    در این مرحله سرفصل‌ها، ویدیوهای هر جلسه، فایل‌های ضمیمه و دسترسی باز/قفل را مدیریت کنید.
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold mt-1.5 leading-relaxed">
+                    با آپلود ویدیو، مدت زمان هر جلسه به‌صورت خودکار از فایل محاسبه می‌شود و قابل ویرایش نیست.
                   </p>
                 </div>
 
-                <div className="p-5 md:p-6 bg-gradient-to-b from-gray-50/50 to-gray-50/20 dark:from-white/[0.07] dark:to-white/[0.03] rounded-3xl border border-gray-200/70 dark:border-white/10 space-y-5 shadow-[0_10px_30px_-20px_rgba(0,0,0,0.5)]">
-                  <span className="text-sm font-black text-gray-900 dark:text-white block border-b border-gray-200/70 dark:border-white/10 pb-3">سرفصل‌ها و جلسات درسی</span>
+                <div className="p-3.5 sm:p-5 md:p-6 bg-gradient-to-b from-[#15171e] via-[#12141a] to-[#101218] rounded-2xl sm:rounded-[1.75rem] border border-white/[0.08] space-y-4 sm:space-y-5 shadow-[0_20px_50px_-28px_rgba(0,0,0,0.85)]">
+                  <div className="flex flex-col gap-1 border-b border-white/[0.06] pb-3 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <span className="text-sm font-black text-white block">سرفصل‌ها و جلسات درسی</span>
+                      <p className="text-[10px] text-gray-500 font-bold mt-1 leading-relaxed">
+                        هر ویدیو پیش‌فرض قفل است. مدت زمان بعد از آپلود خودکار پر می‌شود.
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-bold text-gray-500">{formData.chapters.length} سرفصل</span>
+                  </div>
                   {errors.chapters && <span className="text-[10px] text-red-500 font-bold block">{errors.chapters}</span>}
                   
-                  <div className="flex justify-end">
+                  <div className="flex justify-stretch sm:justify-end">
                     <button
                       type="button"
                       onClick={addChapterInline}
-                      className="h-11 px-4 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded-xl text-xs font-black transition-all inline-flex items-center gap-1.5 cursor-pointer"
+                      className="h-11 w-full sm:w-auto px-4 bg-primary text-white rounded-xl text-xs font-black transition-all inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-primary/25 hover:bg-primary/90"
                     >
                       <Plus className="w-4 h-4" />
                       افزودن سرفصل جدید
                     </button>
                   </div>
 
-                  <div className="rounded-2xl bg-white/80 dark:bg-[#171a22] border border-gray-200/70 dark:border-white/10 p-3 md:p-4">
-                    <div className="flex items-center justify-between border-b border-gray-200/70 dark:border-white/10 pb-2.5 mb-3">
-                      <span className="text-xs font-black text-gray-900 dark:text-white">لیست فصل‌ها و جلسات</span>
-                      <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">{formData.chapters.length} فصل</span>
+                  <div className="rounded-2xl bg-black/20 border border-white/[0.06] p-2.5 sm:p-3 md:p-4">
+                    <div className="flex items-center justify-between border-b border-white/[0.06] pb-2.5 mb-3 gap-2">
+                      <span className="text-xs font-black text-white">لیست فصل‌ها و جلسات</span>
+                      <span className="text-[10px] font-bold text-gray-500 shrink-0">{formData.chapters.length} فصل</span>
                     </div>
                     <DndContext
                       sensors={lessonDragSensors}
@@ -2983,14 +3168,19 @@ export default function CreateCourseWizardPage() {
                       onDragEnd={handleLessonDragEnd}
                       onDragCancel={handleLessonDragCancel}
                     >
-                      <div className="space-y-4 max-h-[360px] overflow-y-auto pr-1">
-                      {formData.chapters.map((chap, chapIdx) => (
+                      <div className="space-y-3 sm:space-y-4 max-h-[min(60vh,420px)] overflow-y-auto overflow-x-hidden pr-0.5">
+                      {formData.chapters.map((chap, chapIdx) => {
+                        const chapterAllLocked =
+                          chap.lessons.length === 0 ||
+                          chap.lessons.every((lesson) => lesson.access === "locked");
+                        const openLessonCount = chap.lessons.filter((lesson) => lesson.access === "free").length;
+                        return (
                         <div
                           key={chap.id}
-                          className={`p-3.5 bg-white dark:bg-[#1a1c23] rounded-2xl border space-y-3 transition-all ${
+                          className={`relative overflow-hidden rounded-2xl border space-y-3 transition-all ${
                             dragOverChapterId === chap.id
-                              ? "border-primary/60 ring-2 ring-primary/20"
-                              : "border-gray-200/70 dark:border-white/10"
+                              ? "border-primary/60 ring-2 ring-primary/20 bg-primary/[0.04]"
+                              : "border-white/[0.08] bg-gradient-to-br from-[#1b1e27] to-[#15171e]"
                           }`}
                           onDragOver={(e) => {
                             e.preventDefault();
@@ -3007,20 +3197,32 @@ export default function CreateCourseWizardPage() {
                             if (!next || !e.currentTarget.contains(next)) setDragOverChapterId(null);
                           }}
                         >
+                          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-l from-transparent via-primary/40 to-transparent" />
                           <div
-                            className="flex items-center justify-between border-b dark:border-white/5 pb-2 cursor-grab active:cursor-grabbing"
-                            draggable
-                            onDragStart={() => {
-                              setDraggedChapterId(chap.id);
-                              setDragOverChapterId(chap.id);
-                            }}
-                            onDragEnd={() => {
-                              setDraggedChapterId(null);
-                              setDragOverChapterId(null);
-                            }}
+                            className="flex flex-col gap-3 border-b border-white/[0.06] px-3 pt-3.5 pb-2.5 sm:px-3.5"
                           >
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded font-black mr-1">{chap.number}</span>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <button
+                                type="button"
+                                draggable
+                                aria-label="جابجایی سرفصل"
+                                title="برای جابجایی بکشید"
+                                onDragStart={() => {
+                                  setDraggedChapterId(chap.id);
+                                  setDragOverChapterId(chap.id);
+                                }}
+                                onDragEnd={() => {
+                                  setDraggedChapterId(null);
+                                  setDragOverChapterId(null);
+                                }}
+                                className="size-8 inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-gray-400 hover:text-white hover:border-primary/30 cursor-grab active:cursor-grabbing shrink-0"
+                                style={{ touchAction: "none" }}
+                              >
+                                <GripVertical className="w-4 h-4" />
+                              </button>
+                              <span className="text-[10px] bg-primary/15 text-primary px-2.5 py-1 rounded-lg font-black shrink-0 tabular-nums">
+                                {chap.number}
+                              </span>
                               {editingChapterTitleId === chap.id ? (
                                 <input
                                   autoFocus
@@ -3031,16 +3233,16 @@ export default function CreateCourseWizardPage() {
                                     if (e.key === "Enter") endEditChapterTitle(chap.id);
                                   }}
                                   placeholder="عنوان سرفصل"
-                                  className="h-8 min-w-[8rem] px-2 rounded-lg border border-blue-500/40 bg-white dark:bg-white/5 text-[10px] font-black text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                  className="h-9 min-w-0 flex-1 px-3 rounded-xl border border-primary/40 bg-white/5 text-[11px] font-black text-white focus:outline-none focus:ring-2 focus:ring-primary/20"
                                 />
                               ) : (
                                 <button
                                   type="button"
                                   onClick={() => setEditingChapterTitleId(chap.id)}
-                                  className={`text-[10px] font-black hover:text-primary transition-colors cursor-text ${
+                                  className={`text-[12px] font-black hover:text-primary transition-colors cursor-text truncate text-right min-w-0 flex-1 ${
                                     chap.title.trim()
-                                      ? "text-gray-900 dark:text-white"
-                                      : "text-gray-400 dark:text-gray-500 italic"
+                                      ? "text-white"
+                                      : "text-gray-500 italic"
                                   }`}
                                   title={chap.title.trim() || "ویرایش عنوان سرفصل"}
                                 >
@@ -3048,7 +3250,34 @@ export default function CreateCourseWizardPage() {
                                 </button>
                               )}
                             </div>
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <button
+                                type="button"
+                                onClick={() => toggleChapterAccess(chap.id)}
+                                disabled={chap.lessons.length === 0}
+                                title={
+                                  chapterAllLocked
+                                    ? "باز کردن همه ویدیوهای این فصل"
+                                    : "قفل کردن همه ویدیوهای این فصل"
+                                }
+                                className={`h-8 px-2.5 sm:px-3 inline-flex items-center gap-1.5 rounded-xl border text-[10px] font-black transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                                  chapterAllLocked
+                                    ? "border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"
+                                    : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+                                }`}
+                              >
+                                {chapterAllLocked ? (
+                                  <>
+                                    <Lock className="w-3.5 h-3.5" />
+                                    فصل قفل
+                                  </>
+                                ) : (
+                                  <>
+                                    <Unlock className="w-3.5 h-3.5" />
+                                    فصل باز
+                                  </>
+                                )}
+                              </button>
                               <button
                                 type="button"
                                 onClick={() =>
@@ -3057,45 +3286,49 @@ export default function CreateCourseWizardPage() {
                                     [chap.id]: !prev[chap.id],
                                   }))
                                 }
-                                className="size-7 inline-flex items-center justify-center rounded-lg border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/10 transition-all"
+                                className="size-8 inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-gray-400 hover:bg-white/[0.08] transition-all cursor-pointer"
                                 title={collapsedChapters[chap.id] ? "باز کردن فصل" : "بستن فصل"}
                               >
                                 <ChevronDown className={`w-3.5 h-3.5 transition-transform ${collapsedChapters[chap.id] ? "-rotate-90" : ""}`} />
                               </button>
-                              <span className="material-symbols-outlined text-[14px] text-gray-400 dark:text-gray-500">drag_indicator</span>
-                              <button type="button" onClick={() => moveChapter(chapIdx, "up")} disabled={chapIdx === 0} className="size-7 inline-flex items-center justify-center rounded-lg border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-500 disabled:opacity-30">
+                              <button type="button" onClick={() => moveChapter(chapIdx, "up")} disabled={chapIdx === 0} className="size-8 hidden sm:inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/[0.08] cursor-pointer">
                                 <ArrowUp className="w-3.5 h-3.5" />
                               </button>
-                              <button type="button" onClick={() => moveChapter(chapIdx, "down")} disabled={chapIdx === formData.chapters.length - 1} className="size-7 inline-flex items-center justify-center rounded-lg border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-500 disabled:opacity-30">
+                              <button type="button" onClick={() => moveChapter(chapIdx, "down")} disabled={chapIdx === formData.chapters.length - 1} className="size-8 hidden sm:inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/[0.08] cursor-pointer">
                                 <ArrowDown className="w-3.5 h-3.5" />
                               </button>
-                              <button type="button" onClick={() => openDeleteConfirm("حذف فصل", "با حذف فصل، تمام جلسات داخل آن هم حذف می‌شوند. ادامه می‌دهید؟", () => deleteChapter(chap.id))} className="size-7 inline-flex items-center justify-center rounded-lg border border-red-200/80 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500">
+                              <button type="button" onClick={() => openDeleteConfirm("حذف فصل", "با حذف فصل، تمام جلسات داخل آن هم حذف می‌شوند. ادامه می‌دهید؟", () => deleteChapter(chap.id))} className="size-8 inline-flex items-center justify-center rounded-xl border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 cursor-pointer">
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
-                              <button type="button" onClick={() => addLessonInline(chap.id)} className="h-7 px-2.5 inline-flex items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary text-[10px] font-black">
-                                <Plus className="w-3 h-3 ml-0.5" />
+                              <button type="button" onClick={() => addLessonInline(chap.id)} className="h-8 px-2.5 sm:px-3 inline-flex items-center justify-center rounded-xl bg-primary/15 border border-primary/30 text-primary text-[10px] font-black hover:bg-primary/25 cursor-pointer">
+                                <Plus className="w-3.5 h-3.5 ml-0.5" />
                                 ویدیو
                               </button>
+                              <span className="text-[9px] font-bold text-gray-500 mr-auto">
+                                {chap.lessons.length} ویدیو
+                                {chap.lessons.length > 0 ? ` · ${openLessonCount} باز` : ""}
+                              </span>
                             </div>
                           </div>
 
                           {!collapsedChapters[chap.id] && (
+                          <div className="px-2 sm:px-3 pb-3">
                           <ChapterLessonDropZone
                             chapter={chap}
-                            isPaid={formData.isPaid as "free" | "paid"}
                             activeLessonId={activeLessonId}
                             lessonDropTargetId={lessonDropTargetId}
                             editingLessonTitleId={editingLessonTitleId}
-                            editingLessonDurationId={editingLessonDurationId}
                             lessonUploadProgress={lessonUploadProgress}
                             lessonVideoMap={lessonVideoMap}
                             lessonFileMap={lessonFileMap}
                             lessonDescriptionMap={lessonDescriptionMap}
                             actions={lessonRowActions}
                           />
+                          </div>
                           )}
                         </div>
-                      ))}
+                      );
+                      })}
                       </div>
                       <DragOverlay>
                         <LessonDragOverlay
@@ -3107,7 +3340,6 @@ export default function CreateCourseWizardPage() {
                                 })()
                               : undefined
                           }
-                          isPaid={formData.isPaid as "free" | "paid"}
                         />
                       </DragOverlay>
                     </DndContext>
@@ -3179,13 +3411,13 @@ export default function CreateCourseWizardPage() {
           </div>
 
           {/* 3. Bottom controls */}
-          <div className="flex justify-between items-center pt-8 border-t border-gray-100/50 dark:border-white/5 mt-8">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between sm:items-center pt-6 sm:pt-8 border-t border-gray-100/50 dark:border-white/5 mt-6 sm:mt-8">
             {/* Back Button */}
             {step > 1 ? (
               <button
                 type="button"
                 onClick={handleBack}
-                className="flex items-center gap-1.5 px-5 py-3.5 bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-2xl transition-all cursor-pointer select-none"
+                className="flex w-full sm:w-auto items-center justify-center gap-1.5 px-5 py-3.5 bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-2xl transition-all cursor-pointer select-none"
               >
                 <ArrowRight className="w-4 h-4" />
                 <span>مرحله قبلی</span>
@@ -3194,7 +3426,7 @@ export default function CreateCourseWizardPage() {
               <button
                 type="button"
                 onClick={() => router.push("/instructor/courses")}
-                className="flex items-center gap-1.5 px-5 py-3.5 bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-2xl transition-all cursor-pointer select-none"
+                className="flex w-full sm:w-auto items-center justify-center gap-1.5 px-5 py-3.5 bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-2xl transition-all cursor-pointer select-none"
               >
                 <ArrowRight className="w-4 h-4" />
                 <span>انصراف و بازگشت</span>
@@ -3207,18 +3439,18 @@ export default function CreateCourseWizardPage() {
                 type="button"
                 onClick={handleNext}
                 disabled={isSavingStep1}
-                className="flex items-center gap-1.5 px-6 py-3.5 bg-primary hover:bg-primary-hover disabled:bg-primary/60 disabled:hover:scale-100 disabled:cursor-not-allowed text-white text-xs font-bold rounded-2xl transition-all shadow-md shadow-primary/20 hover:scale-[1.02] cursor-pointer select-none"
+                className="flex w-full sm:w-auto items-center justify-center gap-1.5 px-6 py-3.5 bg-primary hover:bg-primary-hover disabled:bg-primary/60 disabled:hover:scale-100 disabled:cursor-not-allowed text-white text-xs font-bold rounded-2xl transition-all shadow-md shadow-primary/20 hover:scale-[1.02] cursor-pointer select-none"
               >
                 <span>{isSavingStep1 ? "در حال ذخیره..." : "مرحله بعدی"}</span>
                 <ArrowLeft className="w-4 h-4" />
               </button>
             ) : (
-              <div className="flex gap-3">
+              <div className="flex w-full sm:w-auto flex-col gap-3 sm:flex-row">
                 <button
                   type="button"
                   disabled={isSavingStep1}
                   onClick={() => void handleSubmitWizard("draft")}
-                  className="px-5 py-3.5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-2xl hover:border-primary hover:text-primary transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto px-5 py-3.5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-2xl hover:border-primary hover:text-primary transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {isSavingStep1 ? "در حال ذخیره..." : "ذخیره به عنوان پیش‌نویس"}
                 </button>
@@ -3226,7 +3458,7 @@ export default function CreateCourseWizardPage() {
                   type="button"
                   disabled={isSavingStep1}
                   onClick={() => void handleSubmitWizard("pending")}
-                  className="px-6 py-3.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-2xl transition-all shadow-md shadow-primary/20 hover:scale-[1.02] cursor-pointer disabled:bg-primary/60 disabled:hover:scale-100 disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto px-6 py-3.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-2xl transition-all shadow-md shadow-primary/20 hover:scale-[1.02] cursor-pointer disabled:bg-primary/60 disabled:hover:scale-100 disabled:cursor-not-allowed"
                 >
                   {isSavingStep1 ? "در حال ارسال..." : "ارسال برای بررسی و انتشار"}
                 </button>
@@ -3238,16 +3470,16 @@ export default function CreateCourseWizardPage() {
 
         {/* --- LEFT SIDE: LIVE PREVIEW PANEL (6 cols on large screens, sticky scroll) --- */}
         <div
-          className={`w-full rounded-[2.5rem] border border-gray-200 dark:border-white/5 p-4 bg-gray-50/50 dark:bg-white/[0.02] backdrop-blur-md shadow-inner scrollbar-thin space-y-6 ${
+          className={`w-full rounded-2xl sm:rounded-[2.5rem] border border-gray-200 dark:border-white/5 p-3 sm:p-4 bg-gray-50/50 dark:bg-white/[0.02] backdrop-blur-md shadow-inner scrollbar-thin space-y-4 sm:space-y-6 overflow-x-hidden ${
             step === 1 ? "lg:col-span-6 lg:order-2 lg:sticky lg:top-24 max-h-[85vh] overflow-y-auto" : ""
           }`}
         >
-          <div className="flex items-center justify-between border-b dark:border-white/5 pb-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b dark:border-white/5 pb-3">
             <span className="text-xs font-black text-gray-500 flex items-center gap-1">
-              <Sparkles className="w-4 h-4 text-emerald-500" />
-              پیش‌نمایش زنده و واقعی (Live Preview)
+              <Sparkles className="w-4 h-4 text-emerald-500 shrink-0" />
+              پیش‌نمایش زنده
             </span>
-            <span className="text-[9px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/25 px-2 py-1 rounded-full font-black">
+            <span className="text-[9px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/25 px-2 py-1 rounded-full font-black w-fit">
               مطابق با فرانت اند اصلی
             </span>
           </div>
@@ -3391,14 +3623,39 @@ export default function CreateCourseWizardPage() {
                   <span className="text-xs font-black text-gray-800 dark:text-gray-200 block mt-1">پنل سرفصل‌ها و ویدیوها</span>
                 </div>
 
-                <div className="rounded-[2rem] border border-gray-200/70 dark:border-white/10 bg-gray-50/60 dark:bg-white/[0.03] p-3 md:p-4">
-                  <div className="flex items-center justify-between gap-3 border-b border-gray-200/70 dark:border-white/10 pb-3 px-1 md:px-2">
-                    <div className="flex items-center gap-2 text-[10px] font-black text-gray-500 dark:text-gray-400">
-                      <span className="rounded-full bg-gray-200/80 dark:bg-white/10 px-3 py-1.5">۱۲:۲۰</span>
-                      <span className="rounded-full bg-gray-200/80 dark:bg-white/10 px-3 py-1.5">۴ فصل</span>
-                      <span className="rounded-full bg-gray-200/80 dark:bg-white/10 px-3 py-1.5">بستن</span>
+                <div className="rounded-2xl sm:rounded-[2rem] border border-gray-200/70 dark:border-white/10 bg-gray-50/60 dark:bg-white/[0.03] p-2.5 sm:p-3 md:p-4 overflow-hidden">
+                  <div className="flex flex-col gap-3 border-b border-gray-200/70 dark:border-white/10 pb-3 px-1 md:px-2 sm:flex-row sm:items-center sm:justify-between">
+                    <h3 className="text-sm sm:text-base md:text-lg font-black text-gray-900 dark:text-white text-right">سرفصل‌های آموزشی</h3>
+                    <div className="flex items-center gap-2 text-[10px] font-black text-gray-500 dark:text-gray-400 flex-wrap">
+                      <span className="rounded-full bg-gray-200/80 dark:bg-white/10 px-2.5 sm:px-3 py-1.5">
+                        {formData.chapters.reduce((sum, ch) => sum + ch.lessons.length, 0)} جلسه
+                      </span>
+                      <span className="rounded-full bg-gray-200/80 dark:bg-white/10 px-2.5 sm:px-3 py-1.5">
+                        {formData.chapters.length} فصل
+                      </span>
+                      {formData.chapters.length > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const allCollapsed = formData.chapters.every(
+                              (chapter) => previewCollapsedChapters[chapter.id]
+                            );
+                            if (allCollapsed) {
+                              setPreviewCollapsedChapters({});
+                            } else {
+                              setPreviewCollapsedChapters(
+                                Object.fromEntries(formData.chapters.map((chapter) => [chapter.id, true]))
+                              );
+                            }
+                          }}
+                          className="rounded-full bg-gray-200/80 dark:bg-white/10 px-2.5 sm:px-3 py-1.5 hover:bg-primary/15 hover:text-primary transition-colors cursor-pointer"
+                        >
+                          {formData.chapters.every((chapter) => previewCollapsedChapters[chapter.id])
+                            ? "باز کردن همه"
+                            : "بستن همه"}
+                        </button>
+                      ) : null}
                     </div>
-                    <h3 className="text-base md:text-lg font-black text-gray-900 dark:text-white">سرفصل‌های آموزشی</h3>
                   </div>
 
                   <div className="mt-5 space-y-5">
@@ -3409,26 +3666,43 @@ export default function CreateCourseWizardPage() {
                     ) : (
                       formData.chapters.map((chapter, chapterIndex) => {
                         const chapterLessons = chapter.lessons;
-                        const chapterDuration = chapterLessons.reduce((sum, lesson) => sum + (lesson.duration ? 1 : 0), 0);
+                        const isPreviewCollapsed = !!previewCollapsedChapters[chapter.id];
                         return (
-                          <div key={chapter.id} className="rounded-[2rem] border border-gray-200/70 dark:border-white/10 bg-[#1c1e26] p-4 md:p-5 space-y-3">
+                          <div key={chapter.id} className="rounded-2xl sm:rounded-[2rem] border border-gray-200/70 dark:border-white/10 bg-[#1c1e26] p-3 sm:p-4 md:p-5 space-y-3 overflow-hidden">
                             <div className="flex items-center justify-between gap-3">
-                              <div className="flex items-center gap-2.5">
-                                <span className="inline-flex size-10 items-center justify-center rounded-2xl bg-[#24304a] text-emerald-400 text-sm font-black shadow-lg shadow-black/10">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <span className="inline-flex size-10 items-center justify-center rounded-2xl bg-[#24304a] text-emerald-400 text-sm font-black shadow-lg shadow-black/10 shrink-0">
                                   {String(chapterIndex + 1).padStart(2, "0")}
                                 </span>
-                                <div className="text-right">
-                                  <p className="text-sm md:text-base font-black text-white">{chapter.title}</p>
+                                <div className="text-right min-w-0">
+                                  <p className="text-sm md:text-base font-black text-white truncate">{chapter.title}</p>
                                   <p className="text-[10px] md:text-xs font-bold text-gray-400">
-                                    {chapter.subtitle || "مدیریت حرفه‌ای وضعیت"}
+                                    {chapterLessons.length} جلسه
+                                    {chapter.subtitle ? ` · ${chapter.subtitle}` : ""}
                                   </p>
                                 </div>
                               </div>
-                              <button type="button" className="size-10 rounded-full bg-[#3a3d46] text-white/90 inline-flex items-center justify-center">
-                                <ChevronDown className="w-5 h-5" />
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPreviewCollapsedChapters((prev) => ({
+                                    ...prev,
+                                    [chapter.id]: !prev[chapter.id],
+                                  }))
+                                }
+                                className="size-10 rounded-full bg-[#3a3d46] text-white/90 inline-flex items-center justify-center cursor-pointer hover:bg-[#454854] transition-colors shrink-0"
+                                title={isPreviewCollapsed ? "باز کردن سرفصل" : "بستن سرفصل"}
+                                aria-expanded={!isPreviewCollapsed}
+                              >
+                                <ChevronDown
+                                  className={`w-5 h-5 transition-transform duration-200 ${
+                                    isPreviewCollapsed ? "-rotate-90" : ""
+                                  }`}
+                                />
                               </button>
                             </div>
 
+                            {!isPreviewCollapsed && (
                             <div className="space-y-2 pt-2">
                               {chapterLessons.length === 0 ? (
                                 <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.03] py-8 text-center text-[10px] font-bold text-gray-500">
@@ -3465,7 +3739,7 @@ export default function CreateCourseWizardPage() {
                                                 title: lesson.title || lessonVideoMap[lesson.id].name,
                                               })
                                             }
-                                            className="size-8 rounded-xl inline-flex items-center justify-center bg-blue-500/10 text-blue-400 transition-colors hover:bg-blue-500/20"
+                                            className="size-8 rounded-xl inline-flex items-center justify-center bg-blue-500/10 text-blue-400 transition-colors hover:bg-blue-500/20 cursor-pointer"
                                             title="پیش‌نمایش ویدیو"
                                           >
                                             <Video className="w-4 h-4" />
@@ -3487,6 +3761,7 @@ export default function CreateCourseWizardPage() {
                                 })
                               )}
                             </div>
+                            )}
                           </div>
                         );
                       })
@@ -3614,7 +3889,7 @@ export default function CreateCourseWizardPage() {
               <button
                 type="button"
                 onClick={closeDeleteConfirm}
-                className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 font-bold text-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-all"
+                className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 font-bold text-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer"
               >
                 انصراف
               </button>

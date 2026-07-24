@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   GraduationCap,
@@ -49,6 +49,9 @@ import InstructorQuestionsBoard from "@/components/instructor/InstructorQuestion
 import CourseCard from "@/app/components/CourseCard";
 import CustomSelect from "@/components/ui/CustomSelect";
 import HighlightableTextareaWithBadges from "@/components/ui/HighlightableTextareaWithBadges";
+import VideoPreviewModal from "@/app/instructor/courses/create/_components/VideoPreviewModal";
+import CourseDetailsSkeleton from "./CourseDetailsSkeleton";
+import { formatVideoDuration, readVideoDurationFromFile } from "@/lib/video-duration";
 
 const FEATURE_ICON_OPTIONS = [
   { value: "all_inclusive", label: "بینهایت / مادام‌العمر", icon: "all_inclusive" },
@@ -233,7 +236,7 @@ function mapApiLessons(rawLessons: unknown): Lesson[] {
         type === "pdf" || type === "text" || type === "exercise" || type === "quiz"
           ? type
           : "video",
-      duration: String(row.duration ?? "10:00"),
+      duration: String(row.duration ?? "00:00"),
       isFree: row.isFree === true || row.access === "free",
       status: row.status === "draft" || row.status === "locked" ? row.status : "published",
       ...(videoUrl && !videoUrl.startsWith("blob:") ? { videoUrl } : {}),
@@ -249,7 +252,8 @@ function buildLessonMediaMapsFromChapters(chapters: Chapter[]) {
   const files: Record<string, { id: string; name: string; url: string }[]> = {};
 
   for (const chapter of chapters) {
-    for (const lesson of chapter.lessons) {
+    const lessons = Array.isArray(chapter?.lessons) ? chapter.lessons : [];
+    for (const lesson of lessons) {
       const videoUrl = lesson.videoUrl?.trim();
       if (videoUrl && !videoUrl.startsWith("blob:")) {
         videos[lesson.id] = { name: lesson.title, url: videoUrl };
@@ -271,6 +275,62 @@ function buildLessonMediaMapsFromChapters(chapters: Chapter[]) {
   }
 
   return { videos, descriptions, files };
+}
+
+function serializeChaptersForDraft(
+  chapters: Chapter[],
+  lessonVideoMap: Record<string, { name: string; url: string }> = {},
+  lessonDescriptionMap: Record<string, string> = {},
+  lessonFileMap: Record<string, { id: string; name: string; url: string }[]> = {}
+) {
+  return chapters
+    .filter((chapter) => chapter && typeof chapter === "object")
+    .map((chapter, index) => {
+      const lessons = Array.isArray(chapter.lessons) ? chapter.lessons : [];
+      return {
+        id: chapter.id || `CHP-${index + 1}`,
+        number: String(index + 1).padStart(2, "0"),
+        title: chapter.title?.trim() || `فصل ${index + 1}`,
+        subtitle: "",
+        lessons: lessons.map((lesson) => {
+          const mappedVideo = lessonVideoMap[lesson.id]?.url?.trim();
+          const videoUrl =
+            mappedVideo && !mappedVideo.startsWith("blob:")
+              ? mappedVideo
+              : lesson.videoUrl && !lesson.videoUrl.startsWith("blob:")
+                ? lesson.videoUrl
+                : undefined;
+          const description =
+            lessonDescriptionMap[lesson.id]?.trim() || lesson.description?.trim() || "";
+          const attachments = (lessonFileMap[lesson.id] ?? lesson.attachments ?? [])
+            .filter((file) => file.url && !file.url.startsWith("blob:"))
+            .map((file) => ({
+              id: file.id,
+              name: file.name,
+              url: file.url,
+            }));
+
+          return {
+            id: lesson.id,
+            title: lesson.title || "درس جدید",
+            duration: lesson.duration || "00:00",
+            type: lesson.type || "video",
+            access: lesson.isFree ? "free" : "locked",
+            ...(videoUrl ? { videoUrl } : {}),
+            ...(description ? { description } : {}),
+            ...(attachments.length ? { attachments } : {}),
+          };
+        }),
+      };
+    });
+}
+
+function createChapterId() {
+  return `CHP-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function createLessonId() {
+  return `LES-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function mapApiChapters(value: unknown): Chapter[] {
@@ -406,11 +466,7 @@ function mapInstructorCourseApiToCourse(payload: unknown): Course | null {
     reviewsCount: Number(root.reviewsCount ?? overview.reviewsCount ?? 0),
     revenue: Number(root.revenue ?? root.instructorRevenue ?? overview.revenue ?? 0),
     completionRate: Number(root.completionRate ?? overview.completionRate ?? 0),
-    chapters: mapApiChapters(
-      Array.isArray(draftData.chapters) && draftData.chapters.length > 0
-        ? draftData.chapters
-        : root.chapters
-    ),
+    chapters: mapApiChapters(root.chapters ?? draftData.chapters),
     reviews: [],
     questions: [],
     createdAt: String(root.createdAt ?? ""),
@@ -445,26 +501,25 @@ export default function CourseDetailsPage() {
   const {
     courses,
     upsertCourseSilent,
-    updateCourse,
-    addChapter,
-    updateChapter,
-    deleteChapter,
-    addLesson,
-    updateLesson,
-    deleteLesson,
     replyToReview,
     showToast,
   } = useInstructorData();
 
   const [isLoadingCourse, setIsLoadingCourse] = useState(true);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [isSavingContent, setIsSavingContent] = useState(false);
+  /** Local chapter/lesson edits that are not yet posted to the drafts API. */
+  const [isContentDirty, setIsContentDirty] = useState(false);
   const [courseStudents, setCourseStudents] = useState<CourseStudentRow[]>([]);
+  const [detailCourse, setDetailCourse] = useState<Course | null>(null);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
 
     const loadCourse = async () => {
       setIsLoadingCourse(true);
+      setLoadError("");
       try {
         let response: unknown;
         try {
@@ -479,16 +534,20 @@ export default function CourseDetailsPage() {
         if (cancelled) return;
         const mapped = mapInstructorCourseApiToCourse(response);
         if (mapped) {
+          setDetailCourse(mapped);
           upsertCourseSilent(mapped);
           const media = buildLessonMediaMapsFromChapters(mapped.chapters);
           setLessonVideoMap(media.videos);
           setLessonDescriptionMap(media.descriptions);
           setLessonFileMap(media.files);
+        } else {
+          setLoadError("اطلاعات دوره از سرور قابل خواندن نبود.");
         }
         setCourseStudents(extractApiStudents(response));
-      } catch {
+      } catch (error) {
         if (!cancelled) {
           setCourseStudents([]);
+          setLoadError(error instanceof Error ? error.message : "دریافت دوره انجام نشد.");
         }
       } finally {
         if (!cancelled) {
@@ -504,10 +563,18 @@ export default function CourseDetailsPage() {
     };
   }, [canonicalCourseId, upsertCourseSilent]);
 
-  // Find targeted course
-  const course = useMemo(() => {
-    return courses.find((c) => c.id === canonicalCourseId || c.slug === courseId);
+  // Prefer locally loaded detail (survives context/localStorage failures).
+  const courseFromContext = useMemo(() => {
+    return courses.find((c) => c.id === canonicalCourseId || c.slug === courseId) ?? null;
   }, [courses, canonicalCourseId, courseId]);
+  const course = detailCourse ?? courseFromContext;
+
+  const chaptersRef = useRef<Chapter[]>([]);
+  useEffect(() => {
+    if (course?.chapters) {
+      chaptersRef.current = course.chapters;
+    }
+  }, [course?.chapters]);
 
   useEffect(() => {
     const firstChapterId = course?.chapters[0]?.id;
@@ -551,6 +618,10 @@ export default function CourseDetailsPage() {
   // State for Add Chapter
   const [isAddingChapter, setIsAddingChapter] = useState(false);
   const [newChapterTitle, setNewChapterTitle] = useState("");
+  const [draggedChapterId, setDraggedChapterId] = useState<string | null>(null);
+  const [dragOverChapterId, setDragOverChapterId] = useState<string | null>(null);
+  const [draggedLesson, setDraggedLesson] = useState<{ chapterId: string; lessonId: string } | null>(null);
+  const [dragOverLesson, setDragOverLesson] = useState<{ chapterId: string; lessonId: string } | null>(null);
 
   // State for Accordion collapse/expand (chapter IDs)
   const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>({
@@ -558,10 +629,8 @@ export default function CourseDetailsPage() {
   });
   const [editingChapterTitleId, setEditingChapterTitleId] = useState<string | null>(null);
   const [editingLessonTitleId, setEditingLessonTitleId] = useState<string | null>(null);
-  const [editingLessonDurationId, setEditingLessonDurationId] = useState<string | null>(null);
   const [chapterTitleDraft, setChapterTitleDraft] = useState("");
   const [lessonTitleDraft, setLessonTitleDraft] = useState("");
-  const [lessonDurationDraft, setLessonDurationDraft] = useState("");
   const [lessonUploadProgress, setLessonUploadProgress] = useState<Record<string, number>>({});
   const [lessonVideoMap, setLessonVideoMap] = useState<Record<string, { name: string; url: string }>>({});
   const [lessonFileMap, setLessonFileMap] = useState<Record<string, { id: string; name: string; url: string }[]>>({});
@@ -574,6 +643,10 @@ export default function CourseDetailsPage() {
     url: "",
   });
   const [lessonFilesError, setLessonFilesError] = useState("");
+  const [pendingMediaVersion, setPendingMediaVersion] = useState(0);
+  const lessonVideoFilesRef = useRef<Record<string, File>>({});
+  const lessonAttachmentFilesRef = useRef<Record<string, Record<string, File>>>({});
+  const bumpPendingMedia = () => setPendingMediaVersion((v) => v + 1);
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; title: string; message: string; action: (() => void) | null }>({
     open: false,
     title: "",
@@ -595,7 +668,6 @@ export default function CourseDetailsPage() {
   const [newLessonData, setNewLessonData] = useState({
     title: "",
     type: "video" as "video" | "pdf" | "text" | "exercise" | "quiz",
-    duration: "10:00",
     isFree: false,
     status: "published" as "published" | "draft" | "locked",
     fileName: "",
@@ -700,13 +772,28 @@ export default function CourseDetailsPage() {
     }
   }, [course]);
 
-  if (isLoadingCourse && !course) {
+  const hasAnyPendingMedia = () => {
+    void pendingMediaVersion;
     return (
-      <div className="max-w-[1200px] mx-auto py-12 text-center animate-pulse">
-        <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-white/10 mx-auto mb-4" />
-        <div className="h-5 w-48 bg-gray-200 dark:bg-white/10 rounded mx-auto" />
-      </div>
+      Object.keys(lessonVideoFilesRef.current).length > 0 ||
+      Object.values(lessonVideoMap).some((entry) => entry.url.startsWith("blob:")) ||
+      Object.values(lessonAttachmentFilesRef.current).some((files) => Object.keys(files).length > 0) ||
+      Object.values(lessonFileMap).some((files) => files.some((file) => file.url.startsWith("blob:")))
     );
+  };
+
+  useEffect(() => {
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!isContentDirty && !hasAnyPendingMedia()) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [isContentDirty, pendingMediaVersion, lessonVideoMap, lessonFileMap]);
+
+  if (isLoadingCourse && !course) {
+    return <CourseDetailsSkeleton />;
   }
 
   if (!course) {
@@ -714,6 +801,9 @@ export default function CourseDetailsPage() {
       <div className="max-w-[1200px] mx-auto py-12 text-center">
         <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4 animate-bounce" />
         <h2 className="text-lg font-black text-gray-900 dark:text-white">دوره مورد نظر یافت نشد!</h2>
+        {loadError ? (
+          <p className="mt-2 text-xs font-bold text-gray-500 dark:text-gray-400">{loadError}</p>
+        ) : null}
         <button onClick={() => router.push("/instructor/courses")} className="mt-4 px-5 py-2.5 bg-primary text-white text-xs font-bold rounded-xl cursor-pointer">
           بازگشت به دوره‌ها
         </button>
@@ -722,56 +812,336 @@ export default function CourseDetailsPage() {
   }
 
   // Calculations
-  const lessonsCount = course.chapters.reduce((sum, ch) => sum + ch.lessons.length, 0);
+  const lessonsCount = (course.chapters || []).reduce(
+    (sum, ch) => sum + (Array.isArray(ch.lessons) ? ch.lessons.length : 0),
+    0
+  );
 
-  // Handle Add Chapter Submit
-  const handleAddChapterSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newChapterTitle.trim()) {
-      addChapter(course.id, newChapterTitle.trim());
-      setNewChapterTitle("");
-      setIsAddingChapter(false);
+  const reloadCourseFromApi = async () => {
+    let response: unknown;
+    try {
+      response = await apiGetNoMock<unknown>(
+        `/api/instructor-dashboard/courses/${encodeURIComponent(course.id)}`,
+        getAuthHeaders()
+      );
+    } catch {
+      response = await apiGetNoMock<unknown>(
+        `/api/instructor-dashboard/courses/${encodeURIComponent(course.id)}/draft`,
+        getAuthHeaders()
+      );
+    }
+    const mapped = mapInstructorCourseApiToCourse(response);
+    if (mapped) {
+      setDetailCourse(mapped);
+      upsertCourseSilent(mapped);
+      const media = buildLessonMediaMapsFromChapters(mapped.chapters);
+      setLessonVideoMap((prev) => {
+        const next = { ...media.videos };
+        for (const [lessonId, entry] of Object.entries(prev)) {
+          // Keep in-progress blob previews until server URL arrives.
+          if (entry.url.startsWith("blob:") && !next[lessonId]) {
+            next[lessonId] = entry;
+          }
+        }
+        return next;
+      });
+      setLessonDescriptionMap(media.descriptions);
+      setLessonFileMap(media.files);
+    }
+    return mapped;
+  };
+
+  const normalizeChapters = (nextChapters: Chapter[]): Chapter[] =>
+    nextChapters.map((chapter, index) => ({
+      ...chapter,
+      id: chapter.id || `CHP-${index + 1}`,
+      title: chapter.title?.trim() || `فصل ${index + 1}`,
+      lessons: Array.isArray(chapter.lessons) ? chapter.lessons : [],
+    }));
+
+  /** CMS-style local-first edit: update UI immediately, persist only on explicit save. */
+  const applyChaptersLocally = (nextChapters: Chapter[]) => {
+    if (!course) return;
+    const safeChapters = normalizeChapters(nextChapters);
+    chaptersRef.current = safeChapters;
+    const nextCourse = { ...course, chapters: safeChapters };
+    setDetailCourse(nextCourse);
+    upsertCourseSilent(nextCourse);
+    setIsContentDirty(true);
+  };
+
+  const persistCourseChapters = async (
+    nextChapters: Chapter[],
+    successMessage: string,
+    options?: {
+      manageSavingState?: boolean;
+      videoMap?: Record<string, { name: string; url: string }>;
+      fileMap?: Record<string, { id: string; name: string; url: string }[]>;
+      descriptionMap?: Record<string, string>;
+    }
+  ) => {
+    const manageSavingState = options?.manageSavingState !== false;
+    const videoMap = options?.videoMap ?? lessonVideoMap;
+    const fileMap = options?.fileMap ?? lessonFileMap;
+    const descriptionMap = options?.descriptionMap ?? lessonDescriptionMap;
+    const safeChapters = normalizeChapters(nextChapters);
+    chaptersRef.current = safeChapters;
+    const nextCourse = { ...course, chapters: safeChapters };
+    setDetailCourse(nextCourse);
+    upsertCourseSilent(nextCourse);
+    if (manageSavingState) setIsSavingContent(true);
+    try {
+      // Prefer non-data-URL cover so we don't re-post multi-MB base64 on every chapter move.
+      const persistableCover =
+        course.cover && !course.cover.startsWith("data:") && !course.cover.startsWith("blob:")
+          ? course.cover
+          : "";
+
+      await apiPostNoMock(
+        "/api/instructor-dashboard/courses/drafts",
+        {
+          courseId: course.id,
+          step: course.draftStep ?? 5,
+          title: course.title,
+          category: mapCategoryToApi(course.category),
+          level: course.level,
+          language: course.language || "فارسی",
+          duration: String(course.durationHours ?? 0),
+          price: course.price ?? 0,
+          isPaid: course.pricingType === "free" || (course.price ?? 0) === 0 ? "free" : "paid",
+          cover: persistableCover,
+          introVideo: course.introVideo || "",
+          shortDescription: course.shortDescription || "",
+          heroTitle: course.heroTitle || course.title,
+          specialWords: course.specialWords || {
+            highlighted: [],
+            underlined: [],
+            color: "green",
+          },
+          aboutTitle: course.aboutTitle || "درباره این دوره",
+          aboutDescription: course.aboutDescription || course.description || "",
+          aboutHighlights: course.aboutHighlights || [],
+          features: (course.features || []).map((feature) => ({
+            id: feature.id,
+            title: feature.title,
+            icon: feature.icon,
+            color: feature.color,
+          })),
+          chapters: serializeChaptersForDraft(
+            safeChapters,
+            videoMap,
+            descriptionMap,
+            fileMap
+          ),
+          faqs: (course.faqs || []).map((faq) => ({
+            id: faq.id,
+            question: faq.question,
+            answer: faq.answer,
+          })),
+        },
+        getAuthHeaders()
+      );
+
+      await reloadCourseFromApi();
+      setIsContentDirty(false);
+      showToast(successMessage, "success");
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "ذخیره سرفصل‌ها انجام نشد.";
+      showToast(message, "error");
+      try {
+        await reloadCourseFromApi();
+      } catch {
+        // keep optimistic local state if reload also fails
+      }
+      return false;
+    } finally {
+      if (manageSavingState) setIsSavingContent(false);
     }
   };
 
+  const handleAddChapterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const title = newChapterTitle.trim();
+    if (!title || isSavingContent) return;
+
+    const nextChapters: Chapter[] = [
+      ...chaptersRef.current,
+      {
+        id: createChapterId(),
+        title,
+        duration: "۰ دقیقه",
+        lessons: [],
+      },
+    ];
+
+    setNewChapterTitle("");
+    setIsAddingChapter(false);
+    const created = nextChapters[nextChapters.length - 1];
+    setExpandedChapters((prev) => ({ ...prev, [created.id]: true }));
+    applyChaptersLocally(nextChapters);
+  };
+
   const addLessonInline = (chapterId: string) => {
-      addLesson(course.id, chapterId, {
+    if (isSavingContent) return;
+    const newLesson: Lesson = {
+      id: createLessonId(),
       title: "درس جدید",
       type: "video",
-      duration: "10:00",
+      duration: "00:00",
       isFree: false,
       status: "published",
-    });
+    };
+    const nextChapters = chaptersRef.current.map((chapter) =>
+      chapter.id === chapterId
+        ? { ...chapter, lessons: [...chapter.lessons, newLesson], duration: `${chapter.lessons.length + 1} جلسه` }
+        : chapter
+    );
+    applyChaptersLocally(nextChapters);
   };
 
   const moveChapter = (index: number, direction: "up" | "down") => {
+    if (isSavingContent) return;
     const target = direction === "up" ? index - 1 : index + 1;
-    if (target < 0 || target >= course.chapters.length) return;
-    const chapters = [...course.chapters];
+    const source = chaptersRef.current;
+    if (target < 0 || target >= source.length) return;
+    const chapters = [...source];
     const [moved] = chapters.splice(index, 1);
     chapters.splice(target, 0, moved);
-    updateCourse(course.id, { chapters });
+    applyChaptersLocally(chapters);
+  };
+
+  const reorderChapters = (sourceId: string, targetId: string) => {
+    if (isSavingContent || sourceId === targetId) return;
+    const chapters = [...chaptersRef.current];
+    const from = chapters.findIndex((chapter) => chapter.id === sourceId);
+    const to = chapters.findIndex((chapter) => chapter.id === targetId);
+    if (from < 0 || to < 0) return;
+    const [moved] = chapters.splice(from, 1);
+    chapters.splice(to, 0, moved);
+    applyChaptersLocally(chapters);
+  };
+
+  const reorderLessons = (
+    sourceChapterId: string,
+    sourceLessonId: string,
+    targetChapterId: string,
+    targetLessonId?: string
+  ) => {
+    if (isSavingContent || !sourceChapterId || !sourceLessonId || !targetChapterId) return;
+
+    const nextChapters = chaptersRef.current.map((chapter) => ({
+      ...chapter,
+      lessons: [...chapter.lessons],
+    }));
+
+    const sourceChapterIndex = nextChapters.findIndex((chapter) => chapter.id === sourceChapterId);
+    const targetChapterIndex = nextChapters.findIndex((chapter) => chapter.id === targetChapterId);
+    if (sourceChapterIndex < 0 || targetChapterIndex < 0) return;
+
+    const sourceChapter = nextChapters[sourceChapterIndex];
+    const targetChapter = nextChapters[targetChapterIndex];
+    const sourceLessonIndex = sourceChapter.lessons.findIndex((lesson) => lesson.id === sourceLessonId);
+    if (sourceLessonIndex < 0) return;
+
+    const [movedLesson] = sourceChapter.lessons.splice(sourceLessonIndex, 1);
+    const targetLessonIndex = targetLessonId
+      ? targetChapter.lessons.findIndex((lesson) => lesson.id === targetLessonId)
+      : -1;
+
+    if (targetLessonIndex >= 0) {
+      const adjustedTargetIndex =
+        sourceChapterId === targetChapterId && sourceLessonIndex < targetLessonIndex
+          ? Math.max(0, targetLessonIndex - 1)
+          : targetLessonIndex;
+      targetChapter.lessons.splice(adjustedTargetIndex, 0, movedLesson);
+    } else {
+      targetChapter.lessons.push(movedLesson);
+    }
+
+    sourceChapter.duration = `${sourceChapter.lessons.length} جلسه`;
+    if (sourceChapterId !== targetChapterId) {
+      targetChapter.duration = `${targetChapter.lessons.length} جلسه`;
+    }
+
+    applyChaptersLocally(nextChapters);
   };
 
   const commitChapterTitle = (chapterId: string, currentTitle: string) => {
     const nextTitle = chapterTitleDraft.trim();
     setEditingChapterTitleId(null);
-    if (!nextTitle || nextTitle === currentTitle) return;
-    updateChapter(course.id, chapterId, { title: nextTitle });
+    if (!nextTitle || nextTitle === currentTitle || isSavingContent) return;
+    const nextChapters = chaptersRef.current.map((chapter) =>
+      chapter.id === chapterId ? { ...chapter, title: nextTitle } : chapter
+    );
+    applyChaptersLocally(nextChapters);
   };
 
   const commitLessonTitle = (chapterId: string, lessonId: string, currentTitle: string) => {
     const nextTitle = lessonTitleDraft.trim();
     setEditingLessonTitleId(null);
-    if (!nextTitle || nextTitle === currentTitle) return;
-    updateLesson(course.id, chapterId, lessonId, { title: nextTitle });
+    if (!nextTitle || nextTitle === currentTitle || isSavingContent) return;
+    const nextChapters = chaptersRef.current.map((chapter) =>
+      chapter.id === chapterId
+        ? {
+            ...chapter,
+            lessons: chapter.lessons.map((lesson) =>
+              lesson.id === lessonId ? { ...lesson, title: nextTitle } : lesson
+            ),
+          }
+        : chapter
+    );
+    applyChaptersLocally(nextChapters);
   };
 
-  const commitLessonDuration = (chapterId: string, lessonId: string, currentDuration: string) => {
-    const nextDuration = lessonDurationDraft.trim();
-    setEditingLessonDurationId(null);
-    if (!nextDuration || nextDuration === currentDuration) return;
-    updateLesson(course.id, chapterId, lessonId, { duration: nextDuration });
+  const toggleLessonFree = (chapterId: string, lessonId: string, isFree: boolean) => {
+    if (isSavingContent) return;
+    const nextChapters = chaptersRef.current.map((chapter) =>
+      chapter.id === chapterId
+        ? {
+            ...chapter,
+            lessons: chapter.lessons.map((lesson) =>
+              lesson.id === lessonId ? { ...lesson, isFree: !isFree } : lesson
+            ),
+          }
+        : chapter
+    );
+    applyChaptersLocally(nextChapters);
+  };
+
+  const toggleChapterAccess = (chapterId: string) => {
+    if (isSavingContent) return;
+    const nextChapters = chaptersRef.current.map((chapter) => {
+      if (chapter.id !== chapterId) return chapter;
+      const allLocked =
+        chapter.lessons.length === 0 || chapter.lessons.every((lesson) => !lesson.isFree);
+      const nextIsFree = allLocked;
+      return {
+        ...chapter,
+        lessons: chapter.lessons.map((lesson) => ({ ...lesson, isFree: nextIsFree })),
+      };
+    });
+    applyChaptersLocally(nextChapters);
+  };
+
+  const handleDeleteChapter = (chapterId: string) => {
+    if (isSavingContent) return;
+    const nextChapters = chaptersRef.current.filter((chapter) => chapter.id !== chapterId);
+    applyChaptersLocally(nextChapters);
+  };
+
+  const handleDeleteLesson = (chapterId: string, lessonId: string) => {
+    if (isSavingContent) return;
+    const nextChapters = chaptersRef.current.map((chapter) =>
+      chapter.id === chapterId
+        ? {
+            ...chapter,
+            lessons: chapter.lessons.filter((lesson) => lesson.id !== lessonId),
+            duration: `${Math.max(0, chapter.lessons.length - 1)} جلسه`,
+          }
+        : chapter
+    );
+    applyChaptersLocally(nextChapters);
   };
 
   // Handle Add Lesson File Simulation
@@ -797,31 +1167,95 @@ export default function CourseDetailsPage() {
     }
   };
 
-  const handleLessonVideoUpload = (lessonId: string, file?: File) => {
+  const hasPendingLessonVideo = (lessonId: string) =>
+    Boolean(lessonVideoFilesRef.current[lessonId]) ||
+    Boolean(lessonVideoMap[lessonId]?.url?.startsWith("blob:"));
+
+  const hasPendingLessonFiles = (lessonId: string) => {
+    const pending = lessonAttachmentFilesRef.current[lessonId] || {};
+    if (Object.keys(pending).length > 0) return true;
+    return (lessonFileMap[lessonId] || []).some((file) => file.url.startsWith("blob:"));
+  };
+
+  const hasUnsavedContentChanges = () => isContentDirty || hasAnyPendingMedia();
+
+  /** Select video locally — user must press save to upload to server. */
+  const handleLessonVideoSelect = (lessonId: string, file?: File) => {
     if (!file) return;
-    const videoUrl = URL.createObjectURL(file);
-    setLessonUploadProgress((prev) => ({ ...prev, [lessonId]: 0 }));
-    const timer = setInterval(() => {
-      setLessonUploadProgress((prev) => {
-        const current = prev[lessonId] ?? 0;
-        const next = Math.min(100, current + 20);
-        if (next >= 100) {
-          clearInterval(timer);
-          setLessonVideoMap((v) => ({ ...v, [lessonId]: { name: file.name, url: videoUrl } }));
-          setTimeout(() => {
-            setLessonUploadProgress((after) => {
-              const copy = { ...after };
-              delete copy[lessonId];
-              return copy;
-            });
-          }, 350);
-        }
-        return { ...prev, [lessonId]: next };
-      });
-    }, 120);
+
+    const previewUrl = URL.createObjectURL(file);
+    const lessonTitle =
+      chaptersRef.current.flatMap((chapter) => chapter.lessons).find((lesson) => lesson.id === lessonId)
+        ?.title || file.name;
+
+    lessonVideoFilesRef.current[lessonId] = file;
+    setLessonVideoMap((prev) => {
+      const existing = prev[lessonId];
+      if (existing?.url?.startsWith("blob:")) URL.revokeObjectURL(existing.url);
+      return { ...prev, [lessonId]: { name: file.name, url: previewUrl } };
+    });
+    bumpPendingMedia();
+    setIsContentDirty(true);
+    setLessonVideoPreview({ open: true, title: lessonTitle, url: previewUrl });
+    showToast("ویدیو انتخاب شد. برای ارسال روی سرور «ذخیره تغییرات» را بزنید.", "info");
+
+    void (async () => {
+      try {
+        const seconds = await readVideoDurationFromFile(file);
+        const durationLabel = formatVideoDuration(seconds);
+        const nextChapters = chaptersRef.current.map((chapter) => ({
+          ...chapter,
+          lessons: chapter.lessons.map((lesson) =>
+            lesson.id === lessonId ? { ...lesson, duration: durationLabel } : lesson
+          ),
+        }));
+        applyChaptersLocally(nextChapters);
+      } catch {
+        // Keep previous duration if metadata cannot be read.
+      }
+    })();
+  };
+
+  const uploadLessonVideoFile = async (lessonId: string) => {
+    const pendingFile = lessonVideoFilesRef.current[lessonId];
+    const current = lessonVideoMap[lessonId];
+    if (!pendingFile) {
+      if (current?.url?.startsWith("blob:")) {
+        throw new Error("فایل ویدیو پیدا نشد. دوباره انتخاب کنید.");
+      }
+      return current?.url && !current.url.startsWith("blob:") ? current.url : "";
+    }
+
+    setLessonUploadProgress((prev) => ({ ...prev, [lessonId]: 55 }));
+    const uploadedUrl = await uploadCourseMediaFile(course.id, pendingFile, "lesson", lessonId);
+    if (current?.url?.startsWith("blob:")) URL.revokeObjectURL(current.url);
+    delete lessonVideoFilesRef.current[lessonId];
+    setLessonVideoMap((prev) => ({
+      ...prev,
+      [lessonId]: { name: pendingFile.name, url: uploadedUrl },
+    }));
+    setLessonVideoPreview((prev) =>
+      prev.open && (prev.url === current?.url || prev.title) ? { ...prev, url: uploadedUrl } : prev
+    );
+
+    const nextChapters = chaptersRef.current.map((chapter) => ({
+      ...chapter,
+      lessons: chapter.lessons.map((lesson) =>
+        lesson.id === lessonId ? { ...lesson, videoUrl: uploadedUrl } : lesson
+      ),
+    }));
+    chaptersRef.current = nextChapters;
+    setDetailCourse({ ...course, chapters: nextChapters });
+    upsertCourseSilent({ ...course, chapters: nextChapters });
+    setLessonUploadProgress((prev) => ({ ...prev, [lessonId]: 90 }));
+    return uploadedUrl;
   };
 
   const removeLessonVideo = (lessonId: string) => {
+    if (isSavingContent) return;
+
+    const previousUrl = lessonVideoMap[lessonId]?.url;
+    delete lessonVideoFilesRef.current[lessonId];
     setLessonVideoMap((prev) => {
       const target = prev[lessonId];
       if (target?.url?.startsWith("blob:")) URL.revokeObjectURL(target.url);
@@ -834,6 +1268,23 @@ export default function CourseDetailsPage() {
       delete copy[lessonId];
       return copy;
     });
+    if (previousUrl) {
+      setLessonVideoPreview((prev) =>
+        prev.open && prev.url === previousUrl ? { open: false, title: "", url: "" } : prev
+      );
+    }
+    bumpPendingMedia();
+
+    const nextChapters = chaptersRef.current.map((chapter) => ({
+      ...chapter,
+      lessons: chapter.lessons.map((lesson) => {
+        if (lesson.id !== lessonId) return lesson;
+        const { videoUrl: _removed, ...rest } = lesson;
+        void _removed;
+        return rest;
+      }),
+    }));
+    applyChaptersLocally(nextChapters);
   };
 
   const handleLessonFileUpload = (lessonId: string, files?: File[]) => {
@@ -850,52 +1301,209 @@ export default function CourseDetailsPage() {
         return prev;
       }
       const selected = files.slice(0, remaining);
-      const newFiles = selected.map((f, idx) => ({
-        id: `${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}`,
-        name: f.name,
-        url: URL.createObjectURL(f),
-      }));
+      if (!lessonAttachmentFilesRef.current[lessonId]) {
+        lessonAttachmentFilesRef.current[lessonId] = {};
+      }
+      const newFiles = selected.map((f, idx) => {
+        const id = `${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}`;
+        lessonAttachmentFilesRef.current[lessonId][id] = f;
+        return {
+          id,
+          name: f.name,
+          url: URL.createObjectURL(f),
+        };
+      });
       setLessonFilesError("");
       return { ...prev, [lessonId]: [...current, ...newFiles] };
     });
+    bumpPendingMedia();
+    setIsContentDirty(true);
+    showToast("فایل انتخاب شد. برای ارسال «ذخیره تغییرات» را بزنید.", "info");
   };
 
   const removeLessonFile = (lessonId: string, fileId: string) => {
+    if (lessonAttachmentFilesRef.current[lessonId]?.[fileId]) {
+      delete lessonAttachmentFilesRef.current[lessonId][fileId];
+    }
+    const currentFiles = lessonFileMap[lessonId] || [];
+    const target = currentFiles.find((f) => f.id === fileId);
+    if (target?.url?.startsWith("blob:")) URL.revokeObjectURL(target.url);
+    const nextFilesForLesson = currentFiles.filter((f) => f.id !== fileId);
     setLessonFileMap((prev) => {
-      const list = prev[lessonId] || [];
-      const target = list.find((f) => f.id === fileId);
-      if (target?.url?.startsWith("blob:")) URL.revokeObjectURL(target.url);
-      const nextList = list.filter((f) => f.id !== fileId);
       const copy = { ...prev };
-      if (nextList.length) copy[lessonId] = nextList;
+      if (nextFilesForLesson.length) copy[lessonId] = nextFilesForLesson;
       else delete copy[lessonId];
       return copy;
     });
+    bumpPendingMedia();
+    const nextChapters = chaptersRef.current.map((chapter) => ({
+      ...chapter,
+      lessons: chapter.lessons.map((lesson) =>
+        lesson.id === lessonId
+          ? {
+              ...lesson,
+              attachments: nextFilesForLesson
+                .filter((file) => !file.url.startsWith("blob:"))
+                .map((file) => ({ id: file.id, name: file.name, url: file.url })),
+            }
+          : lesson
+      ),
+    }));
+    applyChaptersLocally(nextChapters);
+  };
+
+  /** Upload pending media then persist the full chapters draft in one explicit save. */
+  const saveContentChanges = async () => {
+    if (isSavingContent) return;
+    if (!hasUnsavedContentChanges()) return;
+
+    const pendingVideoIds = Object.keys(lessonVideoFilesRef.current);
+    for (const [lessonId, entry] of Object.entries(lessonVideoMap)) {
+      if (entry.url.startsWith("blob:") && !pendingVideoIds.includes(lessonId)) {
+        showToast("ویدیوی جلسه را دوباره انتخاب کنید تا ذخیره شود.", "error");
+        return;
+      }
+    }
+
+    const pendingAttachmentLessonIds = [
+      ...new Set([
+        ...Object.keys(lessonAttachmentFilesRef.current).filter(
+          (lessonId) => Object.keys(lessonAttachmentFilesRef.current[lessonId] || {}).length > 0
+        ),
+        ...Object.entries(lessonFileMap)
+          .filter(([, files]) => files.some((file) => file.url.startsWith("blob:")))
+          .map(([lessonId]) => lessonId),
+      ]),
+    ];
+
+    setIsSavingContent(true);
+    try {
+      let videoMap = { ...lessonVideoMap };
+      let fileMap = { ...lessonFileMap };
+      let nextChapters = chaptersRef.current;
+
+      for (const lessonId of pendingVideoIds) {
+        setLessonUploadProgress((prev) => ({ ...prev, [lessonId]: 25 }));
+        const uploadedUrl = await uploadLessonVideoFile(lessonId);
+        if (!uploadedUrl) throw new Error("آدرس ویدیو آماده نیست.");
+        videoMap = {
+          ...videoMap,
+          [lessonId]: {
+            name: videoMap[lessonId]?.name || "video",
+            url: uploadedUrl,
+          },
+        };
+        nextChapters = chaptersRef.current;
+        setLessonUploadProgress((prev) => {
+          const copy = { ...prev };
+          delete copy[lessonId];
+          return copy;
+        });
+      }
+
+      for (const lessonId of pendingAttachmentLessonIds) {
+        const currentFiles = fileMap[lessonId] || [];
+        const pendingById = lessonAttachmentFilesRef.current[lessonId] || {};
+        let nextFiles = [...currentFiles];
+
+        for (const fileEntry of currentFiles) {
+          const pendingFile = pendingById[fileEntry.id];
+          if (!pendingFile && !fileEntry.url.startsWith("blob:")) continue;
+          if (!pendingFile) {
+            throw new Error(`فایل «${fileEntry.name}» دوباره انتخاب شود.`);
+          }
+          const uploadedUrl = await uploadCourseMediaFile(
+            course.id,
+            pendingFile,
+            "attachment",
+            lessonId
+          );
+          if (fileEntry.url.startsWith("blob:")) URL.revokeObjectURL(fileEntry.url);
+          delete lessonAttachmentFilesRef.current[lessonId]?.[fileEntry.id];
+          nextFiles = nextFiles.map((item) =>
+            item.id === fileEntry.id ? { ...item, url: uploadedUrl } : item
+          );
+        }
+
+        fileMap = { ...fileMap, [lessonId]: nextFiles };
+        nextChapters = nextChapters.map((chapter) => ({
+          ...chapter,
+          lessons: chapter.lessons.map((lesson) =>
+            lesson.id === lessonId
+              ? {
+                  ...lesson,
+                  attachments: nextFiles.map((file) => ({
+                    id: file.id,
+                    name: file.name,
+                    url: file.url,
+                  })),
+                }
+              : lesson
+          ),
+        }));
+      }
+
+      setLessonVideoMap(videoMap);
+      setLessonFileMap(fileMap);
+      chaptersRef.current = nextChapters;
+      bumpPendingMedia();
+
+      await persistCourseChapters(nextChapters, "تغییرات روی سرور ذخیره شد.", {
+        manageSavingState: false,
+        videoMap,
+        fileMap,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "ذخیره تغییرات انجام نشد.";
+      showToast(message, "error");
+    } finally {
+      setIsSavingContent(false);
+      setLessonUploadProgress({});
+    }
   };
 
   const openDeleteConfirm = (title: string, message: string, action: () => void) => {
     setConfirmDelete({ open: true, title, message, action });
   };
 
-  // Handle Save Lesson Submit
+  // Handle Save Lesson Submit (local-first; server sync via «ذخیره تغییرات»)
   const handleSaveLessonSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newLessonData.title.trim()) {
-      addLesson(course.id, selectedChapterId, newLessonData);
-      setIsLessonModalOpen(false);
-      // reset
-      setNewLessonData({
-        title: "",
-        type: "video",
-        duration: "10:00",
-        isFree: false,
-        status: "published",
-        fileName: "",
-        fileSize: "",
-      });
-      setLessonFile(null);
-      setLessonProgress(0);
-    }
+    if (!newLessonData.title.trim() || !selectedChapterId || isSavingContent) return;
+
+    const prepared: Lesson = {
+      id: createLessonId(),
+      title: newLessonData.title.trim(),
+      type: newLessonData.type || "video",
+      duration: "00:00",
+      isFree: !!newLessonData.isFree,
+      status: newLessonData.status || "published",
+      ...(newLessonData.fileName ? { fileName: newLessonData.fileName } : {}),
+      ...(newLessonData.fileSize ? { fileSize: newLessonData.fileSize } : {}),
+    };
+
+    const nextChapters = chaptersRef.current.map((chapter) =>
+      chapter.id === selectedChapterId
+        ? {
+            ...chapter,
+            lessons: [...chapter.lessons, prepared],
+            duration: `${chapter.lessons.length + 1} جلسه`,
+          }
+        : chapter
+    );
+
+    setIsLessonModalOpen(false);
+    setNewLessonData({
+      title: "",
+      type: "video",
+      isFree: false,
+      status: "published",
+      fileName: "",
+      fileSize: "",
+    });
+    setLessonFile(null);
+    setLessonProgress(0);
+    applyChaptersLocally(nextChapters);
   };
 
   // Handle Review Reply Submit
@@ -1225,24 +1833,7 @@ export default function CourseDetailsPage() {
   };
 
   const buildSettingsDraftChapters = () =>
-    course.chapters.map((chapter, index) => ({
-      id: chapter.id,
-      number: String(index + 1).padStart(2, "0"),
-      title: chapter.title,
-      subtitle: "",
-      lessons: chapter.lessons.map((lesson) => ({
-        id: lesson.id,
-        title: lesson.title,
-        duration: lesson.duration || "00:00",
-        type: lesson.type || "video",
-        access: lesson.isFree ? "free" : "locked",
-        ...(lesson.videoUrl && !lesson.videoUrl.startsWith("blob:")
-          ? { videoUrl: lesson.videoUrl }
-          : {}),
-        ...(lesson.description ? { description: lesson.description } : {}),
-        ...(lesson.attachments?.length ? { attachments: lesson.attachments } : {}),
-      })),
-    }));
+    serializeChaptersForDraft(course.chapters, lessonVideoMap, lessonDescriptionMap, lessonFileMap);
 
   // Persist Full Course Settings to the same drafts API the create wizard uses.
   const handleSaveSettings = async (e: React.FormEvent) => {
@@ -1526,11 +2117,26 @@ export default function CourseDetailsPage() {
         {/* --- TAB: CONTENT MANAGER (Chapters & Lessons) --- */}
         {activeTab === "content" && (
           <div className="space-y-6 animate-in fade-in duration-300">
-            <div>
-              <h3 className="text-sm font-black text-gray-900 dark:text-white">ساختار سرفصل‌ها و درس‌ها</h3>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold mt-1">
-                سرفصل‌های آموزشی را بسازید، درس‌های جدید اضافه کرده و فایل‌های ویدیو/سند را آپلود کنید.
-              </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h3 className="text-sm font-black text-gray-900 dark:text-white">ساختار سرفصل‌ها و درس‌ها</h3>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold mt-1">
+                  تغییرات فقط محلی اعمال می‌شوند؛ با «ذخیره تغییرات» همه را یکجا روی سرور بفرستید.
+                </p>
+              </div>
+              {(hasUnsavedContentChanges() || isSavingContent) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void saveContentChanges();
+                  }}
+                  disabled={isSavingContent}
+                  className="h-11 shrink-0 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-black text-white shadow-md shadow-primary/20 transition-all hover:bg-primary/90 disabled:opacity-60"
+                >
+                  <UploadCloud className="w-4 h-4" />
+                  {isSavingContent ? "در حال ذخیره..." : "ذخیره تغییرات"}
+                </button>
+              )}
             </div>
 
             <div className="p-5 md:p-6 bg-gradient-to-b from-gray-50/50 to-gray-50/20 dark:from-white/[0.07] dark:to-white/[0.03] rounded-3xl border border-gray-200/70 dark:border-white/10 space-y-5 shadow-[0_10px_30px_-20px_rgba(0,0,0,0.5)]">
@@ -1554,9 +2160,12 @@ export default function CourseDetailsPage() {
                       placeholder="عنوان سرفصل..."
                       value={newChapterTitle}
                       onChange={(e) => setNewChapterTitle(e.target.value)}
+                      disabled={isSavingContent}
                       className="px-4 py-2 bg-white dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-xl text-[10px] font-bold text-gray-800 dark:text-white focus:border-primary focus:outline-none transition-all text-right w-full sm:w-60"
                     />
-                    <button type="submit" className="px-4 py-2 bg-primary text-white text-[10px] font-black rounded-xl">ذخیره</button>
+                    <button type="submit" disabled={isSavingContent} className="px-4 py-2 bg-primary text-white text-[10px] font-black rounded-xl disabled:opacity-60 cursor-pointer">
+                      افزودن
+                    </button>
                     <button type="button" onClick={() => setIsAddingChapter(false)} className="px-3 py-2 bg-gray-100 dark:bg-white/10 text-gray-500 rounded-xl">لغو</button>
                   </form>
                 )}
@@ -1570,11 +2179,61 @@ export default function CourseDetailsPage() {
                 <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
                   {course.chapters.map((ch, chIdx) => {
                     const isExpanded = !!expandedChapters[ch.id];
+                    const isDragging = draggedChapterId === ch.id;
+                    const isDropTarget =
+                      !draggedLesson &&
+                      dragOverChapterId === ch.id &&
+                      draggedChapterId !== ch.id;
+                    const isLessonDropChapter =
+                      !!draggedLesson &&
+                      dragOverChapterId === ch.id &&
+                      draggedLesson.chapterId !== ch.id;
                     return (
-                      <div key={ch.id} className="p-3.5 bg-white dark:bg-[#1a1c23] rounded-2xl border border-gray-200/70 dark:border-white/10 space-y-3 transition-all">
+                      <div
+                        key={ch.id}
+                        className={cn(
+                          "p-3.5 bg-white dark:bg-[#1a1c23] rounded-2xl border space-y-3 transition-all",
+                          isDragging
+                            ? "opacity-50 border-primary/50 ring-2 ring-primary/20"
+                            : isDropTarget || isLessonDropChapter
+                              ? "border-primary/60 ring-2 ring-primary/20 border-dashed"
+                              : "border-gray-200/70 dark:border-white/10"
+                        )}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          if (isSavingContent) return;
+                          if (draggedLesson || draggedChapterId) {
+                            if (dragOverChapterId !== ch.id) setDragOverChapterId(ch.id);
+                          }
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (draggedLesson) {
+                            if (draggedLesson.chapterId !== ch.id || !dragOverLesson) {
+                              reorderLessons(
+                                draggedLesson.chapterId,
+                                draggedLesson.lessonId,
+                                ch.id
+                              );
+                            }
+                          } else if (draggedChapterId) {
+                            reorderChapters(draggedChapterId, ch.id);
+                          }
+                          setDraggedChapterId(null);
+                          setDragOverChapterId(null);
+                          setDraggedLesson(null);
+                          setDragOverLesson(null);
+                        }}
+                        onDragLeave={(e) => {
+                          const next = e.relatedTarget as Node | null;
+                          if (!next || !e.currentTarget.contains(next)) {
+                            setDragOverChapterId((prev) => (prev === ch.id ? null : prev));
+                          }
+                        }}
+                      >
                         <div className="flex items-center justify-between border-b dark:border-white/5 pb-2">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded font-black mr-1">{chIdx + 1}</span>
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded font-black mr-1 shrink-0">{chIdx + 1}</span>
                             {editingChapterTitleId === ch.id ? (
                               <input
                                 autoFocus
@@ -1593,27 +2252,88 @@ export default function CourseDetailsPage() {
                                   setEditingChapterTitleId(ch.id);
                                   setChapterTitleDraft(ch.title);
                                 }}
-                                className="text-[10px] font-black text-gray-900 dark:text-white hover:text-primary transition-colors cursor-text"
+                                className="text-[10px] font-black text-gray-900 dark:text-white hover:text-primary transition-colors cursor-text truncate"
                               >
                                 {ch.title}
                               </button>
                             )}
                           </div>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 shrink-0">
                             <button type="button" onClick={() => toggleChapter(ch.id)} className="size-7 inline-flex items-center justify-center rounded-lg border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/10 transition-all" title={isExpanded ? "بستن فصل" : "باز کردن فصل"}>
                               <ChevronDown className={`w-3.5 h-3.5 transition-transform ${!isExpanded ? "-rotate-90" : ""}`} />
                             </button>
-                            <span className="material-symbols-outlined text-[14px] text-gray-400 dark:text-gray-500">drag_indicator</span>
-                            <button type="button" onClick={() => moveChapter(chIdx, "up")} disabled={chIdx === 0} className="size-7 inline-flex items-center justify-center rounded-lg border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-500 disabled:opacity-30">
+                            <button
+                              type="button"
+                              draggable={!isSavingContent}
+                              aria-label="جابجایی فصل"
+                              title="برای جابجایی بکشید"
+                              onDragStart={(e) => {
+                                if (isSavingContent) {
+                                  e.preventDefault();
+                                  return;
+                                }
+                                e.dataTransfer.effectAllowed = "move";
+                                e.dataTransfer.setData("text/plain", ch.id);
+                                setDraggedChapterId(ch.id);
+                                setDragOverChapterId(ch.id);
+                                setDraggedLesson(null);
+                                setDragOverLesson(null);
+                              }}
+                              onDragEnd={() => {
+                                setDraggedChapterId(null);
+                                setDragOverChapterId(null);
+                                setDraggedLesson(null);
+                                setDragOverLesson(null);
+                              }}
+                              disabled={isSavingContent}
+                              className={cn(
+                                "size-7 inline-flex items-center justify-center rounded-lg border transition-all disabled:opacity-40",
+                                isDragging
+                                  ? "cursor-grabbing border-primary/40 bg-primary/10 text-primary"
+                                  : "cursor-grab active:cursor-grabbing border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:border-primary/30"
+                              )}
+                              style={{ touchAction: "none" }}
+                            >
+                              <span className="material-symbols-outlined text-[14px]">drag_indicator</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => toggleChapterAccess(ch.id)}
+                              disabled={isSavingContent || ch.lessons.length === 0}
+                              title={
+                                ch.lessons.length === 0 || ch.lessons.every((lesson) => !lesson.isFree)
+                                  ? "باز کردن همه ویدیوهای این فصل"
+                                  : "قفل کردن همه ویدیوهای این فصل"
+                              }
+                              className={cn(
+                                "h-7 px-2.5 inline-flex items-center gap-1 rounded-lg border text-[9px] font-black disabled:opacity-40",
+                                ch.lessons.length === 0 || ch.lessons.every((lesson) => !lesson.isFree)
+                                  ? "border-amber-200/80 bg-amber-50 text-amber-600 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-400"
+                                  : "border-emerald-200/80 bg-emerald-50 text-emerald-600 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-400"
+                              )}
+                            >
+                              {ch.lessons.length === 0 || ch.lessons.every((lesson) => !lesson.isFree) ? (
+                                <>
+                                  <Lock className="w-3 h-3" />
+                                  فصل قفل
+                                </>
+                              ) : (
+                                <>
+                                  <Unlock className="w-3 h-3" />
+                                  فصل باز
+                                </>
+                              )}
+                            </button>
+                            <button type="button" onClick={() => moveChapter(chIdx, "up")} disabled={chIdx === 0 || isSavingContent} className="size-7 inline-flex items-center justify-center rounded-lg border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-500 disabled:opacity-30">
                               <ArrowUp className="w-3.5 h-3.5" />
                             </button>
-                            <button type="button" onClick={() => moveChapter(chIdx, "down")} disabled={chIdx === course.chapters.length - 1} className="size-7 inline-flex items-center justify-center rounded-lg border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-500 disabled:opacity-30">
+                            <button type="button" onClick={() => moveChapter(chIdx, "down")} disabled={chIdx === course.chapters.length - 1 || isSavingContent} className="size-7 inline-flex items-center justify-center rounded-lg border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-500 disabled:opacity-30">
                               <ArrowDown className="w-3.5 h-3.5" />
                             </button>
-                            <button type="button" onClick={() => openDeleteConfirm("حذف فصل", "با حذف فصل، تمام جلسات داخل آن حذف می‌شوند. ادامه می‌دهید؟", () => deleteChapter(course.id, ch.id))} className="size-7 inline-flex items-center justify-center rounded-lg border border-red-200/80 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500">
+                            <button type="button" onClick={() => openDeleteConfirm("حذف فصل", "با حذف فصل، تمام جلسات داخل آن حذف می‌شوند. ادامه می‌دهید؟", () => { void handleDeleteChapter(ch.id); })} disabled={isSavingContent} className="size-7 inline-flex items-center justify-center rounded-lg border border-red-200/80 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500 disabled:opacity-40">
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
-                            <button type="button" onClick={() => addLessonInline(ch.id)} className="h-7 px-2.5 inline-flex items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary text-[10px] font-black">
+                            <button type="button" onClick={() => { void addLessonInline(ch.id); }} disabled={isSavingContent} className="h-7 px-2.5 inline-flex items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary text-[10px] font-black disabled:opacity-40">
                               <Plus className="w-3 h-3 ml-0.5" />
                               ویدیو
                             </button>
@@ -1629,9 +2349,85 @@ export default function CourseDetailsPage() {
                                 const lessonVideo = resolveLessonVideo(les);
                                 const lessonDescription = resolveLessonDescription(les);
                                 const lessonFiles = resolveLessonFiles(les);
+                                const isLessonDragging =
+                                  draggedLesson?.lessonId === les.id &&
+                                  draggedLesson.chapterId === ch.id;
+                                const isLessonDropTarget =
+                                  !!draggedLesson &&
+                                  dragOverLesson?.lessonId === les.id &&
+                                  dragOverLesson.chapterId === ch.id &&
+                                  !(
+                                    draggedLesson.lessonId === les.id &&
+                                    draggedLesson.chapterId === ch.id
+                                  );
                                 return (
-                                <div key={les.id} className="flex items-center justify-between p-1.5 rounded-lg bg-gray-50 dark:bg-white/5 text-[9px] font-bold">
-                                  <div className="flex items-center gap-1.5">
+                                <div
+                                  key={les.id}
+                                  className={cn(
+                                    "flex items-center justify-between p-1.5 rounded-lg bg-gray-50 dark:bg-white/5 text-[9px] font-bold transition-all",
+                                    isLessonDragging && "opacity-40 ring-2 ring-primary/25",
+                                    isLessonDropTarget && "border border-dashed border-primary/50 ring-2 ring-primary/15"
+                                  )}
+                                  onDragOver={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    if (!draggedLesson || isSavingContent) return;
+                                    if (
+                                      dragOverLesson?.lessonId !== les.id ||
+                                      dragOverLesson.chapterId !== ch.id
+                                    ) {
+                                      setDragOverLesson({ chapterId: ch.id, lessonId: les.id });
+                                    }
+                                  }}
+                                  onDrop={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    if (!draggedLesson || isSavingContent) return;
+                                    reorderLessons(
+                                      draggedLesson.chapterId,
+                                      draggedLesson.lessonId,
+                                      ch.id,
+                                      les.id
+                                    );
+                                    setDraggedLesson(null);
+                                    setDragOverLesson(null);
+                                    setDragOverChapterId(null);
+                                  }}
+                                >
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <button
+                                      type="button"
+                                      draggable={!isSavingContent}
+                                      aria-label="جابجایی ویدیو"
+                                      title="برای جابجایی بکشید"
+                                      onDragStart={(e) => {
+                                        if (isSavingContent) {
+                                          e.preventDefault();
+                                          return;
+                                        }
+                                        e.stopPropagation();
+                                        e.dataTransfer.effectAllowed = "move";
+                                        e.dataTransfer.setData("text/plain", les.id);
+                                        setDraggedLesson({ chapterId: ch.id, lessonId: les.id });
+                                        setDragOverLesson({ chapterId: ch.id, lessonId: les.id });
+                                        setDraggedChapterId(null);
+                                      }}
+                                      onDragEnd={() => {
+                                        setDraggedLesson(null);
+                                        setDragOverLesson(null);
+                                        setDragOverChapterId(null);
+                                      }}
+                                      disabled={isSavingContent}
+                                      className={cn(
+                                        "size-6 inline-flex items-center justify-center rounded-md border transition-all shrink-0 disabled:opacity-40",
+                                        isLessonDragging
+                                          ? "cursor-grabbing border-primary/40 bg-primary/10 text-primary"
+                                          : "cursor-grab active:cursor-grabbing border-gray-200/80 dark:border-white/10 bg-white dark:bg-white/5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:border-primary/30"
+                                      )}
+                                      style={{ touchAction: "none" }}
+                                    >
+                                      <span className="material-symbols-outlined text-[13px]">drag_indicator</span>
+                                    </button>
                                     <span className="material-symbols-outlined text-xs text-primary">{les.isFree ? "play_circle" : "lock"}</span>
                                     {editingLessonTitleId === les.id ? (
                                       <input
@@ -1651,49 +2447,44 @@ export default function CourseDetailsPage() {
                                           setEditingLessonTitleId(les.id);
                                           setLessonTitleDraft(les.title);
                                         }}
-                                        className="text-[9px] font-bold hover:text-primary transition-colors cursor-text"
+                                        className="text-[9px] font-bold hover:text-primary transition-colors cursor-text truncate"
                                       >
                                         {les.title}
                                       </button>
                                     )}
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <button type="button" onClick={() => updateLesson(course.id, ch.id, les.id, { isFree: !les.isFree })} className={`h-6 px-2 inline-flex items-center justify-center rounded-md border text-[8px] font-black ${les.isFree ? "border-emerald-200/80 bg-emerald-50 text-emerald-600" : "border-gray-200/80 bg-gray-50 text-gray-600"}`}>
+                                    <button
+                                      type="button"
+                                      onClick={() => { void toggleLessonFree(ch.id, les.id, les.isFree); }}
+                                      disabled={isSavingContent}
+                                      title={les.isFree ? "ویدیو باز است — کلیک برای قفل" : "ویدیو قفل است — کلیک برای باز کردن"}
+                                      className={`h-6 px-2 inline-flex items-center gap-1 justify-center rounded-md border text-[8px] font-black disabled:opacity-40 ${
+                                        les.isFree
+                                          ? "border-emerald-200/80 bg-emerald-50 text-emerald-600 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-400"
+                                          : "border-amber-200/80 bg-amber-50 text-amber-600 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-400"
+                                      }`}
+                                    >
+                                      {les.isFree ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
                                       {les.isFree ? "باز" : "قفل"}
                                     </button>
-                                    {editingLessonDurationId === les.id ? (
-                                      <input
-                                        autoFocus
-                                        dir="ltr"
-                                        value={lessonDurationDraft}
-                                        onChange={(e) => setLessonDurationDraft(e.target.value)}
-                                        onBlur={() => commitLessonDuration(ch.id, les.id, les.duration)}
-                                        onKeyDown={(e) => {
-                                          if (e.key === "Enter") commitLessonDuration(ch.id, les.id, les.duration);
-                                        }}
-                                        className="h-6 w-16 px-1.5 rounded-md border border-blue-500/40 bg-white dark:bg-white/5 text-[8px] font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                                      />
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setEditingLessonDurationId(les.id);
-                                          setLessonDurationDraft(les.duration);
-                                        }}
-                                        className="text-[8px] opacity-75 font-mono hover:text-primary transition-colors cursor-text"
-                                      >
-                                        {les.duration}
-                                      </button>
-                                    )}
+                                    <span
+                                      dir="ltr"
+                                      title="مدت زمان از روی ویدیو محاسبه می‌شود"
+                                      className="text-[8px] opacity-75 font-mono tabular-nums select-none"
+                                    >
+                                      {les.duration}
+                                    </span>
                                     <div className="inline-flex items-center gap-1 p-1 rounded-lg border border-emerald-200/70 dark:border-emerald-400/20 bg-emerald-50/50 dark:bg-emerald-500/10">
                                       {!lessonVideo && (
-                                        <label className="size-6 inline-flex items-center justify-center rounded-md border border-blue-200/80 dark:border-blue-400/20 bg-blue-50 dark:bg-blue-500/10 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all cursor-pointer overflow-hidden">
+                                        <label className="size-6 inline-flex items-center justify-center rounded-md border border-blue-200/80 dark:border-blue-400/20 bg-blue-50 dark:bg-blue-500/10 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all cursor-pointer overflow-hidden" title="انتخاب ویدیو">
                                           <input
                                             type="file"
                                             accept="video/*"
                                             className="hidden"
+                                            disabled={isSavingContent || typeof lessonUploadProgress[les.id] === "number"}
                                             onChange={(e) => {
-                                              handleLessonVideoUpload(les.id, e.target.files?.[0]);
+                                              handleLessonVideoSelect(les.id, e.target.files?.[0]);
                                               e.currentTarget.value = "";
                                             }}
                                           />
@@ -1715,11 +2506,49 @@ export default function CourseDetailsPage() {
                                                 url: lessonVideo.url,
                                               })
                                             }
-                                            className="h-6 px-2 inline-flex items-center justify-center rounded-md border border-emerald-200/80 dark:border-emerald-400/20 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all text-[8px] font-black cursor-pointer"
+                                            className="h-6 px-2 inline-flex items-center justify-center gap-1 rounded-md border border-emerald-200/80 dark:border-emerald-400/20 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all text-[8px] font-black cursor-pointer"
+                                            title="مشاهده ویدیو"
                                           >
-                                            ویدیو
+                                            <Play className="w-3 h-3 fill-current" />
+                                            مشاهده
                                           </button>
-                                          <button type="button" onClick={() => openDeleteConfirm("حذف ویدیو", "آیا از حذف ویدیوی این جلسه مطمئن هستید؟", () => removeLessonVideo(les.id))} className="size-6 inline-flex items-center justify-center rounded-md border border-red-200/80 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all cursor-pointer">
+                                          {hasPendingLessonVideo(les.id) && (
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                void saveContentChanges();
+                                              }}
+                                              disabled={isSavingContent}
+                                              className="h-6 px-2 inline-flex items-center justify-center gap-1 rounded-md border border-primary/40 bg-primary text-white hover:bg-primary/90 transition-all text-[8px] font-black cursor-pointer disabled:opacity-50"
+                                              title="ذخیره تغییرات روی سرور"
+                                            >
+                                              <UploadCloud className="w-3 h-3" />
+                                              ذخیره
+                                            </button>
+                                          )}
+                                          <label className="size-6 inline-flex items-center justify-center rounded-md border border-blue-200/80 dark:border-blue-400/20 bg-blue-50 dark:bg-blue-500/10 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all cursor-pointer" title="انتخاب / تعویض ویدیو">
+                                            <input
+                                              type="file"
+                                              accept="video/*"
+                                              className="hidden"
+                                              disabled={isSavingContent}
+                                              onChange={(e) => {
+                                                handleLessonVideoSelect(les.id, e.target.files?.[0]);
+                                                e.currentTarget.value = "";
+                                              }}
+                                            />
+                                            <Video className="w-3.5 h-3.5" />
+                                          </label>
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              openDeleteConfirm("حذف ویدیو", "آیا از حذف ویدیوی این جلسه مطمئن هستید؟", () => {
+                                                void removeLessonVideo(les.id);
+                                              })
+                                            }
+                                            disabled={isSavingContent}
+                                            className="size-6 inline-flex items-center justify-center rounded-md border border-red-200/80 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all cursor-pointer disabled:opacity-40"
+                                          >
                                             <Trash2 className="w-3 h-3" />
                                           </button>
                                         </>
@@ -1752,7 +2581,7 @@ export default function CourseDetailsPage() {
                                       </button>
                                     </div>
                                     <div className="inline-flex items-center gap-1 p-1 rounded-lg border border-red-200/70 dark:border-red-400/20 bg-red-50/40 dark:bg-red-500/10">
-                                      <button type="button" onClick={() => openDeleteConfirm("حذف جلسه", "آیا از حذف این جلسه مطمئن هستید؟", () => deleteLesson(course.id, ch.id, les.id))} className="size-6 inline-flex items-center justify-center rounded-md border border-red-200/80 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all cursor-pointer">
+                                      <button type="button" onClick={() => openDeleteConfirm("حذف جلسه", "آیا از حذف این جلسه مطمئن هستید؟", () => { void handleDeleteLesson(ch.id, les.id); })} disabled={isSavingContent} className="size-6 inline-flex items-center justify-center rounded-md border border-red-200/80 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all cursor-pointer disabled:opacity-40">
                                         <X className="w-3 h-3" />
                                       </button>
                                     </div>
@@ -2421,7 +3250,7 @@ export default function CourseDetailsPage() {
                             }}
                           />
                         </div>
-                        <button type="button" onClick={addOrUpdateSettingsFeature} className="flex w-full items-center justify-center gap-1 rounded-xl border border-primary/20 bg-primary/10 py-2 text-[10px] font-black text-primary transition-all hover:bg-primary/20">
+                        <button type="button" onClick={addOrUpdateSettingsFeature} className="flex w-full items-center justify-center gap-1 rounded-xl border border-primary/20 bg-primary/10 py-2 text-[10px] font-black text-primary transition-all hover:bg-primary/20 cursor-pointer">
                           <Plus className="h-4 w-4" />
                           {settingsEditingFeatureId ? "ویرایش و ذخیره ویژگی" : "افزودن ویژگی جدید"}
                         </button>
@@ -2457,7 +3286,7 @@ export default function CourseDetailsPage() {
                         </div>
                       </div>
                       <div className="space-y-4 p-5">
-                        <button type="button" onClick={addSettingsFaq} className="flex w-full items-center justify-center gap-1 rounded-xl border border-primary/20 bg-primary/15 py-3 text-xs font-black text-primary transition-all hover:bg-primary/20">
+                        <button type="button" onClick={addSettingsFaq} className="flex w-full items-center justify-center gap-1 rounded-xl border border-primary/20 bg-primary/15 py-3 text-xs font-black text-primary transition-all hover:bg-primary/20 cursor-pointer">
                           <Plus className="h-4 w-4" />
                           افزودن سوال جدید
                         </button>
@@ -2706,7 +3535,7 @@ export default function CourseDetailsPage() {
                   <section className="space-y-6">
                     {renderSettingsHeader("ویژگی‌ها و مزیت‌ها", "ویژگی‌های قابل نمایش دوره را اضافه، ویرایش، حذف یا مرتب کنید.")}
                     <div className="flex justify-end">
-                      <button type="button" onClick={addFeatureItem} className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-3 text-xs font-black text-white"><Plus className="w-4 h-4" />افزودن ویژگی جدید</button>
+                      <button type="button" onClick={addFeatureItem} className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-3 text-xs font-black text-white cursor-pointer"><Plus className="w-4 h-4" />افزودن ویژگی جدید</button>
                     </div>
                     {settingsForm.features.length === 0 ? (
                       <div className="rounded-2xl border border-dashed border-gray-200 dark:border-white/10 bg-gray-50/40 dark:bg-white/[0.03] px-4 py-10 text-center text-xs font-bold text-gray-400">هنوز ویژگی‌ای ثبت نشده است.</div>
@@ -2736,7 +3565,7 @@ export default function CourseDetailsPage() {
                   <section className="space-y-6">
                     {renderSettingsHeader("سوالات متداول", "سوال و پاسخ‌های صفحه دوره را به شکل آکاردئونی مدیریت کنید.")}
                     <div className="flex justify-end">
-                      <button type="button" onClick={addFaqItem} className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-3 text-xs font-black text-white"><Plus className="w-4 h-4" />افزودن سوال جدید</button>
+                      <button type="button" onClick={addFaqItem} className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-3 text-xs font-black text-white cursor-pointer"><Plus className="w-4 h-4" />افزودن سوال جدید</button>
                     </div>
                     {settingsForm.faqs.length === 0 ? (
                       <div className="rounded-2xl border border-dashed border-gray-200 dark:border-white/10 bg-gray-50/40 dark:bg-white/[0.03] px-4 py-10 text-center text-xs font-bold text-gray-400">هنوز سوالی ثبت نشده است.</div>
@@ -2875,9 +3704,7 @@ export default function CourseDetailsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                {/* Material Type */}
-                <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2">
                   <label className="text-xs font-bold text-gray-700 dark:text-gray-300">نوع محتوا</label>
                   <select
                     value={newLessonData.type}
@@ -2890,22 +3717,10 @@ export default function CourseDetailsPage() {
                     <option value="text">متن ساده</option>
                     <option value="quiz">کوییز تستی</option>
                   </select>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold">
+                    مدت زمان بعد از آپلود ویدیو به‌صورت خودکار محاسبه می‌شود.
+                  </p>
                 </div>
-
-                {/* Duration */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-bold text-gray-700 dark:text-gray-300">مدت زمان (دقیقه)</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="مثال: 15:30"
-                    value={newLessonData.duration}
-                    onChange={(e) => setNewLessonData((p) => ({ ...p, duration: e.target.value }))}
-                    className="px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-left"
-                    dir="ltr"
-                  />
-                </div>
-              </div>
 
               {/* Free preview check */}
               <div className="flex items-center gap-2">
@@ -2990,31 +3805,39 @@ export default function CourseDetailsPage() {
         </div>
       )}
 
-      {lessonVideoPreview.open && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 px-4">
-          <div className="w-full max-w-3xl rounded-2xl bg-white dark:bg-[#1c1e26] border border-gray-200/70 dark:border-white/10 p-4 space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <h4 className="text-sm font-black text-gray-900 dark:text-white truncate">{lessonVideoPreview.title}</h4>
+      <VideoPreviewModal
+        open={lessonVideoPreview.open}
+        title={lessonVideoPreview.title || "پیش‌نمایش ویدیو"}
+        videoUrl={lessonVideoPreview.url}
+        onClose={() => setLessonVideoPreview({ open: false, title: "", url: "" })}
+      />
+
+      {lessonVideoPreview.open &&
+        lessonVideoPreview.url.startsWith("blob:") &&
+        (() => {
+          const pendingLessonId =
+            Object.entries(lessonVideoMap).find(([, entry]) => entry.url === lessonVideoPreview.url)?.[0] ||
+            Object.keys(lessonVideoFilesRef.current)[0];
+          if (!pendingLessonId) return null;
+          return (
+            <div className="fixed bottom-6 left-1/2 z-[130] flex -translate-x-1/2 items-center gap-2 rounded-2xl border border-primary/30 bg-white px-4 py-3 shadow-2xl dark:bg-[#1c1e26]">
+              <p className="text-[10px] font-bold text-gray-600 dark:text-gray-300">
+                ویدیو هنوز روی سرور ذخیره نشده است.
+              </p>
               <button
                 type="button"
-                onClick={() => setLessonVideoPreview({ open: false, title: "", url: "" })}
-                className="size-8 inline-flex items-center justify-center rounded-lg border border-gray-200/80 dark:border-white/10 text-gray-500"
+                disabled={isSavingContent}
+                onClick={() => {
+                  void saveContentChanges();
+                }}
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-primary px-3 text-[10px] font-black text-white disabled:opacity-60"
               >
-                <X className="w-4 h-4" />
+                <UploadCloud className="h-3.5 w-3.5" />
+                {isSavingContent ? "در حال ذخیره..." : "ذخیره تغییرات"}
               </button>
             </div>
-            <div className="overflow-hidden rounded-xl bg-black aspect-video">
-              <video
-                key={lessonVideoPreview.url}
-                src={lessonVideoPreview.url}
-                controls
-                playsInline
-                className="w-full h-full object-contain"
-              />
-            </div>
-          </div>
-        </div>
-      )}
+          );
+        })()}
 
       {lessonDescriptionEditor.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
@@ -3034,11 +3857,12 @@ export default function CourseDetailsPage() {
                     ...prev,
                     [lessonDescriptionEditor.lessonId]: lessonDescriptionEditor.value.trim(),
                   }));
+                  setIsContentDirty(true);
                   setLessonDescriptionEditor({ open: false, lessonId: "", value: "" });
                 }}
                 className="px-4 py-2 bg-primary text-white text-[10px] font-black rounded-lg"
               >
-                ذخیره توضیح
+                اعمال توضیح
               </button>
               <button type="button" onClick={() => setLessonDescriptionEditor({ open: false, lessonId: "", value: "" })} className="px-4 py-2 bg-gray-100 dark:bg-white/10 text-gray-500 text-[10px] rounded-lg">انصراف</button>
             </div>
@@ -3090,7 +3914,14 @@ export default function CourseDetailsPage() {
               ) : (
                 modalFiles.map((f) => (
                   <div key={f.id} className="flex items-center justify-between rounded-lg border border-gray-200/70 dark:border-white/10 p-2 bg-gray-50 dark:bg-white/5">
-                    <button type="button" onClick={() => window.open(f.url, "_blank", "noopener,noreferrer")} className="text-[10px] text-primary font-black truncate">{f.name}</button>
+                    <div className="min-w-0 flex items-center gap-2">
+                      <button type="button" onClick={() => window.open(f.url, "_blank", "noopener,noreferrer")} className="text-[10px] text-primary font-black truncate">{f.name}</button>
+                      {f.url.startsWith("blob:") && (
+                        <span className="shrink-0 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[8px] font-black text-amber-700 dark:text-amber-300">
+                          ذخیره‌نشده
+                        </span>
+                      )}
+                    </div>
                     <button type="button" onClick={() => openDeleteConfirm("حذف فایل ضمیمه", "آیا می‌خواهید این فایل حذف شود؟", () => removeLessonFile(lessonFilesModal.lessonId, f.id))} className="size-6 inline-flex items-center justify-center rounded-md border border-red-200/80 dark:border-red-400/20 bg-red-50 dark:bg-red-500/10 text-red-500">
                       <X className="w-3 h-3" />
                     </button>
@@ -3098,7 +3929,20 @@ export default function CourseDetailsPage() {
                 ))
               )}
             </div>
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              {hasPendingLessonFiles(lessonFilesModal.lessonId) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void saveContentChanges();
+                  }}
+                  disabled={isSavingContent}
+                  className="px-4 py-2 bg-primary text-white text-[10px] font-black rounded-lg disabled:opacity-60 inline-flex items-center gap-1.5"
+                >
+                  <UploadCloud className="w-3.5 h-3.5" />
+                  {isSavingContent ? "در حال ذخیره..." : "ذخیره تغییرات"}
+                </button>
+              )}
               <button type="button" onClick={() => setLessonFilesModal({ open: false, lessonId: "" })} className="px-4 py-2 bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 text-[10px] rounded-lg">بستن</button>
             </div>
           </div>

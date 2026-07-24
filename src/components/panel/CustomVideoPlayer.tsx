@@ -7,9 +7,16 @@ interface CustomVideoPlayerProps {
   src: string;
   poster?: string;
   title?: string;
+  /** Fires once metadata is available with the real video length in seconds. */
+  onDurationChange?: (durationSeconds: number) => void;
 }
 
-export default function CustomVideoPlayer({ src, poster, title }: CustomVideoPlayerProps) {
+export default function CustomVideoPlayer({
+  src,
+  poster,
+  title,
+  onDurationChange,
+}: CustomVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -65,7 +72,11 @@ export default function CustomVideoPlayer({ src, poster, title }: CustomVideoPla
   // Handle Video Loaded Metadata
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
-      setDuration(formatTime(videoRef.current.duration));
+      const total = videoRef.current.duration;
+      setDuration(formatTime(total));
+      if (Number.isFinite(total) && total > 0) {
+        onDurationChange?.(total);
+      }
     }
   };
 

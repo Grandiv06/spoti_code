@@ -89,3 +89,20 @@ export function isPersistableMediaUrl(value: unknown) {
   if (!raw || raw.startsWith("blob:")) return "";
   return raw;
 }
+
+/** Remove all uploaded media files for a course (best-effort). */
+export async function removeCourseMediaDirectory(courseId: string) {
+  const safeId = sanitizeSegment(decodeURIComponent(courseId));
+  if (!safeId) return;
+
+  const dir = path.join(UPLOAD_ROOT, safeId);
+  const resolved = resolveMediaPath(UPLOAD_ROOT, [safeId]);
+  if (!resolved || resolved !== dir) return;
+
+  try {
+    const { rm } = await import("fs/promises");
+    await rm(dir, { recursive: true, force: true });
+  } catch {
+    // Media cleanup must not block course deletion.
+  }
+}

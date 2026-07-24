@@ -1,19 +1,30 @@
 "use client";
 
 import { useEffect } from "react";
-import { Clock3, FilePenLine, Info } from "lucide-react";
+import { Clock3, FilePenLine, Info, Trash2 } from "lucide-react";
 
-export type CourseStatusModalVariant = "pending" | "draft" | "unavailable" | "not_manageable";
+export type CourseStatusModalVariant =
+  | "pending"
+  | "draft"
+  | "unavailable"
+  | "not_manageable"
+  | "delete_draft";
 
 type CourseStatusModalProps = {
   open: boolean;
   variant: CourseStatusModalVariant;
   draftStep?: number;
+  courseTitle?: string;
   onClose: () => void;
   onConfirm?: () => void;
+  isConfirming?: boolean;
 };
 
-function getModalCopy(variant: CourseStatusModalVariant, draftStep?: number) {
+function getModalCopy(
+  variant: CourseStatusModalVariant,
+  draftStep?: number,
+  courseTitle?: string
+) {
   if (variant === "pending") {
     return {
       icon: Clock3,
@@ -22,6 +33,7 @@ function getModalCopy(variant: CourseStatusModalVariant, draftStep?: number) {
       description:
         "وضعیت این دوره در حال بررسی می‌باشد. پس از تایید تیم اسپاتی‌کد، مدیریت کامل و نمایش عمومی دوره فعال می‌شود.",
       confirmLabel: "متوجه شدم",
+      confirmClassName: "bg-primary hover:bg-primary-hover shadow-primary/20",
       showCancel: false,
     };
   }
@@ -33,6 +45,20 @@ function getModalCopy(variant: CourseStatusModalVariant, draftStep?: number) {
       title: "دوره پیش‌نویس",
       description: `این دوره هنوز منتشر نشده و در مرحله ${draftStep ?? 1} از ۵ قرار دارد. برای مشاهده عمومی، ابتدا ساخت دوره را تکمیل و ارسال کنید.`,
       confirmLabel: "ادامه تکمیل پیش‌نویس",
+      confirmClassName: "bg-primary hover:bg-primary-hover shadow-primary/20",
+      showCancel: true,
+    };
+  }
+
+  if (variant === "delete_draft") {
+    const titlePart = courseTitle?.trim() ? `«${courseTitle.trim()}»` : "این پیش‌نویس";
+    return {
+      icon: Trash2,
+      iconClassName: "text-red-500 bg-red-500/10",
+      title: "حذف پیش‌نویس دوره",
+      description: `${titlePart} برای همیشه حذف می‌شود؛ ویدیوها، فایل‌ها و محتوای ذخیره‌شده قابل بازگشت نیست.`,
+      confirmLabel: "حذف پیش‌نویس",
+      confirmClassName: "bg-red-600 hover:bg-red-500 shadow-red-600/20",
       showCancel: true,
     };
   }
@@ -44,6 +70,7 @@ function getModalCopy(variant: CourseStatusModalVariant, draftStep?: number) {
       title: "غیرقابل مدیریت",
       description: "این دوره در وضعیت فعلی قابل مدیریت نیست.",
       confirmLabel: "متوجه شدم",
+      confirmClassName: "bg-primary hover:bg-primary-hover shadow-primary/20",
       showCancel: false,
     };
   }
@@ -54,6 +81,7 @@ function getModalCopy(variant: CourseStatusModalVariant, draftStep?: number) {
     title: "غیرقابل مشاهده",
     description: "این دوره هنوز قابل مشاهده عمومی نیست.",
     confirmLabel: "متوجه شدم",
+    confirmClassName: "bg-primary hover:bg-primary-hover shadow-primary/20",
     showCancel: false,
   };
 }
@@ -62,17 +90,19 @@ export default function CourseStatusModal({
   open,
   variant,
   draftStep,
+  courseTitle,
   onClose,
   onConfirm,
+  isConfirming = false,
 }: CourseStatusModalProps) {
-  const copy = getModalCopy(variant, draftStep);
+  const copy = getModalCopy(variant, draftStep, courseTitle);
   const Icon = copy.icon;
 
   useEffect(() => {
     if (!open) return;
 
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape" && !isConfirming) onClose();
     };
 
     document.addEventListener("keydown", handleEscape);
@@ -82,14 +112,16 @@ export default function CourseStatusModal({
       document.removeEventListener("keydown", handleEscape);
       document.body.style.overflow = "";
     };
-  }, [open, onClose]);
+  }, [open, onClose, isConfirming]);
 
   if (!open) return null;
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
-      onClick={onClose}
+      onClick={() => {
+        if (!isConfirming) onClose();
+      }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="course-status-modal-title"
@@ -112,20 +144,22 @@ export default function CourseStatusModal({
             <button
               type="button"
               onClick={onClose}
-              className="h-11 rounded-2xl border border-gray-200 px-5 text-xs font-black text-gray-600 transition hover:bg-gray-50 dark:border-white/10 dark:text-gray-300 dark:hover:bg-white/5"
+              disabled={isConfirming}
+              className="h-11 rounded-2xl border border-gray-200 px-5 text-xs font-black text-gray-600 transition hover:bg-gray-50 disabled:opacity-50 dark:border-white/10 dark:text-gray-300 dark:hover:bg-white/5"
             >
               بستن
             </button>
           ) : null}
           <button
             type="button"
+            disabled={isConfirming}
             onClick={() => {
               onConfirm?.();
-              onClose();
+              if (variant !== "delete_draft") onClose();
             }}
-            className="h-11 rounded-2xl bg-primary px-5 text-xs font-black text-white shadow-lg shadow-primary/20 transition hover:bg-primary-hover"
+            className={`h-11 rounded-2xl px-5 text-xs font-black text-white shadow-lg transition disabled:opacity-50 ${copy.confirmClassName}`}
           >
-            {copy.confirmLabel}
+            {isConfirming ? "در حال حذف..." : copy.confirmLabel}
           </button>
         </div>
       </div>

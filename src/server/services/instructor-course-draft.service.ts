@@ -170,7 +170,10 @@ function mapApprovalListRow(row: CourseApprovalRow & { studentsCount?: number; r
     studentsCount: Number(row.studentsCount ?? 0),
     revenue: Number(row.revenue ?? 0),
     rating: Number(row.rating ?? 0),
-    status: row.status === "published" && approvalStatus === "approved" ? "published" : approvalStatus,
+    status:
+      row.status === "published" || approvalStatus === "approved"
+        ? "published"
+        : approvalStatus,
     approvalStatus,
     approvalStatusLabel:
       approvalStatus === "approved"
@@ -211,7 +214,10 @@ function mapApprovalRow(row: CourseApprovalRow) {
     level: row.level,
     durationHours: row.durationHours,
     price: row.price,
-    status: row.status === "published" && approvalStatus === "approved" ? "published" : approvalStatus,
+    status:
+      row.status === "published" || approvalStatus === "approved"
+        ? "published"
+        : approvalStatus,
     approvalStatus,
     approvalStatusLabel:
       approvalStatus === "approved"
@@ -249,8 +255,10 @@ async function requireInstructor(user: User) {
 }
 
 async function findOwnedCourse(courseId: string, instructorId: string) {
-  const rows = await prisma.$queryRaw<Array<{ id: string; cover: string; introVideo: string | null }>>`
-    SELECT "id", "cover", "introVideo"
+  const rows = await prisma.$queryRaw<
+    Array<{ id: string; slug: string; cover: string; introVideo: string | null }>
+  >`
+    SELECT "id", "slug", "cover", "introVideo"
     FROM "Course"
     WHERE "id" = ${decodeURIComponent(courseId)} AND "instructorId" = ${instructorId}
     LIMIT 1
@@ -337,7 +345,17 @@ export async function upsertInstructorCourseDraft(user: User, rawInput: unknown)
     const course = await findOwnedCourse(courseId, instructor.id);
     cover = resolvePersistableCover(input.cover, course.cover);
     introVideo = resolvePersistableIntroVideo(input.introVideo, course.introVideo);
-    slug = await uniqueCourseSlug(slugBase, courseId);
+    // Keep the existing slug when the generated base is a throwaway timestamp slug
+    // (common for Persian titles). Only regenerate when we have a stable ASCII base
+    // that differs from a previous auto slug collision case.
+    const generatedBase = titleToSlug(input.title);
+    const existingSlug = typeof course.slug === "string" ? course.slug : "";
+    // Persian titles produce throwaway `course-<timestamp>` bases — keep current slug.
+    const isThrowawayBase = /^course-\d+$/.test(generatedBase);
+    slug =
+      isThrowawayBase && existingSlug
+        ? existingSlug
+        : await uniqueCourseSlug(generatedBase, courseId);
     await prisma.course.update({
       where: { id: courseId },
       data: {
@@ -431,13 +449,25 @@ export async function upsertInstructorCourseDraft(user: User, rawInput: unknown)
     }
   }
 
+  // For existing courses keep approval/publish state; only brand-new drafts stay "draft".
+  // Overwriting approvalStatus to "draft" on every chapter save was demoting published courses.
+  const existingApproval = courseId
+    ? await prisma.course.findUnique({
+        where: { id: courseId },
+        select: { approvalStatus: true, status: true },
+      })
+    : null;
+  const shouldKeepPublishedApproval =
+    existingApproval?.status === "published" ||
+    existingApproval?.approvalStatus === "approved" ||
+    existingApproval?.approvalStatus === "pending";
+
   await prisma.course.update({
     where: { id: courseId },
     data: {
-      approvalStatus: "draft",
+      ...(shouldKeepPublishedApproval ? {} : { approvalStatus: "draft", approvalNote: null }),
       draftStep: input.step,
       draftData: draftDataValue(input),
-      approvalNote: null,
     },
   });
 
@@ -447,6 +477,21 @@ export async function upsertInstructorCourseDraft(user: User, rawInput: unknown)
 export async function getInstructorCourseDraft(user: User, courseId: string) {
   const { course } = await loadInstructorCourseRow(user, courseId);
   return course;
+}
+
+export async function updateInstructorCourseDraftStep(
+  user: User,
+  courseId: string,
+  step: number
+) {
+  await ensureCourseApprovalSchema();
+  const { course } = await loadInstructorCourseRow(user, courseId);
+  const draftStep = Math.max(1, Math.min(5, Math.round(Number(step) || 1)));
+  await prisma.course.update({
+    where: { id: course.id },
+    data: { draftStep },
+  });
+  return { id: course.id, draftStep };
 }
 
 export async function loadInstructorCourseRow(user: User, courseId: string) {

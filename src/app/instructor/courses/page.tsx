@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   GraduationCap,
   PlusCircle,
@@ -24,24 +25,32 @@ import {
   type InstructorCourseRow,
 } from "@/app/instructor/courses/_lib/instructor-courses-data";
 import { useInstructorData } from "@/context/InstructorDataContext";
-import { useInstructorCoursesList } from "@/hooks/api/useInstructorDashboard";
+import {
+  instructorCoursesQueryKey,
+  instructorOverviewQueryKey,
+  useInstructorCoursesList,
+} from "@/hooks/api/useInstructorDashboard";
+import { apiDeleteNoMock } from "@/lib/api";
+import { getAuthHeaders } from "@/lib/auth-tokens";
 
 type StatusModalState = {
   open: boolean;
   variant: CourseStatusModalVariant;
   draftStep?: number;
   courseId?: string;
+  courseTitle?: string;
   onConfirm?: () => void;
 };
 
 export default function InstructorCoursesPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   // React Query keeps the course list cached and shared, so revisiting this page
   // (or coming back from the dashboard) is instant instead of re-fetching.
   // Name/avatar come from layout context (light profile summary) — no second API.
   const coursesQuery = useInstructorCoursesList();
-  const { profile } = useInstructorData();
+  const { profile, showToast, deleteCourse } = useInstructorData();
 
   const courses = useMemo<InstructorCourseRow[]>(() => coursesQuery.data ?? [], [coursesQuery.data]);
   const instructorName = profile.displayName || profile.name || "";
@@ -55,6 +64,7 @@ export default function InstructorCoursesPage() {
     open: false,
     variant: "pending",
   });
+  const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
 
   // Courses are the main content; render them as soon as they arrive without
   // waiting on the (lighter) profile request for the header name/avatar.
@@ -65,6 +75,7 @@ export default function InstructorCoursesPage() {
   };
 
   const closeStatusModal = () => {
+    if (deletingCourseId) return;
     setStatusModal((prev) => ({ ...prev, open: false, onConfirm: undefined }));
   };
 
@@ -139,6 +150,40 @@ export default function InstructorCoursesPage() {
       return;
     }
     openStatusModal({ variant: "not_manageable" });
+  };
+
+  const handleDeleteDraft = async (course: InstructorCourseRow) => {
+    if (deletingCourseId) return;
+    setDeletingCourseId(course.id);
+    try {
+      await apiDeleteNoMock(
+        `/api/instructor-dashboard/courses/${encodeURIComponent(course.id)}`,
+        getAuthHeaders()
+      );
+      deleteCourse(course.id);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: instructorCoursesQueryKey }),
+        queryClient.invalidateQueries({ queryKey: instructorOverviewQueryKey }),
+      ]);
+      showToast(`پیش‌نویس «${course.title}» حذف شد.`, "info");
+      setStatusModal((prev) => ({ ...prev, open: false, onConfirm: undefined }));
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "حذف پیش‌نویس انجام نشد.", "error");
+    } finally {
+      setDeletingCourseId(null);
+    }
+  };
+
+  const handleRequestDeleteDraft = (course: InstructorCourseRow) => {
+    if (course.status !== "draft") return;
+    openStatusModal({
+      variant: "delete_draft",
+      courseId: course.id,
+      courseTitle: course.title,
+      onConfirm: () => {
+        void handleDeleteDraft(course);
+      },
+    });
   };
 
   const hasActiveFilters =
@@ -298,6 +343,8 @@ export default function InstructorCoursesPage() {
                 handleUnavailableView(c);
               }}
               onManage={() => handleManageCourse(c)}
+              onDeleteDraft={c.status === "draft" ? () => handleRequestDeleteDraft(c) : undefined}
+              isDeleting={deletingCourseId === c.id}
             />
           ))}
         </div>
@@ -307,8 +354,10 @@ export default function InstructorCoursesPage() {
         open={statusModal.open}
         variant={statusModal.variant}
         draftStep={statusModal.draftStep}
+        courseTitle={statusModal.courseTitle}
         onClose={closeStatusModal}
         onConfirm={statusModal.onConfirm}
+        isConfirming={Boolean(deletingCourseId && statusModal.variant === "delete_draft")}
       />
     </div>
   );

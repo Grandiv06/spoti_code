@@ -423,7 +423,35 @@ const normalizeCourseRecord = (course: Course): Course => ({
   status: normalizeCourseStatus(course.status),
   category: normalizeCourseCategory(course.category),
   level: normalizeCourseLevel(course.level),
+  chapters: Array.isArray(course.chapters)
+    ? course.chapters.map((chapter, index) => ({
+        ...chapter,
+        id: chapter?.id || `CHP-${index + 1}`,
+        title: chapter?.title || "فصل بدون عنوان",
+        duration: chapter?.duration || "۰ دقیقه",
+        lessons: Array.isArray(chapter?.lessons) ? chapter.lessons : [],
+      }))
+    : [],
 });
+
+/** Avoid QuotaExceededError when courses include large data-URL covers. */
+function toLocalStorageCourses(courses: Course[]): Course[] {
+  return courses.map((course) => ({
+    ...course,
+    cover:
+      typeof course.cover === "string" && course.cover.startsWith("data:")
+        ? ""
+        : course.cover,
+  }));
+}
+
+function persistCoursesToLocalStorage(courses: Course[]) {
+  try {
+    localStorage.setItem("spoticode_inst_courses", JSON.stringify(toLocalStorageCourses(courses)));
+  } catch {
+    // Ignore storage quota / private-mode failures — in-memory state remains valid.
+  }
+}
 
 function extractQaArray(value: unknown): unknown[] {
   const candidates = [value];
@@ -897,7 +925,7 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
   // Sync helpers
   const syncCourses = (data: Course[]) => {
     setCourses(data);
-    localStorage.setItem("spoticode_inst_courses", JSON.stringify(data));
+    persistCoursesToLocalStorage(data);
   };
 
   const syncQuestions = (updater: StudentQuestion[] | ((prev: StudentQuestion[]) => StudentQuestion[])) => {
@@ -1038,7 +1066,7 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
       const updated = exists
         ? prev.map((course) => (course.id === prepared.id ? { ...course, ...prepared } : course))
         : [prepared, ...prev];
-      localStorage.setItem("spoticode_inst_courses", JSON.stringify(updated));
+      persistCoursesToLocalStorage(updated);
       return updated;
     });
   }, []);
@@ -1051,7 +1079,7 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
 
   // Chapter handlers
   const addChapter = (courseId: string, title: string) => {
-    const nextChapterId = `CHP-${Math.floor(100 + Math.random() * 900)}`;
+    const nextChapterId = `CHP-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const newChapter: Chapter = {
       id: nextChapterId,
       title,
@@ -1059,55 +1087,58 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
       lessons: [],
     };
 
-    const updated = courses.map((c) => {
-      if (c.id === courseId) {
+    setCourses((prev) => {
+      const exists = prev.some((c) => c.id === courseId);
+      if (!exists) return prev;
+      const updated = prev.map((c) => {
+        if (c.id !== courseId) return c;
         return {
           ...c,
           chapters: [...c.chapters, newChapter],
           updatedAt: "1404/02/20",
         };
-      }
-      return c;
+      });
+      persistCoursesToLocalStorage(updated);
+      return updated;
     });
-    syncCourses(updated);
     showToast(`فصل «${title}» با موفقیت اضافه شد.`, "success");
   };
 
   const updateChapter = (courseId: string, chapterId: string, updates: Partial<Chapter>) => {
-    const updated = courses.map((c) => {
-      if (c.id === courseId) {
-        const newChapters = c.chapters.map((ch) => {
-          if (ch.id === chapterId) {
-            return { ...ch, ...updates };
-          }
-          return ch;
-        });
-        return { ...c, chapters: newChapters, updatedAt: "1404/02/20" };
-      }
-      return c;
+    setCourses((prev) => {
+      const updated = prev.map((c) => {
+        if (c.id !== courseId) return c;
+        return {
+          ...c,
+          chapters: c.chapters.map((ch) => (ch.id === chapterId ? { ...ch, ...updates } : ch)),
+          updatedAt: "1404/02/20",
+        };
+      });
+      persistCoursesToLocalStorage(updated);
+      return updated;
     });
-    syncCourses(updated);
     showToast("فصل با موفقیت ویرایش شد.", "success");
   };
 
   const deleteChapter = (courseId: string, chapterId: string) => {
-    const updated = courses.map((c) => {
-      if (c.id === courseId) {
+    setCourses((prev) => {
+      const updated = prev.map((c) => {
+        if (c.id !== courseId) return c;
         return {
           ...c,
           chapters: c.chapters.filter((ch) => ch.id !== chapterId),
           updatedAt: "1404/02/20",
         };
-      }
-      return c;
+      });
+      persistCoursesToLocalStorage(updated);
+      return updated;
     });
-    syncCourses(updated);
     showToast("فصل با موفقیت حذف شد.", "info");
   };
 
   // Lesson handlers
   const addLesson = (courseId: string, chapterId: string, newLesson: Partial<Lesson>) => {
-    const nextId = `LES-${Math.floor(100 + Math.random() * 900)}`;
+    const nextId = `LES-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const prepared: Lesson = {
       id: nextId,
       title: newLesson.title || "درس بدون نام",
@@ -1119,65 +1150,68 @@ export function InstructorDataProvider({ children }: { children: React.ReactNode
       fileSize: newLesson.fileSize,
     };
 
-    const updated = courses.map((c) => {
-      if (c.id === courseId) {
-        const newChapters = c.chapters.map((ch) => {
-          if (ch.id === chapterId) {
+    setCourses((prev) => {
+      const updated = prev.map((c) => {
+        if (c.id !== courseId) return c;
+        return {
+          ...c,
+          chapters: c.chapters.map((ch) => {
+            if (ch.id !== chapterId) return ch;
             return {
               ...ch,
               lessons: [...ch.lessons, prepared],
             };
-          }
-          return ch;
-        });
-        return { ...c, chapters: newChapters, updatedAt: "1404/02/20" };
-      }
-      return c;
+          }),
+          updatedAt: "1404/02/20",
+        };
+      });
+      persistCoursesToLocalStorage(updated);
+      return updated;
     });
-    syncCourses(updated);
     showToast(`درس «${prepared.title}» با موفقیت اضافه شد.`, "success");
   };
 
   const updateLesson = (courseId: string, chapterId: string, lessonId: string, updates: Partial<Lesson>) => {
-    const updated = courses.map((c) => {
-      if (c.id === courseId) {
-        const newChapters = c.chapters.map((ch) => {
-          if (ch.id === chapterId) {
-            const newLessons = ch.lessons.map((les) => {
-              if (les.id === lessonId) {
-                return { ...les, ...updates };
-              }
-              return les;
-            });
-            return { ...ch, lessons: newLessons };
-          }
-          return ch;
-        });
-        return { ...c, chapters: newChapters, updatedAt: "1404/02/20" };
-      }
-      return c;
+    setCourses((prev) => {
+      const updated = prev.map((c) => {
+        if (c.id !== courseId) return c;
+        return {
+          ...c,
+          chapters: c.chapters.map((ch) => {
+            if (ch.id !== chapterId) return ch;
+            return {
+              ...ch,
+              lessons: ch.lessons.map((les) => (les.id === lessonId ? { ...les, ...updates } : les)),
+            };
+          }),
+          updatedAt: "1404/02/20",
+        };
+      });
+      persistCoursesToLocalStorage(updated);
+      return updated;
     });
-    syncCourses(updated);
     showToast("درس با موفقیت ویرایش شد.", "success");
   };
 
   const deleteLesson = (courseId: string, chapterId: string, lessonId: string) => {
-    const updated = courses.map((c) => {
-      if (c.id === courseId) {
-        const newChapters = c.chapters.map((ch) => {
-          if (ch.id === chapterId) {
+    setCourses((prev) => {
+      const updated = prev.map((c) => {
+        if (c.id !== courseId) return c;
+        return {
+          ...c,
+          chapters: c.chapters.map((ch) => {
+            if (ch.id !== chapterId) return ch;
             return {
               ...ch,
               lessons: ch.lessons.filter((l) => l.id !== lessonId),
             };
-          }
-          return ch;
-        });
-        return { ...c, chapters: newChapters, updatedAt: "1404/02/20" };
-      }
-      return c;
+          }),
+          updatedAt: "1404/02/20",
+        };
+      });
+      persistCoursesToLocalStorage(updated);
+      return updated;
     });
-    syncCourses(updated);
     showToast("درس با موفقیت حذف شد.", "info");
   };
 

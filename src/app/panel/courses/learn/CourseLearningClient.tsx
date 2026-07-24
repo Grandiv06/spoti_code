@@ -25,6 +25,7 @@ import {
   type LessonChatMessage,
 } from "@/lib/course-qa";
 import CourseLearningSkeleton from "./CourseLearningSkeleton";
+import { formatVideoDuration, readVideoDurationFromUrl } from "@/lib/video-duration";
 
 type LearningAttachment = { name: string; size: string; url?: string };
 type LearningLesson = {
@@ -202,6 +203,15 @@ export default function CourseLearningClient() {
   const [resolvedCourseId, setResolvedCourseId] = useState("");
   const [qaLoading, setQaLoading] = useState(false);
   const [qaError, setQaError] = useState<string | null>(null);
+  /** Real durations measured from video metadata (overrides stored placeholders like 10:00). */
+  const [resolvedDurations, setResolvedDurations] = useState<Record<string, string>>({});
+
+  const rememberLessonDuration = useCallback((lessonId: string, durationLabel: string) => {
+    if (!lessonId || !durationLabel) return;
+    setResolvedDurations((prev) =>
+      prev[lessonId] === durationLabel ? prev : { ...prev, [lessonId]: durationLabel }
+    );
+  }, []);
 
   const qaMessageState = useMemo(() => {
     if (hasInstructorReply(lessonChatMessages)) return "replied" as const;
@@ -229,13 +239,22 @@ export default function CourseLearningClient() {
           detail
         );
         setActiveLessonDetail(merged);
+        if (merged.videoUrl && merged.videoUrl !== "#") {
+          void readVideoDurationFromUrl(merged.videoUrl)
+            .then((seconds) => {
+              rememberLessonDuration(lessonId, formatVideoDuration(seconds));
+            })
+            .catch(() => {
+              /* keep stored duration */
+            });
+        }
       }
     } catch {
       if (baseLesson) setActiveLessonDetail(baseLesson);
     } finally {
       setLessonLoading(false);
     }
-  }, [courseId]);
+  }, [courseId, rememberLessonDuration]);
 
   useEffect(() => {
     let active = true;
@@ -272,6 +291,7 @@ export default function CourseLearningClient() {
         };
 
         setCourseData(nextCourse);
+        setResolvedDurations({});
         setExpandedChapters(nextCourse.chapters[0]?.id ? [nextCourse.chapters[0].id] : []);
         setResolvedCourseId(nextResolvedCourseId);
 
@@ -305,6 +325,61 @@ export default function CourseLearningClient() {
       active = false;
     };
   }, [courseId, fallbackCourseData, loadLessonDetail]);
+
+  const lessonVideoFingerprint = useMemo(
+    () =>
+      courseData.chapters
+        .flatMap((chapter) => chapter.lessons)
+        .map((lesson) => `${lesson.id}:${lesson.videoUrl ?? ""}`)
+        .join("|"),
+    [courseData.chapters]
+  );
+
+  // Measure real lesson durations from video metadata for accurate sidebar display.
+  useEffect(() => {
+    if (courseLoading || courseData.playerType !== "internal") return;
+
+    const lessons = courseData.chapters
+      .flatMap((chapter) => chapter.lessons)
+      .filter((lesson) => Boolean(lesson.videoUrl && lesson.videoUrl !== "#"));
+
+    if (lessons.length === 0) return;
+
+    let cancelled = false;
+    let cursor = 0;
+    const concurrency = 3;
+
+    const runWorker = async () => {
+      while (!cancelled) {
+        const index = cursor++;
+        if (index >= lessons.length) return;
+        const lesson = lessons[index];
+        const url = lesson.videoUrl;
+        if (!url) continue;
+        try {
+          const seconds = await readVideoDurationFromUrl(url);
+          if (cancelled) return;
+          rememberLessonDuration(lesson.id, formatVideoDuration(seconds));
+        } catch {
+          // Keep API/stored duration when metadata cannot be read (e.g. CORS).
+        }
+      }
+    };
+
+    void Promise.all(
+      Array.from({ length: Math.min(concurrency, lessons.length) }, () => runWorker())
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    courseLoading,
+    courseData.id,
+    courseData.playerType,
+    lessonVideoFingerprint,
+    rememberLessonDuration,
+  ]);
 
   const handleLessonSelect = (lesson: LearningLesson) => {
     if (lesson.isLocked) return;
@@ -907,6 +982,9 @@ export default function CourseLearningClient() {
                 key={activeLesson.id}
                 src={activeLesson.videoUrl ?? "#"} 
                 title={activeLesson.title}
+                onDurationChange={(seconds) => {
+                  rememberLessonDuration(activeLesson.id, formatVideoDuration(seconds));
+                }}
               />
 
               <div className="flex flex-wrap items-center justify-between gap-4 mt-5 px-2 pb-2">
@@ -1578,7 +1656,7 @@ export default function CourseLearningClient() {
                                 <div className="flex items-center gap-2 mt-1.5">
                                   <span className="text-xs text-gray-500 font-medium flex items-center gap-1">
                                     <span className="material-symbols-outlined text-[14px]">schedule</span>
-                                    {lesson.duration}
+                                    {resolvedDurations[lesson.id] ?? lesson.duration}
                                   </span>
                                   {lesson.isWatched && !lesson.isCompleted && (
                                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">

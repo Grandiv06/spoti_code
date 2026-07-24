@@ -186,25 +186,25 @@ export default function InstructorShell({ children }: { children: React.ReactNod
         <header className="sticky top-0 z-20 border-b border-gray-200/50 bg-white/80 px-4 py-4 backdrop-blur-md dark:border-white/5 dark:bg-[#14161c]/80 md:px-8">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <button onClick={() => setOpen(true)} className="rounded-xl p-2 hover:bg-gray-100 dark:hover:bg-white/10 lg:hidden">
+              <button onClick={() => setOpen(true)} className="rounded-xl p-2 hover:bg-gray-100 dark:hover:bg-white/10 lg:hidden cursor-pointer">
                 <Menu className="h-5 w-5" />
               </button>
-              <div>
-                <h1 className="text-lg md:text-xl font-black text-gray-900 dark:text-white">پنل مدرسین اسپاتی‌کد</h1>
-                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">مدیریت دوره‌های آموزشی، محتوا، نظرات و آمار عملکرد</p>
+              <div className="min-w-0">
+                <h1 className="text-base sm:text-lg md:text-xl font-black text-gray-900 dark:text-white truncate">پنل مدرسین اسپاتی‌کد</h1>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium hidden sm:block">مدیریت دوره‌های آموزشی، محتوا، نظرات و آمار عملکرد</p>
               </div>
             </div>
           </div>
         </header>
 
         {/* Main Content Grid */}
-        <main className="relative p-4 md:p-8 min-h-[calc(100vh-80px)]">
+        <main className="relative p-2 sm:p-4 md:p-8 min-h-[calc(100vh-80px)] overflow-x-hidden">
           {children}
         </main>
       </div>
 
       {/* Toast Notification System Overlay */}
-      <div className="fixed bottom-6 left-6 z-50 flex flex-col gap-3 max-w-sm w-full" dir="rtl">
+      <div className="fixed bottom-4 left-3 right-3 sm:bottom-6 sm:left-6 sm:right-auto z-50 flex flex-col gap-3 max-w-sm sm:w-full" dir="rtl">
         {toasts.map((t) => (
           <div
             key={t.id}

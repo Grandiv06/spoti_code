@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Clock, Eye, PencilRuler, Users } from "lucide-react";
+import { Clock, Eye, PencilRuler, Trash2, Users } from "lucide-react";
 import type { MouseEvent } from "react";
 import type { InstructorCourseRow } from "@/app/instructor/courses/_lib/instructor-courses-data";
 
@@ -15,6 +15,8 @@ type InstructorCourseCardProps = {
   disableViewNavigation?: boolean;
   onViewClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
   onManage: () => void;
+  onDeleteDraft?: () => void;
+  isDeleting?: boolean;
 };
 
 function statusLabel(status: InstructorCourseRow["status"]) {
@@ -40,6 +42,8 @@ export default function InstructorCourseCard({
   disableViewNavigation = false,
   onViewClick,
   onManage,
+  onDeleteDraft,
+  isDeleting = false,
 }: InstructorCourseCardProps) {
   const priceLabel =
     course.price > 0 ? `${course.price.toLocaleString("fa-IR")} تومان` : "رایگان";
@@ -47,6 +51,7 @@ export default function InstructorCourseCard({
     course.status === "draft"
       ? `ادامه پیش‌نویس · مرحله ${course.draftStep.toLocaleString("fa-IR")}`
       : "مدیریت دوره";
+  const canDeleteDraft = course.status === "draft" && typeof onDeleteDraft === "function";
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-gray-100 bg-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-xl dark:border-white/5 dark:bg-[#1c1e26]">
@@ -129,7 +134,8 @@ export default function InstructorCourseCard({
           <button
             type="button"
             onClick={onManage}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary to-primary-hover px-4 py-3 text-xs font-black text-white shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 hover:shadow-primary/30"
+            disabled={isDeleting}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary to-primary-hover px-4 py-3 text-xs font-black text-white shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 hover:shadow-primary/30 disabled:opacity-50"
           >
             <PencilRuler className="h-4 w-4 shrink-0" />
             <span className="truncate">{manageLabel}</span>
@@ -146,6 +152,18 @@ export default function InstructorCourseCard({
             <Eye className="h-4 w-4 shrink-0" />
             مشاهده دوره
           </Link>
+
+          {canDeleteDraft ? (
+            <button
+              type="button"
+              onClick={onDeleteDraft}
+              disabled={isDeleting}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-red-200/80 bg-red-50 px-4 py-2.5 text-xs font-bold text-red-600 transition-all hover:bg-red-100 disabled:opacity-50 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
+            >
+              <Trash2 className="h-4 w-4 shrink-0" />
+              {isDeleting ? "در حال حذف..." : "حذف پیش‌نویس"}
+            </button>
+          ) : null}
         </div>
       </div>
     </article>
