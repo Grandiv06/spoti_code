@@ -2,7 +2,7 @@
 
 import React, { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Send, AlertCircle, Paperclip, ChevronRight, X } from "lucide-react";
+import { ArrowRight, Loader2, Paperclip, Send, X } from "lucide-react";
 import CustomSelect from "@/components/ui/CustomSelect";
 import { TICKET_CATEGORY_OPTIONS } from "@/app/panel/support/data";
 import { ticketQueryKey } from "@/hooks/api/useTicketsQuery";
@@ -80,164 +80,156 @@ export default function TicketForm({ onBack }: { onBack: () => void }) {
   };
 
   return (
-    <div className="animate-in fade-in slide-in-from-left-4 duration-500">
-      <div className="flex items-center justify-between mb-8">
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex items-center gap-2 px-4 py-2 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-all font-bold group cursor-pointer"
-        >
-          <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-          <span>بازگشت به لیست تیکت‌ها</span>
-        </button>
-      </div>
-
-      <div className="bg-white dark:bg-[#1c1e26] rounded-[2.5rem] border border-gray-100 dark:border-white/5 shadow-2xl shadow-gray-200/50 dark:shadow-none overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-12">
-          <div className="lg:col-span-4 bg-gray-50/50 dark:bg-white/[0.02] p-8 md:p-12 border-l border-gray-100 dark:divide-white/5 space-y-10">
-            <div>
-              <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-4">راهنمای ثبت تیکت</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed font-medium">
-                برای دریافت پاسخ دقیق‌تر و سریع‌تر، لطفاً اطلاعات خواسته شده را با دقت تکمیل کنید.
-              </p>
-            </div>
-
-            <div className="space-y-6">
-              {[
-                { title: "عنوان گویا", desc: "خلاصه‌ای از مشکل را در عنوان بنویسید." },
-                { title: "دسته‌بندی درست", desc: "بخش مرتبط با مشکل را انتخاب کنید." },
-                { title: "جزئیات کامل", desc: "هرچه اطلاعات بیشتری بدهید، بهتر کمک می‌کنیم." },
-              ].map((item, i) => (
-                <div key={i} className="flex gap-4">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-black shrink-0">
-                    {i + 1}
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-black text-gray-900 dark:text-white mb-1">{item.title}</h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{item.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="p-6 bg-primary/5 rounded-3xl border border-primary/10">
-              <div className="flex items-center gap-3 text-primary mb-3">
-                <AlertCircle className="w-5 h-5" />
-                <span className="font-black text-sm">پشتیبانی فعال</span>
-              </div>
-              <p className="text-xs text-primary/70 font-bold leading-relaxed">
-                تیم پشتیبانی ما در حال حاضر آنلاین است و تیکت‌های جدید را بررسی می‌کند.
-              </p>
-            </div>
-          </div>
-
-          <div className="lg:col-span-8 p-8 md:p-12">
-            <form onSubmit={handleSubmit} className="space-y-8">
-              {error && <p className="text-sm font-bold text-red-500">{error}</p>}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-black text-gray-700 dark:text-gray-300 mb-3 mr-1">عنوان درخواست شما</label>
-                  <input
-                    type="text"
-                    required
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="یک عنوان کوتاه و گویا انتخاب کنید..."
-                    className="w-full px-6 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 text-gray-900 dark:text-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-right font-bold"
-                  />
-                </div>
-
-                <div className="md:col-span-2 z-30">
-                  <CustomSelect
-                    label="دسته‌بندی موضوع"
-                    value={category}
-                    options={categoryOptions}
-                    onChange={setCategory}
-                    placeholder="انتخاب کنید..."
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-black text-gray-700 dark:text-gray-300 mb-3 mr-1">توضیحات کامل مشکل</label>
-                  <textarea
-                    required
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    rows={8}
-                    placeholder="جزئیات مشکل، خطاها و مراحلی که طی کردید را اینجا بنویسید..."
-                    className="w-full px-6 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 text-gray-900 dark:text-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-right resize-none font-medium leading-relaxed"
-                  ></textarea>
-                </div>
-              </div>
-
-              {attachments.length > 0 && (
-                <div className="flex flex-wrap gap-3">
-                  {attachments.map((file) => (
-                    <div
-                      key={file.url}
-                      className="inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-bold text-gray-700 dark:border-white/10 dark:bg-white/5 dark:text-gray-200"
-                    >
-                      <Paperclip className="h-4 w-4 text-primary" />
-                      <span className="max-w-[180px] truncate">{file.name}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setAttachments([]);
-                          setError("");
-                        }}
-                        className="cursor-pointer text-gray-400 transition-colors hover:text-red-500"
-                        aria-label={`حذف ${file.name}`}
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="flex flex-col md:flex-row items-center gap-6 pt-4">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*,.pdf,.txt,.log,.zip"
-                  className="hidden"
-                  onChange={(event) => void handleAttachmentPick(event)}
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading || loading || attachments.length >= MAX_ATTACHMENTS}
-                  className="w-full md:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 rounded-2xl font-black hover:bg-gray-200 dark:hover:bg-white/10 transition-all active:scale-95 border border-transparent cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <Paperclip className="w-5 h-5" />
-                  <span>
-                    {uploading
-                      ? "در حال آپلود..."
-                      : attachments.length >= MAX_ATTACHMENTS
-                        ? "فایل پیوست شده"
-                        : "پیوست فایل (تصویر یا لاگ)"}
-                  </span>
-                </button>
-
-                <button
-                  type="submit"
-                  disabled={loading || uploading}
-                  className="w-full md:flex-1 py-4 bg-primary hover:bg-primary-hover text-white rounded-2xl font-black shadow-xl shadow-primary/30 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-70 group cursor-pointer disabled:cursor-not-allowed"
-                >
-                  {loading ? (
-                    <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  ) : (
-                    <>
-                      <span>ارسال نهایی تیکت پشتیبانی</span>
-                      <Send className="w-5 h-5 rotate-180 group-hover:translate-x-1 transition-transform" />
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
+    <>
+      <section className="rounded-3xl border border-gray-200/70 bg-white dark:border-white/5 dark:bg-[#1c1e26]/80 p-5 sm:p-6">
+        <div className="flex items-start gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-gray-500 transition-colors hover:border-primary/35 hover:text-primary dark:border-white/10 dark:bg-[#14161c] dark:text-slate-300 cursor-pointer"
+            aria-label="بازگشت"
+          >
+            <ArrowRight className="size-5" />
+          </button>
+          <div className="min-w-0 flex-1">
+            <p className="mb-1 text-[11px] font-bold tracking-wide text-primary/90">
+              پشتیبانی آنلاین
+            </p>
+            <h1 className="text-xl font-black leading-tight text-gray-900 dark:text-white sm:text-2xl">
+              تیکت جدید
+            </h1>
+            <p className="mt-1.5 text-sm leading-relaxed text-gray-500 dark:text-slate-400">
+              موضوع و توضیحات مشکل خود را بنویسید؛ تیم پشتیبانی در اسرع وقت
+              پاسخ می‌دهد.
+            </p>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
+
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-4 rounded-3xl border border-gray-200/70 bg-white dark:border-white/5 dark:bg-[#1c1e26]/80 p-5 sm:p-6"
+      >
+        <div className="space-y-1.5">
+          <label
+            htmlFor="ticket-subject"
+            className="text-xs font-bold text-gray-500 dark:text-slate-400"
+          >
+            موضوع
+          </label>
+          <input
+            id="ticket-subject"
+            type="text"
+            required
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            maxLength={120}
+            placeholder="یک عنوان کوتاه و گویا انتخاب کنید..."
+            className="h-12 w-full rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-primary/50 dark:border-white/10 dark:bg-[#14161c] dark:text-white dark:placeholder:text-slate-600"
+          />
+        </div>
+
+        <div className="relative z-30 space-y-1.5">
+          <CustomSelect
+            label="دسته‌بندی موضوع"
+            value={category}
+            options={categoryOptions}
+            onChange={setCategory}
+            placeholder="انتخاب کنید..."
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label
+            htmlFor="ticket-message"
+            className="text-xs font-bold text-gray-500 dark:text-slate-400"
+          >
+            توضیحات کامل مشکل
+          </label>
+          <textarea
+            id="ticket-message"
+            required
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={6}
+            maxLength={4000}
+            placeholder="جزئیات مشکل، خطاها و مراحلی که طی کردید را اینجا بنویسید..."
+            className="min-h-[9rem] w-full resize-y rounded-2xl border border-gray-200 bg-gray-50 px-3.5 py-3 text-sm leading-7 text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-primary/50 dark:border-white/10 dark:bg-[#14161c] dark:text-white dark:placeholder:text-slate-600"
+          />
+        </div>
+
+        {attachments.length > 0 && (
+          <div className="flex flex-wrap gap-2.5">
+            {attachments.map((file) => (
+              <div
+                key={file.url}
+                className="inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 py-2 text-xs font-bold text-gray-700 dark:border-white/10 dark:bg-[#14161c] dark:text-slate-200"
+              >
+                <Paperclip className="size-4 text-primary" />
+                <span className="max-w-[180px] truncate">{file.name}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAttachments([]);
+                    setError("");
+                  }}
+                  className="cursor-pointer text-gray-400 transition-colors hover:text-red-500"
+                  aria-label={`حذف ${file.name}`}
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {error ? (
+          <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2.5 text-xs font-bold text-red-500 dark:text-red-400">
+            {error}
+          </div>
+        ) : null}
+
+        <div className="flex flex-col gap-2.5 pt-1 sm:flex-row">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,.pdf,.txt,.log,.zip"
+            className="hidden"
+            onChange={(event) => void handleAttachmentPick(event)}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading || loading || attachments.length >= MAX_ATTACHMENTS}
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-gray-50 px-4 text-sm font-bold text-gray-600 transition-colors hover:border-primary/30 hover:text-primary dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-200 dark:hover:text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          >
+            <Paperclip className="size-4" />
+            {uploading
+              ? "در حال آپلود..."
+              : attachments.length >= MAX_ATTACHMENTS
+                ? "فایل پیوست شده"
+                : "پیوست فایل (تصویر یا لاگ)"}
+          </button>
+
+          <button
+            type="submit"
+            disabled={loading || uploading}
+            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-black text-white shadow-[0_10px_28px_rgba(34,197,94,0.22)] transition-all hover:bg-primary-hover active:scale-[0.98] cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                در حال ثبت...
+              </>
+            ) : (
+              <>
+                <Send className="size-4" />
+                ارسال تیکت
+              </>
+            )}
+          </button>
+        </div>
+      </form>
+    </>
   );
 }

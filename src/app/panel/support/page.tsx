@@ -2,6 +2,7 @@
 
 import React, { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Headphones, MessageSquarePlus } from "lucide-react";
 
 import TicketStats from "./_components/TicketStats";
 import TicketList from "./_components/TicketList";
@@ -25,66 +26,50 @@ function SupportPageContent() {
     router.replace("/panel/support");
   };
 
-  return (
-    <div className="max-w-[1400px] mx-auto px-2 md:px-4 pb-20 animate-in fade-in duration-1000" dir="rtl">
-      <div className="space-y-8">
-        {view === "list" ? (
-          <>
-            <TicketStats />
-
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
-              <div className="xl:col-span-8 space-y-8">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-2">
-                  <div>
-                    <h2 className="text-3xl font-black text-gray-900 dark:text-white">تیکت‌های من</h2>
-                    <p className="text-gray-500 dark:text-gray-400 font-medium mt-1">مدیریت و پیگیری درخواست‌های ثبت شده</p>
-                  </div>
-                  <button
-                    onClick={openCreate}
-                    className="flex items-center justify-center gap-2 px-8 py-4 bg-primary hover:bg-primary-hover text-white rounded-[1.25rem] font-black shadow-xl shadow-primary/25 transition-all hover:scale-105 active:scale-95 cursor-pointer"
-                  >
-                    <span className="material-symbols-outlined">add</span>
-                    <span>ثبت تیکت جدید</span>
-                  </button>
-                </div>
-
-                <TicketList onNewTicket={openCreate} />
-              </div>
-
-              <div className="xl:col-span-4 space-y-8">
-                <ContactCard />
-
-                <div className="bg-gradient-to-br from-primary/10 to-emerald-500/10 dark:from-primary/5 dark:to-emerald-500/5 rounded-[2.5rem] p-8 border border-primary/20 dark:border-white/5 relative overflow-hidden group shadow-sm">
-                  <div className="relative z-10">
-                    <div className="w-14 h-14 rounded-2xl bg-white dark:bg-[#1c1e26] flex items-center justify-center text-primary mb-6 shadow-xl shadow-primary/10 group-hover:scale-110 transition-transform">
-                      <span className="material-symbols-outlined text-2xl">menu_book</span>
-                    </div>
-                    <h3 className="text-xl font-black text-gray-900 dark:text-white mb-3">سوالات متداول</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 font-bold leading-relaxed mb-6">
-                      قبل از ثبت تیکت، نگاهی به سوالات متداول بیندازید؛ احتمالاً جواب خود را در کمتر از ۱ دقیقه پیدا می‌کنید!
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => router.push("/faq")}
-                      className="w-full py-3.5 bg-white dark:bg-white/10 text-primary dark:text-primary-foreground rounded-2xl text-sm font-black shadow-sm hover:shadow-md transition-all active:scale-95 border border-primary/10 cursor-pointer"
-                    >
-                      مشاهده سوالات پر تکرار
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="max-w-5xl mx-auto">
-            <div className="mb-10">
-              <h2 className="text-4xl font-black text-gray-900 dark:text-white mb-2">ثبت درخواست پشتیبانی</h2>
-              <p className="text-lg text-gray-500 dark:text-gray-400 font-medium">مشکل خود را مطرح کنید تا در سریع‌ترین زمان بررسی شود.</p>
-            </div>
-            <TicketForm onBack={openList} />
-          </div>
-        )}
+  if (view === "create") {
+    return (
+      <div className="mx-auto w-full max-w-3xl space-y-5 pb-2" dir="rtl">
+        <TicketForm onBack={openList} />
       </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-3xl space-y-5 pb-2" dir="rtl">
+      <section className="rounded-3xl border border-gray-200/70 bg-white dark:border-white/5 dark:bg-[#1c1e26]/80 p-5 sm:p-6">
+        <div className="mb-4 flex items-start gap-4">
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+            <Headphones className="size-6" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="mb-1 text-[11px] font-bold tracking-wide text-primary/90">
+              پشتیبانی آنلاین
+            </p>
+            <h1 className="text-xl font-black leading-tight text-gray-900 dark:text-white sm:text-2xl">
+              تیکت‌های من
+            </h1>
+            <p className="mt-1.5 text-sm leading-relaxed text-gray-500 dark:text-slate-400">
+              گفتگو با تیم پشتیبانی اسپاتی‌کد — مدیریت و پیگیری درخواست‌های ثبت
+              شده.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={openCreate}
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-black text-white shadow-[0_10px_28px_rgba(34,197,94,0.22)] transition-all hover:bg-primary-hover active:scale-[0.98] cursor-pointer"
+        >
+          <MessageSquarePlus className="size-4" />
+          ثبت تیکت جدید
+        </button>
+      </section>
+
+      <TicketStats />
+
+      <TicketList onNewTicket={openCreate} />
+
+      <ContactCard />
     </div>
   );
 }

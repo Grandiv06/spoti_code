@@ -1,19 +1,21 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { 
-  Search, 
-  ChevronLeft, 
-  Clock, 
-  Tag, 
-  AlertCircle, 
-  MoreHorizontal,
-  ArrowUpRight,
-  Inbox
+import Link from "next/link";
+import {
+  ChevronLeft,
+  ChevronRight,
+  MessagesSquare,
+  Search,
+  Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatTicketStatusLabel, getTicketStatusClass, matchesTicketStatusFilter } from "@/app/panel/support/data";
+import {
+  formatTicketStatusLabel,
+  getTicketCategoryLabel,
+  getTicketStatusClass,
+  matchesTicketStatusFilter,
+} from "@/app/panel/support/data";
 import { useTicketsQuery } from "@/hooks/api/useTicketsQuery";
 import { TicketListSkeleton } from "./TicketSupportSkeleton";
 
@@ -24,7 +26,11 @@ const tabs = [
   { id: "closed", label: "بسته شده" },
 ];
 
-const PAGE_SIZE = 3;
+const PAGE_SIZE = 4;
+
+function toPersianDigits(value: string | number) {
+  return String(value).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
+}
 
 function TicketPagination({
   currentPage,
@@ -42,21 +48,21 @@ function TicketPagination({
   const canGoNext = currentPage < totalPages;
 
   return (
-    <div className="flex justify-center pt-4">
-      <div className="flex items-center gap-2 bg-white dark:bg-[#1c1e26] p-2 rounded-2xl border border-gray-100 dark:border-white/5">
+    <div className="flex justify-center pt-2">
+      <div className="flex items-center gap-1.5 rounded-2xl border border-gray-200/70 bg-white p-1.5 dark:border-white/5 dark:bg-[#1c1e26]/80">
         <button
           type="button"
           aria-label="صفحه قبل"
           disabled={!canGoPrev}
           onClick={() => onPageChange(currentPage - 1)}
           className={cn(
-            "w-10 h-10 flex items-center justify-center rounded-xl transition-all",
+            "flex size-9 items-center justify-center rounded-xl transition-colors",
             canGoPrev
-              ? "bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 cursor-pointer"
-              : "bg-gray-50 dark:bg-white/5 text-gray-400 cursor-not-allowed"
+              ? "text-gray-500 hover:bg-gray-100 hover:text-primary dark:text-slate-400 dark:hover:bg-white/5 cursor-pointer"
+              : "text-gray-300 dark:text-slate-600 cursor-not-allowed",
           )}
         >
-          <ChevronLeft className="w-5 h-5 rotate-180" />
+          <ChevronRight className="size-4" />
         </button>
 
         {pages.map((page) => (
@@ -67,10 +73,10 @@ function TicketPagination({
             aria-current={currentPage === page ? "page" : undefined}
             onClick={() => onPageChange(page)}
             className={cn(
-              "w-10 h-10 flex items-center justify-center rounded-xl font-bold transition-all cursor-pointer",
+              "flex size-9 items-center justify-center rounded-xl text-xs font-black transition-colors cursor-pointer",
               currentPage === page
-                ? "bg-primary text-white shadow-lg shadow-primary/20"
-                : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5"
+                ? "border border-primary/25 bg-primary/10 text-primary"
+                : "text-gray-500 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-white/5",
             )}
           >
             {page.toLocaleString("fa-IR")}
@@ -83,13 +89,13 @@ function TicketPagination({
           disabled={!canGoNext}
           onClick={() => onPageChange(currentPage + 1)}
           className={cn(
-            "w-10 h-10 flex items-center justify-center rounded-xl transition-all",
+            "flex size-9 items-center justify-center rounded-xl transition-colors",
             canGoNext
-              ? "bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 cursor-pointer"
-              : "bg-gray-50 dark:bg-white/5 text-gray-400 cursor-not-allowed"
+              ? "text-gray-500 hover:bg-gray-100 hover:text-primary dark:text-slate-400 dark:hover:bg-white/5 cursor-pointer"
+              : "text-gray-300 dark:text-slate-600 cursor-not-allowed",
           )}
         >
-          <ChevronLeft className="w-5 h-5" />
+          <ChevronLeft className="size-4" />
         </button>
       </div>
     </div>
@@ -97,7 +103,6 @@ function TicketPagination({
 }
 
 export default function TicketList({ onNewTicket }: { onNewTicket: () => void }) {
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -133,144 +138,122 @@ export default function TicketList({ onNewTicket }: { onNewTicket: () => void })
     }
   }, [currentPage, totalPages]);
 
-  return (
-    <div className="space-y-8">
-      {/* Search and Filters */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white dark:bg-[#1c1e26] p-4 rounded-[2rem] border border-gray-100 dark:border-white/5 shadow-sm">
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                "px-5 py-2.5 rounded-2xl text-sm font-bold transition-all whitespace-nowrap cursor-pointer",
-                activeTab === tab.id
-                  ? "bg-primary text-white shadow-lg shadow-primary/25"
-                  : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5"
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+  if (isPending) {
+    return <TicketListSkeleton rows={3} />;
+  }
 
-        <div className="relative group min-w-[280px]">
-          <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
-          <input
-            type="text"
-            placeholder="جستجو در تیکت‌ها..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-4 pr-12 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-right"
-          />
-        </div>
+  return (
+    <section className="space-y-4">
+      <div className="scrollbar-hide -mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-0.5">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={cn(
+              "shrink-0 whitespace-nowrap rounded-full border px-3.5 py-2 text-xs font-bold transition-colors cursor-pointer",
+              activeTab === tab.id
+                ? "border-primary/25 bg-primary/10 text-primary shadow-[0_0_15px_rgba(34,197,94,0.1)]"
+                : "border-gray-200/70 bg-white text-gray-500 hover:text-gray-900 dark:border-white/5 dark:bg-[#1c1e26]/80 dark:text-slate-400 dark:hover:text-white",
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {/* List Container */}
-      {isPending ? (
-        <TicketListSkeleton rows={3} />
-      ) : (
-      <div className="bg-white dark:bg-[#1c1e26] rounded-[2.5rem] border border-gray-100 dark:border-white/5 shadow-xl shadow-gray-200/40 dark:shadow-none overflow-hidden">
-        {filteredTickets.length > 0 ? (
-          <div className="divide-y divide-gray-100 dark:divide-white/5">
-            {paginatedTickets.map((ticket) => (
-              <div
-                key={ticket.id}
-                className="group flex flex-col lg:flex-row lg:items-center justify-between p-8 hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-all cursor-pointer relative"
-              >
-                <div className="flex-1 space-y-4">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className={cn(
-                      "text-[11px] font-black px-3 py-1 rounded-full border uppercase tracking-tight",
-                      getTicketStatusClass(ticket.status)
-                    )}>
-                      {formatTicketStatusLabel(ticket.status)}
-                    </span>
-                  </div>
+      <div className="relative">
+        <Search className="pointer-events-none absolute start-4 top-1/2 size-4 -translate-y-1/2 text-gray-400 dark:text-slate-500" />
+        <input
+          type="search"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="جستجو در تیکت‌ها..."
+          className="w-full rounded-2xl border border-gray-200/70 bg-white py-3.5 pe-4 ps-11 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 dark:border-white/10 dark:bg-[#1c1e26]/90 dark:text-white dark:placeholder:text-slate-500"
+        />
+      </div>
 
-                  <h3 className="text-xl font-black text-gray-900 dark:text-white group-hover:text-primary transition-colors leading-snug">
+      {filteredTickets.length === 0 ? (
+        <div className="rounded-3xl border border-dashed border-gray-300 bg-gray-50/70 px-5 py-12 text-center dark:border-white/10 dark:bg-[#1c1e26]/50">
+          <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+            <MessagesSquare className="size-6" />
+          </div>
+          <h3 className="mb-1.5 text-base font-black text-gray-900 dark:text-white">
+            {tickets.length === 0 ? "هنوز تیکتی ندارید" : "نتیجه‌ای یافت نشد"}
+          </h3>
+          <p className="mx-auto mb-5 max-w-sm text-sm leading-relaxed text-gray-500 dark:text-slate-400">
+            {tickets.length === 0
+              ? "اگر سوال یا مشکلی دارید، همین حالا اولین تیکت خود را ثبت کنید تا تیم پشتیبانی بررسی کند."
+              : "فیلتر یا عبارت دیگری را امتحان کنید."}
+          </p>
+          {tickets.length === 0 && (
+            <button
+              type="button"
+              onClick={onNewTicket}
+              className="inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2.5 text-sm font-bold text-primary transition-colors hover:bg-primary/15 cursor-pointer"
+            >
+              شروع گفتگو
+              <ChevronLeft className="size-4" />
+            </button>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center justify-between px-0.5">
+            <h2 className="text-sm font-bold text-gray-900 dark:text-white">
+              گفتگوها
+            </h2>
+            <span className="rounded-full border border-gray-200/70 bg-white px-2.5 py-1 text-[10px] font-bold text-gray-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400">
+              {toPersianDigits(filteredTickets.length)} تیکت
+            </span>
+          </div>
+
+          <div className="space-y-2.5">
+            {paginatedTickets.map((ticket) => (
+              <Link
+                key={ticket.id}
+                href={`/panel/support/details?ticketId=${encodeURIComponent(ticket.id)}`}
+                className="block rounded-2xl border border-gray-200/70 bg-white p-4 transition-all hover:border-primary/25 dark:border-white/5 dark:bg-[#1c1e26]/80 dark:hover:bg-[#1c1e26] cursor-pointer"
+              >
+                <div className="mb-2 flex items-start justify-between gap-3">
+                  <h3 className="min-w-0 text-sm font-black leading-snug text-gray-900 dark:text-white">
                     {ticket.title}
                   </h3>
-
-                  <div className="flex flex-wrap items-center gap-6 text-sm font-bold text-gray-500 dark:text-gray-400">
-                    <div className="flex items-center gap-2">
-                      <Tag className="w-4 h-4 text-primary" />
-                      <span>{ticket.category}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      <span>ثبت: {ticket.createdAt}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-blue-500" />
-                      <span>بروزرسانی: {ticket.updatedAt}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-8 lg:mt-0 flex items-center gap-4 lg:pr-8">
-                   <button 
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      router.push(`/panel/support/details?ticketId=${encodeURIComponent(ticket.id)}`);
-                    }}
-                    className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm font-black text-gray-700 dark:text-gray-200 hover:bg-primary hover:text-white hover:border-primary transition-all active:scale-95 shadow-sm cursor-pointer"
+                  <span
+                    className={cn(
+                      "shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-bold",
+                      getTicketStatusClass(ticket.status),
+                    )}
                   >
-                    <span>مشاهده جزئیات</span>
-                    <ArrowUpRight className="w-4 h-4" />
-                  </button>
-                  <button className="p-3 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
-                    <MoreHorizontal className="w-6 h-6" />
-                  </button>
+                    {formatTicketStatusLabel(ticket.status)}
+                  </span>
                 </div>
-                
-                {/* Visual hover indicator */}
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary scale-y-0 group-hover:scale-y-100 transition-transform duration-300 origin-bottom" />
-              </div>
+
+                <div className="mb-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] font-bold text-gray-500 dark:text-slate-400">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Tag className="size-3.5 text-primary" />
+                    {getTicketCategoryLabel(ticket.category)}
+                  </span>
+                  <span>ثبت: {ticket.createdAt}</span>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 text-[10px] font-bold text-gray-400 dark:text-slate-500">
+                  <span>بروزرسانی: {ticket.updatedAt}</span>
+                  <span className="inline-flex items-center gap-1 text-primary/80">
+                    مشاهده گفتگو
+                    <ChevronLeft className="size-3.5" />
+                  </span>
+                </div>
+              </Link>
             ))}
           </div>
-        ) : (
-          <SupportEmptyState onNewTicket={onNewTicket} />
-        )}
-      </div>
-      )}
-      
-      {/* Pagination Placeholder */}
-      {!isPending && filteredTickets.length > 0 && (
-        <TicketPagination
-          currentPage={safePage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-        />
-      )}
-    </div>
-  );
-}
 
-function SupportEmptyState({ onNewTicket }: { onNewTicket: () => void }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-24 px-8 text-center">
-      <div className="relative mb-8">
-        <div className="w-32 h-32 rounded-[2.5rem] bg-primary/5 flex items-center justify-center relative z-10">
-          <Inbox className="w-16 h-16 text-primary opacity-20" />
-        </div>
-        <div className="absolute -top-4 -right-4 w-12 h-12 rounded-2xl bg-white dark:bg-[#252833] shadow-xl flex items-center justify-center animate-bounce">
-          <span className="material-symbols-outlined text-primary text-2xl">question_mark</span>
-        </div>
-      </div>
-      
-      <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-4">هنوز هیچ تیکتی ثبت نکرده‌اید!</h3>
-      <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto leading-relaxed font-medium mb-10">
-        اگر با مشکلی مواجه شده‌اید یا سوالی دارید، تیم پشتیبانی ما در کنار شماست. همین حالا اولین درخواست خود را ثبت کنید.
-      </p>
-      
-      <button 
-        onClick={onNewTicket}
-        className="px-10 py-4 bg-primary hover:bg-primary-hover text-white rounded-2xl font-black shadow-xl shadow-primary/30 transition-all hover:scale-105 active:scale-95 flex items-center gap-3 cursor-pointer"
-      >
-        <span className="material-symbols-outlined">add</span>
-        <span>ثبت اولین تیکت پشتیبانی</span>
-      </button>
-    </div>
+          <TicketPagination
+            currentPage={safePage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </>
+      )}
+    </section>
   );
 }

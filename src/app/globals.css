@@ -214,6 +214,14 @@ body.panel-overlay-open [data-panel-bottom-nav] {
   min-height: 100%;
 }
 
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 @keyframes float {
   0% {
     transform: translateY(0px);
