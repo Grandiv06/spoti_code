@@ -156,21 +156,21 @@ export default function CourseDetailClient({
         }
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        <div className="lg:col-span-8 flex flex-col gap-6 md:gap-8 order-2 lg:order-1">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 items-start">
+        <div className="lg:col-span-8 flex min-w-0 flex-col gap-4 sm:gap-6 md:gap-8 order-2 lg:order-1">
           {aboutParagraphs.length > 0 ? (
-            <section className="glass-panel rounded-[2rem] md:rounded-4xl p-6 md:p-8 lg:p-12 glass-card-hover">
-              <div className="flex items-center gap-3 md:gap-4 mb-6 md:mb-8">
-                <div className="size-10 md:size-12 rounded-xl md:rounded-2xl bg-gradient-to-br from-emerald-100 dark:from-emerald-900/30 to-white dark:to-gray-800 flex items-center justify-center text-primary shadow-sm border border-white/50 dark:border-gray-700 shrink-0">
-                  <span className="material-symbols-outlined filled text-xl md:text-2xl">
+            <section className="glass-panel rounded-[1.5rem] sm:rounded-[2rem] md:rounded-4xl p-4 sm:p-6 md:p-8 lg:p-12 glass-card-hover">
+              <div className="flex items-center gap-3 md:gap-4 mb-4 sm:mb-6 md:mb-8">
+                <div className="size-9 sm:size-10 md:size-12 rounded-xl md:rounded-2xl bg-gradient-to-br from-emerald-100 dark:from-emerald-900/30 to-white dark:to-gray-800 flex items-center justify-center text-primary shadow-sm border border-white/50 dark:border-gray-700 shrink-0">
+                  <span className="material-symbols-outlined filled text-lg sm:text-xl md:text-2xl">
                     description
                   </span>
                 </div>
-                <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white">
+                <h2 className="text-lg sm:text-2xl md:text-3xl font-black text-gray-900 dark:text-white">
                   {aboutTitle || "درباره این دوره"}
                 </h2>
               </div>
-              <div className="prose prose-base md:prose-lg max-w-none text-gray-600 dark:text-gray-300 leading-8 md:leading-9 font-medium text-justify md:text-right">
+              <div className="prose prose-sm sm:prose-base md:prose-lg max-w-none text-gray-600 dark:text-gray-300 leading-7 sm:leading-8 md:leading-9 font-medium text-justify md:text-right">
                 {aboutParagraphs.map((paragraph, index) => (
                   <p key={paragraph.slice(0, 40) + index} className={index < aboutParagraphs.length - 1 ? "mb-4" : ""}>
                     {renderHighlightedText(paragraph, aboutHighlights)}

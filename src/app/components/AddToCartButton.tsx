@@ -102,7 +102,7 @@ export default function AddToCartButton({ course }: { course: CourseOrderPayload
         type="button"
         onClick={handleAddToCart}
         disabled={isSubmitting}
-        className={`group/btn relative flex w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-2xl border border-white/20 py-4 text-base font-black text-white shadow-[0_0_20px_rgba(34,197,94,0.5)] transition-all md:gap-3 md:rounded-[2rem] md:py-6 md:text-xl ${
+        className={`group/btn relative flex w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-2xl border border-white/20 py-3 text-sm font-black text-white shadow-[0_0_20px_rgba(34,197,94,0.5)] transition-all sm:py-4 sm:text-base md:gap-3 md:rounded-[2rem] md:py-6 md:text-xl ${
           isSubmitting
             ? "cursor-wait bg-gray-500"
             : "bg-gradient-to-r from-primary to-emerald-400 hover:-translate-y-1 hover:shadow-[0_0_40px_rgba(34,197,94,0.8)] active:scale-95"

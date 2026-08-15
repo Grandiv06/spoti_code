@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -55,7 +55,9 @@ import {
 import CourseCard from "@/app/components/CourseCard";
 import CourseHero from "@/app/components/CourseHero";
 import CourseFAQ from "@/app/components/CourseFAQ";
+import CourseCurriculum from "@/app/components/CourseCurriculum";
 import CustomSelect from "@/components/ui/CustomSelect";
+import { cn } from "@/lib/utils";
 import HighlightableTextareaWithBadges from "@/components/ui/HighlightableTextareaWithBadges";
 import { apiGetNoMock, apiPatchNoMock, apiPostNoMock } from "@/lib/api";
 import { uploadCourseMediaFile } from "@/lib/course-media-upload";
@@ -707,14 +709,11 @@ function mergeDraftIntoWizardForm(
 const WIZARD_FIELD_CLASS =
   "bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] rounded-2xl text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] focus:border-primary/50 focus:ring-2 focus:ring-primary/15 focus:outline-none transition-all";
 
-const WIZARD_FIELD_SM_CLASS =
-  "bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] rounded-xl text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-primary/50 focus:ring-2 focus:ring-primary/15 focus:outline-none transition-all";
-
-const WIZARD_PANEL_CLASS =
-  "rounded-2xl border border-gray-100/80 dark:border-white/[0.08] bg-gradient-to-b from-gray-50/90 via-gray-50/40 to-transparent dark:from-white/[0.05] dark:via-white/[0.02] dark:to-transparent";
-
 const WIZARD_DROPZONE_CLASS =
   "border border-dashed border-gray-200/80 dark:border-white/10 rounded-2xl bg-gray-50/60 dark:bg-white/[0.03] hover:border-primary/35 hover:bg-primary/[0.04] dark:hover:bg-primary/[0.06] transition-all";
+
+const WIZARD_SECTION_CLASS =
+  "rounded-2xl border border-gray-200/70 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] p-4 md:p-5";
 
 export default function CreateCourseWizardPage() {
   const router = useRouter();
@@ -1079,6 +1078,16 @@ export default function CreateCourseWizardPage() {
   const [previewCollapsedChapters, setPreviewCollapsedChapters] = useState<
     Record<string, boolean>
   >({});
+  const [finalPreviewLesson, setFinalPreviewLesson] = useState<{
+    lessonId: string;
+    title: string;
+    duration: string;
+    videoUrl: string;
+  } | null>(null);
+  const [finalPreviewPlayTick, setFinalPreviewPlayTick] = useState(0);
+  const [finalPreviewNotice, setFinalPreviewNotice] = useState<string | null>(
+    null,
+  );
   const [draggedFaqId, setDraggedFaqId] = useState<string | null>(null);
   const [dragOverFaqId, setDragOverFaqId] = useState<string | null>(null);
   const [lessonFilesError, setLessonFilesError] = useState("");
@@ -1114,10 +1123,6 @@ export default function CreateCourseWizardPage() {
       );
     });
   };
-
-  // Custom Highlight words lists (Step 2)
-  const [newHighlightWord, setNewHighlightWord] = useState("");
-  const [newUnderlineWord, setNewUnderlineWord] = useState("");
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -2296,12 +2301,15 @@ export default function CreateCourseWizardPage() {
     applyLessonAttachments(lessonId, nextList);
   };
 
+  const DEFAULT_FAQ_QUESTION = "سوال جدید";
+  const DEFAULT_FAQ_ANSWER = "پاسخ این سوال را وارد کنید.";
+
   // FAQ actions
   const addFAQBox = () => {
     const newFaq = {
       id: `faq-${Math.random().toString(36).substr(2, 9)}`,
-      question: "سوال جدید",
-      answer: "پاسخ این سوال را وارد کنید.",
+      question: DEFAULT_FAQ_QUESTION,
+      answer: DEFAULT_FAQ_ANSWER,
     };
     setFormData((prev) => ({ ...prev, faqs: [...prev.faqs, newFaq] }));
     setOpenFaqItemId(newFaq.id);
@@ -2351,39 +2359,6 @@ export default function CreateCourseWizardPage() {
       ...p,
       aboutHighlights: p.aboutHighlights.filter((h) => h !== item),
     }));
-  };
-
-  // Step 2 word helper additions
-  const addHighlightWord = () => {
-    if (
-      newHighlightWord.trim() &&
-      !formData.specialWords.highlighted.includes(newHighlightWord.trim())
-    ) {
-      setFormData((p) => ({
-        ...p,
-        specialWords: {
-          ...p.specialWords,
-          highlighted: [...p.specialWords.highlighted, newHighlightWord.trim()],
-        },
-      }));
-      setNewHighlightWord("");
-    }
-  };
-
-  const addUnderlineWord = () => {
-    if (
-      newUnderlineWord.trim() &&
-      !formData.specialWords.underlined.includes(newUnderlineWord.trim())
-    ) {
-      setFormData((p) => ({
-        ...p,
-        specialWords: {
-          ...p.specialWords,
-          underlined: [...p.specialWords.underlined, newUnderlineWord.trim()],
-        },
-      }));
-      setNewUnderlineWord("");
-    }
   };
 
   const openDeleteConfirm = (
@@ -2851,6 +2826,36 @@ export default function CreateCourseWizardPage() {
     0,
   );
 
+  const finalPreviewChapters = useMemo(
+    () =>
+      formData.chapters.map((chapter) => ({
+        id: chapter.id,
+        number: chapter.number,
+        title: chapter.title,
+        subtitle: chapter.subtitle,
+        lessons: chapter.lessons.map((lesson) => ({
+          id: lesson.id,
+          title: lesson.title,
+          duration: lesson.duration || "",
+          isFree: lesson.access === "free",
+          isLocked: lesson.access === "locked",
+          isUnlocked: true,
+          videoUrl: (
+            lesson.videoUrl ||
+            lessonVideoMap[lesson.id]?.url ||
+            ""
+          ).trim(),
+        })),
+      })),
+    [formData.chapters, lessonVideoMap],
+  );
+
+  useEffect(() => {
+    if (!finalPreviewNotice) return;
+    const timeoutId = window.setTimeout(() => setFinalPreviewNotice(null), 2600);
+    return () => window.clearTimeout(timeoutId);
+  }, [finalPreviewNotice]);
+
   return (
     <div
       className="max-w-[1440px] mx-auto px-3 sm:px-4 lg:px-8 py-6 sm:py-10 text-right min-h-screen overflow-x-hidden"
@@ -3286,218 +3291,74 @@ export default function CreateCourseWizardPage() {
                   </p>
                 </div>
 
-                {/* Hero title */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                    عنوان اصلی هیرو <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="مثال: متخصص React و Next.js"
-                    value={formData.heroTitle}
-                    onChange={(e) => {
-                      heroTitleTouchedRef.current = true;
-                      markFormEdited();
-                      setFormData((p) => ({ ...p, heroTitle: e.target.value }));
-                    }}
-                    className={`px-4 py-2.5 ${WIZARD_FIELD_CLASS} text-xs font-bold text-right ${errors.heroTitle ? "border-red-500 ring-2 ring-red-500/15" : ""}`}
-                  />
-                  {errors.heroTitle && (
-                    <span className="text-[10px] text-red-500 font-bold">
-                      {errors.heroTitle}
-                    </span>
-                  )}
-                </div>
-
-                {/* Title highlights (Special Words) */}
-                <div className={`p-4 ${WIZARD_PANEL_CLASS} space-y-3`}>
-                  <span className="text-xs font-black text-gray-900 dark:text-white block">
-                    کلمات ویژه عنوان (Special Words)
-                  </span>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Highlighted text list */}
+                <div className={WIZARD_SECTION_CLASS}>
+                  <div className="flex flex-col gap-5">
                     <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400">
-                        کلمات سبز (Highlight)
+                      <label className="text-[11px] font-black text-gray-700 dark:text-gray-200">
+                        عنوان اصلی هیرو <span className="text-red-500">*</span>
                       </label>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          placeholder="کلمه"
-                          value={newHighlightWord}
-                          onChange={(e) => setNewHighlightWord(e.target.value)}
-                          className={`w-full px-3 py-2 ${WIZARD_FIELD_SM_CLASS} text-[10px] font-bold text-right`}
-                        />
-                        <button
-                          type="button"
-                          onClick={addHighlightWord}
-                          className="p-2 bg-primary/10 text-primary border border-primary/20 rounded-xl hover:bg-primary/20 transition-all cursor-pointer"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {formData.specialWords.highlighted.map((word, idx) => (
-                          <span
-                            key={idx}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-500/10 text-emerald-500 text-[9px] font-black rounded-lg border border-emerald-500/20"
-                          >
-                            {word}
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setFormData((p) => ({
-                                  ...p,
-                                  specialWords: {
-                                    ...p.specialWords,
-                                    highlighted:
-                                      p.specialWords.highlighted.filter(
-                                        (w) => w !== word,
-                                      ),
-                                  },
-                                }))
-                              }
-                            >
-                              <X className="w-3 h-3 text-red-500 hover:scale-110 transition-transform" />
-                            </button>
-                          </span>
-                        ))}
-                      </div>
+                      <input
+                        type="text"
+                        placeholder="مثال: متخصص React و Next.js"
+                        value={formData.heroTitle}
+                        onChange={(e) => {
+                          heroTitleTouchedRef.current = true;
+                          markFormEdited();
+                          setFormData((p) => ({
+                            ...p,
+                            heroTitle: e.target.value,
+                          }));
+                        }}
+                        className={`px-4 py-2.5 ${WIZARD_FIELD_CLASS} text-xs font-bold text-right ${errors.heroTitle ? "border-red-500 ring-2 ring-red-500/15" : ""}`}
+                      />
+                      {errors.heroTitle && (
+                        <span className="text-[10px] font-bold text-red-500">
+                          {errors.heroTitle}
+                        </span>
+                      )}
                     </div>
 
-                    {/* Underlined text list */}
                     <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400">
-                        کلمات دارای خط زیرین (Underline)
-                      </label>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          placeholder="کلمه"
-                          value={newUnderlineWord}
-                          onChange={(e) => setNewUnderlineWord(e.target.value)}
-                          className={`w-full px-3 py-2 ${WIZARD_FIELD_SM_CLASS} text-[10px] font-bold text-right`}
-                        />
-                        <button
-                          type="button"
-                          onClick={addUnderlineWord}
-                          className="p-2 bg-primary/10 text-primary border border-primary/20 rounded-xl hover:bg-primary/20 transition-all cursor-pointer"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
+                      <div className="flex items-center justify-between gap-2">
+                        <label className="text-[11px] font-black text-gray-700 dark:text-gray-200">
+                          توضیح کوتاه هیرو <span className="text-red-500">*</span>
+                        </label>
+                        <span className="text-[9px] font-bold tabular-nums text-gray-400">
+                          {formData.shortDescription.length.toLocaleString("fa-IR")} از{" "}
+                          {(180).toLocaleString("fa-IR")}
+                        </span>
                       </div>
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {formData.specialWords.underlined.map((word, idx) => (
-                          <span
-                            key={idx}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-500/10 text-blue-500 text-[9px] font-black rounded-lg border border-blue-500/20"
-                          >
-                            {word}
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setFormData((p) => ({
-                                  ...p,
-                                  specialWords: {
-                                    ...p.specialWords,
-                                    underlined:
-                                      p.specialWords.underlined.filter(
-                                        (w) => w !== word,
-                                      ),
-                                  },
-                                }))
-                              }
-                            >
-                              <X className="w-3 h-3 text-red-500 hover:scale-110 transition-transform" />
-                            </button>
-                          </span>
-                        ))}
-                      </div>
+                      <textarea
+                        rows={3}
+                        placeholder="توضیح کوتاهی که در هیرو بالای صفحه قرار می‌گیرد..."
+                        value={formData.shortDescription}
+                        onChange={(e) =>
+                          setFormData((p) => ({
+                            ...p,
+                            shortDescription: e.target.value,
+                          }))
+                        }
+                        className={`min-h-[88px] px-4 py-2.5 ${WIZARD_FIELD_CLASS} text-xs font-bold text-right leading-relaxed ${errors.shortDescription ? "border-red-500 ring-2 ring-red-500/15" : ""}`}
+                      />
+                      {errors.shortDescription && (
+                        <span className="text-[10px] font-bold text-red-500">
+                          {errors.shortDescription}
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  {/* Highlight Color Pick */}
-                  <div className="flex flex-col gap-2">
-                    <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400">
-                      انتخاب رنگ هایلایت کلمات
-                    </label>
-                    <div className="flex gap-3">
-                      {[
-                        { name: "سبز برند", val: "green", class: "bg-primary" },
-                        {
-                          name: "سفید",
-                          val: "white",
-                          class: "bg-white border border-gray-200",
-                        },
-                        {
-                          name: "زرد طلایی",
-                          val: "yellow",
-                          class: "bg-amber-500",
-                        },
-                        {
-                          name: "آبی ملایم",
-                          val: "blue",
-                          class: "bg-blue-500",
-                        },
-                      ].map((col) => (
-                        <button
-                          type="button"
-                          key={col.val}
-                          onClick={() =>
-                            setFormData((p) => ({
-                              ...p,
-                              specialWords: {
-                                ...p.specialWords,
-                                color: col.val,
-                              },
-                            }))
-                          }
-                          className={`px-3 py-1.5 rounded-xl text-[10px] font-bold flex items-center gap-1.5 border transition-all cursor-pointer ${
-                            formData.specialWords.color === col.val
-                              ? "border-primary bg-primary/10 text-primary"
-                              : `border-transparent ${WIZARD_FIELD_SM_CLASS} px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:border-gray-200/80 dark:hover:border-white/10`
-                          }`}
-                        >
-                          <span
-                            className={`w-3.5 h-3.5 rounded-full ${col.class}`}
-                          />
-                          {col.name}
-                        </button>
-                      ))}
+                  <div className="mt-6 border-t border-gray-200/70 pt-5 dark:border-white/10">
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <div>
+                        <label className="text-[11px] font-black text-gray-700 dark:text-gray-200">
+                          ویدیوی معرفی دوره
+                        </label>
+                        <p className="mt-0.5 text-[10px] font-bold text-gray-400">
+                          اختیاری است؛ MP4 یا MKV تا ۵۰ مگابایت
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </div>
-
-                {/* Short Description */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                    توضیح کوتاه هیرو <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder="توضیح کوتاهی که در هیرو بالای صفحه قرار می‌گیرد..."
-                    value={formData.shortDescription}
-                    onChange={(e) =>
-                      setFormData((p) => ({
-                        ...p,
-                        shortDescription: e.target.value,
-                      }))
-                    }
-                    className={`px-4 py-2.5 ${WIZARD_FIELD_CLASS} text-xs font-bold text-right leading-relaxed ${errors.shortDescription ? "border-red-500 ring-2 ring-red-500/15" : ""}`}
-                  />
-                  {errors.shortDescription && (
-                    <span className="text-[10px] text-red-500 font-bold">
-                      {errors.shortDescription}
-                    </span>
-                  )}
-                </div>
-
-                {/* Intro Video Upload */}
-                <div className="flex flex-col gap-3">
-                  <label className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                    ویدیوی معرفی دوره
-                  </label>
                   {videoProgress > 0 && videoProgress < 100 ? (
                     <div className="relative overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/[0.08] via-white to-emerald-500/[0.06] p-5 shadow-[0_18px_50px_-28px_rgba(36,180,126,0.55)] dark:from-primary/[0.14] dark:via-[#1c1e26] dark:to-emerald-500/[0.08] dark:border-primary/20">
                       <div className="pointer-events-none absolute -left-10 -top-12 h-36 w-36 rounded-full bg-primary/20 blur-3xl" />
@@ -3565,23 +3426,22 @@ export default function CreateCourseWizardPage() {
                       </div>
                     </div>
                   ) : formData.introVideo ? (
-                    <div className="overflow-hidden rounded-2xl border border-emerald-500/20 bg-gradient-to-b from-gray-950 to-black shadow-[0_20px_50px_-28px_rgba(0,0,0,0.65)]">
-                      <div className="p-2 sm:p-3">
-                        <CustomVideoPlayer
-                          key={formData.introVideo}
-                          src={formData.introVideo}
-                          title={videoFile?.name || "ویدیوی معرفی دوره"}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between gap-3 border-t border-white/10 bg-white/95 px-4 py-3 dark:bg-[#1c1e26]/95">
-                        <p className="flex min-w-0 items-center gap-1.5 truncate text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                    <div className="overflow-hidden rounded-2xl border border-emerald-500/20 bg-black">
+                      <CustomVideoPlayer
+                        key={formData.introVideo}
+                        src={formData.introVideo}
+                        compact
+                        forceLandscape
+                      />
+                      <div className="flex items-center justify-between gap-3 border-t border-white/10 bg-[#14161c] px-3 py-2.5">
+                        <p className="flex min-w-0 items-center gap-1.5 text-[10px] font-bold text-emerald-400">
                           <Check className="h-3.5 w-3.5 shrink-0" />
                           <span className="truncate">
                             {videoFile?.name || "ویدیوی معرفی بارگذاری شد"}
                           </span>
                         </p>
-                        <div className="flex shrink-0 items-center gap-2">
-                          <label className="cursor-pointer rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-[10px] font-bold text-gray-700 transition-colors hover:border-primary/30 hover:text-primary dark:border-white/10 dark:bg-white/5 dark:text-gray-200">
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          <label className="cursor-pointer rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-bold text-gray-200 transition-colors hover:border-primary/30 hover:text-primary">
                             تغییر
                             <input
                               type="file"
@@ -3593,7 +3453,7 @@ export default function CreateCourseWizardPage() {
                           <button
                             type="button"
                             onClick={clearIntroVideo}
-                            className="rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-[10px] font-bold text-red-500 transition-colors hover:bg-red-100 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400 cursor-pointer"
+                            className="cursor-pointer rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-[10px] font-bold text-red-400 transition-colors hover:bg-red-500/20"
                           >
                             حذف
                           </button>
@@ -3602,7 +3462,7 @@ export default function CreateCourseWizardPage() {
                     </div>
                   ) : (
                     <div
-                      className={`relative ${WIZARD_DROPZONE_CLASS} flex min-h-[130px] flex-col items-center justify-center p-5 text-center`}
+                      className={`relative ${WIZARD_DROPZONE_CLASS} flex min-h-[180px] flex-col items-center justify-center p-6 text-center sm:min-h-[200px]`}
                     >
                       <input
                         type="file"
@@ -3610,7 +3470,9 @@ export default function CreateCourseWizardPage() {
                         onChange={handleVideoUpload}
                         className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
                       />
-                      <UploadCloud className="mb-2 h-10 w-10 text-gray-400" />
+                      <span className="mb-3 inline-flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                        <UploadCloud className="h-6 w-6" />
+                      </span>
                       <p className="mb-1 text-[11px] font-black text-gray-700 dark:text-gray-300">
                         انتخاب یا رها کردن ویدیوی پیش‌نمایش
                       </p>
@@ -3619,6 +3481,7 @@ export default function CreateCourseWizardPage() {
                       </p>
                     </div>
                   )}
+                  </div>
                 </div>
               </div>
             )}
@@ -3707,17 +3570,20 @@ export default function CreateCourseWizardPage() {
                     )}
 
                     <div className="space-y-4">
-                      <div className="flex flex-col gap-2">
-                        <input
-                          type="text"
-                          placeholder="عنوان ویژگی (مثال: پشتیبانی اختصاصی در داشبورد دانشجو)"
-                          value={featTitle}
-                          onChange={(e) => setFeatTitle(e.target.value)}
-                          className="px-4 py-2.5 bg-white dark:bg-[#1a1c23] border border-gray-200/70 dark:border-white/10 rounded-xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-right"
-                        />
-                      </div>
+                      <div className="flex flex-col gap-3.5">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="block text-[11px] font-black text-gray-700 dark:text-gray-200 mr-1">
+                            عنوان ویژگی
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="مثال: پشتیبانی اختصاصی در داشبورد دانشجو"
+                            value={featTitle}
+                            onChange={(e) => setFeatTitle(e.target.value)}
+                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl text-xs font-bold text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:outline-none transition-all text-right h-[42px]"
+                          />
+                        </div>
 
-                      <div className="grid grid-cols-1 gap-3">
                         <CustomSelect
                           label="انتخاب آیکون"
                           value={featIcon}
@@ -3726,10 +3592,9 @@ export default function CreateCourseWizardPage() {
                             ({ value, label }) => ({ value, label }),
                           )}
                           size="sm"
-                          className="space-y-1.5"
                           renderValue={(option) => (
                             <span className="inline-flex items-center gap-2">
-                              <span className="material-symbols-outlined text-[18px] text-emerald-400">
+                              <span className="material-symbols-outlined text-[18px] text-emerald-500 dark:text-emerald-400">
                                 {FEATURE_ICON_OPTIONS.find(
                                   (item) => item.value === option?.value,
                                 )?.icon || "help"}
@@ -3747,15 +3612,18 @@ export default function CreateCourseWizardPage() {
                             return (
                               <span className="flex w-full items-center justify-between gap-3">
                                 <span className="inline-flex items-center gap-2">
-                                  <span className="material-symbols-outlined text-[18px] text-emerald-400">
+                                  <span className={cn(
+                                    "material-symbols-outlined text-[18px]",
+                                    selected ? "text-primary dark:text-emerald-400" : "text-emerald-500 dark:text-emerald-400"
+                                  )}>
                                     {icon}
                                   </span>
-                                  <span className="font-bold text-sm">
+                                  <span className="font-bold text-xs">
                                     {option.label}
                                   </span>
                                 </span>
                                 {selected ? (
-                                  <span className="material-symbols-outlined text-[16px]">
+                                  <span className="material-symbols-outlined text-[16px] text-primary dark:text-emerald-400">
                                     check
                                   </span>
                                 ) : null}
@@ -3783,7 +3651,7 @@ export default function CreateCourseWizardPage() {
                       {formData.features.map((feat) => (
                         <div
                           key={feat.id}
-                          className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-white dark:bg-[#1a1c23] border border-gray-100 dark:border-white/5 text-[10px] font-bold"
+                          className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-white dark:bg-[#1a1c23] border border-gray-100 dark:border-white/5 text-[10px] font-bold hover:border-primary/30 transition-all hover:shadow-sm"
                         >
                           <div className="flex items-center gap-2">
                             <span
@@ -3940,6 +3808,7 @@ export default function CreateCourseWizardPage() {
                                   <input
                                     autoFocus
                                     value={faq.question}
+                                    placeholder={DEFAULT_FAQ_QUESTION}
                                     onChange={(e) =>
                                       updateFAQQuestionInline(
                                         faq.id,
@@ -3951,18 +3820,21 @@ export default function CreateCourseWizardPage() {
                                       if (e.key === "Enter")
                                         setEditingFaqQuestionId(null);
                                     }}
-                                    className="h-9 w-full max-w-[78%] px-3 rounded-lg border border-blue-500/40 bg-white dark:bg-white/5 text-sm font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                    className="h-9 w-full max-w-[78%] px-3 rounded-lg border border-blue-500/40 bg-white dark:bg-white/5 text-sm font-bold text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                                   />
                                 ) : (
                                   <button
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
+                                      if (faq.question === DEFAULT_FAQ_QUESTION) {
+                                        updateFAQQuestionInline(faq.id, "");
+                                      }
                                       setEditingFaqQuestionId(faq.id);
                                     }}
                                     className="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[78%] cursor-text text-right"
                                   >
-                                    {faq.question}
+                                    {faq.question || DEFAULT_FAQ_QUESTION}
                                   </button>
                                 )}
                                 <div className="flex items-center gap-1.5 shrink-0">
@@ -3994,6 +3866,7 @@ export default function CreateCourseWizardPage() {
                                       autoFocus
                                       rows={3}
                                       value={faq.answer}
+                                      placeholder={DEFAULT_FAQ_ANSWER}
                                       onChange={(e) =>
                                         updateFAQAnswerInline(
                                           faq.id,
@@ -4001,17 +3874,20 @@ export default function CreateCourseWizardPage() {
                                         )
                                       }
                                       onBlur={() => setEditingFaqAnswerId(null)}
-                                      className="mt-4 w-full px-3 py-2 rounded-lg border border-blue-500/40 bg-white dark:bg-white/5 text-sm text-gray-700 dark:text-gray-300 leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-right"
+                                      className="mt-4 w-full px-3 py-2 rounded-lg border border-blue-500/40 bg-white dark:bg-white/5 text-sm text-gray-700 dark:text-gray-300 leading-relaxed placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-right"
                                     />
                                   ) : (
                                     <button
                                       type="button"
-                                      onClick={() =>
-                                        setEditingFaqAnswerId(faq.id)
-                                      }
+                                      onClick={() => {
+                                        if (faq.answer === DEFAULT_FAQ_ANSWER) {
+                                          updateFAQAnswerInline(faq.id, "");
+                                        }
+                                        setEditingFaqAnswerId(faq.id);
+                                      }}
                                       className="pt-4 text-sm text-gray-600 dark:text-gray-300 leading-relaxed text-right w-full cursor-text"
                                     >
-                                      {faq.answer}
+                                      {faq.answer || DEFAULT_FAQ_ANSWER}
                                     </button>
                                   )}
                                 </div>
@@ -4907,10 +4783,24 @@ export default function CreateCourseWizardPage() {
                   rating={4.9}
                   shortDescription={formData.shortDescription}
                   coverImage={formData.cover}
-                  introVideo={formData.introVideo}
+                  introVideo={
+                    finalPreviewLesson?.videoUrl || formData.introVideo
+                  }
                   specialWords={formData.specialWords}
+                  isPreviewActive={Boolean(finalPreviewLesson)}
+                  activeVideoTitle={finalPreviewLesson?.title}
+                  activeVideoDuration={finalPreviewLesson?.duration}
+                  playTrigger={finalPreviewPlayTick}
+                  onResetPreview={() => {
+                    setFinalPreviewLesson(null);
+                    setFinalPreviewPlayTick((prev) => prev + 1);
+                  }}
                   disableFallbackVideo
-                  missingVideoMessage="ویدیوی معرفی را بارگذاری کنید تا پیش‌نمایش پخش شود."
+                  missingVideoMessage={
+                    finalPreviewLesson
+                      ? "ویدیوی این جلسه در حال حاضر قابل پخش نیست."
+                      : "ویدیوی معرفی را بارگذاری کنید تا پیش‌نمایش پخش شود."
+                  }
                 />
 
                 {/* 2. Grid body */}
@@ -4999,6 +4889,41 @@ export default function CreateCourseWizardPage() {
                         </p>
                       </div>
                     </section>
+
+                    {finalPreviewNotice ? (
+                      <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-amber-700 dark:text-amber-300 text-sm font-bold">
+                        {finalPreviewNotice}
+                      </div>
+                    ) : null}
+
+                    {finalPreviewChapters.length > 0 ? (
+                      <CourseCurriculum
+                        totalLessons={totalLessonsCount}
+                        chapters={finalPreviewChapters}
+                        activeLessonId={finalPreviewLesson?.lessonId || null}
+                        coursePurchased
+                        onLessonSelect={(lesson) => {
+                          if (!lesson.videoUrl?.trim()) {
+                            setFinalPreviewNotice(
+                              "ویدیوی این جلسه هنوز برای پیش‌نمایش در دسترس نیست",
+                            );
+                            return;
+                          }
+                          setFinalPreviewNotice(null);
+                          setFinalPreviewLesson({
+                            lessonId: lesson.id,
+                            title: lesson.title,
+                            duration: lesson.duration,
+                            videoUrl: lesson.videoUrl,
+                          });
+                          setFinalPreviewPlayTick((prev) => prev + 1);
+                        }}
+                      />
+                    ) : (
+                      <div className="rounded-[2rem] border border-dashed border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-white/[0.03] py-10 text-center text-[11px] font-bold text-gray-400 dark:text-gray-500">
+                        هنوز سرفصل یا ویدیویی برای پیش‌نمایش ثبت نشده است.
+                      </div>
+                    )}
 
                     {/* FAQ accordion */}
                     <CourseFAQ items={formData.faqs} />

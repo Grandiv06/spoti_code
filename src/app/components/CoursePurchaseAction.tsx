@@ -16,7 +16,7 @@ type CoursePurchaseActionProps = {
 };
 
 export default function CoursePurchaseAction({ course }: CoursePurchaseActionProps) {
-  const { authLoading, canPurchase, isStaff, isEnrolled, loading } = useStudentEnrollments();
+  const { authLoading, canPurchase, isEnrolled, loading } = useStudentEnrollments();
 
   if (authLoading || loading) {
     return (
@@ -24,10 +24,6 @@ export default function CoursePurchaseAction({ course }: CoursePurchaseActionPro
         <div className="h-14 animate-pulse rounded-2xl bg-gray-200/80 dark:bg-white/10 md:h-16 md:rounded-[2rem]" />
       </div>
     );
-  }
-
-  if (isStaff) {
-    return null;
   }
 
   if (canPurchase && isEnrolled(course.id, course.slug)) {

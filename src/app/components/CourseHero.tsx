@@ -239,14 +239,16 @@ export default function CourseHero({
   const displayDuration = introVideoDuration?.trim() || "";
 
   return (
-    <div className={`glass-panel rounded-5xl mb-16 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1),0_10px_20px_-5px_rgba(0,0,0,0.04)] relative overflow-hidden group transition-all duration-700 ${
-      isVideoExpanded ? "p-0" : "p-2"
-    }`} dir="rtl">
+    <div className={`glass-panel relative overflow-hidden group transition-all duration-700 mb-6 sm:mb-10 lg:mb-16 ${
+      isVideoExpanded ? "p-0 rounded-3xl sm:rounded-5xl" : "p-1.5 sm:p-2 rounded-3xl sm:rounded-5xl"
+    } shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1),0_10px_20px_-5px_rgba(0,0,0,0.04)]`} dir="rtl">
       <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent pointer-events-none" />
       <div
         ref={gridRef}
-        className={`relative grid grid-cols-1 grid-rows-[auto_auto] lg:grid-cols-[minmax(0,var(--hero-col1,1fr))_1fr] lg:grid-rows-1 rounded-4xl bg-white/20 dark:bg-white/[0.03] overflow-hidden backdrop-blur-sm min-h-[500px] lg:min-h-[480px] transition-[grid-template-columns,height] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${
-          isVideoExpanded ? "aspect-video min-h-0 lg:min-h-0" : ""
+        className={`relative grid grid-cols-1 lg:grid-cols-[minmax(0,var(--hero-col1,1fr))_1fr] lg:grid-rows-1 rounded-[1.35rem] sm:rounded-4xl bg-white/20 dark:bg-white/[0.03] overflow-hidden backdrop-blur-sm transition-[grid-template-columns,height] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+          isVideoExpanded
+            ? "min-h-0"
+            : "min-h-0 lg:min-h-[480px]"
         }`}
         style={
           {
@@ -254,52 +256,52 @@ export default function CourseHero({
           } as React.CSSProperties
         }
       >
-        {/* Course Info - collapses smoothly when video expands */}
+        {/* Course Info - hidden on mobile while playing so the player keeps 16:9 */}
         <div
-          className={`min-w-0 overflow-hidden p-6 md:p-12 lg:p-16 flex flex-col justify-center relative z-10 row-start-2 lg:row-start-1 transition-opacity duration-500 ease-out ${
-            isVideoExpanded ? "opacity-0 pointer-events-none" : "opacity-100"
+          className={`min-w-0 overflow-hidden p-4 sm:p-6 md:p-12 lg:p-16 flex-col justify-center relative z-10 lg:row-start-1 transition-opacity duration-500 ease-out ${
+            isVideoExpanded ? "hidden lg:flex lg:opacity-0 lg:pointer-events-none" : "flex"
           }`}
         >
-          <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-6 md:mb-8 justify-start">
-            <span className="bg-emerald-100/80 dark:bg-emerald-900/30 backdrop-blur-md text-emerald-700 dark:text-emerald-300 px-3 md:px-4 py-1.5 md:py-2 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-black uppercase tracking-wider border border-emerald-200 dark:border-emerald-700">
+          <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-4 sm:mb-6 md:mb-8 justify-start">
+            <span className="bg-emerald-100/80 dark:bg-emerald-900/30 backdrop-blur-md text-emerald-700 dark:text-emerald-300 px-2.5 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-black uppercase tracking-wider border border-emerald-200 dark:border-emerald-700">
               {category}
             </span>
             {typeof rating === "number" && rating > 0 ? (
-            <span className="bg-amber-100/80 dark:bg-amber-900/30 backdrop-blur-md text-amber-700 dark:text-amber-300 px-3 md:px-4 py-1.5 md:py-2 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-black uppercase tracking-wider border border-amber-200 dark:border-amber-700 flex items-center gap-1">
+            <span className="bg-amber-100/80 dark:bg-amber-900/30 backdrop-blur-md text-amber-700 dark:text-amber-300 px-2.5 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-black uppercase tracking-wider border border-amber-200 dark:border-amber-700 flex items-center gap-1">
               <span className="material-symbols-outlined text-[14px] md:text-[16px] filled">star</span>
               {rating}
             </span>
             ) : null}
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-black text-gray-900 dark:text-white leading-[1.3] md:leading-[1.2] mb-4 md:mb-8 text-right">
+          <h1 className="text-[1.65rem] leading-snug sm:text-4xl md:text-5xl lg:text-7xl font-black text-gray-900 dark:text-white md:leading-[1.2] mb-3 sm:mb-4 md:mb-8 text-right break-words">
             {renderTitle()}
           </h1>
-          <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base md:text-xl font-medium leading-loose max-w-xl mb-8 md:mb-10 text-justify md:text-right">
+          <p className="text-gray-600 dark:text-gray-300 text-[13px] sm:text-base md:text-xl font-medium leading-7 sm:leading-loose max-w-xl mb-5 sm:mb-8 md:mb-10 text-justify md:text-right">
             {shortDescription || null}
           </p>
-          <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-6 md:gap-12 pt-6 md:pt-8 border-t border-gray-200 dark:border-gray-700 w-full">
-            <div className="flex items-center gap-4 w-full sm:w-auto">
-              <div className="size-10 md:size-12 rounded-2xl bg-white/60 dark:bg-white/10 flex items-center justify-center text-primary shadow-sm border border-white dark:border-gray-700 shrink-0">
-                <span className="material-symbols-outlined text-xl md:text-2xl">school</span>
+          <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-row sm:flex-wrap sm:items-center sm:gap-12 pt-4 sm:pt-6 md:pt-8 border-t border-gray-200 dark:border-gray-700 w-full">
+            <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
+              <div className="size-9 sm:size-10 md:size-12 rounded-2xl bg-white/60 dark:bg-white/10 flex items-center justify-center text-primary shadow-sm border border-white dark:border-gray-700 shrink-0">
+                <span className="material-symbols-outlined text-lg sm:text-xl md:text-2xl">school</span>
               </div>
-              <div className="flex flex-col text-right">
+              <div className="flex flex-col text-right min-w-0">
                 <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 font-bold mb-0.5 md:mb-1">
                   سطح دوره
                 </span>
-                <span className="text-sm md:text-base font-extrabold text-gray-900 dark:text-white">
+                <span className="text-xs sm:text-sm md:text-base font-extrabold text-gray-900 dark:text-white truncate">
                   {displayLevel}
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-4 w-full sm:w-auto">
-              <div className="size-10 md:size-12 rounded-2xl bg-white/60 dark:bg-white/10 flex items-center justify-center text-primary shadow-sm border border-white dark:border-gray-700 shrink-0">
-                <span className="material-symbols-outlined text-xl md:text-2xl">schedule</span>
+            <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
+              <div className="size-9 sm:size-10 md:size-12 rounded-2xl bg-white/60 dark:bg-white/10 flex items-center justify-center text-primary shadow-sm border border-white dark:border-gray-700 shrink-0">
+                <span className="material-symbols-outlined text-lg sm:text-xl md:text-2xl">schedule</span>
               </div>
-              <div className="flex flex-col text-right">
+              <div className="flex flex-col text-right min-w-0">
                 <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 font-bold mb-0.5 md:mb-1">
                   مدت زمان
                 </span>
-                <span className="text-sm md:text-base font-extrabold text-gray-900 dark:text-white">
+                <span className="text-xs sm:text-sm md:text-base font-extrabold text-gray-900 dark:text-white truncate">
                   {duration}
                 </span>
               </div>
@@ -309,16 +311,13 @@ export default function CourseHero({
 
         {/* Video Section - expands to full width on play */}
         <div
-          className={`video-fullscreen-container relative cursor-pointer overflow-hidden min-h-[400px] lg:min-h-0 row-start-1 group/video transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] w-full min-w-0 flex items-center justify-center bg-black ${
+          className={`video-fullscreen-container relative cursor-pointer overflow-hidden row-start-1 group/video transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] w-full min-w-0 flex items-center justify-center bg-black aspect-video min-h-0 lg:min-h-0 lg:aspect-auto ${
             isVideoExpanded
-              ? "rounded-4xl m-0 aspect-video"
-              : "rounded-4xl lg:rounded-l-none lg:rounded-r-4xl m-2 lg:m-0 lg:ml-2"
+              ? "is-playing rounded-3xl sm:rounded-4xl m-0 lg:aspect-video"
+              : "rounded-2xl sm:rounded-4xl lg:rounded-l-none lg:rounded-r-4xl m-1 sm:m-2 lg:m-0 lg:ml-2 lg:h-full"
           }`}
           onMouseMove={revealControls}
           onMouseEnter={revealControls}
-          onTouchStart={() => {
-            setShowControls((prev) => !prev);
-          }}
           onClick={() => {
             if (isVideoExpanded && isPlaying) {
               setShowControls((prev) => !prev);
@@ -355,7 +354,7 @@ export default function CourseHero({
               ref={videoRef}
               src={videoUrl}
               onError={handleVideoError}
-              className={`absolute inset-0 w-full h-full object-cover object-center ${
+              className={`absolute inset-0 w-full h-full object-contain object-center ${
                 isVideoExpanded ? "opacity-100 z-10" : "opacity-0 pointer-events-none"
               }`}
               playsInline
@@ -365,12 +364,12 @@ export default function CourseHero({
               loop
             />
           ) : disableFallbackVideo ? (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/55 backdrop-blur-sm px-6">
-              <div className="max-w-md rounded-3xl border border-white/10 bg-black/35 p-6 text-center text-white shadow-2xl">
-                <span className="material-symbols-outlined text-4xl text-primary block mb-3">
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/55 backdrop-blur-sm px-4 sm:px-6">
+              <div className="max-w-md rounded-2xl sm:rounded-3xl border border-white/10 bg-black/35 p-4 sm:p-6 text-center text-white shadow-2xl">
+                <span className="material-symbols-outlined text-3xl sm:text-4xl text-primary block mb-2 sm:mb-3">
                   play_circle
                 </span>
-                <p className="text-sm font-black mb-1">{missingVideoMessage}</p>
+                <p className="text-xs sm:text-sm font-black mb-1">{missingVideoMessage}</p>
                 <p className="text-[10px] text-white/60 leading-relaxed">
                   در صورت بارگذاری ویدیوی معرفی یا جلسه‌ی آزاد، پخش آن در همین بخش فعال می‌شود.
                 </p>
@@ -381,7 +380,7 @@ export default function CourseHero({
           {/* Custom controls - only when expanded */}
           {isVideoExpanded && !videoError && videoUrl && (
             <div
-              className={`absolute bottom-0 right-0 left-0 z-20 p-4 transition-all duration-300 ease-out ${
+              className={`absolute inset-x-0 bottom-0 z-20 p-2 sm:p-4 transition-all duration-300 ease-out ${
                 showControls ? "opacity-100 pointer-events-auto translate-y-0" : "opacity-0 pointer-events-none translate-y-2"
               }`}
             >
@@ -405,18 +404,18 @@ export default function CourseHero({
 
           {isPreviewActive && (
             <div
-              className={`absolute top-4 left-20 right-4 z-20 flex items-center justify-between gap-3 transition-all duration-300 ease-out ${
+              className={`absolute top-2 left-2 right-12 sm:top-4 sm:left-20 sm:right-4 z-20 flex items-center gap-2 transition-all duration-300 ease-out ${
                 showControls ? "opacity-100 pointer-events-auto translate-y-0" : "opacity-0 pointer-events-none -translate-y-1"
               }`}
             >
-              <div className="inline-flex max-w-[70%] items-center gap-2 rounded-2xl bg-black/45 backdrop-blur-md px-3 py-2 border border-white/10 text-white shadow-lg">
-                <span className="material-symbols-outlined text-lg text-primary">play_circle</span>
+              <div className="inline-flex min-w-0 flex-1 items-center gap-1.5 sm:gap-2 rounded-xl sm:rounded-2xl bg-black/45 backdrop-blur-md px-2.5 py-1.5 sm:px-3 sm:py-2 border border-white/10 text-white shadow-lg">
+                <span className="material-symbols-outlined text-base sm:text-lg text-primary shrink-0">play_circle</span>
                 <div className="min-w-0 text-right">
-                  <p className="text-[10px] text-white/60 leading-none">در حال پخش</p>
-                  <p className="text-xs font-black truncate">{activeVideoTitle || title}</p>
+                  <p className="text-[9px] sm:text-[10px] text-white/60 leading-none">در حال پخش</p>
+                  <p className="text-[11px] sm:text-xs font-black truncate">{activeVideoTitle || title}</p>
                 </div>
                 {activeVideoDuration ? (
-                  <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-white/10 shrink-0">
+                  <span className="hidden text-[10px] font-bold px-2 py-1 rounded-lg bg-white/10 shrink-0 sm:inline">
                     {activeVideoDuration}
                   </span>
                 ) : null}
@@ -424,10 +423,10 @@ export default function CourseHero({
               <button
                 type="button"
                 onClick={onResetPreview}
-                className="inline-flex items-center gap-2 rounded-2xl bg-black/45 backdrop-blur-md px-3 py-2 border border-white/10 text-white shadow-lg hover:bg-black/60 transition-colors cursor-pointer"
+                className="inline-flex shrink-0 items-center gap-1 sm:gap-2 rounded-xl sm:rounded-2xl bg-black/45 backdrop-blur-md px-2 py-1.5 sm:px-3 sm:py-2 border border-white/10 text-white shadow-lg hover:bg-black/60 transition-colors cursor-pointer"
               >
-                <span className="material-symbols-outlined text-lg">replay</span>
-                <span className="text-[10px] font-black">بازگشت به ویدیوی معرفی دوره</span>
+                <span className="material-symbols-outlined text-base sm:text-lg">replay</span>
+                <span className="hidden sm:inline text-[10px] font-black">بازگشت به ویدیوی معرفی دوره</span>
               </button>
             </div>
           )}
@@ -435,23 +434,26 @@ export default function CourseHero({
           {/* Play button / Close when expanded - pointer-events-none so controls below are clickable */}
           <div
             className={`absolute z-20 pointer-events-none transition-all duration-300 ease-out ${
-              isVideoExpanded ? "top-4 left-4" : "inset-0 flex items-center justify-center"
+              isVideoExpanded ? "top-2 left-2 sm:top-4 sm:left-4" : "inset-0 flex items-center justify-center"
             } ${
               showControls ? "opacity-100" : isPlaying ? "opacity-0" : "opacity-100"
             }`}
           >
             <button
               type="button"
-              onClick={handleToggle}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggle();
+              }}
               className="relative focus:outline-none focus:ring-0 pointer-events-auto cursor-pointer"
               aria-label={isVideoExpanded ? "بستن ویدیو" : "پخش ویدیو"}
             >
               {!isVideoExpanded ? (
                 <div className="relative group/btn">
-                  <div className="size-[72px] rounded-full bg-white flex items-center justify-center shadow-[0_4px_24px_rgba(0,0,0,0.25)] transition-all duration-300 group-hover/btn:scale-110 group-hover/btn:shadow-[0_8px_32px_rgba(34,197,94,0.4)]">
+                  <div className="size-14 sm:size-[72px] rounded-full bg-white flex items-center justify-center shadow-[0_4px_24px_rgba(0,0,0,0.25)] transition-all duration-300 group-hover/btn:scale-110 group-hover/btn:shadow-[0_8px_32px_rgba(34,197,94,0.4)]">
                     <svg
                       viewBox="0 0 24 24"
-                      className="size-10 text-primary flex-shrink-0"
+                      className="size-8 sm:size-10 text-primary flex-shrink-0"
                       fill="currentColor"
                     >
                       <path d="M9 6v12l9-6z" />
@@ -459,8 +461,8 @@ export default function CourseHero({
                   </div>
                 </div>
               ) : (
-                <div className="size-12 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-md border border-white/20 flex items-center justify-center transition-all duration-300 hover:scale-110">
-                  <span className="material-symbols-outlined text-2xl text-white">
+                <div className="size-9 sm:size-12 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-md border border-white/20 flex items-center justify-center transition-all duration-300 hover:scale-110">
+                  <span className="material-symbols-outlined text-xl sm:text-2xl text-white">
                     arrow_back
                   </span>
                 </div>
@@ -471,24 +473,26 @@ export default function CourseHero({
           {/* Video info overlay - only when collapsed */}
           {!isVideoExpanded && (
             <div
-              className={`absolute bottom-8 right-8 left-8 z-20 transition-all duration-300 ease-out ${
+              className={`absolute bottom-2.5 right-2.5 left-2.5 sm:bottom-8 sm:right-8 sm:left-8 z-20 transition-all duration-300 ease-out ${
                 showControls ? "opacity-100 pointer-events-auto translate-y-0" : "opacity-0 pointer-events-none translate-y-2"
               }`}
             >
-              <div className="bg-black/40 backdrop-blur-md rounded-3xl p-5 border border-white/10 flex items-center justify-between text-white shadow-lg">
-                <div className="flex flex-col text-right">
-                  <span className="text-xs text-white/70 mb-1">
+              <div className="bg-black/45 backdrop-blur-md rounded-2xl sm:rounded-3xl px-3 py-2.5 sm:p-5 border border-white/10 flex items-center justify-between gap-2 text-white shadow-lg">
+                <div className="flex min-w-0 flex-col text-right">
+                  <span className="text-[10px] sm:text-xs text-white/70 mb-0.5 sm:mb-1">
                     {isPreviewActive ? "در حال پخش" : "جلسه اول رایگان"}
                   </span>
-                  <span className="font-bold text-base">
+                  <span className="font-bold text-xs sm:text-base truncate">
                     {isPreviewActive ? activeVideoTitle || title : "ویدیو معرفی دوره"}
                   </span>
                 </div>
-                <span className="text-xs bg-white/20 px-3 py-1.5 rounded-xl font-mono dir-ltr">
-                  {isPreviewActive && activeVideoDuration
-                    ? activeVideoDuration
-                    : displayDuration || null}
-                </span>
+                {(isPreviewActive && activeVideoDuration) || displayDuration ? (
+                  <span className="text-[10px] sm:text-xs bg-white/20 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl font-mono dir-ltr shrink-0">
+                    {isPreviewActive && activeVideoDuration
+                      ? activeVideoDuration
+                      : displayDuration}
+                  </span>
+                ) : null}
               </div>
             </div>
           )}

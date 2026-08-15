@@ -443,6 +443,10 @@ html.material-icons-loading .material-icons-round {
   object-fit: cover !important;
   object-position: center !important;
 }
+.video-fullscreen-container.is-playing video {
+  object-fit: contain !important;
+  background: #000;
+}
 .video-fullscreen-container:fullscreen {
   display: flex !important;
   align-items: center !important;
@@ -451,10 +455,11 @@ html.material-icons-loading .material-icons-round {
   height: 100% !important;
   background: black;
 }
-.video-fullscreen-container:fullscreen video {
+.video-fullscreen-container:fullscreen video,
+.video-fullscreen-container:-webkit-full-screen video {
   width: 100% !important;
   height: 100% !important;
-  object-fit: cover;
+  object-fit: contain !important;
   object-position: center;
 }
 

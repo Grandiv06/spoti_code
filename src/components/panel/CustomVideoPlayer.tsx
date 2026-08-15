@@ -7,6 +7,10 @@ interface CustomVideoPlayerProps {
   src: string;
   poster?: string;
   title?: string;
+  /** Smaller chrome for tight cards like the course wizard preview. */
+  compact?: boolean;
+  /** Keep a 16:9 frame even when the source video is portrait. */
+  forceLandscape?: boolean;
   /** Fires once metadata is available with the real video length in seconds. */
   onDurationChange?: (durationSeconds: number) => void;
 }
@@ -15,6 +19,8 @@ export default function CustomVideoPlayer({
   src,
   poster,
   title,
+  compact = false,
+  forceLandscape = false,
   onDurationChange,
 }: CustomVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -30,6 +36,7 @@ export default function CustomVideoPlayer({
   const [showControls, setShowControls] = useState(true);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showSettings, setShowSettings] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(false);
 
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -72,8 +79,9 @@ export default function CustomVideoPlayer({
   // Handle Video Loaded Metadata
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
-      const total = videoRef.current.duration;
+      const { duration: total, videoWidth, videoHeight } = videoRef.current;
       setDuration(formatTime(total));
+      setIsPortrait(videoHeight > videoWidth);
       if (Number.isFinite(total) && total > 0) {
         onDurationChange?.(total);
       }
@@ -182,8 +190,15 @@ export default function CustomVideoPlayer({
     <div
       ref={containerRef}
       className={cn(
-        "relative w-full aspect-video bg-black rounded-2xl overflow-hidden group flex items-center justify-center",
-        isFullscreen && "rounded-none h-full w-full object-contain"
+        "relative w-full bg-black overflow-hidden group flex items-center justify-center",
+        compact ? "rounded-xl" : "rounded-2xl",
+        isFullscreen
+          ? "rounded-none h-full w-full"
+          : !forceLandscape && isPortrait
+            ? compact
+              ? "mx-auto aspect-[9/16] max-h-[320px]"
+              : "mx-auto aspect-[9/16] max-h-[560px]"
+            : "aspect-video",
       )}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
@@ -201,51 +216,52 @@ export default function CustomVideoPlayer({
         playsInline
       />
 
-      {/* Top Title Overlay (Optional) */}
-      <div
-        className={cn(
-          "absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/80 to-transparent transition-opacity duration-300 z-10 pointer-events-none flex justify-between items-start",
-          showControls ? "opacity-100" : "opacity-0"
-        )}
-      >
-        {title && (
+      {title && !compact && (
+        <div
+          className={cn(
+            "absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/80 to-transparent transition-opacity duration-300 z-10 pointer-events-none",
+            showControls ? "opacity-100" : "opacity-0"
+          )}
+        >
           <h3 className="text-white font-bold text-lg drop-shadow-md truncate max-w-[80%]">
             {title}
           </h3>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Center Big Play/Pause overlay */}
-      <div 
+      <div
         className={cn(
           "absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-300",
+          compact ? "pb-10" : "pb-16",
           !isPlaying ? "opacity-100" : "opacity-0 group-hover:opacity-100"
         )}
       >
         <button
           onClick={(e) => { e.stopPropagation(); togglePlay(); }}
           className={cn(
-            "w-20 h-20 rounded-full flex items-center justify-center text-white backdrop-blur-md bg-white/10 hover:bg-white/20 hover:scale-110 transition-all shadow-[0_0_40px_rgba(34,197,94,0.3)] pointer-events-auto border border-white/10 cursor-pointer",
+            "rounded-full flex items-center justify-center text-white backdrop-blur-md bg-white/10 hover:bg-white/20 hover:scale-110 transition-all pointer-events-auto border border-white/10 cursor-pointer",
+            compact
+              ? "size-12 shadow-[0_0_24px_rgba(34,197,94,0.25)]"
+              : "size-20 shadow-[0_0_40px_rgba(34,197,94,0.3)]",
             !showControls && isPlaying && "opacity-0 scale-90"
           )}
         >
-          <span className="material-symbols-outlined text-5xl">
+          <span className={cn("material-symbols-outlined", compact ? "text-3xl" : "text-5xl")}>
             {isPlaying ? "pause" : "play_arrow"}
           </span>
         </button>
       </div>
 
-      {/* Bottom Controls Bar */}
       <div
         className={cn(
-          "absolute bottom-0 left-0 right-0 px-4 py-4 bg-gradient-to-t from-black/90 via-black/50 to-transparent transition-transform duration-300 z-20",
+          "absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent transition-all duration-300 z-20",
+          compact ? "px-2.5 pt-6 pb-2" : "px-4 py-4",
           showControls ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0 pointer-events-none"
         )}
         onClick={(e) => e.stopPropagation()}
         dir="ltr"
       >
-        {/* Progress Bar */}
-        <div className="relative group/progress h-2 cursor-pointer mb-4 flex items-center">
+        <div className={cn("relative group/progress cursor-pointer flex items-center", compact ? "h-1.5 mb-2" : "h-2 mb-4")}>
           <input
             type="range"
             min="0"
@@ -254,102 +270,111 @@ export default function CustomVideoPlayer({
             onChange={handleProgressChange}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
           />
-          {/* Progress Track */}
-          <div className="absolute inset-x-0 h-1.5 bg-white/20 rounded-full group-hover/progress:h-2.5 transition-all overflow-hidden">
+          <div className={cn(
+            "absolute inset-x-0 bg-white/20 rounded-full group-hover/progress:h-2.5 transition-all overflow-hidden",
+            compact ? "h-1" : "h-1.5",
+          )}>
             <div
               className="absolute top-0 left-0 h-full bg-primary transition-all duration-100 ease-linear rounded-full"
               style={{ width: `${progress}%` }}
             >
-              {/* Glow effect on progress */}
               <div className="absolute right-0 top-0 bottom-0 w-4 bg-white/50 blur-[2px]"></div>
             </div>
           </div>
-          {/* Progress Thumb */}
           <div
-            className="absolute h-4 w-4 bg-white rounded-full shadow-[0_0_10px_rgba(34,197,94,0.8)] border-2 border-primary scale-0 group-hover/progress:scale-100 transition-transform z-0 -ml-2"
+            className={cn(
+              "absolute bg-white rounded-full shadow-[0_0_10px_rgba(34,197,94,0.8)] border-2 border-primary scale-0 group-hover/progress:scale-100 transition-transform z-0 -ml-2",
+              compact ? "h-3 w-3" : "h-4 w-4",
+            )}
             style={{ left: `${progress}%` }}
           />
         </div>
 
-        <div className="flex items-center justify-between text-white">
-          {/* Left Controls (Play, Volume, Time) */}
-          <div className="flex items-center gap-4">
-            <button onClick={togglePlay} className="hover:text-primary transition-colors flex items-center justify-center cursor-pointer">
-              <span className="material-symbols-outlined text-3xl">
+        <div className={cn("flex items-center justify-between text-white", compact && "gap-2")}>
+          <div className={cn("flex min-w-0 items-center", compact ? "gap-1.5" : "gap-4")}>
+            <button onClick={togglePlay} className="hover:text-primary transition-colors flex items-center justify-center cursor-pointer shrink-0">
+              <span className={cn("material-symbols-outlined", compact ? "text-xl" : "text-3xl")}>
                 {isPlaying ? "pause" : "play_arrow"}
               </span>
             </button>
 
-            {/* Volume Control */}
-            <div className="flex items-center gap-2 group/volume relative">
+            <div className={cn("flex items-center group/volume relative", compact ? "gap-1" : "gap-2")}>
               <button onClick={toggleMute} className="hover:text-primary transition-colors flex items-center justify-center cursor-pointer">
-                <span className="material-symbols-outlined text-2xl">
+                <span className={cn("material-symbols-outlined", compact ? "text-lg" : "text-2xl")}>
                   {isMuted || volume === 0 ? "volume_off" : volume < 0.5 ? "volume_down" : "volume_up"}
                 </span>
               </button>
-              <div className="w-0 overflow-hidden group-hover/volume:w-20 transition-all duration-300 flex items-center">
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={volume}
-                  onChange={handleVolumeChange}
-                  className="w-20 h-1.5 accent-primary cursor-pointer appearance-none bg-white/20 rounded-full outline-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full"
-                />
-              </div>
-            </div>
-
-            <div className="text-sm font-medium opacity-90 tracking-wider">
-              {currentTime} <span className="opacity-50 mx-1">/</span> {duration}
-            </div>
-          </div>
-
-          {/* Right Controls (Skip, Settings, Fullscreen) */}
-          <div className="flex items-center gap-3">
-            <button onClick={() => skipTime(-10)} className="hover:text-primary transition-colors flex items-center justify-center opacity-80 hover:opacity-100 cursor-pointer" title="10 ثانیه به عقب">
-              <span className="material-symbols-outlined text-2xl">replay_10</span>
-            </button>
-            <button onClick={() => skipTime(10)} className="hover:text-primary transition-colors flex items-center justify-center opacity-80 hover:opacity-100 cursor-pointer" title="10 ثانیه به جلو">
-              <span className="material-symbols-outlined text-2xl">forward_10</span>
-            </button>
-            
-            <div className="w-px h-5 bg-white/20 mx-1"></div>
-
-            <div className="relative">
-              <button 
-                onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); }} 
-                className={cn("hover:text-primary transition-colors flex items-center justify-center cursor-pointer", showSettings && "text-primary animate-spin")}
-                title="تنظیمات"
-              >
-                <span className="material-symbols-outlined text-2xl">settings</span>
-              </button>
-
-              {showSettings && (
-                <div 
-                  className="absolute bottom-full right-0 mb-6 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 z-30 text-white min-w-[150px] shadow-2xl animate-slide-in-from-right origin-bottom-right"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="text-xs font-bold text-gray-400 mb-2 px-2">سرعت پخش</div>
-                  {[0.5, 0.75, 1, 1.25, 1.5, 2].map(speed => (
-                    <button
-                      key={speed}
-                      onClick={() => changeSpeed(speed)}
-                      className={cn(
-                        "w-full text-right px-3 py-2 rounded-xl text-sm font-medium hover:bg-white/10 transition-colors flex items-center justify-between cursor-pointer",
-                        playbackRate === speed ? "text-primary" : "text-white"
-                      )}
-                    >
-                      <span>{speed === 1 ? 'عادی' : speed + 'x'}</span>
-                      {playbackRate === speed && <span className="material-symbols-outlined text-[16px]">check</span>}
-                    </button>
-                  ))}
+              {!compact && (
+                <div className="w-0 overflow-hidden group-hover/volume:w-20 transition-all duration-300 flex items-center">
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={volume}
+                    onChange={handleVolumeChange}
+                    className="w-20 h-1.5 accent-primary cursor-pointer appearance-none bg-white/20 rounded-full outline-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full"
+                  />
                 </div>
               )}
             </div>
-            
-            <button onClick={toggleFullscreen} className="hover:text-primary transition-colors flex items-center justify-center ml-1 cursor-pointer">
-              <span className="material-symbols-outlined text-2xl">
+
+            <div className={cn(
+              "font-medium opacity-90 tracking-wider tabular-nums shrink-0",
+              compact ? "text-[10px]" : "text-sm",
+            )}>
+              {currentTime}
+              <span className="opacity-50 mx-1">/</span>
+              {duration}
+            </div>
+          </div>
+
+          <div className={cn("flex items-center shrink-0", compact ? "gap-1" : "gap-3")}>
+            {!compact && (
+              <>
+                <button onClick={() => skipTime(-10)} className="hover:text-primary transition-colors flex items-center justify-center opacity-80 hover:opacity-100 cursor-pointer" title="10 ثانیه به عقب">
+                  <span className="material-symbols-outlined text-2xl">replay_10</span>
+                </button>
+                <button onClick={() => skipTime(10)} className="hover:text-primary transition-colors flex items-center justify-center opacity-80 hover:opacity-100 cursor-pointer" title="10 ثانیه به جلو">
+                  <span className="material-symbols-outlined text-2xl">forward_10</span>
+                </button>
+                <div className="w-px h-5 bg-white/20 mx-1"></div>
+                <div className="relative">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); }}
+                    className={cn("hover:text-primary transition-colors flex items-center justify-center cursor-pointer", showSettings && "text-primary animate-spin")}
+                    title="تنظیمات"
+                  >
+                    <span className="material-symbols-outlined text-2xl">settings</span>
+                  </button>
+
+                  {showSettings && (
+                    <div
+                      className="absolute bottom-full right-0 mb-6 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 z-30 text-white min-w-[150px] shadow-2xl animate-slide-in-from-right origin-bottom-right"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="text-xs font-bold text-gray-400 mb-2 px-2">سرعت پخش</div>
+                      {[0.5, 0.75, 1, 1.25, 1.5, 2].map(speed => (
+                        <button
+                          key={speed}
+                          onClick={() => changeSpeed(speed)}
+                          className={cn(
+                            "w-full text-right px-3 py-2 rounded-xl text-sm font-medium hover:bg-white/10 transition-colors flex items-center justify-between cursor-pointer",
+                            playbackRate === speed ? "text-primary" : "text-white"
+                          )}
+                        >
+                          <span>{speed === 1 ? 'عادی' : speed + 'x'}</span>
+                          {playbackRate === speed && <span className="material-symbols-outlined text-[16px]">check</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            <button onClick={toggleFullscreen} className="hover:text-primary transition-colors flex items-center justify-center cursor-pointer">
+              <span className={cn("material-symbols-outlined", compact ? "text-lg" : "text-2xl")}>
                 {isFullscreen ? "fullscreen_exit" : "fullscreen"}
               </span>
             </button>

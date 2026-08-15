@@ -3216,14 +3216,19 @@ export default function CourseDetailsPage() {
 
                       <div className="space-y-4 rounded-2xl border border-gray-200/70 bg-gradient-to-b from-gray-50/50 to-gray-50/20 p-4 shadow-[0_10px_30px_-20px_rgba(0,0,0,0.5)] dark:border-white/10 dark:from-white/[0.07] dark:to-white/[0.03] md:p-5 xl:col-span-5">
                         <span className="block border-b border-gray-200/70 pb-3 text-sm font-black text-gray-900 dark:border-white/10 dark:text-white">۲. ویژگی‌های متمایز دوره</span>
-                        <input
-                          type="text"
-                          placeholder="عنوان ویژگی (مثال: پشتیبانی اختصاصی تلگرام)"
-                          value={settingsFeatureDraft.title}
-                          onChange={(e) => setSettingsFeatureDraft((prev) => ({ ...prev, title: e.target.value }))}
-                          className="w-full rounded-xl border border-gray-200/70 bg-white px-4 py-2.5 text-right text-xs font-bold transition-all focus:border-primary focus:outline-none dark:border-white/10 dark:bg-[#1a1c23]"
-                        />
-                        <div className="grid grid-cols-1 gap-3">
+                        <div className="flex flex-col gap-3.5">
+                          <div className="flex flex-col gap-1.5">
+                            <label className="block text-[11px] font-black text-gray-700 dark:text-gray-200 mr-1">
+                              عنوان ویژگی
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="مثال: پشتیبانی اختصاصی تلگرام"
+                              value={settingsFeatureDraft.title}
+                              onChange={(e) => setSettingsFeatureDraft((prev) => ({ ...prev, title: e.target.value }))}
+                              className="w-full rounded-xl border border-gray-100 bg-gray-50 px-4 py-2.5 text-right text-xs font-bold text-gray-900 placeholder:text-gray-400 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:outline-none dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-gray-500 transition-all h-[42px]"
+                            />
+                          </div>
                           <CustomSelect
                             label="انتخاب آیکون"
                             value={settingsFeatureDraft.icon}
@@ -3232,7 +3237,7 @@ export default function CourseDetailsPage() {
                             size="sm"
                             renderValue={(option) => (
                               <span className="inline-flex items-center gap-2">
-                                <span className="material-symbols-outlined text-[18px] text-emerald-400">{FEATURE_ICON_OPTIONS.find((item) => item.value === option?.value)?.icon || "help"}</span>
+                                <span className="material-symbols-outlined text-[18px] text-emerald-500 dark:text-emerald-400">{FEATURE_ICON_OPTIONS.find((item) => item.value === option?.value)?.icon || "help"}</span>
                                 <span className="truncate font-bold">{option?.label || "انتخاب کنید..."}</span>
                               </span>
                             )}
@@ -3241,10 +3246,10 @@ export default function CourseDetailsPage() {
                               return (
                                 <span className="flex w-full items-center justify-between gap-3">
                                   <span className="inline-flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-[18px] text-emerald-400">{icon}</span>
-                                    <span className="font-bold text-sm">{option.label}</span>
+                                    <span className={`material-symbols-outlined text-[18px] ${selected ? "text-primary dark:text-emerald-400" : "text-emerald-500 dark:text-emerald-400"}`}>{icon}</span>
+                                    <span className="font-bold text-xs">{option.label}</span>
                                   </span>
-                                  {selected ? <span className="material-symbols-outlined text-[16px]">check</span> : null}
+                                  {selected ? <span className="material-symbols-outlined text-[16px] text-primary dark:text-emerald-400">check</span> : null}
                                 </span>
                               );
                             }}
@@ -3257,7 +3262,7 @@ export default function CourseDetailsPage() {
 
                         <div className="mt-2 max-h-[240px] space-y-2.5 overflow-y-auto pr-1">
                           {settingsForm.features.map((feature) => (
-                            <div key={feature.id} className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-white p-2.5 text-[10px] font-bold dark:border-white/5 dark:bg-[#1a1c23]">
+                            <div key={feature.id} className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-white p-2.5 text-[10px] font-bold dark:border-white/5 dark:bg-[#1a1c23] hover:border-primary/30 transition-all hover:shadow-sm">
                               <div className="flex items-center gap-2">
                                 <span className="material-symbols-outlined flex-shrink-0 text-base text-primary">{feature.icon}</span>
                                 <span>{feature.title}</span>

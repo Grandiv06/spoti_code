@@ -117,13 +117,24 @@ export default function VideoControls({
   };
 
   const toggleFullscreen = () => {
-    const container = videoRef.current?.parentElement;
-    if (!container) return;
+    const video = videoRef.current;
+    const container = video?.parentElement;
+    if (!video || !container) return;
+
+    const iosVideo = video as HTMLVideoElement & {
+      webkitEnterFullscreen?: () => void;
+    };
+    if (typeof iosVideo.webkitEnterFullscreen === "function" && !document.fullscreenEnabled) {
+      iosVideo.webkitEnterFullscreen();
+      return;
+    }
+
+    const requestFs = container.requestFullscreen?.bind(container);
     if (!document.fullscreenElement) {
-      container.requestFullscreen?.();
+      void requestFs?.();
       setIsFullscreen(true);
     } else {
-      document.exitFullscreen?.();
+      void document.exitFullscreen?.();
       setIsFullscreen(false);
     }
   };
@@ -136,25 +147,28 @@ export default function VideoControls({
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const seekFromClientX = (clientX: number, target: HTMLDivElement) => {
     const v = videoRef.current;
-    if (!v) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const percent = Math.max(0, Math.min(1, x / rect.width));
+    if (!v || !duration) return;
+    const rect = target.getBoundingClientRect();
+    const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     v.currentTime = percent * duration;
     setCurrentTime(v.currentTime);
   };
 
   return (
-    <div className="absolute bottom-4 right-4 left-4 z-30 flex flex-col gap-2.5" dir="ltr">
+    <div className="flex w-full flex-col gap-2" dir="ltr">
       <div
         role="progressbar"
         aria-valuenow={currentTime}
         aria-valuemin={0}
         aria-valuemax={duration}
-        onClick={handleProgressClick}
-        className="flex h-1.5 w-full cursor-pointer flex-row overflow-hidden rounded-full bg-white/20"
+        onClick={(e) => seekFromClientX(e.clientX, e.currentTarget)}
+        onTouchStart={(e) => {
+          const touch = e.touches[0];
+          if (touch) seekFromClientX(touch.clientX, e.currentTarget);
+        }}
+        className="flex h-2 w-full cursor-pointer flex-row overflow-hidden rounded-full bg-white/20 sm:h-1.5"
       >
         <div
           className="h-full min-w-0 rounded-full bg-primary transition-all duration-100"
@@ -162,19 +176,19 @@ export default function VideoControls({
         />
       </div>
 
-      <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/45 p-2.5 shadow-lg backdrop-blur-md sm:gap-4 sm:rounded-3xl sm:p-3">
+      <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/55 p-2 shadow-lg backdrop-blur-md sm:gap-4 sm:rounded-3xl sm:bg-black/45 sm:p-3">
         {/* Left: play + time */}
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
           <button
             type="button"
             onClick={togglePlay}
-            className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-white shadow-md transition-colors hover:bg-white/95"
+            className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-white shadow-md transition-colors hover:bg-white/95 sm:size-10"
             aria-label={isPlaying ? "توقف" : "پخش"}
           >
             {isPlaying ? <PauseGlyph /> : <PlayGlyph />}
           </button>
 
-          <span className="shrink-0 font-mono text-xs tabular-nums text-white/90 sm:text-sm">
+          <span className="shrink-0 font-mono text-[11px] tabular-nums text-white/90 sm:text-sm">
             {formatTime(currentTime)}
             <span className="text-white/45"> / </span>
             {formatTime(duration)}
@@ -182,13 +196,13 @@ export default function VideoControls({
         </div>
 
         {/* Center: title */}
-        <div className="min-w-0 flex-1 text-right" dir="rtl">
+        <div className="hidden min-w-0 flex-1 text-right sm:block" dir="rtl">
           <p className="truncate text-[11px] text-white/55 sm:text-xs">{title}</p>
           <p className="truncate text-sm font-bold text-white sm:text-[15px]">{subtitle}</p>
         </div>
 
         {/* Right: volume, download, fullscreen */}
-        <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
+        <div className="ms-auto flex shrink-0 items-center gap-1 sm:gap-1.5">
           <div className="hidden items-center gap-1.5 sm:flex">
             <button
               type="button"
@@ -227,7 +241,7 @@ export default function VideoControls({
             download="video.mp4"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex size-9 cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-white/10 text-white transition-colors hover:bg-white/20"
+            className="hidden size-9 cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-white/10 text-white transition-colors hover:bg-white/20 sm:flex"
             aria-label="دانلود ویدیو"
           >
             <span className="material-symbols-outlined text-xl">download</span>

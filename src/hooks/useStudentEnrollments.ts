@@ -41,6 +41,6 @@ export function useStudentEnrollments() {
     canPurchase,
     isStaff,
     isEnrolled,
-    loading: coursesQuery.isPending,
+    loading: canPurchase && coursesQuery.isPending,
   };
 }

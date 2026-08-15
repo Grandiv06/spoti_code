@@ -140,26 +140,26 @@ export default function CourseCurriculum({
   }
 
   return (
-    <section className="glass-panel overflow-hidden rounded-[2rem] border border-gray-200/80 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.08)] dark:border-white/[0.06] dark:shadow-none md:rounded-4xl">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200/80 px-5 py-5 dark:border-white/[0.06] md:px-8 md:py-6">
-        <h2 className="flex items-center gap-3 text-xl font-black text-gray-900 dark:text-white md:text-2xl">
+    <section className="glass-panel overflow-hidden rounded-[1.5rem] border border-gray-200/80 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.08)] dark:border-white/[0.06] dark:shadow-none sm:rounded-[2rem] md:rounded-4xl">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200/80 px-4 py-4 dark:border-white/[0.06] sm:px-5 sm:py-5 md:px-8 md:py-6">
+        <h2 className="flex min-w-0 items-center gap-2.5 text-lg font-black text-gray-900 dark:text-white sm:gap-3 sm:text-xl md:text-2xl">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-white/50 bg-gradient-to-br from-emerald-100 to-white text-primary shadow-sm dark:border-gray-700 dark:from-emerald-900/30 dark:to-gray-800 md:size-12 md:rounded-2xl">
             <span className="material-symbols-outlined filled text-xl md:text-2xl">toc</span>
           </div>
           سرفصل‌های آموزشی
         </h2>
-        <div className="flex flex-row-reverse items-center gap-3">
+        <div className="flex flex-row-reverse flex-wrap items-center gap-2 sm:gap-3">
           <button
             type="button"
             onClick={collapseAll}
-            className="text-sm font-bold text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary px-4 py-2 rounded-2xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors flex items-center gap-2 cursor-pointer"
+            className="text-xs sm:text-sm font-bold text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors flex items-center gap-2 cursor-pointer"
           >
             بستن
           </button>
-          <span className="rounded-2xl bg-gray-100 px-4 py-2 text-sm font-bold text-gray-600 shadow-sm dark:bg-white/5 dark:text-gray-300">
+          <span className="rounded-xl sm:rounded-2xl bg-gray-100 px-2.5 py-1.5 sm:px-4 sm:py-2 text-[11px] sm:text-sm font-bold text-gray-600 shadow-sm dark:bg-white/5 dark:text-gray-300">
             {chapters.length} فصل
           </span>
-          <span className="rounded-2xl bg-gray-100 px-4 py-2 text-sm font-bold text-gray-600 shadow-sm dark:bg-white/5 dark:text-gray-300">
+          <span className="rounded-xl sm:rounded-2xl bg-gray-100 px-2.5 py-1.5 sm:px-4 sm:py-2 text-[11px] sm:text-sm font-bold text-gray-600 shadow-sm dark:bg-white/5 dark:text-gray-300">
             {totalLessons} جلسه
           </span>
         </div>
@@ -223,8 +223,8 @@ export default function CourseCurriculum({
               </button>
 
               {isOpen && (
-                <div className="border-t border-gray-200/80 bg-white/60 p-4 dark:border-white/[0.06] dark:bg-white/[0.02] md:p-6 lg:p-8">
-                  <ul className="mr-3 space-y-4 border-r-2 border-gray-200 pr-6 dark:border-white/10">
+                <div className="border-t border-gray-200/80 bg-white/60 p-3 dark:border-white/[0.06] dark:bg-white/[0.02] sm:p-4 md:p-6 lg:p-8">
+                  <ul className="mr-1 space-y-2 border-r-2 border-gray-200 pr-3 dark:border-white/10 sm:mr-3 sm:space-y-4 sm:pr-6">
                     {chapter.lessons.map((lesson) => {
                       const playable = isLessonPlayable(lesson, coursePurchased);
                       const isActive = activeLessonId === lesson.id;
@@ -232,7 +232,7 @@ export default function CourseCurriculum({
                       return (
                         <li
                           key={lesson.id}
-                          className={`flex items-center justify-between group/li transition-all rounded-2xl px-3 py-2 ${
+                          className={`flex items-center justify-between gap-2 group/li transition-all rounded-xl sm:rounded-2xl px-2 py-2 sm:px-3 ${
                             isActive ? "bg-primary/10 dark:bg-primary/15 ring-1 ring-primary/30" : ""
                           }`}
                         >
@@ -245,7 +245,7 @@ export default function CourseCurriculum({
                               }
                               onLessonSelect?.(lesson, chapter);
                             }}
-                            className={`flex items-center gap-3 transition-colors text-right ${
+                            className={`flex min-w-0 flex-1 items-center gap-2 sm:gap-3 transition-colors text-right ${
                               playable
                                 ? "text-gray-700 dark:text-gray-300 group-hover/li:text-gray-900 dark:group-hover/li:text-white cursor-pointer"
                                 : "text-gray-500 dark:text-gray-500 cursor-not-allowed"
@@ -253,11 +253,11 @@ export default function CourseCurriculum({
                             disabled={!playable}
                           >
                             {playable ? (
-                              <span className="material-symbols-outlined text-primary text-xl">play_circle</span>
+                              <span className="material-symbols-outlined text-primary text-xl shrink-0">play_circle</span>
                             ) : (
-                              <span className="material-symbols-outlined text-gray-400 dark:text-gray-600 text-xl">lock</span>
+                              <span className="material-symbols-outlined text-gray-400 dark:text-gray-600 text-xl shrink-0">lock</span>
                             )}
-                            <span className="font-bold text-sm">{lesson.title}</span>
+                            <span className="font-bold text-[13px] sm:text-sm leading-6 line-clamp-2">{lesson.title}</span>
                           </button>
 
                           <span

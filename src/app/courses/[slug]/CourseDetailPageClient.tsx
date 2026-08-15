@@ -178,56 +178,69 @@ export default function CourseDetailPageClient({ slug, adminPreviewCourseId }: C
       ? "رایگان"
       : payablePrice.toLocaleString("fa-IR");
 
+    const purchaseCourse = {
+      id: courseData.id,
+      slug: courseData.slug,
+      title: courseData.title,
+      price: courseData.isFree ? "0" : String(payablePrice),
+      image: coverImage ?? courseData.cover ?? courseData.thumbnail ?? "",
+      instructor: instructorName,
+    };
+
+    const priceBlock = showPriceCard ? (
+      <div className="relative z-10 text-center">
+        <span className="text-[11px] md:text-sm font-bold text-gray-500 dark:text-gray-400 mb-1.5 md:mb-2 block">
+          مبلغ نهایی ثبت‌نام
+        </span>
+        {courseData.isFree ? (
+          <div className="flex items-center gap-1.5 md:gap-2 justify-center">
+            <span className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight">
+              {priceLabel}
+            </span>
+          </div>
+        ) : hasDisplayDiscount ? (
+          <div className="flex flex-col items-center gap-2">
+            <CoursePriceDisplay
+              price={payablePrice}
+              originalPrice={courseData.price}
+              discountPercent={courseData.discountPercent}
+            />
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 md:gap-2 justify-center">
+            <span className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight">
+              {priceLabel}
+            </span>
+            <span className="text-sm md:text-lg font-bold text-primary">تومان</span>
+          </div>
+        )}
+      </div>
+    ) : null;
+
     return (
-      <aside className="lg:col-span-4 relative z-20 order-1 lg:order-2 mb-4 lg:mb-0">
-        <div className="sticky top-28 space-y-6">
+      <aside className="lg:col-span-4 relative z-20 order-1 lg:order-2 mb-1 lg:mb-0 min-w-0">
+        <div className="lg:sticky lg:top-28 space-y-3 sm:space-y-4 lg:space-y-6">
           {showPriceCard ? (
-            <div className="glass-panel rounded-[2rem] md:rounded-4xl p-6 md:p-8 border border-white/80 dark:border-gray-700 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1),0_10px_20px_-5px_rgba(0,0,0,0.04)] relative overflow-hidden group">
-              <div className="relative z-10 text-center">
-                <span className="text-xs md:text-sm font-bold text-gray-500 dark:text-gray-400 mb-2 block">
-                  مبلغ نهایی ثبت‌نام
-                </span>
-                {courseData.isFree ? (
-                  <div className="flex items-center gap-1.5 md:gap-2 justify-center">
-                    <span className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight">
-                      {priceLabel}
-                    </span>
-                  </div>
-                ) : hasDisplayDiscount ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <CoursePriceDisplay
-                      price={payablePrice}
-                      originalPrice={courseData.price}
-                      discountPercent={courseData.discountPercent}
-                    />
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 md:gap-2 justify-center">
-                    <span className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight">
-                      {priceLabel}
-                    </span>
-                    <span className="text-base md:text-lg font-bold text-primary">تومان</span>
-                  </div>
-                )}
-              </div>
+            <div className="glass-panel rounded-[1.5rem] md:rounded-4xl p-4 sm:p-6 md:p-8 border border-white/80 dark:border-gray-700 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1),0_10px_20px_-5px_rgba(0,0,0,0.04)] relative overflow-hidden group">
+              {priceBlock}
             </div>
           ) : null}
 
           {courseData.features.length > 0 ? (
-            <div className="glass-panel rounded-[2rem] md:rounded-4xl p-6 md:p-8 border border-white/60 dark:border-gray-700">
-              <h4 className="font-black text-gray-900 dark:text-white text-sm md:text-base mb-4 px-2 border-r-4 border-primary rounded-r">
+            <div className="glass-panel rounded-[1.5rem] md:rounded-4xl p-4 sm:p-6 md:p-8 border border-white/60 dark:border-gray-700">
+              <h4 className="font-black text-gray-900 dark:text-white text-sm md:text-base mb-3 sm:mb-4 px-1 sm:px-2 border-r-4 border-primary rounded-r">
                 ویژگی‌های متمایز
               </h4>
-              <ul className="space-y-3">
+              <ul className="space-y-2.5 sm:space-y-3">
                 {courseData.features.map((feature) => (
                   <li
                     key={feature.id}
-                    className="flex items-center gap-3 text-gray-700 dark:text-gray-300 font-bold text-xs md:text-sm"
+                    className="flex items-center gap-2.5 sm:gap-3 text-gray-700 dark:text-gray-300 font-bold text-xs md:text-sm"
                   >
-                    <span className="size-8 rounded-xl bg-white dark:bg-gray-800 shadow-sm text-primary flex items-center justify-center shrink-0 border border-primary/20">
+                    <span className="size-7 sm:size-8 rounded-xl bg-white dark:bg-gray-800 shadow-sm text-primary flex items-center justify-center shrink-0 border border-primary/20">
                       <span className="material-symbols-outlined text-sm">{feature.icon}</span>
                     </span>
-                    {feature.title}
+                    <span className="leading-6">{feature.title}</span>
                   </li>
                 ))}
               </ul>
@@ -235,18 +248,29 @@ export default function CourseDetailPageClient({ slug, adminPreviewCourseId }: C
           ) : null}
 
           {!isAdminPreview ? (
-            <CoursePurchaseAction
-              course={{
-                id: courseData.id,
-                slug: courseData.slug,
-                title: courseData.title,
-                price: courseData.isFree ? "0" : String(payablePrice),
-                image: coverImage ?? courseData.cover ?? courseData.thumbnail ?? "",
-                instructor: instructorName,
-              }}
-            />
+            <div className="hidden lg:block">
+              <CoursePurchaseAction course={purchaseCourse} />
+            </div>
           ) : null}
         </div>
+
+        {!isAdminPreview ? (
+          <div className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#14161c]/92 px-3 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
+            <div className="mx-auto flex max-w-[1440px] items-center gap-3">
+              {showPriceCard ? (
+                <div className="min-w-0 shrink-0 text-right">
+                  <p className="text-[10px] font-bold text-gray-400">مبلغ ثبت‌نام</p>
+                  <p className="text-sm font-black text-white">
+                    {courseData.isFree ? "رایگان" : `${priceLabel} تومان`}
+                  </p>
+                </div>
+              ) : null}
+              <div className="min-w-0 flex-1">
+                <CoursePurchaseAction course={purchaseCourse} />
+              </div>
+            </div>
+          </div>
+        ) : null}
       </aside>
     );
   }, [courseData, isAdminPreview]);
@@ -319,7 +343,7 @@ export default function CourseDetailPageClient({ slug, adminPreviewCourseId }: C
         />
       ) : null}
 
-      <main className="max-w-[1440px] mx-auto px-4 md:px-12 py-12 relative z-10">
+      <main className="max-w-[1440px] mx-auto px-3 sm:px-4 md:px-12 py-6 sm:py-8 md:py-12 relative z-10 pb-28 lg:pb-12">
         <CourseDetailClient
           hero={{
             title: courseData.heroTitle || courseData.title,

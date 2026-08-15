@@ -48,24 +48,20 @@ function Step1FormSkeleton() {
 
 function Step2FormSkeleton() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <StepHeaderSkeleton />
-      <FieldSkeleton labelWidth="w-28" />
-      <div className="space-y-3">
-        <SkeletonLine className="h-3 w-32" />
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <SkeletonBox key={i} className="h-9 w-full" rounded="rounded-xl" />
-          ))}
+      <div className="space-y-5 rounded-2xl border border-gray-100 p-4 dark:border-white/10">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <FieldSkeleton labelWidth="w-28" />
+          <div className="space-y-2">
+            <SkeletonLine className="h-3 w-36" />
+            <SkeletonBox className="h-24 w-full" rounded="rounded-xl" />
+          </div>
         </div>
-      </div>
-      <div className="space-y-2">
-        <SkeletonLine className="h-3 w-36" />
-        <SkeletonBox className="h-24 w-full" rounded="rounded-xl" />
-      </div>
-      <div className="space-y-3">
-        <SkeletonLine className="h-3 w-28" />
-        <SkeletonBox className="min-h-[160px] w-full" rounded="rounded-2xl" />
+        <div className="space-y-3 border-t border-gray-100 pt-5 dark:border-white/10">
+          <SkeletonLine className="h-3 w-32" />
+          <SkeletonBox className="min-h-[180px] w-full" rounded="rounded-2xl" />
+        </div>
       </div>
     </div>
   );

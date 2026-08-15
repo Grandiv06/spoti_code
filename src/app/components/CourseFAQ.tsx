@@ -56,7 +56,7 @@ export default function CourseFAQ({ items = [] }: CourseFAQProps) {
   }
 
   return (
-    <section className="glass-panel overflow-hidden rounded-[2rem] border border-gray-200/80 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.08)] dark:border-white/[0.06] dark:shadow-none md:rounded-4xl">
+    <section className="glass-panel overflow-hidden rounded-[1.5rem] border border-gray-200/80 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.08)] dark:border-white/[0.06] dark:shadow-none sm:rounded-[2rem] md:rounded-4xl">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200/80 px-5 py-5 dark:border-white/[0.06] md:px-8 md:py-6">
         <div className="flex items-center gap-3 md:gap-4">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-white/50 bg-gradient-to-br from-emerald-100 to-white text-primary shadow-sm dark:border-gray-700 dark:from-emerald-900/30 dark:to-gray-800 md:size-12 md:rounded-2xl">
@@ -104,7 +104,7 @@ export default function CourseFAQ({ items = [] }: CourseFAQProps) {
                       help
                     </span>
                   </span>
-                  <h3 className="font-bold text-sm md:text-base lg:text-lg text-gray-900 dark:text-white text-right leading-relaxed mt-1 md:mt-0">
+                  <h3 className="min-w-0 font-bold text-sm md:text-base lg:text-lg text-gray-900 dark:text-white text-right leading-relaxed mt-1 md:mt-0">
                     {item.question}
                   </h3>
                 </div>
