@@ -5,6 +5,7 @@ import CustomSelect from "@/components/ui/CustomSelect";
 import { isValidIranPhone } from "@/lib/admin-users";
 import { ApplicationMainRoles, type ApplicationMainRole } from "@/lib/application-roles";
 import { sanitizeNumericInput } from "@/lib/digits";
+import { toIranLocalPhoneInput } from "@/lib/format-phone";
 import {
   useAdminUserByIdQuery,
   useUpdateAdminUserMutation,
@@ -123,7 +124,7 @@ export default function EditUserModal({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setFirstName(loadedFirstName);
       setLastName(loadedLastName);
-      setPhone(sanitizeNumericInput(user.phone).slice(0, IRAN_PHONE_MAX_LENGTH));
+      setPhone(toIranLocalPhoneInput(user.phone));
       setPreservedEmail(normalizeOptionalEmail(user.email));
       setStatus(user.status);
       setRole(user.role);

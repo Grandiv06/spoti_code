@@ -253,6 +253,17 @@ function courseToDashboardRow(course: InstructorCourseListItem, approval?: { app
   };
 }
 
+export function invalidateInstructorCourseListCache(instructorId?: string) {
+  if (instructorId) {
+    instructorCoursesCache.delete(instructorId);
+    inflightCoursesLookups.delete(instructorId);
+    return;
+  }
+
+  instructorCoursesCache.clear();
+  inflightCoursesLookups.clear();
+}
+
 async function findInstructorCoursesLight(instructorId: string) {
   const cached = instructorCoursesCache.get(instructorId);
   if (cached && cached.expiresAt > Date.now()) {
@@ -264,12 +275,43 @@ async function findInstructorCoursesLight(instructorId: string) {
     return inflight;
   }
 
+  // Raw select so data-URL covers never leave Postgres — those blobs are the
+  // main reason the courses list felt frozen on the instructor panel.
   const lookup = timeDb("course.findMany(instructor courses)", () =>
-    prisma.course.findMany({
-      where: { instructorId },
-      select: INSTRUCTOR_COURSE_SELECT,
-      orderBy: { updatedAt: "desc" },
-    })
+    prisma.$queryRaw<InstructorCourseListItem[]>`
+      SELECT
+        c."id",
+        c."slug",
+        c."title",
+        CASE
+          WHEN c."cover" LIKE 'data:%' THEN ${DEFAULT_COURSE_COVER}
+          ELSE c."cover"
+        END AS "cover",
+        CASE
+          WHEN c."thumbnail" LIKE 'data:%' THEN
+            CASE
+              WHEN c."cover" LIKE 'data:%' THEN ${DEFAULT_COURSE_COVER}
+              ELSE c."cover"
+            END
+          ELSE c."thumbnail"
+        END AS "thumbnail",
+        c."status",
+        c."approvalStatus",
+        c."draftStep",
+        c."categoryTitle",
+        c."studentsCount",
+        c."revenue",
+        c."rating",
+        c."price",
+        c."level",
+        LEFT(c."shortDescription", 280) AS "shortDescription",
+        c."durationHours",
+        c."createdAt",
+        c."updatedAt"
+      FROM "Course" c
+      WHERE c."instructorId" = ${instructorId}
+      ORDER BY c."updatedAt" DESC
+    `
   )
     .then((courses) => {
       instructorCoursesCache.set(instructorId, {

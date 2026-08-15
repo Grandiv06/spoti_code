@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getClientIp, parseDeviceInfo } from "@/server/auth/device-info";
-import { verifyPhoneLogin } from "@/server/auth/phone-auth.service";
+import {
+  toPublicAuthErrorMessage,
+  verifyPhoneLogin,
+} from "@/server/auth/phone-auth.service";
 
 export const dynamic = "force-dynamic";
 
@@ -21,9 +24,10 @@ export async function POST(request: NextRequest) {
     });
     return NextResponse.json({ data });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "ورود انجام نشد";
+    const message = toPublicAuthErrorMessage(error, "ورود انجام نشد. دوباره تلاش کنید.");
     const status =
       message.includes("نامعتبر") || message.includes("معتبر") ? 401 : 500;
+    console.error("[POST /api/auth/verify-phone]", error);
     return NextResponse.json({ message }, { status });
   }
 }

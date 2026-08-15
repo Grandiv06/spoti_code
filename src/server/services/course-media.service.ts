@@ -45,10 +45,21 @@ function resolveAttachmentExtension(fileName: string) {
   return ".bin";
 }
 
+function resolveImageExtension(fileName: string, mimeType: string) {
+  const fromName = path.extname(fileName).toLowerCase();
+  if (fromName === ".jpg" || fromName === ".jpeg" || fromName === ".png" || fromName === ".webp" || fromName === ".gif") {
+    return fromName === ".jpeg" ? ".jpg" : fromName;
+  }
+  if (mimeType === "image/png") return ".png";
+  if (mimeType === "image/webp") return ".webp";
+  if (mimeType === "image/gif") return ".gif";
+  return ".jpg";
+}
+
 export async function saveCourseMediaFile(input: {
   courseId: string;
   file: File;
-  kind: "intro" | "lesson" | "attachment";
+  kind: "intro" | "lesson" | "attachment" | "cover";
   lessonId?: string;
 }) {
   const courseId = sanitizeSegment(decodeURIComponent(input.courseId));
@@ -59,6 +70,20 @@ export async function saveCourseMediaFile(input: {
   const bytes = Buffer.from(await input.file.arrayBuffer());
   if (bytes.length > MAX_BYTES) {
     throw new Error("حجم فایل نباید بیشتر از ۵۰ مگابایت باشد");
+  }
+
+  if (input.kind === "cover") {
+    if (!input.file.type.startsWith("image/")) {
+      throw new Error("فقط تصویر کاور مجاز است");
+    }
+    if (bytes.length > 5 * 1024 * 1024) {
+      throw new Error("حجم کاور نباید بیشتر از ۵ مگابایت باشد");
+    }
+    const filename = `cover-${Date.now()}${resolveImageExtension(input.file.name, input.file.type)}`;
+    const dir = path.join(UPLOAD_ROOT, courseId);
+    await mkdir(dir, { recursive: true });
+    await writeFile(path.join(dir, filename), bytes);
+    return `/uploads/courses/${courseId}/${filename}`;
   }
 
   if (input.kind === "attachment") {

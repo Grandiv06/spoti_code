@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -15,6 +15,10 @@ import {
   ChevronLeft,
   PlusCircle,
 } from "lucide-react";
+import CourseStatusModal, {
+  type CourseStatusModalVariant,
+} from "@/app/instructor/courses/_components/CourseStatusModal";
+import type { InstructorCourseRow } from "@/app/instructor/courses/_lib/instructor-courses-data";
 import {
   ActivityTimelineSkeleton,
   HeaderBannerSkeleton,
@@ -26,10 +30,16 @@ import {
   normalizeOverview,
   type DashboardCourseRow,
 } from "@/app/instructor/dashboard/_lib/instructor-dashboard-data";
-import { useInstructorCourses, useInstructorOverview } from "@/hooks/api/useInstructorDashboard";
+import { useInstructorCoursesList, useInstructorOverview } from "@/hooks/api/useInstructorDashboard";
 
 const formatCurrency = (val: number) => val.toLocaleString("fa-IR") + " تومان";
 const formatPersian = (val: string | number) => val.toLocaleString("fa-IR");
+
+type StatusModalState = {
+  open: boolean;
+  variant: CourseStatusModalVariant;
+  draftStep?: number;
+};
 
 function formatActivityDate(value: string) {
   const date = new Date(value);
@@ -43,16 +53,38 @@ function formatActivityDate(value: string) {
 
 export default function InstructorDashboardPage() {
   const router = useRouter();
+  const [statusModal, setStatusModal] = useState<StatusModalState>({
+    open: false,
+    variant: "pending",
+  });
 
   // Both queries fire in parallel and are cached by React Query (like the user panel),
   // so returning to the dashboard is instant instead of re-fetching everything.
   const overviewQuery = useInstructorOverview();
-  const coursesQuery = useInstructorCourses();
+  const coursesQuery = useInstructorCoursesList();
 
   const overview = overviewQuery.data ?? null;
   const overviewLoading = overviewQuery.isPending;
   const apiCourses = useMemo(() => coursesQuery.data ?? [], [coursesQuery.data]);
   const coursesLoading = coursesQuery.isPending;
+
+  const handleManageCourse = (course: InstructorCourseRow) => {
+    if (course.status === "published") {
+      router.push(`/instructor/courses/${encodeURIComponent(course.id)}`);
+      return;
+    }
+    if (course.status === "draft") {
+      router.push(
+        `/instructor/courses/create?draftCourseId=${encodeURIComponent(course.id)}&step=${course.draftStep}`
+      );
+      return;
+    }
+    if (course.status === "pending") {
+      setStatusModal({ open: true, variant: "pending" });
+      return;
+    }
+    setStatusModal({ open: true, variant: "not_manageable" });
+  };
 
   const recentCourses = useMemo(() => apiCourses.slice(0, 4), [apiCourses]);
   const recentActivities = useMemo(
@@ -322,10 +354,13 @@ export default function InstructorDashboardPage() {
                     </div>
 
                     <button
-                      onClick={() => router.push(`/instructor/courses/${c.id}`)}
+                      type="button"
+                      onClick={() => handleManageCourse(c)}
                       className="w-full sm:w-auto px-4 py-2 border border-gray-200 dark:border-white/10 hover:border-primary text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary text-[10px] font-black rounded-xl transition-all cursor-pointer whitespace-nowrap shrink-0"
                     >
-                      مدیریت دوره
+                      {c.status === "draft"
+                        ? `ادامه پیش‌نویس · مرحله ${formatPersian(c.draftStep)}`
+                        : "مدیریت دوره"}
                     </button>
                   </div>
                 ))}
@@ -370,6 +405,13 @@ export default function InstructorDashboardPage() {
           </div>
         </div>
       </div>
+
+      <CourseStatusModal
+        open={statusModal.open}
+        variant={statusModal.variant}
+        draftStep={statusModal.draftStep}
+        onClose={() => setStatusModal((prev) => ({ ...prev, open: false }))}
+      />
     </div>
   );
 }

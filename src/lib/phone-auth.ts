@@ -47,14 +47,24 @@ export function extractOtpFromAuthResponse(response: unknown): {
   };
 }
 
+function isTechnicalAuthError(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes("prisma") ||
+    normalized.includes("invocation") ||
+    normalized.includes("telegramid") ||
+    normalized.includes("does not exist in the current database") ||
+    normalized.includes("p2022") ||
+    normalized.includes("internal server error") ||
+    message.startsWith("<!DOCTYPE") ||
+    message.startsWith("<html")
+  );
+}
+
 export function extractAuthErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error && error.message.trim()) {
     const message = error.message.trim();
-    if (
-      !message.startsWith("<!DOCTYPE") &&
-      !message.startsWith("<html") &&
-      message.length < 200
-    ) {
+    if (!isTechnicalAuthError(message) && message.length < 200) {
       return message;
     }
   }

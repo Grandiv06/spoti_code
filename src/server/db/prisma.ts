@@ -44,6 +44,9 @@ function createPrismaClient() {
 }
 
 function isPrismaClientCurrent(client: PrismaClient) {
+  // Reject stale clients that still carry leftover Telegram-auth models/fields.
+  if ("authRequest" in client) return false;
+
   return (
     typeof client.discountCode?.findMany === "function" &&
     typeof client.userSession?.deleteMany === "function"

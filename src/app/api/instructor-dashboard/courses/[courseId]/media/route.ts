@@ -39,7 +39,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     const resolvedKind =
-      kind === "lesson" ? "lesson" : kind === "attachment" ? "attachment" : "intro";
+      kind === "lesson"
+        ? "lesson"
+        : kind === "attachment"
+          ? "attachment"
+          : kind === "cover"
+            ? "cover"
+            : "intro";
 
     const url = await saveCourseMediaFile({
       courseId: decodedId,

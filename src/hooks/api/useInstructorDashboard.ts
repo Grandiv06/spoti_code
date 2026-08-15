@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGetNoMock } from "@/lib/api";
 import { getAuthHeaders } from "@/lib/auth-tokens";
 import { fetchMyProfile } from "@/lib/panel-profile";
@@ -57,7 +58,8 @@ export function useInstructorOverview() {
         raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : null
       );
     },
-    staleTime: 30_000,
+    staleTime: 60_000,
+    gcTime: 10 * 60_000,
     retry: 1,
   });
 }
@@ -66,7 +68,8 @@ export function useInstructorCourses() {
   return useQuery<DashboardCourseRow[], Error>({
     queryKey: instructorCoursesQueryKey,
     queryFn: fetchInstructorCourses,
-    staleTime: 30_000,
+    staleTime: 60_000,
+    gcTime: 10 * 60_000,
     retry: 1,
   });
 }
@@ -75,9 +78,21 @@ export function useInstructorCoursesList() {
   return useQuery<InstructorCourseRow[], Error>({
     queryKey: instructorCoursesQueryKey,
     queryFn: fetchInstructorCourses,
-    staleTime: 30_000,
+    staleTime: 60_000,
+    gcTime: 10 * 60_000,
     retry: 1,
   });
+}
+
+export function usePrefetchInstructorCourses() {
+  const queryClient = useQueryClient();
+  return useCallback(() => {
+    void queryClient.prefetchQuery({
+      queryKey: instructorCoursesQueryKey,
+      queryFn: fetchInstructorCourses,
+      staleTime: 60_000,
+    });
+  }, [queryClient]);
 }
 
 export function useInstructorProfileSummary(enabled = true) {

@@ -71,15 +71,5 @@ export async function ensureCourseApprovalSchema() {
       : `ALTER TABLE "Instructor" ADD COLUMN "canPublishWithoutApproval" BOOLEAN NOT NULL DEFAULT 0`
   );
 
-  if (isPostgresDatabase()) {
-    await prisma.$executeRaw`
-      UPDATE "Course" SET "draftData" = '{}'::jsonb WHERE "draftData" IS NULL
-    `;
-  } else {
-    await prisma.$executeRaw`
-      UPDATE "Course" SET "draftData" = '{}' WHERE "draftData" IS NULL
-    `;
-  }
-
   courseApprovalColumnsReady = true;
 }

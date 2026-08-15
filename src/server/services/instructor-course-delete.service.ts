@@ -1,7 +1,11 @@
 import type { User } from "@prisma/client";
 import { AuthError } from "@/server/auth/request-auth";
 import { prisma } from "@/server/db/prisma";
-import { assertInstructor, resolveInstructorForUser } from "@/server/services/instructor-dashboard.service";
+import {
+  assertInstructor,
+  invalidateInstructorCourseListCache,
+  resolveInstructorForUser,
+} from "@/server/services/instructor-dashboard.service";
 import { ensureCourseApprovalSchema } from "@/server/services/course-approval-schema.service";
 import { removeCourseMediaDirectory } from "@/server/services/course-media.service";
 
@@ -52,6 +56,7 @@ export async function deleteInstructorDraftCourse(user: User, courseId: string) 
   });
 
   await removeCourseMediaDirectory(row.id);
+  invalidateInstructorCourseListCache(instructor.id);
 
   return { id: row.id, title: row.title };
 }

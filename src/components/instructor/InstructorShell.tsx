@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   LogOut,
   Menu,
@@ -23,7 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useInstructorData } from "@/context/InstructorDataContext";
 import { useAuth } from "@/context/AuthContext";
-import { useMyProfile } from "@/hooks/api/useInstructorDashboard";
+import { useMyProfile, usePrefetchInstructorCourses } from "@/hooks/api/useInstructorDashboard";
 import { formatIranPhoneForDisplay } from "@/lib/format-phone";
 
 const navItems = [
@@ -44,6 +44,14 @@ export default function InstructorShell({ children }: { children: React.ReactNod
   const [open, setOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { data: profile } = useMyProfile(Boolean(user));
+  const prefetchCourses = usePrefetchInstructorCourses();
+
+  useEffect(() => {
+    if (!user) return;
+    prefetchCourses();
+    router.prefetch("/instructor/courses");
+    router.prefetch("/instructor/courses/create");
+  }, [prefetchCourses, router, user]);
 
   const profileName = profile?.displayName?.trim() ?? "";
   const profileAvatar = profile?.avatarImage?.trim() ?? "";
@@ -150,6 +158,11 @@ export default function InstructorShell({ children }: { children: React.ReactNod
                 key={item.href}
                 href={item.href}
                 onClick={() => setOpen(false)}
+                onMouseEnter={() => {
+                  if (item.href === "/instructor/courses" || item.href === "/instructor/dashboard") {
+                    prefetchCourses();
+                  }
+                }}
                 className={cn(
                   "group relative flex items-center py-3.5 px-4 rounded-[14px] transition-all duration-300 cursor-pointer gap-3",
                   isActive

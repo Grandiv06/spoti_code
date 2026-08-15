@@ -68,7 +68,7 @@ export default function InstructorCoursesPage() {
 
   // Courses are the main content; render them as soon as they arrive without
   // waiting on the (lighter) profile request for the header name/avatar.
-  const isLoading = coursesQuery.isPending;
+  const isLoading = coursesQuery.isPending && !coursesQuery.data;
 
   const openStatusModal = (input: Omit<StatusModalState, "open">) => {
     setStatusModal({ ...input, open: true });
@@ -223,6 +223,7 @@ export default function InstructorCoursesPage() {
 
           <Link
             href="/instructor/courses/create"
+            onMouseEnter={() => router.prefetch("/instructor/courses/create")}
             className="flex items-center gap-1.5 px-5 py-3.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-2xl transition-all shadow-md shadow-primary/20 hover:scale-[1.02] cursor-pointer"
           >
             <PlusCircle className="w-4 h-4" />

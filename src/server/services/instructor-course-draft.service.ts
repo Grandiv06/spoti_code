@@ -1,7 +1,11 @@
 import { Prisma, type User } from "@prisma/client";
 import { AuthError } from "@/server/auth/request-auth";
 import { prisma } from "@/server/db/prisma";
-import { assertInstructor, resolveInstructorForUser } from "@/server/services/instructor-dashboard.service";
+import {
+  assertInstructor,
+  invalidateInstructorCourseListCache,
+  resolveInstructorForUser,
+} from "@/server/services/instructor-dashboard.service";
 import { ensureCourseApprovalSchema } from "@/server/services/course-approval-schema.service";
 import {
   normalizeInstructorCourseDraftDto,
@@ -44,14 +48,18 @@ type CourseApprovalRow = {
 
 const DEFAULT_COVER = "/images/course1.jpg";
 
+function isInlineMedia(value: string) {
+  return value.startsWith("blob:") || value.startsWith("data:");
+}
+
 function resolvePersistableCover(nextCover: string, existingCover?: string | null) {
   const trimmed = nextCover.trim();
-  if (trimmed && !trimmed.startsWith("blob:")) {
+  if (trimmed && !isInlineMedia(trimmed)) {
     return trimmed;
   }
 
   const existing = (existingCover || "").trim();
-  if (existing && !existing.startsWith("blob:")) {
+  if (existing && !isInlineMedia(existing)) {
     return existing;
   }
 
@@ -132,7 +140,10 @@ function publicChapters(input: InstructorCourseDraftDto) {
 }
 
 function draftDataValue(input: InstructorCourseDraftDto): Prisma.InputJsonValue {
-  return input as unknown as Prisma.InputJsonValue;
+  const cover = typeof input.cover === "string" && isInlineMedia(input.cover) ? "" : input.cover;
+  const introVideo =
+    typeof input.introVideo === "string" && isInlineMedia(input.introVideo) ? "" : input.introVideo;
+  return { ...input, cover, introVideo } as unknown as Prisma.InputJsonValue;
 }
 
 function parseDraftData(value: unknown): unknown {
@@ -256,9 +267,15 @@ async function requireInstructor(user: User) {
 
 async function findOwnedCourse(courseId: string, instructorId: string) {
   const rows = await prisma.$queryRaw<
-    Array<{ id: string; slug: string; cover: string; introVideo: string | null }>
+    Array<{ id: string; slug: string; cover: string; introVideo: string | null; approvalStatus: string | null; status: string }>
   >`
-    SELECT "id", "slug", "cover", "introVideo"
+    SELECT
+      "id",
+      "slug",
+      CASE WHEN "cover" LIKE 'data:%' THEN ${DEFAULT_COVER} ELSE "cover" END AS "cover",
+      CASE WHEN "introVideo" LIKE 'data:%' THEN NULL ELSE "introVideo" END AS "introVideo",
+      "approvalStatus",
+      "status"
     FROM "Course"
     WHERE "id" = ${decodeURIComponent(courseId)} AND "instructorId" = ${instructorId}
     LIMIT 1
@@ -312,12 +329,12 @@ async function readCourseRow(courseId: string) {
 
 function resolvePersistableIntroVideo(nextVideo: string, existingVideo?: string | null) {
   const trimmed = nextVideo.trim();
-  if (trimmed && !trimmed.startsWith("blob:")) {
+  if (trimmed && !isInlineMedia(trimmed)) {
     return trimmed;
   }
 
   const existing = (existingVideo || "").trim();
-  if (existing && !existing.startsWith("blob:")) {
+  if (existing && !isInlineMedia(existing)) {
     return existing;
   }
 
@@ -335,7 +352,7 @@ export async function upsertInstructorCourseDraft(user: User, rawInput: unknown)
 
   const slugBase = titleToSlug(input.title);
   let courseId = input.courseId ? decodeURIComponent(input.courseId) : "";
-  let slug = await uniqueCourseSlug(slugBase, courseId || undefined);
+  let slug = "";
   const description = input.aboutDescription || input.shortDescription || input.title;
 
   let cover = resolvePersistableCover(input.cover);
@@ -356,6 +373,11 @@ export async function upsertInstructorCourseDraft(user: User, rawInput: unknown)
       isThrowawayBase && existingSlug
         ? existingSlug
         : await uniqueCourseSlug(generatedBase, courseId);
+    const shouldKeepPublishedApproval =
+      course.status === "published" ||
+      course.approvalStatus === "approved" ||
+      course.approvalStatus === "pending";
+
     await prisma.course.update({
       where: { id: courseId },
       data: {
@@ -377,8 +399,12 @@ export async function upsertInstructorCourseDraft(user: User, rawInput: unknown)
         faqs: input.faqs as Prisma.InputJsonValue,
         specialWord: JSON.stringify(input.specialWords),
         draftData: draftDataValue(input),
+        draftStep: input.step,
+        ...(shouldKeepPublishedApproval ? {} : { approvalStatus: "draft", approvalNote: null }),
       },
     });
+    invalidateInstructorCourseListCache(instructor.id);
+    return { id: courseId, courseId, draftStep: input.step };
   } else {
     courseId = `CRS-${Date.now()}`;
     slug = await uniqueCourseSlug(`${slugBase}-${courseId.slice(-8)}`, courseId);
@@ -447,31 +473,9 @@ export async function upsertInstructorCourseDraft(user: User, rawInput: unknown)
         throw error;
       }
     }
+    invalidateInstructorCourseListCache(instructor.id);
+    return { id: courseId, courseId, draftStep: input.step };
   }
-
-  // For existing courses keep approval/publish state; only brand-new drafts stay "draft".
-  // Overwriting approvalStatus to "draft" on every chapter save was demoting published courses.
-  const existingApproval = courseId
-    ? await prisma.course.findUnique({
-        where: { id: courseId },
-        select: { approvalStatus: true, status: true },
-      })
-    : null;
-  const shouldKeepPublishedApproval =
-    existingApproval?.status === "published" ||
-    existingApproval?.approvalStatus === "approved" ||
-    existingApproval?.approvalStatus === "pending";
-
-  await prisma.course.update({
-    where: { id: courseId },
-    data: {
-      ...(shouldKeepPublishedApproval ? {} : { approvalStatus: "draft", approvalNote: null }),
-      draftStep: input.step,
-      draftData: draftDataValue(input),
-    },
-  });
-
-  return readCourseRow(courseId);
 }
 
 export async function getInstructorCourseDraft(user: User, courseId: string) {
@@ -485,12 +489,14 @@ export async function updateInstructorCourseDraftStep(
   step: number
 ) {
   await ensureCourseApprovalSchema();
-  const { course } = await loadInstructorCourseRow(user, courseId);
+  const instructor = await requireInstructor(user);
+  const course = await findOwnedCourse(courseId, instructor.id);
   const draftStep = Math.max(1, Math.min(5, Math.round(Number(step) || 1)));
   await prisma.course.update({
     where: { id: course.id },
     data: { draftStep },
   });
+  invalidateInstructorCourseListCache(instructor.id);
   return { id: course.id, draftStep };
 }
 

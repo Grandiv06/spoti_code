@@ -74,6 +74,15 @@ function normalizeDigits(value: string): string {
   return result.replace(/\s/g, "").replace(/-/g, "");
 }
 
+export function toPublicAuthErrorMessage(error: unknown, fallback: string): string {
+  const raw = error instanceof Error ? error.message.trim() : "";
+  if (!raw) return fallback;
+  if (/prisma|invocation|telegramid|does not exist in the current database|p2022|internal server error/i.test(raw)) {
+    return fallback;
+  }
+  return raw;
+}
+
 export function normalizeIranPhone(input: string): string {
   let value = normalizeDigits(input).replace(/[^0-9]/g, "");
   if (value.startsWith("98")) value = value.slice(2);

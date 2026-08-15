@@ -109,7 +109,11 @@ function resolveCourseStatus(row: UnknownRecord): DashboardCourseRow["status"] {
 
 function resolveCourseCover(row: UnknownRecord): string {
   const direct = row.cover ?? row.thumbnail ?? row.thumbnailUrl;
-  if (typeof direct === "string" && direct.trim()) return direct.trim();
+  if (typeof direct === "string" && direct.trim()) {
+    const cover = direct.trim();
+    if (cover.startsWith("data:")) return "";
+    return cover;
+  }
 
   const thumbnailFile = row.thumbnailFile;
   if (isRecord(thumbnailFile)) {
