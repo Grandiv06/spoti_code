@@ -70,6 +70,18 @@ export default function Header() {
     { label: "مسیر یادگیری", href: "/learning-path", icon: "route" },
   ];
 
+  const panelHref =
+    user?.role === "admin"
+      ? "/admin"
+      : user?.role === "instructor"
+        ? "/instructor/dashboard"
+        : "/panel";
+
+  const isItemActive = (href: string) =>
+    href === "/learning-path"
+      ? Boolean(pathname?.startsWith("/learning-path"))
+      : pathname === href;
+
   const renderCartButton = (className = "") => {
     if (cart.length === 0) return null;
 
@@ -225,104 +237,112 @@ export default function Header() {
               />
               {/* Drawer */}
               <div
-                className={`absolute top-0 right-0 bottom-0 z-[70] w-[min(320px,100%)] h-[100dvh] flex flex-col transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isMenuOpen ? "translate-x-0" : "translate-x-full"}`}
+                className={`absolute top-0 right-0 bottom-0 z-[70] flex h-[100dvh] w-[min(288px,86%)] flex-col transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isMenuOpen ? "translate-x-0" : "translate-x-full"}`}
                 role="dialog"
                 aria-label="منو"
               >
-                {/* پنل سالید برای پرفورمنس بهتر در موبایل */}
-                <div
-                  className="h-full rounded-l-[2rem] flex flex-col shadow-2xl border-l p-2 bg-white border-gray-100 dark:bg-[#111216] dark:border-white/5"
-                >
-                {/* Farmeto "Gold Standard" Header */}
-                <div className="flex flex-col p-4 shrink-0 border-b border-gray-100 dark:border-white/5 bg-white dark:bg-[#111216] rounded-tl-[2rem]">
-                  {/* Row 1: Logo & Close */}
-                  <div className="flex items-center justify-between mb-4">
-                    <Link
-                      href="/"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center gap-2"
-                    >
-                      <Image
-                        src="/favicon.svg"
-                        alt="اسپاتی‌کد"
-                        width={28}
-                        height={28}
-                      />
-                      <span className="text-xl font-black text-gray-900 dark:text-white">
-                        <span className="text-primary">اسپاتی</span> کد
-                      </span>
-                    </Link>
-                    <button
-                      onClick={() => setIsMenuOpen(false)}
-                      className="flex size-10 items-center justify-center rounded-2xl bg-gray-100 text-gray-600 hover:text-gray-900 border border-gray-200 dark:bg-white/5 dark:text-gray-400 dark:border-white/10 dark:hover:text-white transition-colors"
-                      aria-label="بستن منو"
-                    >
-                      <span className="material-symbols-outlined text-[20px]">close</span>
-                    </button>
-                  </div>
-
-                  {/* Row 2: Date & Theme Toggle */}
-                  <div className="flex items-center justify-between bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/5 p-2 rounded-[2rem]">
-                    <div className="flex items-center gap-2 px-3">
-                      <span className="material-symbols-outlined text-gray-400 text-lg">calendar_today</span>
-                      <span className="text-sm font-bold text-gray-600 dark:text-gray-300">
-                        {new Date().toLocaleDateString('fa-IR', { weekday: 'long', day: 'numeric', month: 'long' })}
-                      </span>
+                <div className="flex h-full flex-col rounded-l-[2rem] border-l border-gray-200/80 bg-white/95 shadow-2xl backdrop-blur-xl dark:border-white/[0.06] dark:bg-[#14161c]/98">
+                  <div className="shrink-0 border-b border-gray-200/70 px-4 pb-4 pt-[max(0.9rem,env(safe-area-inset-top))] dark:border-white/[0.06]">
+                    <div className="mb-4 flex items-center justify-between">
+                      <Link
+                        href="/"
+                        onClick={() => setIsMenuOpen(false)}
+                        className="flex items-center gap-2"
+                      >
+                        <Image
+                          src="/favicon.svg"
+                          alt="اسپاتی‌کد"
+                          width={28}
+                          height={28}
+                          className="size-7"
+                        />
+                        <span className="text-lg font-black tracking-tight text-gray-900 dark:text-white">
+                          <span className="text-primary-dark/80 dark:text-primary">اسپاتی</span> کد
+                        </span>
+                      </Link>
+                      <button
+                        onClick={() => setIsMenuOpen(false)}
+                        className="flex size-10 items-center justify-center rounded-2xl border border-white/15 bg-white/20 text-gray-600 backdrop-blur-xl transition-colors hover:bg-white/30 dark:border-white/[0.04] dark:bg-[#14161c]/10 dark:text-gray-300 dark:hover:bg-[#14161c]/20"
+                        aria-label="بستن منو"
+                      >
+                        <span className="material-symbols-outlined text-[20px]">close</span>
+                      </button>
                     </div>
-                    <div className="bg-white dark:bg-white/5 rounded-[1.5rem] shadow-sm border border-gray-100 dark:border-white/10 p-0.5">
+
+                    <div className="flex items-center justify-between gap-2 rounded-2xl border border-gray-200/70 bg-gray-50/80 px-2 py-1.5 dark:border-white/[0.06] dark:bg-white/[0.04]">
+                      <div className="flex min-w-0 items-center gap-2 px-2">
+                        <span className="material-symbols-outlined text-[18px] text-primary/70">calendar_today</span>
+                        <span className="truncate text-[12px] font-bold text-gray-600 dark:text-gray-300">
+                          {new Date().toLocaleDateString("fa-IR", {
+                            weekday: "long",
+                            day: "numeric",
+                            month: "long",
+                          })}
+                        </span>
+                      </div>
                       <ThemeToggle />
                     </div>
                   </div>
-                </div>
 
-                {/* Navigation Links */}
-                <div className="px-4 py-6 flex flex-col gap-1.5 flex-1 overflow-y-auto">
-                  {menuItems.map((item) => {
-                    const isActive =
-                      item.href === "/social"
-                        ? pathname?.startsWith("/social")
-                        : item.href === "/learning-path"
-                          ? pathname?.startsWith("/learning-path")
-                          : pathname === item.href;
-                            
-                    return (
-                      <Link
-                        key={item.href}
-                        className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all font-bold text-[15px] ${
-                          isActive
-                            ? "bg-primary/10 text-primary"
-                            : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5"
+                  <nav className="flex-1 overflow-y-auto px-3 py-4">
+                    <ul className="space-y-1">
+                      {menuItems.map((item) => {
+                        const isActive = isItemActive(item.href);
+                        return (
+                          <li key={item.href}>
+                            <Link
+                              className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-[15px] font-bold transition-all ${
+                                isActive
+                                  ? "bg-primary/10 text-primary shadow-sm shadow-primary/10"
+                                  : "text-gray-700 hover:bg-gray-100/80 dark:text-gray-200 dark:hover:bg-white/[0.05]"
+                              }`}
+                              href={item.href}
+                              onClick={() => setIsMenuOpen(false)}
+                            >
+                              <span
+                                className={`material-symbols-outlined text-[22px] ${
+                                  isActive ? "text-primary" : "text-gray-400 dark:text-gray-500"
+                                }`}
+                              >
+                                {item.icon}
+                              </span>
+                              {item.label}
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </nav>
+
+                  <div className="shrink-0 border-t border-gray-200/70 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-white/[0.06]">
+                    <Link
+                      href={isAuthenticated ? panelHref : "/login"}
+                      onClick={() => setIsMenuOpen(false)}
+                      className={`flex w-full items-center justify-between rounded-[1.35rem] px-4 py-3.5 text-[14px] font-black transition-all active:scale-[0.98] ${
+                        isAuthenticated
+                          ? "border border-white/15 bg-white/20 text-gray-800 backdrop-blur-xl dark:border-white/[0.04] dark:bg-[#14161c]/10 dark:text-white"
+                          : "border border-white/25 bg-primary text-white shadow-lg shadow-primary/25 dark:border-white/15 dark:bg-primary/90"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[20px]">
+                          {isAuthenticated ? "person" : "login"}
+                        </span>
+                        {isAuthenticated ? "پنل کاربری" : "ورود به حساب"}
+                      </span>
+                      <span
+                        className={`flex size-8 items-center justify-center rounded-xl ${
+                          isAuthenticated
+                            ? "bg-white/60 dark:bg-white/10"
+                            : "bg-white/20"
                         }`}
-                        href={item.href}
-                        onClick={() => setIsMenuOpen(false)}
                       >
-                         <span className={`material-symbols-outlined text-[22px] ${isActive ? "text-primary fill-current" : "text-gray-400 dark:text-gray-500"}`}>
-                           {item.icon}
-                         </span>
-                         {item.label}
-                      </Link>
-                    );
-                  })}
-                </div>
-                {/* Auth Footer */}
-                <div className="shrink-0 p-4 border-t border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02]">
-                  <Link
-                    href={isAuthenticated ? "/panel" : "/login"}
-                    onClick={() => setIsMenuOpen(false)}
-                    className={`flex items-center justify-between w-full px-5 py-4 rounded-[2rem] font-bold text-[15px] transition-transform active:scale-[0.98] ${
-                      isAuthenticated
-                        ? "bg-gray-200 dark:bg-white/10 text-gray-800 dark:text-white"
-                        : "bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md"
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                       {isAuthenticated ? "پنل کاربری" : "ورود به حساب"}
-                    </span>
-                    <div className={`w-8 h-8 rounded-[1rem] flex items-center justify-center ${isAuthenticated ? "bg-white dark:bg-black/20" : "bg-white/20 dark:bg-black/10"}`}>
-                       <span className="material-symbols-outlined text-[18px] rtl:rotate-180">east</span>
-                    </div>
-                  </Link>
-                </div>
+                        <span className="material-symbols-outlined text-[18px] rtl:rotate-180">
+                          east
+                        </span>
+                      </span>
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>,

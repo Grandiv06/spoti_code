@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import TestimonialSlider from "./components/TestimonialSlider";
 import PremiumStats from "./components/PremiumStats";
+import HomeHero from "./components/HomeHero";
 import CoursePriceDisplay, { CourseDiscountBadge } from "@/app/components/CoursePriceDisplay";
 import { apiGetNoMock } from "@/lib/api";
 
@@ -162,117 +163,7 @@ export default function Home() {
       </div> */}
 
       <main>
-        {/* Hero Section */}
-        <header className="relative z-10 max-w-7xl mx-auto px-6 pt-16 pb-20">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div className="order-2 lg:order-1 space-y-8 text-center lg:text-right">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-surface-dark rounded-full shadow-sm text-xs font-bold text-primary border border-primary/20">
-                <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
-                دوره جدید Full-Stack شروع شد
-              </div>
-              <h1 className="text-4xl lg:text-7xl font-black leading-[1.2] text-gray-900 dark:text-white">
-                مسیر{" "}
-                <span className="text-primary relative inline-block">
-                  حرفه‌ای
-                  <svg
-                    className="absolute -bottom-2 left-0 w-full"
-                    height="8"
-                    viewBox="0 0 100 8"
-                    width="100%"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M1 5.5C20 2 40 2 60 4C80 6 90 6 99 2"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeWidth="3"
-                    ></path>
-                  </svg>
-                </span>{" "}
-                شدن <br />
-                در دنیای برنامه‌نویسی
-              </h1>
-              <p className="text-xl text-text-muted-light dark:text-text-muted-dark leading-loose max-w-2xl mx-auto lg:mx-0">
-                با متدهای روز دنیا و همراهی منتورهای ارشد، مهارت‌هایی یاد بگیرید
-                که بازار کار تشنه‌ی آن‌هاست. از صفر مطلق تا استخدام، کنار شما
-                هستیم.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-5 justify-center lg:justify-start">
-                <a
-                  className="bg-primary hover:bg-primary-hover text-white px-10 py-5 rounded-4xl text-lg font-extrabold transition-all shadow-2xl shadow-primary/40 flex items-center justify-center gap-3 group"
-                  href="#"
-                >
-                  شروع یادگیری
-                  <span className="material-symbols-outlined group-hover:-translate-x-1 transition-transform">
-                    arrow_right_alt
-                  </span>
-                </a>
-                <Link
-                  className="bg-white/70 dark:bg-surface-dark/80 md:backdrop-blur-xl md:hover:bg-white/90 md:dark:hover:bg-surface-dark text-text-light dark:text-white px-10 py-5 rounded-4xl text-lg font-extrabold transition-all duration-300 shadow-lg flex items-center justify-center gap-3 border border-white/30 dark:border-white/10"
-                  href="/courses"
-                >
-                  <span className="material-symbols-outlined text-primary">
-                    category
-                  </span>
-                  مشاهده دوره‌ها
-                </Link>
-              </div>
-              <div className="flex items-center justify-center lg:justify-start gap-4 pt-6">
-                <div className="flex -space-x-3 space-x-reverse">
-                  <Image
-                    alt="User"
-                    className="w-12 h-12 rounded-full border-4 border-white dark:border-surface-dark shadow-md"
-                    src="/images/user1.jpg"
-                    width={48}
-                    height={48}
-                  />
-                  <Image
-                    alt="User"
-                    className="w-12 h-12 rounded-full border-4 border-white dark:border-surface-dark shadow-md"
-                    src="/images/user2.jpg"
-                    width={48}
-                    height={48}
-                  />
-                  <Image
-                    alt="User"
-                    className="w-12 h-12 rounded-full border-4 border-white dark:border-surface-dark shadow-md"
-                    src="/images/user3.jpg"
-                    width={48}
-                    height={48}
-                  />
-                  <div className="w-12 h-12 rounded-full border-4 border-white dark:border-surface-dark bg-primary/20 flex items-center justify-center text-sm font-black text-primary backdrop-blur-sm">
-                    +۲۵۰
-                  </div>
-                </div>
-                <p className="text-sm font-bold text-text-muted-light dark:text-text-muted-dark">
-                  دانشجوی فعال در این ترم
-                </p>
-              </div>
-            </div>
-            <div className="order-1 lg:order-2 relative">
-              <div className="aspect-video w-full bg-black rounded-4xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] overflow-hidden relative group cursor-pointer border-8 border-white dark:border-surface-dark/50">
-                <div className="absolute inset-0 bg-gradient-to-br from-gray-900/60 to-black/90 z-10"></div>
-                <Image
-                  alt="Coding workspace"
-                  className="absolute inset-0 w-full h-full object-cover md:group-hover:scale-110 transition-transform duration-1000 transform-gpu"
-                  src="/images/hero_image.jpg"
-                  fill
-                  style={{ objectFit: "cover" }}
-                />
-                <div className="absolute inset-0 flex items-center justify-center z-20">
-                  <div className="w-24 h-24 bg-primary/90 md:backdrop-blur-md rounded-full flex items-center justify-center pl-1 text-white shadow-[0_0_50px_rgba(34,197,94,0.6)] md:group-hover:scale-110 transition-transform duration-500 transform-gpu">
-                    <span className="material-icons-round text-6xl">
-                      play_arrow
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="hidden md:block absolute -bottom-8 -right-8 w-32 h-32 bg-yellow-400 rounded-4xl -z-10 rotate-12 opacity-80 blur-sm transform-gpu"></div>
-              <div className="hidden md:block absolute -top-8 -left-8 w-24 h-24 bg-blue-500 rounded-full -z-10 opacity-40 blur-xl transform-gpu"></div>
-            </div>
-          </div>
-        </header>
+        <HomeHero />
 
         {/* Animated Premium Stats Section */}
         <PremiumStats />
