@@ -168,6 +168,52 @@
   }
 }
 
+/* --- User panel shell (fixed layout with its own scroll container) --- */
+html:has(body.panel-layout),
+body.panel-layout {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: pan-x pan-y;
+  -ms-touch-action: pan-x pan-y;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+.panel-shell {
+  height: 100%;
+  touch-action: pan-x pan-y;
+  -ms-touch-action: pan-x pan-y;
+}
+
+.panel-main {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/*
+ * iOS Safari auto-zooms focused fields with computed font-size < 16px and
+ * often leaves the viewport zoomed after blur. Force 16px in the panel shell.
+ */
+@media (max-width: 1024px), (pointer: coarse) {
+  .panel-shell input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+  .panel-shell textarea,
+  .panel-shell select,
+  .panel-shell [contenteditable="true"] {
+    font-size: 16px !important;
+  }
+}
+
+html.panel-overlay-open [data-panel-bottom-nav],
+body.panel-overlay-open [data-panel-bottom-nav] {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+.panel-page-content {
+  min-height: 100%;
+}
+
 @keyframes float {
   0% {
     transform: translateY(0px);

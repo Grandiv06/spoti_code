@@ -1,202 +1,82 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
+import {
+  GraduationCap,
+  Headphones,
+  Home,
+  LogOut,
+  ReceiptText,
+  Settings,
+  User,
+} from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { usePanelSidebar } from "@/context/PanelSidebarContext";
-import { useMyProfile } from "@/hooks/api/useInstructorDashboard";
 import { usePrefetchPanelMyCourses } from "@/hooks/api/usePanelMyCourses";
-import { formatIranPhoneForDisplay } from "@/lib/format-phone";
 import { cn } from "@/lib/utils";
-import { User, LogOut, X, ChevronRight, ChevronLeft } from "lucide-react";
-
-const SIDEBAR_COLLAPSED_KEY = "spoticode-sidebar-collapsed";
 
 const menuItems = [
-  { label: "داشبورد", href: "/panel", icon: "dashboard" },
-  { label: "دوره‌های من", href: "/panel/courses", icon: "school" },
-  { label: "تراکنش‌ها", href: "/panel/transactions", icon: "receipt_long" },
-  { label: "پشتیبانی", href: "/panel/support", icon: "support_agent" },
-  { label: "پروفایل", href: "/panel/profile", icon: "person" },
-  { label: "تنظیمات", href: "/panel/settings", icon: "settings" },
+  { href: "/panel", label: "داشبورد", icon: Home },
+  { href: "/panel/courses", label: "دوره‌های من", icon: GraduationCap },
+  { href: "/panel/transactions", label: "تراکنش‌ها", icon: ReceiptText },
+  { href: "/panel/support", label: "پشتیبانی", icon: Headphones },
+  { href: "/panel/profile", label: "پروفایل", icon: User },
+  { href: "/panel/settings", label: "تنظیمات", icon: Settings },
 ];
 
 export default function PanelSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout } = useAuth();
-  const { isMobileOpen, setMobileOpen, isCollapsed, setIsCollapsed, toggleCollapsed } = usePanelSidebar();
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const { logout } = useAuth();
+  const [showLogout, setShowLogout] = useState(false);
   const prefetchMyCourses = usePrefetchPanelMyCourses();
-  // Shared React Query profile — avoids a competing uncached /profiles/me on every panel page.
-  const { data: profile } = useMyProfile(Boolean(user));
-
-  const sidebarDisplayName =
-    profile?.displayName?.trim() || user?.displayName || "کاربر مهمان";
-  const sidebarPhone = user?.phone?.trim() ? formatIranPhoneForDisplay(user.phone) : "";
-  const sidebarAvatar = profile?.avatarImage?.trim() || user?.avatarUrl || "";
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
-      if (stored !== null) setIsCollapsed(stored === "true");
-    } catch {}
-  }, [setIsCollapsed]);
-
-  const handleToggleCollapse = () => {
-    const next = !isCollapsed;
-    try {
-      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
-    } catch {}
-    toggleCollapsed();
-  };
 
   const handleLogout = () => {
     logout();
     router.replace("/login");
   };
 
-  const closeMobile = () => setMobileOpen(false);
-
   return (
     <>
-      {/* Mobile Overlay */}
-      {isMobileOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-[40] lg:hidden cursor-pointer"
-          onClick={closeMobile}
-          aria-hidden="true"
-        />
-      )}
-
-      <div
-        className={cn(
-          "fixed top-0 h-full z-[50] transition-all duration-500 ease-in-out",
-          "right-0",
-          isCollapsed ? "w-[294px] lg:w-[100px]" : "w-[294px]",
-          isMobileOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"
-        )}
-      >
-        <div
-          className={cn(
-            "h-full flex flex-col shadow-lg border p-2 transition-all duration-300 relative",
-            "rounded-l-[40px]",
-            "bg-gray-100/80 dark:bg-[#0B0D11]/30 border-gray-200/50 dark:border-white/5 backdrop-blur-md"
-          )}
-        >
-          {/* Collapse Toggle Button (Desktop Only) */}
-          <button
-            onClick={handleToggleCollapse}
-            className="hidden lg:flex absolute -left-4 top-12 z-[60] w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-[#1a1d24] border border-gray-200 dark:border-white/10 shadow-md text-gray-600 dark:text-gray-300 hover:text-primary transition-all cursor-pointer group"
+      <aside className="hidden lg:flex h-full w-72 shrink-0 bg-white dark:bg-[#14161c] border-l border-gray-200/70 dark:border-white/5 flex-col">
+        <div className="relative p-6 flex items-center justify-center border-b border-gray-200/70 dark:border-white/5 min-h-24 shrink-0">
+          <Link
+            href="/"
+            className="flex items-center gap-3 group cursor-pointer transition-transform hover:scale-[1.02]"
           >
-            {isCollapsed ? (
-              <ChevronLeft className="w-5 h-5 transition-transform group-hover:-translate-x-0.5" />
-            ) : (
-              <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-0.5" />
-            )}
-          </button>
-
-          {/* Mobile Close */}
-          <button
-            onClick={closeMobile}
-            className="lg:hidden absolute right-4 top-4 z-10 p-2 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-white/20 dark:hover:bg-white/10 transition-colors cursor-pointer"
-            aria-label="بستن منو"
-          >
-            <X className="w-6 h-6" />
-          </button>
-
-          {/* Logo */}
-          <div className={cn("flex justify-center pt-6 pb-4 transition-all duration-300", isCollapsed ? "px-0" : "px-4")}>
-            <Link href="/" className="flex items-center gap-2 group cursor-pointer" onClick={closeMobile}>
-              <Image
-                src="/favicon.svg"
-                alt="اسپاتی‌کد"
-                width={36}
-                height={36}
-                className={cn("transition-all duration-500 group-hover:-rotate-45", isCollapsed ? "w-9 h-9" : "w-9 h-9")}
-              />
-              <div className={cn(
-                "overflow-hidden transition-all duration-300",
-                isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
-              )}>
-                <span className="text-xl font-black tracking-tighter text-gray-900 dark:text-white whitespace-nowrap">
-                  <span className="text-primary">اسپاتی</span> کد
-                </span>
-              </div>
-            </Link>
-          </div>
-
-          {/* User Profile Card */}
-          <div className={cn("mb-4 transition-all duration-300 flex justify-center", isCollapsed ? "px-0" : "px-4")}>
-            <div
-              className={cn(
-                "rounded-2xl bg-white dark:bg-white/10 border border-gray-200 dark:border-white/5 transition-all duration-300 flex items-center justify-center overflow-hidden",
-                isCollapsed ? "w-14 h-14 p-0" : "w-full p-4"
-              )}
-              title={isCollapsed ? `${sidebarDisplayName}${sidebarPhone ? ` • ${sidebarPhone}` : ""}` : undefined}
-            >
-              <div
-                dir="rtl"
-                className={cn(
-                  "flex w-full items-center",
-                  isCollapsed ? "justify-center" : "gap-3"
-                )}
-              >
-                <div
-                  className={cn(
-                    "flex shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-primary/50 bg-primary/10 dark:bg-primary/20 transition-all duration-300",
-                    isCollapsed ? "size-12" : "size-14"
-                  )}
-                >
-                  {sidebarAvatar ? (
-                    sidebarAvatar.startsWith("data:") || sidebarAvatar.startsWith("blob:") ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={sidebarAvatar} alt="" className="size-full object-cover" />
-                    ) : (
-                      <Image
-                        src={sidebarAvatar}
-                        alt=""
-                        width={56}
-                        height={56}
-                        className="size-full object-cover"
-                        unoptimized
-                      />
-                    )
-                  ) : (
-                    <User
-                      className={cn("text-primary transition-all", isCollapsed ? "size-6" : "size-7")}
-                      strokeWidth={2}
-                    />
-                  )}
-                </div>
-                {!isCollapsed && (
-                  <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5 overflow-hidden text-right">
-                    <p className="w-full truncate text-base font-bold leading-snug text-gray-900 dark:text-white">
-                      {sidebarDisplayName}
-                    </p>
-                    {sidebarPhone && (
-                      <p className="w-full truncate text-right text-sm leading-snug text-gray-600 dark:text-gray-400" dir="rtl">
-                        {sidebarPhone}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
+            <Image
+              src="/favicon.svg"
+              alt="اسپاتی‌کد"
+              width={48}
+              height={48}
+              className="h-12 w-auto object-contain transition-transform duration-500 group-hover:-rotate-45"
+            />
+            <div className="flex flex-col leading-none">
+              <span className="text-2xl font-black text-gray-900 dark:text-white tracking-tight group-hover:text-primary transition-colors">
+                <span className="text-primary">اسپاتی</span> کد
+              </span>
+              <span className="text-[10px] text-primary tracking-widest uppercase font-bold">
+                Coding Academy
+              </span>
             </div>
-          </div>
+          </Link>
+        </div>
 
-          {/* Nav */}
-          <nav className={cn("flex-1 overflow-y-auto py-4 space-y-3 scrollbar-hide flex flex-col items-center", isCollapsed ? "px-2" : "px-4")} dir="rtl">
+        <nav className="flex-1 flex flex-col p-4 overflow-y-auto min-h-0">
+          <div className="space-y-2">
             {menuItems.map((item) => {
+              const Icon = item.icon;
               const isActive =
-                item.href === "/social" ? pathname?.startsWith("/social") : pathname === item.href;
+                item.href === "/panel"
+                  ? pathname === "/panel"
+                  : pathname === item.href ||
+                    pathname.startsWith(`${item.href}/`);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={closeMobile}
                   onMouseEnter={() => {
                     if (item.href === "/panel/courses") prefetchMyCourses();
                   }}
@@ -204,72 +84,68 @@ export default function PanelSidebar() {
                     if (item.href === "/panel/courses") prefetchMyCourses();
                   }}
                   className={cn(
-                    "group relative flex items-center transition-all duration-300 cursor-pointer",
-                    isCollapsed 
-                      ? "w-12 h-12 justify-center rounded-2xl" 
-                      : "w-full min-h-[48px] py-3.5 px-4 rounded-[14px] justify-start text-right gap-3",
+                    "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 font-medium cursor-pointer outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 ring-0 hover:ring-0",
                     isActive
-                      ? "bg-white dark:bg-white text-primary dark:text-primary"
-                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white",
-                    isActive && !isCollapsed && "before:absolute before:bottom-0 before:left-1/2 before:-translate-x-1/2 before:w-[60%] before:h-[5px] before:rounded-t-full before:bg-primary"
+                      ? "bg-primary/10 text-primary border border-primary/20 font-bold shadow-[0_0_15px_rgba(34,197,94,0.12)]"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5 border border-transparent",
                   )}
                 >
-                  <span
+                  <Icon
                     className={cn(
-                      "material-symbols-outlined text-[12px] shrink-0 transition-transform relative",
-                      isActive ? "scale-110 text-primary" : "group-hover:scale-105"
+                      "w-5 h-5",
+                      isActive
+                        ? "text-primary"
+                        : "text-gray-400 dark:text-slate-500",
                     )}
-                  >
-                    {item.icon}
-                  </span>
-                  <div className={cn(
-                    "overflow-hidden transition-all duration-300",
-                    isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
-                  )}>
-                    <span className={cn("truncate font-medium whitespace-nowrap px-2", isActive && "font-semibold")}>
-                      {item.label}
-                    </span>
-                  </div>
+                  />
+                  {item.label}
                 </Link>
               );
             })}
-          </nav>
+          </div>
 
-          {/* Logout */}
-          <div className={cn("pb-4 transition-all duration-300 flex flex-col items-center", isCollapsed ? "px-0" : "px-4")}>
+          <div className="pt-8 mt-auto border-t border-gray-200/70 dark:border-white/5 shrink-0">
             <button
-              onClick={() => setShowLogoutModal(true)}
-              className={cn(
-                "flex items-center bg-primary hover:bg-primary-hover text-white transition-all cursor-pointer shadow-lg shadow-primary/20",
-                isCollapsed 
-                  ? "w-12 h-12 justify-center rounded-2xl" 
-                  : "w-full min-h-[52px] py-3.5 px-4 rounded-[14px] justify-center gap-2"
-              )}
-              aria-label="خروج"
+              onClick={() => setShowLogout(true)}
+              className="flex items-center gap-3 px-4 py-3 rounded-2xl text-red-500 dark:text-red-400 hover:bg-red-500/10 transition-colors font-medium cursor-pointer w-fit outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 border border-transparent"
             >
-              <LogOut size={isCollapsed ? 24 : 20} strokeWidth={2} />
-              <div className={cn(
-                "overflow-hidden transition-all duration-300",
-                isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
-              )}>
-                <span className="whitespace-nowrap text-sm font-bold px-2">خروج از پنل کاربری</span>
-              </div>
+              <LogOut className="w-5 h-5" />
+              خروج از حساب
             </button>
           </div>
-        </div>
-      </div>
+        </nav>
+      </aside>
 
-      {showLogoutModal && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4" dir="rtl">
-          <button className="absolute inset-0 bg-black/60" onClick={() => setShowLogoutModal(false)} aria-label="بستن مودال خروج" />
+      {showLogout && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center p-4"
+          dir="rtl"
+        >
+          <button
+            className="absolute inset-0 bg-black/60 cursor-pointer"
+            onClick={() => setShowLogout(false)}
+            aria-label="بستن مودال خروج"
+          />
           <div className="relative w-full max-w-sm rounded-3xl border border-gray-100 dark:border-white/10 bg-white dark:bg-[#1c1e26] p-6 shadow-2xl">
-            <h3 className="text-base font-black text-gray-900 dark:text-white mb-2">خروج از حساب کاربری</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-5 leading-relaxed">آیا مطمئن هستید که می‌خواهید از حساب خود خارج شوید؟</p>
+            <h3 className="text-base font-black text-gray-900 dark:text-white mb-2">
+              خروج از حساب کاربری
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-5 leading-relaxed">
+              آیا مطمئن هستید که می‌خواهید از حساب خود خارج شوید؟
+            </p>
             <div className="flex items-center gap-3">
-              <button type="button" onClick={() => setShowLogoutModal(false)} className="flex-1 h-11 rounded-xl border border-gray-200 dark:border-white/10 text-xs font-bold text-gray-700 dark:text-gray-200 hover:border-gray-300 dark:hover:border-white/20">
+              <button
+                type="button"
+                onClick={() => setShowLogout(false)}
+                className="flex-1 h-11 rounded-xl border border-gray-200 dark:border-white/10 text-xs font-bold text-gray-700 dark:text-gray-200 hover:border-gray-300 dark:hover:border-white/20 cursor-pointer"
+              >
                 انصراف
               </button>
-              <button type="button" onClick={handleLogout} className="flex-1 h-11 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-black">
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex-1 h-11 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-black cursor-pointer"
+              >
                 تایید خروج
               </button>
             </div>

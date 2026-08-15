@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
+import PanelShell from "@/components/panel/PanelShell";
 import PanelSidebar from "@/components/panel/PanelSidebar";
 import PanelHeader from "@/components/panel/PanelHeader";
+import PanelBottomNav from "@/components/panel/PanelBottomNav";
 import PanelAuthGuard from "@/components/panel/PanelAuthGuard";
-import { PanelSidebarProvider, usePanelSidebar } from "@/context/PanelSidebarContext";
 import { SocialProvider } from "@/context/SocialContext";
 import { usePrefetchPanelMyCourses } from "@/hooks/api/usePanelMyCourses";
-import { cn } from "@/lib/utils";
 
 export default function PanelLayout({
   children,
@@ -17,16 +17,13 @@ export default function PanelLayout({
   return (
     <PanelAuthGuard>
       <SocialProvider>
-        <PanelSidebarProvider>
-          <PanelLayoutContent>{children}</PanelLayoutContent>
-        </PanelSidebarProvider>
+        <PanelLayoutContent>{children}</PanelLayoutContent>
       </SocialProvider>
     </PanelAuthGuard>
   );
 }
 
 function PanelLayoutContent({ children }: { children: React.ReactNode }) {
-  const { isCollapsed } = usePanelSidebar();
   const prefetchMyCourses = usePrefetchPanelMyCourses();
 
   // Warm the my-courses cache as soon as the panel shell mounts so
@@ -36,19 +33,12 @@ function PanelLayoutContent({ children }: { children: React.ReactNode }) {
   }, [prefetchMyCourses]);
 
   return (
-    <div className="flex min-h-screen w-full overflow-x-hidden bg-gray-50 dark:bg-[#14161c]">
-      <PanelSidebar />
-      <div 
-        className={cn(
-          "flex flex-1 flex-col min-w-0 transition-all duration-500 ease-in-out",
-          isCollapsed ? "lg:mr-[100px]" : "lg:mr-[294px]"
-        )}
-      >
-        <PanelHeader />
-        <main className="flex-1 overflow-auto p-4 md:p-6">
-          {children}
-        </main>
-      </div>
-    </div>
+    <PanelShell
+      sidebar={<PanelSidebar />}
+      header={<PanelHeader />}
+      bottomNav={<PanelBottomNav />}
+    >
+      {children}
+    </PanelShell>
   );
 }
