@@ -63,15 +63,11 @@ export default function PanelProfilePage() {
 
   if (authLoading || loading) {
     return (
-      <main className="min-h-screen pb-20 animate-pulse">
-        <div className="container mx-auto max-w-7xl px-4 md:px-6 pt-4 space-y-8">
-          <div className="h-64 rounded-4xl bg-gray-100 dark:bg-white/5" />
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <div className="lg:col-span-8 h-96 rounded-3xl bg-gray-100 dark:bg-white/5" />
-            <div className="lg:col-span-4 h-64 rounded-3xl bg-gray-100 dark:bg-white/5" />
-          </div>
-        </div>
-      </main>
+      <div className="mx-auto w-full max-w-3xl space-y-3 animate-pulse pb-2">
+        <div className="h-40 rounded-3xl bg-gray-100 dark:bg-white/5" />
+        <div className="h-48 rounded-2xl bg-gray-100 dark:bg-white/5" />
+        <div className="h-32 rounded-2xl bg-gray-100 dark:bg-white/5" />
+      </div>
     );
   }
 
@@ -126,27 +122,22 @@ export default function PanelProfilePage() {
   };
 
   return (
-    <main className="min-h-screen pb-20 animate-in fade-in duration-500">
-      <div className="fixed top-0 left-0 w-full h-[500px] bg-green-500/10 blur-[120px] rounded-b-[100%] pointer-events-none -z-10" />
+    <div className="mx-auto w-full max-w-3xl space-y-4 pb-2 lg:max-w-6xl" dir="rtl">
+      <ProfileHeader
+        user={userProfileData}
+        isOwnProfile={true}
+        profileId={profileUsername || profileUserId || user?.id}
+      />
 
-      <div className="container mx-auto max-w-7xl px-4 md:px-6 pt-4">
-        <ProfileHeader
-          user={userProfileData}
-          isOwnProfile={true}
-          profileId={profileUsername || profileUserId || user?.id}
-        />
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-6 md:mt-10">
-          <div className="lg:col-span-8 space-y-8 order-2 lg:order-1">
-            <ProjectsTabs />
-            <ActivityTabs />
-          </div>
-
-          <div className="lg:col-span-4 space-y-8 order-1 lg:order-2">
-            <ProfileSidebar user={userProfileData} />
-          </div>
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12 lg:gap-6">
+        <div className="space-y-4 lg:col-span-8">
+          <ProjectsTabs />
+          <ActivityTabs />
+        </div>
+        <div className="lg:col-span-4 lg:sticky lg:top-0">
+          <ProfileSidebar user={userProfileData} />
         </div>
       </div>
-    </main>
+    </div>
   );
 }

@@ -205,24 +205,35 @@ function ProfileEditContent() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 pb-12">
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-primary transition-colors cursor-pointer group"
-        >
-          <div className="w-8 h-8 rounded-full bg-white dark:bg-white/5 flex items-center justify-center border border-gray-200 dark:border-white/10 group-hover:border-primary transition-all">
-            <ArrowRight className="w-4 h-4" />
+    <div className="mx-auto w-full max-w-3xl space-y-4 pb-2 lg:max-w-5xl" dir="rtl">
+      <section className="rounded-3xl border border-gray-200/70 bg-white p-5 dark:border-white/5 dark:bg-[#1c1e26]/80 sm:p-6">
+        <div className="flex items-start gap-3">
+          <button
+            type="button"
+            onClick={() => router.push("/panel/profile")}
+            className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-gray-500 transition-colors hover:border-primary/35 hover:text-primary dark:border-white/10 dark:bg-[#14161c] dark:text-slate-300 cursor-pointer"
+            aria-label="بازگشت"
+          >
+            <ArrowRight className="size-5" />
+          </button>
+          <div className="min-w-0 flex-1">
+            <p className="mb-1 text-[11px] font-bold tracking-wide text-primary/90">
+              حساب کاربری
+            </p>
+            <h1 className="text-xl font-black leading-tight text-gray-900 dark:text-white sm:text-2xl">
+              ویرایش پروفایل
+            </h1>
+            <p className="mt-1.5 text-sm leading-relaxed text-gray-500 dark:text-slate-400">
+              نام، آیدی و اطلاعات نمایشی پروفایل خود را به‌روز کنید.
+            </p>
           </div>
-          <span className="text-sm font-bold">بازگشت</span>
-        </button>
-        <h1 className="text-2xl font-black text-gray-900 dark:text-white">تنظیمات پروفایل</h1>
-      </div>
+        </div>
+      </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white dark:bg-[#1c1e26] rounded-3xl border border-gray-100 dark:border-white/[0.06] shadow-sm">
-            <div className="p-6 md:p-8 space-y-6">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-2 space-y-4">
+          <div className="rounded-3xl border border-gray-200/70 bg-white dark:border-white/5 dark:bg-[#1c1e26]/80">
+            <div className="space-y-5 p-5 sm:p-6">
               <div>
                 <label htmlFor="displayName" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">نام نمایشی</label>
                 <input
@@ -303,9 +314,9 @@ function ProfileEditContent() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#1c1e26] rounded-3xl border border-gray-100 dark:border-white/[0.06] shadow-sm">
-            <div className="p-6 md:p-8 space-y-6">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">شبکه‌های اجتماعی</h3>
+          <div className="rounded-3xl border border-gray-200/70 bg-white dark:border-white/5 dark:bg-[#1c1e26]/80">
+            <div className="space-y-5 p-5 sm:p-6">
+              <h3 className="text-sm font-black text-gray-900 dark:text-white">شبکه‌های اجتماعی</h3>
               <div className="space-y-4">
                 <div>
                   <label htmlFor="githubUrl" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">لینک گیت‌هاب</label>
@@ -369,7 +380,7 @@ function ProfileEditContent() {
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white dark:bg-[#1c1e26] rounded-3xl border border-gray-100 dark:border-white/[0.06] shadow-sm p-6 text-center">
+          <div className="rounded-3xl border border-gray-200/70 bg-white p-5 text-center dark:border-white/5 dark:bg-[#1c1e26]/80 sm:p-6">
             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-4">تصویر پروفایل</label>
             <div className="relative inline-block group">
               <div className="w-32 h-32 rounded-full border-4 border-white dark:border-[#14161c] overflow-hidden shadow-xl bg-gray-100 dark:bg-white/5 mx-auto">

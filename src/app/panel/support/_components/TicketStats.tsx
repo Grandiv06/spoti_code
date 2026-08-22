@@ -27,23 +27,23 @@ function StatTile({
           : "border-gray-200/70 dark:border-white/[0.06]",
       )}
     >
-      <div className="flex min-h-[3.25rem] items-center gap-2 p-2.5 sm:p-3">
+      <div className="flex min-h-[3.25rem] items-center gap-2 p-2.5 sm:p-3 lg:min-h-[4.25rem] lg:gap-3 lg:p-4">
         <span
           className={cn(
-            "inline-flex size-7 shrink-0 items-center justify-center rounded-lg border",
+            "inline-flex size-7 shrink-0 items-center justify-center rounded-lg border lg:size-10 lg:rounded-xl",
             hasValue
               ? "border-primary/25 bg-primary/10 text-primary"
               : "border-gray-200 bg-gray-50 text-gray-400 dark:border-white/10 dark:bg-[#14161c] dark:text-slate-400",
           )}
         >
-          <Icon className="size-3.5" strokeWidth={2.25} />
+          <Icon className="size-3.5 lg:size-4" strokeWidth={2.25} />
         </span>
-        <span className="line-clamp-2 min-w-0 flex-1 text-[11px] font-bold leading-snug text-gray-500 dark:text-slate-400">
+        <span className="line-clamp-2 min-w-0 flex-1 text-[11px] font-bold leading-snug text-gray-500 dark:text-slate-400 lg:text-xs">
           {title}
         </span>
         <span
           className={cn(
-            "flex min-h-[28px] shrink-0 items-center text-lg font-black leading-none tracking-tight tabular-nums sm:text-xl",
+            "flex min-h-[28px] shrink-0 items-center text-lg font-black leading-none tracking-tight tabular-nums sm:text-xl lg:text-2xl",
             hasValue
               ? "text-primary"
               : "text-gray-900 dark:text-white",

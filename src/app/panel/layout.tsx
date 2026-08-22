@@ -7,6 +7,7 @@ import PanelHeader from "@/components/panel/PanelHeader";
 import PanelBottomNav from "@/components/panel/PanelBottomNav";
 import PanelAuthGuard from "@/components/panel/PanelAuthGuard";
 import { SocialProvider } from "@/context/SocialContext";
+import { SupportChatHeaderProvider } from "@/components/panel/SupportChatHeaderContext";
 import { usePrefetchPanelMyCourses } from "@/hooks/api/usePanelMyCourses";
 
 export default function PanelLayout({
@@ -17,7 +18,9 @@ export default function PanelLayout({
   return (
     <PanelAuthGuard>
       <SocialProvider>
-        <PanelLayoutContent>{children}</PanelLayoutContent>
+        <SupportChatHeaderProvider>
+          <PanelLayoutContent>{children}</PanelLayoutContent>
+        </SupportChatHeaderProvider>
       </SocialProvider>
     </PanelAuthGuard>
   );

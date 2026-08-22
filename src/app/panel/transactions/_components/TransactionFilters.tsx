@@ -1,85 +1,56 @@
 "use client";
 
-import React, { useState } from "react";
-import { Search, Filter, ArrowDownWideNarrow, Calendar } from "lucide-react";
-import CustomSelect from "@/components/ui/CustomSelect";
+import { Search } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export default function TransactionFilters() {
-  const [status, setStatus] = useState("all");
-  const [timeframe, setTimeframe] = useState("month");
-  const [sort, setSort] = useState("newest");
+const tabs = [
+  { id: "all", label: "همه" },
+  { id: "success", label: "موفق" },
+  { id: "pending", label: "در انتظار" },
+  { id: "failed", label: "ناموفق" },
+];
 
-  const statusOptions = [
-    { value: "all", label: "همه وضعیت‌ها" },
-    { value: "success", label: "موفق" },
-    { value: "failed", label: "ناموفق" },
-    { value: "pending", label: "در انتظار" },
-  ];
-
-  const timeframeOptions = [
-    { value: "month", label: "این ماه" },
-    { value: "3months", label: "سه ماه اخیر" },
-    { value: "year", label: "امسال" },
-    { value: "all", label: "همه زمان‌ها" },
-  ];
-
-  const sortOptions = [
-    { value: "newest", label: "جدیدترین" },
-    { value: "oldest", label: "قدیمی‌ترین" },
-    { value: "highest", label: "بیشترین مبلغ" },
-    { value: "lowest", label: "کمترین مبلغ" },
-  ];
-
+export default function TransactionFilters({
+  searchQuery,
+  onSearchChange,
+  status,
+  onStatusChange,
+}: {
+  searchQuery: string;
+  onSearchChange: (value: string) => void;
+  status: string;
+  onStatusChange: (value: string) => void;
+}) {
   return (
-    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8 bg-white dark:bg-[#1c1e26] p-4 rounded-[2rem] border border-gray-100 dark:border-white/5 shadow-sm">
-      <div className="flex flex-col sm:flex-row items-center gap-4 flex-1">
-        {/* Search */}
-        <div className="relative w-full sm:max-w-md group">
-          <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
-          <input 
-            type="text" 
-            placeholder="جستجو بر اساس شناسه یا محصول..."
-            className="w-full pr-12 pl-4 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl text-sm font-medium outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all dark:text-white"
-          />
-        </div>
-        
-        {/* Dropdowns */}
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="w-full sm:w-36">
-            <CustomSelect
-              options={statusOptions}
-              value={status}
-              onChange={setStatus}
-              placeholder="وضعیت"
-              size="sm"
-              icon={<Filter className="w-4 h-4" />}
-            />
-          </div>
-          
-          <div className="w-full sm:w-36">
-            <CustomSelect
-              options={timeframeOptions}
-              value={timeframe}
-              onChange={setTimeframe}
-              placeholder="بازه زمانی"
-              size="sm"
-              icon={<Calendar className="w-4 h-4" />}
-            />
-          </div>
-        </div>
+    <section className="space-y-3">
+      <div className="scrollbar-hide -mx-1 flex items-center gap-2 overflow-x-auto px-1">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => onStatusChange(tab.id)}
+            className={cn(
+              "shrink-0 whitespace-nowrap rounded-full border px-3.5 py-2 text-xs font-bold transition-colors cursor-pointer",
+              status === tab.id
+                ? "border-primary/25 bg-primary/10 text-primary shadow-[0_0_15px_rgba(34,197,94,0.1)]"
+                : "border-gray-200/70 bg-white text-gray-500 hover:text-gray-900 dark:border-white/5 dark:bg-[#1c1e26]/80 dark:text-slate-400 dark:hover:text-white",
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      <div className="w-full lg:w-48">
-        <CustomSelect
-          options={sortOptions}
-          value={sort}
-          onChange={setSort}
-          variant="primary"
-          size="sm"
-          icon={<ArrowDownWideNarrow className="w-5 h-5" />}
-          placeholder="مرتب‌سازی"
+      <div className="relative">
+        <Search className="pointer-events-none absolute start-4 top-1/2 size-4 -translate-y-1/2 text-gray-400 dark:text-slate-500" />
+        <input
+          type="search"
+          value={searchQuery}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder="جستجو در تراکنش‌ها..."
+          className="w-full rounded-2xl border border-gray-200/70 bg-white py-3.5 pe-4 ps-11 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 dark:border-white/10 dark:bg-[#1c1e26]/90 dark:text-white dark:placeholder:text-slate-500"
         />
       </div>
-    </div>
+    </section>
   );
 }

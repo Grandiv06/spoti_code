@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
+import { isSupportChatRoute } from "@/components/panel/SupportChatHeaderContext";
 
 interface PanelShellProps {
   header: React.ReactNode;
@@ -19,7 +20,8 @@ export default function PanelShell({
   const shellRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement>(null);
   const pathname = usePathname();
-  const showBottomNav = Boolean(bottomNav);
+  const hideBottomNav = isSupportChatRoute(pathname);
+  const showBottomNav = Boolean(bottomNav) && !hideBottomNav;
 
   useEffect(() => {
     document.body.classList.add("panel-layout");
@@ -68,10 +70,14 @@ export default function PanelShell({
           className={
             showBottomNav
               ? "panel-main flex-1 min-h-0 overflow-y-auto overscroll-y-contain touch-pan-y px-3 py-4 sm:px-6 sm:py-6 pb-[calc(6.95rem+env(safe-area-inset-bottom,0px))] sm:pb-[calc(7.3rem+env(safe-area-inset-bottom,0px))] lg:pb-[max(1.5rem,env(safe-area-inset-bottom))]"
-              : "panel-main flex-1 min-h-0 overflow-y-auto overscroll-y-contain touch-pan-y px-3 py-4 sm:px-6 sm:py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+              : hideBottomNav
+                ? "panel-main flex-1 min-h-0 overflow-hidden overscroll-none touch-pan-y px-0 py-0"
+                : "panel-main flex-1 min-h-0 overflow-y-auto overscroll-y-contain touch-pan-y px-3 py-4 sm:px-6 sm:py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
           }
         >
-          <div className="panel-page-content min-h-full">{children}</div>
+          <div className={hideBottomNav ? "panel-page-content h-full min-h-0" : "panel-page-content min-h-full"}>
+            {children}
+          </div>
         </main>
         {showBottomNav ? bottomNav : null}
       </div>

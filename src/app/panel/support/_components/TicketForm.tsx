@@ -110,33 +110,35 @@ export default function TicketForm({ onBack }: { onBack: () => void }) {
         onSubmit={handleSubmit}
         className="space-y-4 rounded-3xl border border-gray-200/70 bg-white dark:border-white/5 dark:bg-[#1c1e26]/80 p-5 sm:p-6"
       >
-        <div className="space-y-1.5">
-          <label
-            htmlFor="ticket-subject"
-            className="text-xs font-bold text-gray-500 dark:text-slate-400"
-          >
-            موضوع
-          </label>
-          <input
-            id="ticket-subject"
-            type="text"
-            required
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            maxLength={120}
-            placeholder="یک عنوان کوتاه و گویا انتخاب کنید..."
-            className="h-12 w-full rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-primary/50 dark:border-white/10 dark:bg-[#14161c] dark:text-white dark:placeholder:text-slate-600"
-          />
-        </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="space-y-1.5">
+            <label
+              htmlFor="ticket-subject"
+              className="text-xs font-bold text-gray-500 dark:text-slate-400"
+            >
+              موضوع
+            </label>
+            <input
+              id="ticket-subject"
+              type="text"
+              required
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={120}
+              placeholder="یک عنوان کوتاه و گویا انتخاب کنید..."
+              className="h-12 w-full rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-primary/50 dark:border-white/10 dark:bg-[#14161c] dark:text-white dark:placeholder:text-slate-600"
+            />
+          </div>
 
-        <div className="relative z-30 space-y-1.5">
-          <CustomSelect
-            label="دسته‌بندی موضوع"
-            value={category}
-            options={categoryOptions}
-            onChange={setCategory}
-            placeholder="انتخاب کنید..."
-          />
+          <div className="relative z-30 space-y-1.5">
+            <CustomSelect
+              label="دسته‌بندی موضوع"
+              value={category}
+              options={categoryOptions}
+              onChange={setCategory}
+              placeholder="انتخاب کنید..."
+            />
+          </div>
         </div>
 
         <div className="space-y-1.5">

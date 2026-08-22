@@ -1,24 +1,23 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  ChevronRight,
-  Clock,
-  Calendar,
-  Hash,
-  AlertCircle,
-  ArrowRight,
-  XCircle,
-} from "lucide-react";
-import { Message, Ticket, formatTicketStatusLabel, getTicketStatusClass, isTicketClosed } from "../data";
+import { AlertCircle, ArrowRight, Calendar, Clock, Hash, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  Message,
+  Ticket,
+  formatTicketStatusLabel,
+  getTicketStatusClass,
+  isTicketClosed,
+} from "../data";
 import ConversationThread from "./_components/ConversationThread";
 import ReplyBox from "./_components/ReplyBox";
 import TicketDetailsSkeleton from "./TicketDetailsSkeleton";
 import { fetchMyTicketById, fetchMyTicketMessages } from "@/lib/panel-tickets";
 import { useCloseMyTicketMutation } from "@/hooks/api/useTicketsQuery";
 import CloseTicketConfirmModal from "@/components/tickets/CloseTicketConfirmModal";
+import { useSupportChatHeader } from "@/components/panel/SupportChatHeaderContext";
 
 interface TicketDetailsClientProps {
   onBack?: () => void;
@@ -28,15 +27,25 @@ export default function TicketDetailsClient({ onBack }: TicketDetailsClientProps
   const router = useRouter();
   const searchParams = useSearchParams();
   const ticketId = searchParams.get("ticketId")?.trim() ?? "";
+  const { setInfo: setChatHeaderInfo } = useSupportChatHeader();
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [closeError, setCloseError] = useState<string | null>(null);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
-  const messagesScrollRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const closeTicketMutation = useCloseMyTicketMutation();
   const handleBack = onBack ?? (() => router.push("/panel/support"));
+
+  const scrollToBottom = useCallback((smooth = false) => {
+    const el = listRef.current;
+    if (!el) return;
+    el.scrollTo({
+      top: el.scrollHeight,
+      behavior: smooth ? "smooth" : "auto",
+    });
+  }, []);
 
   useEffect(() => {
     if (!ticketId) {
@@ -44,6 +53,7 @@ export default function TicketDetailsClient({ onBack }: TicketDetailsClientProps
       setMessages([]);
       setNotFound(true);
       setLoading(false);
+      setChatHeaderInfo(null);
       return;
     }
 
@@ -58,6 +68,11 @@ export default function TicketDetailsClient({ onBack }: TicketDetailsClientProps
         if (!active) return;
 
         setTicket(ticketData);
+        setChatHeaderInfo({
+          subject: ticketData.title,
+          status: ticketData.status,
+          updatedAt: ticketData.updatedAt,
+        });
 
         if (ticketData.messages.length > 0) {
           setMessages(ticketData.messages);
@@ -77,23 +92,31 @@ export default function TicketDetailsClient({ onBack }: TicketDetailsClientProps
         setTicket(null);
         setMessages([]);
         setNotFound(true);
+        setChatHeaderInfo(null);
       } finally {
         if (active) setLoading(false);
       }
     };
 
-    loadTicket();
+    void loadTicket();
 
     return () => {
       active = false;
+      setChatHeaderInfo(null);
     };
-  }, [ticketId]);
+  }, [setChatHeaderInfo, ticketId]);
+
+  useLayoutEffect(() => {
+    if (!ticket) return;
+    scrollToBottom(false);
+  }, [ticket?.id, messages.length, scrollToBottom, ticket]);
 
   const appendMessage = (newMessage: Message) => {
     setMessages((prev) => {
       if (prev.some((item) => item.id === newMessage.id)) return prev;
       return [...prev, newMessage];
     });
+    requestAnimationFrame(() => scrollToBottom(true));
   };
 
   const handleCloseTicket = async () => {
@@ -111,28 +134,16 @@ export default function TicketDetailsClient({ onBack }: TicketDetailsClientProps
             }
           : prev
       );
+      setChatHeaderInfo({
+        subject: updatedTicket.title || ticket.title,
+        status: updatedTicket.status,
+        updatedAt: updatedTicket.updatedAt,
+      });
       setShowCloseConfirm(false);
     } catch (error) {
       setCloseError(error instanceof Error ? error.message : "بستن تیکت انجام نشد.");
     }
   };
-
-  const openCloseConfirm = () => {
-    setCloseError(null);
-    setShowCloseConfirm(true);
-  };
-
-  const cancelCloseConfirm = () => {
-    if (closeTicketMutation.isPending) return;
-    setCloseError(null);
-    setShowCloseConfirm(false);
-  };
-
-  useEffect(() => {
-    const container = messagesScrollRef.current;
-    if (!container) return;
-    container.scrollTop = container.scrollHeight;
-  }, [messages]);
 
   if (loading) {
     return <TicketDetailsSkeleton />;
@@ -140,114 +151,120 @@ export default function TicketDetailsClient({ onBack }: TicketDetailsClientProps
 
   if (!ticket || notFound) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6" dir="rtl">
-        <div className="w-24 h-24 rounded-[2rem] bg-red-500/10 flex items-center justify-center mb-6">
-          <AlertCircle className="w-12 h-12 text-red-500" />
-        </div>
-        <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-4">تیکت مورد نظر پیدا نشد!</h2>
-        <p className="text-gray-500 dark:text-gray-400 font-medium mb-8 max-w-md">
-          متاسفانه تیکتی با این شناسه یافت نشد یا ممکن است دسترسی شما به آن محدود شده باشد.
-        </p>
+      <div className="mx-auto flex h-full w-full max-w-3xl flex-col justify-center space-y-4 px-3 py-4 lg:max-w-5xl" dir="rtl">
         <button
+          type="button"
           onClick={handleBack}
-          className="flex items-center gap-2 px-8 py-3.5 bg-primary hover:bg-primary-hover text-white rounded-2xl font-black shadow-xl shadow-primary/25 transition-all active:scale-95"
+          className="inline-flex items-center gap-2 text-sm font-bold text-gray-500 transition-colors hover:text-primary dark:text-slate-400 cursor-pointer"
         >
-          <ArrowRight className="w-5 h-5 rotate-180" />
-          <span>بازگشت به لیست تیکت‌ها</span>
+          <ArrowRight className="size-4" />
+          بازگشت به تیکت‌ها
         </button>
+        <div className="rounded-3xl border border-red-500/20 bg-red-500/10 px-5 py-8 text-center">
+          <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-2xl bg-red-500/10 text-red-500">
+            <AlertCircle className="size-6" />
+          </div>
+          <p className="text-sm font-black text-red-600 dark:text-red-300">
+            تیکت مورد نظر پیدا نشد یا دسترسی شما محدود است.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div
-      className="mx-auto flex h-[calc(100dvh-7.5rem)] max-w-[1400px] flex-col overflow-hidden px-2 md:px-4 animate-in fade-in duration-700"
-      dir="rtl"
-    >
-      <div className="mb-4 shrink-0 md:mb-6">
-        <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
-          <div className="space-y-3 md:space-y-4">
-            <button
-              onClick={handleBack}
-              className="group flex items-center gap-2 font-bold text-gray-500 transition-all hover:text-gray-900 dark:hover:text-white"
-            >
-              <ChevronRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-              <span>بازگشت به لیست تیکت‌ها</span>
-            </button>
+    <div className="mx-auto flex h-full w-full max-w-3xl flex-col lg:max-w-6xl lg:flex-row lg:gap-4 lg:px-4 lg:py-3" dir="rtl">
+      <aside className="hidden w-72 shrink-0 flex-col rounded-[1.35rem] border border-gray-200/70 bg-white p-5 dark:border-white/5 dark:bg-[#1c1e26] lg:flex">
+        <p className="mb-1 text-[11px] font-bold tracking-wide text-primary/90">
+          جزئیات تیکت
+        </p>
+        <h2 className="text-base font-black leading-snug text-gray-900 dark:text-white">
+          {ticket.title}
+        </h2>
+        <span
+          className={cn(
+            "mt-3 inline-flex w-fit rounded-full border px-2.5 py-1 text-[10px] font-bold",
+            getTicketStatusClass(ticket.status),
+          )}
+        >
+          {formatTicketStatusLabel(ticket.status)}
+        </span>
 
-            <div className="flex flex-wrap items-center gap-3 md:gap-4">
-              <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-100 px-3 py-1 text-xs font-black tracking-widest text-gray-500 dark:border-white/5 dark:bg-white/5 dark:text-gray-400">
-                <Hash className="h-3.5 w-3.5" />
-                <span>{ticket.id}</span>
-              </div>
-              <div className={cn("rounded-full border px-4 py-1 text-xs font-black", getTicketStatusClass(ticket.status))}>
-                {formatTicketStatusLabel(ticket.status)}
-              </div>
-            </div>
-
-            <h1 className="text-2xl font-black leading-tight text-gray-900 dark:text-white md:text-3xl">
-              {ticket.title}
-            </h1>
+        <div className="mt-5 space-y-3 text-xs font-bold text-gray-500 dark:text-slate-400">
+          <div className="flex items-center gap-2">
+            <Hash className="size-3.5 text-primary" />
+            <span className="truncate">{ticket.id}</span>
           </div>
-
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <div className="flex flex-wrap items-center gap-4 rounded-3xl border border-gray-100 bg-white p-4 text-sm font-bold text-gray-500 shadow-sm dark:border-white/5 dark:bg-white/5 dark:text-gray-400 md:gap-6">
-              <div className="flex flex-col gap-1">
-                <span className="text-[10px] text-gray-400">تاریخ ثبت</span>
-                <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
-                  <Calendar className="h-4 w-4 text-primary" />
-                  <span>{ticket.createdAt}</span>
-                </div>
-              </div>
-              <div className="h-8 w-px bg-gray-200 dark:bg-white/10" />
-              <div className="flex flex-col gap-1">
-                <span className="text-[10px] text-gray-400">آخرین بروزرسانی</span>
-                <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
-                  <Clock className="h-4 w-4 text-blue-500" />
-                  <span>{ticket.updatedAt}</span>
-                </div>
-              </div>
-            </div>
-
-            {!isTicketClosed(ticket.status) ? (
-              <button
-                type="button"
-                onClick={openCloseConfirm}
-                disabled={closeTicketMutation.isPending}
-                className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl bg-gray-500/10 px-5 py-3 text-sm font-black text-gray-500 transition-all hover:bg-gray-500/15 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-400"
-              >
-                <XCircle className="h-4 w-4" />
-                <span>بستن تیکت</span>
-              </button>
-            ) : null}
+          <div className="flex items-center gap-2">
+            <Calendar className="size-3.5 text-primary" />
+            <span>ثبت: {ticket.createdAt}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Clock className="size-3.5 text-primary" />
+            <span>بروزرسانی: {ticket.updatedAt}</span>
           </div>
         </div>
-      </div>
 
-      <div className="mx-auto flex min-h-0 w-full max-w-[1100px] flex-1 flex-col px-1 md:px-8 lg:px-14">
+        {!isTicketClosed(ticket.status) ? (
+          <button
+            type="button"
+            onClick={() => {
+              setCloseError(null);
+              setShowCloseConfirm(true);
+            }}
+            disabled={closeTicketMutation.isPending}
+            className="mt-auto inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-red-500/20 bg-red-500/5 text-sm font-bold text-red-500 transition-colors hover:bg-red-500/10 disabled:opacity-50 cursor-pointer"
+          >
+            <XCircle className="size-4" />
+            بستن تیکت
+          </button>
+        ) : null}
+      </aside>
+
+      <section className="flex min-h-0 flex-1 flex-col overflow-hidden border-y border-gray-200/70 bg-white dark:border-white/5 dark:bg-[#111111] sm:mx-3 sm:my-2 sm:rounded-[1.35rem] sm:border lg:mx-0 lg:my-0">
         <div
-          ref={messagesScrollRef}
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-4"
+          ref={listRef}
+          className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-3.5 py-4 sm:px-5 lg:px-8 lg:py-6"
         >
           <ConversationThread messages={messages} />
         </div>
 
-        <div className="shrink-0 border-t border-gray-200/80 bg-gray-50 pt-3 dark:border-white/10 dark:bg-[#14161c] md:pt-4">
+        <div className="shrink-0 border-t border-gray-200/70 bg-gray-50 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:border-white/5 dark:bg-[#141414] sm:p-3.5 lg:p-4">
+          {!isTicketClosed(ticket.status) ? (
+            <button
+              type="button"
+              onClick={() => {
+                setCloseError(null);
+                setShowCloseConfirm(true);
+              }}
+              disabled={closeTicketMutation.isPending}
+              className="mb-2 inline-flex items-center gap-1.5 text-[11px] font-bold text-gray-400 transition-colors hover:text-red-500 disabled:opacity-50 cursor-pointer lg:hidden"
+            >
+              <XCircle className="size-3.5" />
+              بستن تیکت
+            </button>
+          ) : null}
+
           <ReplyBox
             ticketId={ticket.id}
             ticketStatus={ticket.status}
             onSent={appendMessage}
             onNewTicket={() => router.push("/panel/support?create=1")}
+            onFocusComposer={() => scrollToBottom(true)}
           />
         </div>
-      </div>
+      </section>
 
       <CloseTicketConfirmModal
         isOpen={showCloseConfirm}
         ticketTitle={ticket.title}
         isPending={closeTicketMutation.isPending}
         error={closeError}
-        onCancel={cancelCloseConfirm}
+        onCancel={() => {
+          if (closeTicketMutation.isPending) return;
+          setCloseError(null);
+          setShowCloseConfirm(false);
+        }}
         onConfirm={() => void handleCloseTicket()}
       />
     </div>

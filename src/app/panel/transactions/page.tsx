@@ -31,6 +31,8 @@ function mapType(value: unknown): Transaction["type"] {
 export default function PanelTransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [status, setStatus] = useState("all");
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -89,27 +91,39 @@ export default function PanelTransactionsPage() {
     return { totalPayments, successfulTransactions, latestTransactionAmount };
   }, [transactions]);
 
+  const filteredTransactions = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return transactions.filter((trx) => {
+      const matchesStatus = status === "all" || trx.status === status;
+      const matchesSearch =
+        !q ||
+        trx.description.toLowerCase().includes(q) ||
+        trx.productTitle.toLowerCase().includes(q) ||
+        trx.id.toLowerCase().includes(q) ||
+        trx.trackingCode.toLowerCase().includes(q);
+      return matchesStatus && matchesSearch;
+    });
+  }, [searchQuery, status, transactions]);
+
   if (loading) {
     return <PanelTransactionsSkeleton />;
   }
 
   return (
-    <div className="max-w-[1400px] mx-auto px-2 md:px-4 pb-20 animate-in fade-in duration-1000" dir="rtl">
-      {/* Header Section */}
+    <div className="mx-auto w-full max-w-3xl space-y-4 pb-2 lg:max-w-6xl lg:space-y-6" dir="rtl">
       <TransactionHeader />
-
-      {/* Stats Cards */}
       <TransactionStats
         totalPayments={stats.totalPayments}
         successfulTransactions={stats.successfulTransactions}
         latestTransactionAmount={stats.latestTransactionAmount}
       />
-
-      {/* Filters & Search */}
-      <TransactionFilters />
-
-      {/* Transactions Table / List */}
-      <TransactionTable transactions={transactions} />
+      <TransactionFilters
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        status={status}
+        onStatusChange={setStatus}
+      />
+      <TransactionTable transactions={filteredTransactions} />
     </div>
   );
 }

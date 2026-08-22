@@ -2,11 +2,21 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Bell, Moon, Sun } from "lucide-react";
+import { ArrowRight, Bell, Moon, Sun } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useSocial } from "@/context/SocialContext";
 import { useMyProfile } from "@/hooks/api/useInstructorDashboard";
+import {
+  formatTicketStatusLabel,
+  getTicketStatusClass,
+} from "@/app/panel/support/data";
+import {
+  isSupportChatRoute,
+  useSupportChatHeader,
+} from "@/components/panel/SupportChatHeaderContext";
 
 function HeaderThemeToggle() {
   const { theme, setTheme } = useTheme();
@@ -32,13 +42,57 @@ function HeaderThemeToggle() {
 }
 
 export default function PanelHeader() {
+  const pathname = usePathname();
+  const isChat = isSupportChatRoute(pathname);
+  const { info: chatInfo } = useSupportChatHeader();
   const { user } = useAuth();
   const { notifications } = useSocial();
   const { data: profile } = useMyProfile(Boolean(user));
 
-  const userName =
-    profile?.displayName?.trim() || user?.displayName || null;
+  const userName = profile?.displayName?.trim() || user?.displayName || null;
   const unreadCount = notifications?.filter((n) => !n.isRead).length ?? 0;
+
+  if (isChat) {
+    return (
+      <header className="relative z-30 shrink-0 border-b border-gray-200/70 dark:border-white/5 bg-white/95 dark:bg-[#14161c]/95 backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)] pt-[env(safe-area-inset-top)]">
+        <div className="relative flex h-14 md:h-16 items-center gap-3 px-3 md:px-5">
+          <Link
+            href="/panel/support"
+            className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-gray-500 transition-colors hover:border-primary/35 hover:text-primary dark:border-white/10 dark:bg-[#141414] dark:text-slate-300 cursor-pointer"
+            aria-label="بازگشت به تیکت‌ها"
+          >
+            <ArrowRight className="size-4" />
+          </Link>
+
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-sm font-black leading-tight text-gray-900 dark:text-white">
+              {chatInfo?.subject || "گفتگوی پشتیبانی"}
+            </h1>
+            {chatInfo ? (
+              <p className="mt-0.5 truncate text-[10px] font-bold text-gray-500 dark:text-slate-500">
+                {chatInfo.updatedAt}
+              </p>
+            ) : (
+              <span className="mt-0.5 block h-3 w-20 animate-pulse rounded bg-gray-200 dark:bg-white/5" />
+            )}
+          </div>
+
+          {chatInfo ? (
+            <span
+              className={cn(
+                "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold",
+                getTicketStatusClass(chatInfo.status),
+              )}
+            >
+              {formatTicketStatusLabel(chatInfo.status)}
+            </span>
+          ) : (
+            <span className="h-5 w-16 shrink-0 animate-pulse rounded-full bg-gray-200 dark:bg-white/5" />
+          )}
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="relative z-30 shrink-0 border-b border-gray-200/70 dark:border-white/5 bg-white/95 dark:bg-[#14161c]/95 backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)] pt-[env(safe-area-inset-top)]">

@@ -1,94 +1,91 @@
 "use client";
 
-import React from "react";
-import { User, Headphones, Paperclip } from "lucide-react";
+import { Headphones, Paperclip, UserRound } from "lucide-react";
 import { Message } from "../../data";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
 
 export default function ConversationThread({ messages }: { messages: Message[] }) {
   if (messages.length === 0) {
     return (
-      <div className="flex min-h-[200px] items-center justify-center rounded-3xl border border-dashed border-gray-200 bg-white/50 px-6 py-10 text-center dark:border-white/10 dark:bg-white/[0.02]">
-        <p className="text-sm font-bold text-gray-500 dark:text-gray-400">هنوز پیامی در این تیکت ثبت نشده است.</p>
+      <div className="flex min-h-[160px] items-center justify-center px-5 py-10 text-center">
+        <p className="text-sm font-bold text-gray-500 dark:text-slate-400">
+          هنوز پیامی در این تیکت ثبت نشده است.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6 py-2">
-      {messages.map((msg, index) => {
+    <>
+      {messages.map((msg) => {
         const isUser = msg.sender === "user";
 
         return (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: Math.min(index * 0.04, 0.2) }}
+          <div
             key={msg.id}
-            className={cn("flex w-full", isUser ? "justify-start" : "justify-end")}
+            dir="ltr"
+            className={cn("flex w-full gap-2.5", isUser ? "justify-end" : "justify-start")}
           >
+            {!isUser ? (
+              <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                <Headphones className="size-3.5" />
+              </div>
+            ) : null}
+
             <div
               className={cn(
-                "flex max-w-[88%] flex-col gap-2 md:max-w-[75%]",
-                isUser ? "items-start" : "items-end"
+                "max-w-[min(85%,22rem)] rounded-2xl px-3.5 py-2 lg:max-w-[min(72%,34rem)] lg:px-4 lg:py-2.5",
+                isUser
+                  ? "rounded-br-md bg-primary text-white"
+                  : "rounded-bl-md border border-gray-200 bg-white text-gray-800 dark:border-white/10 dark:bg-[#1a1a1a] dark:text-slate-200",
               )}
             >
-              <div
-                className={cn(
-                  "flex items-center gap-2 text-xs font-black text-gray-500 dark:text-gray-400",
-                  isUser ? "flex-row" : "flex-row-reverse"
-                )}
-              >
-                <div
-                  className={cn(
-                    "flex h-8 w-8 items-center justify-center rounded-full border-2",
-                    isUser
-                      ? "border-primary/20 bg-primary/10 text-primary"
-                      : "border-blue-500/20 bg-blue-500/10 text-blue-500"
-                  )}
-                >
-                  {isUser ? <User className="h-4 w-4" /> : <Headphones className="h-4 w-4" />}
-                </div>
-                <span className="text-sm text-gray-900 dark:text-white">{msg.senderName}</span>
-                <span>{msg.timestamp}</span>
-              </div>
-
-              <div
-                className={cn(
-                  "rounded-[1.75rem] px-5 py-4 text-sm font-medium leading-relaxed shadow-sm",
-                  isUser
-                    ? "rounded-tr-md bg-primary text-white shadow-lg shadow-primary/20"
-                    : "rounded-tl-md border border-gray-100 bg-white text-gray-900 dark:border-white/5 dark:bg-[#1c1e26] dark:text-gray-100"
-                )}
-              >
+              <p className="mb-0.5 text-right text-[11px] font-bold opacity-70">
+                {isUser ? "شما" : "پشتیبانی اسپاتی‌کد"}
+              </p>
+              <p className="whitespace-pre-wrap break-words text-right text-sm leading-6">
                 {msg.text}
-                {!!msg.attachments?.length && (
-                  <div className={cn("mt-4 flex flex-wrap gap-2", isUser ? "text-white/90" : "")}>
-                    {msg.attachments.map((file) => (
-                      <a
-                        key={file.url}
-                        href={file.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={cn(
-                          "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold transition-colors",
-                          isUser
-                            ? "border-white/20 bg-white/10 hover:bg-white/20"
-                            : "border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 dark:border-white/10 dark:bg-white/5 dark:text-gray-200 dark:hover:bg-white/10"
-                        )}
-                      >
-                        <Paperclip className="h-3.5 w-3.5" />
-                        <span className="max-w-[160px] truncate">{file.name}</span>
-                      </a>
-                    ))}
-                  </div>
+              </p>
+              {!!msg.attachments?.length && (
+                <div className="mt-2 flex flex-wrap justify-end gap-2">
+                  {msg.attachments.map((file) => (
+                    <a
+                      key={file.url}
+                      href={file.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[11px] font-bold",
+                        isUser
+                          ? "border-white/20 bg-white/10 text-white"
+                          : "border-gray-200 bg-gray-50 text-gray-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200",
+                      )}
+                    >
+                      <Paperclip className="size-3.5" />
+                      <span className="max-w-[140px] truncate">{file.name}</span>
+                    </a>
+                  ))}
+                </div>
+              )}
+              <p
+                className={cn(
+                  "mt-1 text-right text-[10px] font-bold [unicode-bidi:plaintext]",
+                  isUser ? "text-white/60" : "text-gray-400 dark:text-slate-500",
                 )}
-              </div>
+                dir="rtl"
+              >
+                {msg.timestamp}
+              </p>
             </div>
-          </motion.div>
+
+            {isUser ? (
+              <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary">
+                <UserRound className="size-3.5" />
+              </div>
+            ) : null}
+          </div>
         );
       })}
-    </div>
+    </>
   );
 }
