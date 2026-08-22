@@ -751,6 +751,9 @@ export default function CreateCourseWizardPage() {
     description: "",
     onConfirm: null,
   });
+  const [unsavedModalOpen, setUnsavedModalOpen] = useState(false);
+  const [pendingNavigationUrl, setPendingNavigationUrl] = useState<string | null>(null);
+  const isNavigatingBypassRef = useRef(false);
 
   // Unified Wizard State
   const [formData, setFormData] = useState<WizardFormData>({
@@ -2411,8 +2414,6 @@ export default function CreateCourseWizardPage() {
     if (currentStep === 3) {
       if (!formData.aboutDescription.trim())
         newErrors.aboutDescription = "توضیحات درباره این دوره الزامی است.";
-      if (formData.features.length === 0)
-        newErrors.features = "حداقل وارد کردن یک ویژگی متمایز الزامی است.";
       if (formData.faqs.length === 0) {
         newWarnings.faqs =
           "توصیه می‌شود حداقل یک سوال متداول جهت راهنمایی دانشجویان اضافه کنید.";
@@ -2456,10 +2457,119 @@ export default function CreateCourseWizardPage() {
     files = lessonFileMap,
   ) => buildWizardDirtySnapshot(form, descriptions, files);
 
+  const hasAnyFormInput = () => {
+    return (
+      formData.title.trim().length > 0 ||
+      formData.heroTitle.trim().length > 0 ||
+      formData.shortDescription.trim().length > 0 ||
+      formData.aboutDescription.trim().length > 0 ||
+      Boolean(formData.cover) ||
+      Boolean(formData.introVideo) ||
+      formData.chapters.length > 0 ||
+      formData.faqs.length > 0 ||
+      hasPendingWizardMedia() ||
+      userEditedFormRef.current
+    );
+  };
+
   const isWizardDirty = () => {
-    if (lastSavedSnapshotRef.current === null) return true;
+    if (isNavigatingBypassRef.current) return false;
+    if (lastSavedSnapshotRef.current === null) {
+      return hasAnyFormInput();
+    }
     if (hasPendingWizardMedia()) return true;
     return captureWizardSnapshot() !== lastSavedSnapshotRef.current;
+  };
+
+  // Browser reload / close tab / URL change listener
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isWizardDirty()) {
+        e.preventDefault();
+        e.returnValue = "";
+        return "";
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  });
+
+  // Intercept in-app link clicks (Sidebar, header, etc.)
+  useEffect(() => {
+    const handleDocumentClick = (e: MouseEvent) => {
+      if (isNavigatingBypassRef.current) return;
+      if (!isWizardDirty()) return;
+
+      const anchor = (e.target as HTMLElement)?.closest("a");
+      if (!anchor || !anchor.href) return;
+
+      try {
+        const targetUrl = new URL(anchor.href, window.location.href);
+        const currentUrl = new URL(window.location.href);
+
+        if (
+          targetUrl.origin === currentUrl.origin &&
+          targetUrl.pathname === currentUrl.pathname
+        ) {
+          return;
+        }
+
+        if (
+          anchor.getAttribute("download") != null ||
+          (targetUrl.pathname === currentUrl.pathname && targetUrl.hash)
+        ) {
+          return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        setPendingNavigationUrl(anchor.href);
+        setUnsavedModalOpen(true);
+      } catch {
+        // ignore URL parse errors
+      }
+    };
+
+    document.addEventListener("click", handleDocumentClick, { capture: true });
+    return () =>
+      document.removeEventListener("click", handleDocumentClick, {
+        capture: true,
+      });
+  });
+
+  // Intercept browser back/forward buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      if (isNavigatingBypassRef.current) return;
+      if (isWizardDirty()) {
+        window.history.pushState(null, "", window.location.href);
+        setPendingNavigationUrl("BACK");
+        setUnsavedModalOpen(true);
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  });
+
+  const confirmLeave = () => {
+    isNavigatingBypassRef.current = true;
+    setUnsavedModalOpen(false);
+    const target = pendingNavigationUrl;
+    setPendingNavigationUrl(null);
+
+    if (target === "BACK") {
+      window.history.back();
+    } else if (target) {
+      window.location.href = target;
+    }
+  };
+
+  const cancelLeave = () => {
+    setUnsavedModalOpen(false);
+    setPendingNavigationUrl(null);
   };
 
   const syncCourseDraftStepInCache = (courseId: string, draftStep: number) => {
@@ -3279,242 +3389,264 @@ export default function CreateCourseWizardPage() {
 
             {/* STEP 2: HERO & INTRODUCTION BANNER */}
             {step === 2 && (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div>
                   <h2 className="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
                     <span className="w-2 h-6 bg-primary rounded-full" />
                     مرحله دوم: هیرو و معرفی دوره
                   </h2>
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-1">
                     این جزئیات در ابتدای صفحه اختصاصی دوره قرار دارند و نرخ
                     تبدیل دانشجو را می‌سازند.
                   </p>
                 </div>
 
-                <div className={WIZARD_SECTION_CLASS}>
-                  <div className="flex flex-col gap-5">
-                    <div className="flex flex-col gap-2">
-                      <label className="text-[11px] font-black text-gray-700 dark:text-gray-200">
-                        عنوان اصلی هیرو <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="مثال: متخصص React و Next.js"
-                        value={formData.heroTitle}
-                        onChange={(e) => {
-                          heroTitleTouchedRef.current = true;
-                          markFormEdited();
-                          setFormData((p) => ({
-                            ...p,
-                            heroTitle: e.target.value,
-                          }));
-                        }}
-                        className={`px-4 py-2.5 ${WIZARD_FIELD_CLASS} text-xs font-bold text-right ${errors.heroTitle ? "border-red-500 ring-2 ring-red-500/15" : ""}`}
-                      />
-                      {errors.heroTitle && (
-                        <span className="text-[10px] font-bold text-red-500">
-                          {errors.heroTitle}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+                  {/* Right Column: Hero Texts */}
+                  <div className="lg:col-span-7 flex flex-col justify-between p-5 md:p-6 bg-white dark:bg-white/[0.03] rounded-2xl border border-gray-200/70 dark:border-white/[0.08] shadow-sm">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 border-b border-gray-100 dark:border-white/5 pb-3">
+                        <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                          <span className="material-symbols-outlined text-base">title</span>
                         </span>
-                      )}
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <label className="text-[11px] font-black text-gray-700 dark:text-gray-200">
-                          توضیح کوتاه هیرو <span className="text-red-500">*</span>
-                        </label>
-                        <span className="text-[9px] font-bold tabular-nums text-gray-400">
-                          {formData.shortDescription.length.toLocaleString("fa-IR")} از{" "}
-                          {(180).toLocaleString("fa-IR")}
+                        <span className="text-xs font-black text-gray-900 dark:text-white">
+                          اطلاعات متنی هیرو
                         </span>
                       </div>
-                      <textarea
-                        rows={3}
-                        placeholder="توضیح کوتاهی که در هیرو بالای صفحه قرار می‌گیرد..."
-                        value={formData.shortDescription}
-                        onChange={(e) =>
-                          setFormData((p) => ({
-                            ...p,
-                            shortDescription: e.target.value,
-                          }))
-                        }
-                        className={`min-h-[88px] px-4 py-2.5 ${WIZARD_FIELD_CLASS} text-xs font-bold text-right leading-relaxed ${errors.shortDescription ? "border-red-500 ring-2 ring-red-500/15" : ""}`}
-                      />
-                      {errors.shortDescription && (
-                        <span className="text-[10px] font-bold text-red-500">
-                          {errors.shortDescription}
-                        </span>
-                      )}
+
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-black text-gray-700 dark:text-gray-200">
+                          عنوان اصلی هیرو <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="مثال: متخصص React و Next.js"
+                          value={formData.heroTitle}
+                          onChange={(e) => {
+                            heroTitleTouchedRef.current = true;
+                            markFormEdited();
+                            setFormData((p) => ({
+                              ...p,
+                              heroTitle: e.target.value,
+                            }));
+                          }}
+                          className={`px-4 py-3 ${WIZARD_FIELD_CLASS} text-xs font-bold text-right ${errors.heroTitle ? "border-red-500 ring-2 ring-red-500/15" : ""}`}
+                        />
+                        {errors.heroTitle && (
+                          <span className="text-[10px] font-bold text-red-500">
+                            {errors.heroTitle}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <label className="text-xs font-black text-gray-700 dark:text-gray-200">
+                            توضیح کوتاه هیرو <span className="text-red-500">*</span>
+                          </label>
+                          <span className="text-[10px] font-bold tabular-nums text-gray-400 bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-full">
+                            {formData.shortDescription.length.toLocaleString("fa-IR")} از{" "}
+                            {(180).toLocaleString("fa-IR")}
+                          </span>
+                        </div>
+                        <textarea
+                          rows={4}
+                          placeholder="توضیح کوتاهی که در هیرو بالای صفحه قرار می‌گیرد و هدف دوره را بیان می‌کند..."
+                          value={formData.shortDescription}
+                          onChange={(e) =>
+                            setFormData((p) => ({
+                              ...p,
+                              shortDescription: e.target.value,
+                            }))
+                          }
+                          className={`min-h-[105px] px-4 py-3 ${WIZARD_FIELD_CLASS} text-xs font-bold text-right leading-relaxed ${errors.shortDescription ? "border-red-500 ring-2 ring-red-500/15" : ""}`}
+                        />
+                        {errors.shortDescription && (
+                          <span className="text-[10px] font-bold text-red-500">
+                            {errors.shortDescription}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex items-center gap-2 rounded-xl bg-primary/5 dark:bg-primary/[0.06] border border-primary/15 p-3 text-[11px] text-gray-600 dark:text-gray-300">
+                      <span className="material-symbols-outlined text-primary text-lg shrink-0">
+                        lightbulb
+                      </span>
+                      <span>
+                        عنوان و توضیح هیرو اولین بخشی است که دانشجویان مشاهده می‌کنند. جذاب و مختصر بنویسید.
+                      </span>
                     </div>
                   </div>
 
-                  <div className="mt-6 border-t border-gray-200/70 pt-5 dark:border-white/10">
-                    <div className="mb-3 flex items-start justify-between gap-3">
-                      <div>
-                        <label className="text-[11px] font-black text-gray-700 dark:text-gray-200">
-                          ویدیوی معرفی دوره
-                        </label>
-                        <p className="mt-0.5 text-[10px] font-bold text-gray-400">
-                          اختیاری است؛ MP4 یا MKV تا ۵۰ مگابایت
-                        </p>
-                      </div>
-                    </div>
-                  {videoProgress > 0 && videoProgress < 100 ? (
-                    <div className="relative overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/[0.08] via-white to-emerald-500/[0.06] p-5 shadow-[0_18px_50px_-28px_rgba(36,180,126,0.55)] dark:from-primary/[0.14] dark:via-[#1c1e26] dark:to-emerald-500/[0.08] dark:border-primary/20">
-                      <div className="pointer-events-none absolute -left-10 -top-12 h-36 w-36 rounded-full bg-primary/20 blur-3xl" />
-                      <div className="pointer-events-none absolute -bottom-14 -right-8 h-40 w-40 rounded-full bg-emerald-400/15 blur-3xl" />
-
-                      <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center">
-                        <div className="relative mx-auto flex size-16 shrink-0 items-center justify-center sm:mx-0">
-                          <svg className="size-16 -rotate-90" viewBox="0 0 64 64" aria-hidden="true">
-                            <circle
-                              cx="32"
-                              cy="32"
-                              r="27"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="5"
-                              className="text-gray-200/80 dark:text-white/10"
-                            />
-                            <circle
-                              cx="32"
-                              cy="32"
-                              r="27"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="5"
-                              strokeLinecap="round"
-                              strokeDasharray={`${2 * Math.PI * 27}`}
-                              strokeDashoffset={`${2 * Math.PI * 27 * (1 - videoProgress / 100)}`}
-                              className="text-primary transition-[stroke-dashoffset] duration-300 ease-out drop-shadow-[0_0_10px_rgba(36,180,126,0.45)]"
-                            />
-                          </svg>
-                          <span className="absolute inset-0 flex items-center justify-center text-[11px] font-black tabular-nums text-primary">
-                            {videoProgress.toLocaleString("fa-IR")}٪
+                  {/* Left Column: Video Intro & Upload */}
+                  <div className="lg:col-span-5 flex flex-col p-5 md:p-6 bg-white dark:bg-white/[0.03] rounded-2xl border border-gray-200/70 dark:border-white/[0.08] shadow-sm">
+                    <div className="flex items-center justify-between border-b border-gray-100 dark:border-white/5 pb-3 mb-4">
+                      <div className="flex items-center gap-2">
+                        <span className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+                          <span className="material-symbols-outlined text-base">video_library</span>
+                        </span>
+                        <div>
+                          <span className="text-xs font-black text-gray-900 dark:text-white block">
+                            ویدیوی معرفی دوره
+                          </span>
+                          <span className="text-[10px] text-gray-400 font-medium">
+                            اختیاری · MP4 یا MKV تا ۵۰MB
                           </span>
                         </div>
+                      </div>
+                    </div>
 
-                        <div className="min-w-0 flex-1 space-y-3 text-center sm:text-right">
-                          <div>
-                            <p className="text-xs font-black text-gray-900 dark:text-white">
-                              در حال آپلود ویدیوی معرفی
-                            </p>
-                            <p className="mt-1 truncate text-[10px] font-bold text-gray-500 dark:text-gray-400">
-                              {videoFile?.name || "ویدیو"}
-                              {videoFile
-                                ? ` · ${(videoFile.size / (1024 * 1024)).toLocaleString("fa-IR", {
-                                    maximumFractionDigits: 1,
-                                  })} MB`
-                                : ""}
-                            </p>
-                          </div>
-
-                          <div className="space-y-1.5">
-                            <div className="h-2 overflow-hidden rounded-full bg-gray-200/80 dark:bg-white/10">
-                              <div
-                                className="relative h-full overflow-hidden rounded-full bg-gradient-to-l from-primary via-emerald-400 to-primary shadow-[0_0_16px_rgba(36,180,126,0.45)] transition-[width] duration-300 ease-out"
-                                style={{ width: `${videoProgress}%` }}
-                              >
-                                <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-transparent via-white/40 to-transparent" />
-                              </div>
+                    <div className="flex-1 flex flex-col justify-center min-h-[220px]">
+                      {videoProgress > 0 && videoProgress < 100 ? (
+                        <div className="relative overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/[0.08] via-white to-emerald-500/[0.06] p-5 shadow-sm dark:from-primary/[0.14] dark:via-[#1c1e26] dark:to-emerald-500/[0.08] dark:border-primary/20">
+                          <div className="relative z-10 flex flex-col items-center text-center gap-3">
+                            <div className="relative flex size-14 shrink-0 items-center justify-center">
+                              <svg className="size-14 -rotate-90" viewBox="0 0 64 64" aria-hidden="true">
+                                <circle
+                                  cx="32"
+                                  cy="32"
+                                  r="27"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="5"
+                                  className="text-gray-200/80 dark:text-white/10"
+                                />
+                                <circle
+                                  cx="32"
+                                  cy="32"
+                                  r="27"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="5"
+                                  strokeLinecap="round"
+                                  strokeDasharray={`${2 * Math.PI * 27}`}
+                                  strokeDashoffset={`${2 * Math.PI * 27 * (1 - videoProgress / 100)}`}
+                                  className="text-primary transition-[stroke-dashoffset] duration-300 ease-out drop-shadow-[0_0_10px_rgba(36,180,126,0.45)]"
+                                />
+                              </svg>
+                              <span className="absolute inset-0 flex items-center justify-center text-[11px] font-black tabular-nums text-primary">
+                                {videoProgress.toLocaleString("fa-IR")}٪
+                              </span>
                             </div>
-                            <p className="text-[9px] font-bold text-gray-400">
-                              لطفاً تا پایان آپلود این صفحه را باز نگه دارید
-                            </p>
+
+                            <div>
+                              <p className="text-xs font-black text-gray-900 dark:text-white">
+                                در حال آپلود ویدیو
+                              </p>
+                              <p className="mt-0.5 truncate text-[10px] font-bold text-gray-500 dark:text-gray-400 max-w-[200px]">
+                                {videoFile?.name || "ویدیو"}
+                              </p>
+                            </div>
+
+                            <div className="w-full space-y-1">
+                              <div className="h-1.5 overflow-hidden rounded-full bg-gray-200/80 dark:bg-white/10">
+                                <div
+                                  className="h-full rounded-full bg-primary shadow-xs transition-[width] duration-300 ease-out"
+                                  style={{ width: `${videoProgress}%` }}
+                                />
+                              </div>
+                              <p className="text-[9px] font-bold text-gray-400">
+                                صفحه را تا پایان باز نگه دارید
+                              </p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  ) : formData.introVideo ? (
-                    <div className="overflow-hidden rounded-2xl border border-emerald-500/20 bg-black">
-                      <CustomVideoPlayer
-                        key={formData.introVideo}
-                        src={formData.introVideo}
-                        compact
-                        forceLandscape
-                      />
-                      <div className="flex items-center justify-between gap-3 border-t border-white/10 bg-[#14161c] px-3 py-2.5">
-                        <p className="flex min-w-0 items-center gap-1.5 text-[10px] font-bold text-emerald-400">
-                          <Check className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate">
-                            {videoFile?.name || "ویدیوی معرفی بارگذاری شد"}
-                          </span>
-                        </p>
-                        <div className="flex shrink-0 items-center gap-1.5">
-                          <label className="cursor-pointer rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-bold text-gray-200 transition-colors hover:border-primary/30 hover:text-primary">
-                            تغییر
-                            <input
-                              type="file"
-                              accept="video/*"
-                              onChange={handleVideoUpload}
-                              className="hidden"
-                            />
-                          </label>
-                          <button
-                            type="button"
-                            onClick={clearIntroVideo}
-                            className="cursor-pointer rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-[10px] font-bold text-red-400 transition-colors hover:bg-red-500/20"
-                          >
-                            حذف
-                          </button>
+                      ) : formData.introVideo ? (
+                        <div className="overflow-hidden rounded-2xl border border-emerald-500/20 bg-black">
+                          <CustomVideoPlayer
+                            key={formData.introVideo}
+                            src={formData.introVideo}
+                            compact
+                            forceLandscape
+                          />
+                          <div className="flex items-center justify-between gap-3 border-t border-white/10 bg-[#14161c] px-3 py-2.5">
+                            <p className="flex min-w-0 items-center gap-1.5 text-[10px] font-bold text-emerald-400">
+                              <Check className="h-3.5 w-3.5 shrink-0" />
+                              <span className="truncate">
+                                {videoFile?.name || "ویدیوی معرفی بارگذاری شد"}
+                              </span>
+                            </p>
+                            <div className="flex shrink-0 items-center gap-1.5">
+                              <label className="cursor-pointer rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-bold text-gray-200 transition-colors hover:border-primary/30 hover:text-primary">
+                                تغییر
+                                <input
+                                  type="file"
+                                  accept="video/*"
+                                  onChange={handleVideoUpload}
+                                  className="hidden"
+                                />
+                              </label>
+                              <button
+                                type="button"
+                                onClick={clearIntroVideo}
+                                className="cursor-pointer rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-[10px] font-bold text-red-400 transition-colors hover:bg-red-500/20"
+                              >
+                                حذف
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div
+                          className={`relative ${WIZARD_DROPZONE_CLASS} flex flex-1 min-h-[190px] flex-col items-center justify-center p-6 text-center`}
+                        >
+                          <input
+                            type="file"
+                            accept="video/*"
+                            onChange={handleVideoUpload}
+                            className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+                          />
+                          <span className="mb-2.5 inline-flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <UploadCloud className="h-5 w-5" />
+                          </span>
+                          <p className="mb-1 text-xs font-black text-gray-700 dark:text-gray-300">
+                            انتخاب یا رها کردن ویدیو
+                          </p>
+                          <p className="text-[10px] font-medium text-gray-400">
+                            MP4 یا MKV حداکثر ۵۰ مگابایت
+                          </p>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div
-                      className={`relative ${WIZARD_DROPZONE_CLASS} flex min-h-[180px] flex-col items-center justify-center p-6 text-center sm:min-h-[200px]`}
-                    >
-                      <input
-                        type="file"
-                        accept="video/*"
-                        onChange={handleVideoUpload}
-                        className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
-                      />
-                      <span className="mb-3 inline-flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                        <UploadCloud className="h-6 w-6" />
-                      </span>
-                      <p className="mb-1 text-[11px] font-black text-gray-700 dark:text-gray-300">
-                        انتخاب یا رها کردن ویدیوی پیش‌نمایش
-                      </p>
-                      <p className="text-[9px] font-bold text-gray-400">
-                        MP4, MKV حداکثر ۵۰ مگابایت
-                      </p>
-                    </div>
-                  )}
                   </div>
                 </div>
               </div>
             )}
 
-            {/* STEP 3: COURSE DETAILS, FAQ & FEATURES */}
+            {/* STEP 3: COURSE DETAILS & FAQ */}
             {step === 3 && (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div>
                   <h2 className="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
                     <span className="w-2 h-6 bg-primary rounded-full" />
                     مرحله سوم: محتوای عمیق صفحه دوره
                   </h2>
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold mt-1">
-                    در این مرحله ویژگی‌های متمایز، توضیحات درباره دوره و سوالات
-                    متداول را تعریف کنید.
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-1">
+                    در این مرحله توضیحات کامل درباره دوره و سوالات متداول را تعریف کنید.
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
-                  {/* --- 3A. ABOUT SECTION --- */}
-                  <div className="xl:col-span-7 p-4 md:p-5 bg-gradient-to-b from-gray-50/50 to-gray-50/20 dark:from-white/[0.07] dark:to-white/[0.03] rounded-2xl border border-gray-200/70 dark:border-white/10 space-y-4 shadow-[0_10px_30px_-20px_rgba(0,0,0,0.5)]">
-                    <span className="text-sm font-black text-gray-900 dark:text-white block border-b border-gray-200/70 dark:border-white/10 pb-3">
-                      ۱. بخش درباره این دوره
-                    </span>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                  {/* Right Column: About Section */}
+                  <div className="lg:col-span-7 p-5 md:p-6 bg-white dark:bg-white/[0.03] rounded-2xl border border-gray-200/70 dark:border-white/[0.08] space-y-4 shadow-sm">
+                    <div className="flex items-center gap-2 border-b border-gray-100 dark:border-white/5 pb-3">
+                      <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <span className="material-symbols-outlined text-base">description</span>
+                      </span>
+                      <span className="text-xs font-black text-gray-900 dark:text-white">
+                        ۱. بخش درباره این دوره
+                      </span>
+                    </div>
 
                     <div className="flex flex-col gap-2.5">
-                      <label className="text-xs font-bold text-gray-600 dark:text-gray-300">
+                      <label className="text-xs font-bold text-gray-700 dark:text-gray-200">
                         توضیحات درباره دوره (پاراگراف‌ها){" "}
                         <span className="text-red-500">*</span>
                       </label>
                       <HighlightableTextareaWithBadges
                         rows={5}
-                        placeholder="متن کامل درباره دوره، اهداف و شبیه‌سازی بازار کار..."
+                        placeholder="متن کامل درباره دوره، اهداف و مهارت‌هایی که دانشجو یاد می‌گیرد..."
                         value={formData.aboutDescription}
                         onChange={(value) =>
                           setFormData((p) => ({
@@ -3549,217 +3681,77 @@ export default function CreateCourseWizardPage() {
                         onManualValueChange={setNewHighlight}
                         onManualAdd={addHighlightItem}
                         error={errors.aboutDescription}
-                        textareaClassName={`px-4 py-3.5 bg-white dark:bg-[#1a1c23] border ${errors.aboutDescription ? "border-red-500" : "border-gray-200/70 dark:border-white/10"} rounded-2xl text-xs font-medium focus:border-primary focus:outline-none transition-all text-right leading-7`}
-                        inputClassName="w-full px-4 py-2.5 bg-white dark:bg-[#1a1c23] border border-gray-200/70 dark:border-white/5 rounded-xl text-[11px] font-bold focus:border-primary focus:outline-none transition-all text-right"
+                        textareaClassName={`px-4 py-3 bg-gray-50 dark:bg-white/[0.04] border ${errors.aboutDescription ? "border-red-500" : "border-gray-200/60 dark:border-white/[0.08]"} rounded-xl text-xs font-medium focus:border-primary focus:outline-none transition-all text-right leading-7`}
+                        inputClassName="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] rounded-xl text-[11px] font-bold focus:border-primary focus:outline-none transition-all text-right"
                         addButtonClassName="h-10 px-4 sm:px-3 bg-primary/10 text-primary border border-primary/20 rounded-xl hover:bg-primary/20 transition-all cursor-pointer inline-flex items-center justify-center gap-1"
                         removeButtonClassName="cursor-pointer"
                       />
                     </div>
-                  </div>
 
-                  {/* --- 3B. DISTINCTIVE FEATURES SECTION --- */}
-                  <div className="xl:col-span-5 p-4 md:p-5 bg-gradient-to-b from-gray-50/50 to-gray-50/20 dark:from-white/[0.07] dark:to-white/[0.03] rounded-2xl border border-gray-200/70 dark:border-white/10 space-y-4 shadow-[0_10px_30px_-20px_rgba(0,0,0,0.5)]">
-                    <span className="text-sm font-black text-gray-900 dark:text-white block border-b border-gray-200/70 dark:border-white/10 pb-3">
-                      ۲. ویژگی‌های متمایز دوره
-                    </span>
-
-                    {errors.features && (
-                      <span className="text-[10px] text-red-500 font-bold block">
-                        {errors.features}
+                    <div className="mt-2 flex items-center gap-2 rounded-xl bg-primary/5 dark:bg-primary/[0.06] border border-primary/15 p-3 text-[11px] text-gray-600 dark:text-gray-300">
+                      <span className="material-symbols-outlined text-primary text-lg shrink-0">
+                        info
                       </span>
-                    )}
-
-                    <div className="space-y-4">
-                      <div className="flex flex-col gap-3.5">
-                        <div className="flex flex-col gap-1.5">
-                          <label className="block text-[11px] font-black text-gray-700 dark:text-gray-200 mr-1">
-                            عنوان ویژگی
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="مثال: پشتیبانی اختصاصی در داشبورد دانشجو"
-                            value={featTitle}
-                            onChange={(e) => setFeatTitle(e.target.value)}
-                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl text-xs font-bold text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:outline-none transition-all text-right h-[42px]"
-                          />
-                        </div>
-
-                        <CustomSelect
-                          label="انتخاب آیکون"
-                          value={featIcon}
-                          onChange={setFeatIcon}
-                          options={FEATURE_ICON_OPTIONS.map(
-                            ({ value, label }) => ({ value, label }),
-                          )}
-                          size="sm"
-                          renderValue={(option) => (
-                            <span className="inline-flex items-center gap-2">
-                              <span className="material-symbols-outlined text-[18px] text-emerald-500 dark:text-emerald-400">
-                                {FEATURE_ICON_OPTIONS.find(
-                                  (item) => item.value === option?.value,
-                                )?.icon || "help"}
-                              </span>
-                              <span className="truncate font-bold">
-                                {option?.label || "انتخاب کنید..."}
-                              </span>
-                            </span>
-                          )}
-                          renderOption={(option, selected) => {
-                            const icon =
-                              FEATURE_ICON_OPTIONS.find(
-                                (item) => item.value === option.value,
-                              )?.icon || "help";
-                            return (
-                              <span className="flex w-full items-center justify-between gap-3">
-                                <span className="inline-flex items-center gap-2">
-                                  <span className={cn(
-                                    "material-symbols-outlined text-[18px]",
-                                    selected ? "text-primary dark:text-emerald-400" : "text-emerald-500 dark:text-emerald-400"
-                                  )}>
-                                    {icon}
-                                  </span>
-                                  <span className="font-bold text-xs">
-                                    {option.label}
-                                  </span>
-                                </span>
-                                {selected ? (
-                                  <span className="material-symbols-outlined text-[16px] text-primary dark:text-emerald-400">
-                                    check
-                                  </span>
-                                ) : null}
-                              </span>
-                            );
-                          }}
-                        />
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={addOrUpdateFeature}
-                        className="w-full py-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl text-[10px] font-black transition-all flex items-center justify-center gap-1 cursor-pointer"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>
-                          {editingFeatId
-                            ? "ویرایش و ذخیره ویژگی"
-                            : "افزودن ویژگی جدید"}
-                        </span>
-                      </button>
-                    </div>
-
-                    <div className="space-y-2.5 max-h-[240px] overflow-y-auto mt-2 pr-1">
-                      {formData.features.map((feat) => (
-                        <div
-                          key={feat.id}
-                          className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-white dark:bg-[#1a1c23] border border-gray-100 dark:border-white/5 text-[10px] font-bold hover:border-primary/30 transition-all hover:shadow-sm"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`material-symbols-outlined text-base flex-shrink-0 text-${feat.color === "primary" ? "primary" : feat.color}`}
-                            >
-                              {feat.icon}
-                            </span>
-                            <span>{feat.title}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            {isLockedFeature(feat.id) ? (
-                              <span
-                                className="inline-flex size-8 items-center justify-center rounded-lg text-gray-300 dark:text-gray-600"
-                                title="ویژگی پیش‌فرض"
-                              >
-                                <span className="material-symbols-outlined text-[18px]">
-                                  lock
-                                </span>
-                              </span>
-                            ) : (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => editFeature(feat)}
-                                  className="inline-flex size-8 items-center justify-center rounded-lg text-blue-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
-                                >
-                                  <Pencil className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    openDeleteConfirm(
-                                      "حذف ویژگی",
-                                      "آیا مطمئن هستید که می‌خواهید این ویژگی حذف شود؟",
-                                      () => deleteFeature(feat.id),
-                                    )
-                                  }
-                                  className="inline-flex size-8 items-center justify-center rounded-lg text-red-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                      <span>
+                        عبارات کلیدی و هایلایت‌ها به شکل بج در صفحه دوره نمایش داده می‌شوند.
+                      </span>
                     </div>
                   </div>
-                </div>
 
-                {/* --- 3D. FAQ SECTION --- */}
-                {!isFaqEditorOpen ? (
-                  <button
-                    type="button"
-                    onClick={() => setIsFaqEditorOpen(true)}
-                    className="w-full rounded-2xl p-5 border border-gray-200/70 dark:border-white/10 bg-white dark:bg-[#1c1e26]/80 flex items-center justify-between text-right"
-                  >
-                    <span className="text-base font-black text-gray-900 dark:text-white">
-                      ۳. سوالات متداول
-                    </span>
-                    <span className="material-symbols-outlined text-primary">
-                      expand_more
-                    </span>
-                  </button>
-                ) : (
-                  <div className="rounded-2xl overflow-hidden bg-white dark:bg-[#1c1e26]/80 border border-gray-200/70 dark:border-white/10">
-                    <div className="px-5 py-4 flex items-center justify-between border-b border-gray-200/70 dark:border-white/10">
+                  {/* Left Column: FAQ Section */}
+                  <div className="lg:col-span-5 p-5 md:p-6 bg-white dark:bg-white/[0.03] rounded-2xl border border-gray-200/70 dark:border-white/[0.08] space-y-4 shadow-sm flex flex-col">
+                    <div className="flex items-center justify-between border-b border-gray-100 dark:border-white/5 pb-3">
                       <div className="flex items-center gap-2">
-                        <span className="size-8 rounded-xl bg-primary/10 text-primary inline-flex items-center justify-center">
+                        <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
                           <HelpCircle className="w-4 h-4" />
                         </span>
-                        <span className="text-base font-black text-gray-900 dark:text-white">
-                          ۳. سوالات متداول
-                        </span>
+                        <div>
+                          <span className="text-xs font-black text-gray-900 dark:text-white block">
+                            ۲. سوالات متداول
+                          </span>
+                        </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setIsFaqEditorOpen(false)}
-                        className="px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 text-xs font-bold"
-                      >
-                        بستن
-                      </button>
+                      <span className="text-[10px] font-bold text-gray-400 bg-gray-100 dark:bg-white/5 px-2.5 py-1 rounded-full">
+                        {formData.faqs.length.toLocaleString("fa-IR")} سوال
+                      </span>
                     </div>
 
                     {warnings.faqs && (
-                      <div className="mx-5 mt-4 p-2.5 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-300 rounded-xl text-[9px] font-bold flex items-center gap-1.5 leading-relaxed">
+                      <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-300 rounded-xl text-[10px] font-bold flex items-center gap-1.5 leading-relaxed">
                         <AlertCircle className="w-4 h-4 shrink-0" />
                         <span>{warnings.faqs}</span>
                       </div>
                     )}
 
-                    <div className="p-5 space-y-4">
-                      <button
-                        type="button"
-                        onClick={addFAQBox}
-                        className="w-full py-3 bg-primary/15 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 cursor-pointer"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>افزودن سوال جدید</span>
-                      </button>
+                    <button
+                      type="button"
+                      onClick={addFAQBox}
+                      className="w-full py-2.5 bg-primary/15 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>افزودن سوال جدید</span>
+                    </button>
 
-                      <div className="space-y-3 max-h-[260px] overflow-y-auto pr-1">
-                        {formData.faqs.map((faq) => {
+                    <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+                      {formData.faqs.length === 0 ? (
+                        <div className="py-8 text-center border border-dashed border-gray-200 dark:border-white/10 rounded-xl bg-gray-50/50 dark:bg-white/[0.02]">
+                          <span className="material-symbols-outlined text-3xl text-gray-400 mb-1 block">
+                            quiz
+                          </span>
+                          <p className="text-xs font-bold text-gray-500 dark:text-gray-400">
+                            هنوز سوالی اضافه نکرده‌اید
+                          </p>
+                          <p className="text-[10px] text-gray-400 mt-0.5">
+                            روی دکمه افزودن سوال جدید کلیک کنید
+                          </p>
+                        </div>
+                      ) : (
+                        formData.faqs.map((faq) => {
                           const isOpen = openFaqItemId === faq.id;
                           return (
                             <div
                               key={faq.id}
-                              className={`rounded-[2.25rem] border transition-all ${
+                              className={`rounded-2xl border transition-all ${
                                 isOpen
                                   ? "bg-gray-50/90 dark:bg-white/[0.06] border-gray-200 dark:border-white/15"
                                   : "bg-gray-50/70 dark:bg-white/[0.03] border-gray-200/90 dark:border-white/12"
@@ -3789,9 +3781,9 @@ export default function CreateCourseWizardPage() {
                                     prev === faq.id ? null : faq.id,
                                   )
                                 }
-                                className={`w-full px-6 py-5 flex items-center justify-between gap-3 text-right cursor-pointer ${
+                                className={`w-full px-4 py-3 flex items-center justify-between gap-2 text-right cursor-pointer ${
                                   dragOverFaqId === faq.id
-                                    ? "ring-2 ring-primary/20 rounded-[2.25rem]"
+                                    ? "ring-2 ring-primary/20 rounded-2xl"
                                     : ""
                                 }`}
                                 draggable
@@ -3820,11 +3812,10 @@ export default function CreateCourseWizardPage() {
                                       if (e.key === "Enter")
                                         setEditingFaqQuestionId(null);
                                     }}
-                                    className="h-9 w-full max-w-[78%] px-3 rounded-lg border border-blue-500/40 bg-white dark:bg-white/5 text-sm font-bold text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                    className="h-8 w-full max-w-[75%] px-2.5 rounded-lg border border-primary/40 bg-white dark:bg-white/5 text-xs font-bold text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/20"
                                   />
                                 ) : (
-                                  <button
-                                    type="button"
+                                  <span
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       if (faq.question === DEFAULT_FAQ_QUESTION) {
@@ -3832,14 +3823,13 @@ export default function CreateCourseWizardPage() {
                                       }
                                       setEditingFaqQuestionId(faq.id);
                                     }}
-                                    className="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[78%] cursor-text text-right"
+                                    className="text-xs font-bold text-gray-900 dark:text-white truncate max-w-[75%] cursor-text text-right"
                                   >
                                     {faq.question || DEFAULT_FAQ_QUESTION}
-                                  </button>
+                                  </span>
                                 )}
-                                <div className="flex items-center gap-1.5 shrink-0">
-                                  <button
-                                    type="button"
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <span
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       openDeleteConfirm(
@@ -3848,19 +3838,19 @@ export default function CreateCourseWizardPage() {
                                         () => deleteFAQ(faq.id),
                                       );
                                     }}
-                                    className="size-9 inline-flex items-center justify-center bg-gray-100 dark:bg-white/10 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-full text-red-500 transition-colors"
+                                    className="size-7 inline-flex items-center justify-center bg-gray-100 dark:bg-white/10 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg text-red-500 transition-colors cursor-pointer"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                  <span className="size-9 inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/10 text-gray-500">
+                                  </span>
+                                  <span className="size-7 inline-flex items-center justify-center rounded-lg bg-gray-100 dark:bg-white/10 text-gray-500">
                                     <ChevronDown
-                                      className={`w-5 h-5 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                                      className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`}
                                     />
                                   </span>
                                 </div>
                               </button>
                               {isOpen && (
-                                <div className="px-6 pb-5 pt-0 border-t border-gray-200/70 dark:border-white/10">
+                                <div className="px-4 pb-3.5 pt-0 border-t border-gray-200/70 dark:border-white/10">
                                   {editingFaqAnswerId === faq.id ? (
                                     <textarea
                                       autoFocus
@@ -3874,31 +3864,30 @@ export default function CreateCourseWizardPage() {
                                         )
                                       }
                                       onBlur={() => setEditingFaqAnswerId(null)}
-                                      className="mt-4 w-full px-3 py-2 rounded-lg border border-blue-500/40 bg-white dark:bg-white/5 text-sm text-gray-700 dark:text-gray-300 leading-relaxed placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-right"
+                                      className="mt-3 w-full px-3 py-2 rounded-lg border border-primary/40 bg-white dark:bg-white/5 text-xs text-gray-700 dark:text-gray-300 leading-relaxed placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/20 text-right"
                                     />
                                   ) : (
-                                    <button
-                                      type="button"
+                                    <p
                                       onClick={() => {
                                         if (faq.answer === DEFAULT_FAQ_ANSWER) {
                                           updateFAQAnswerInline(faq.id, "");
                                         }
                                         setEditingFaqAnswerId(faq.id);
                                       }}
-                                      className="pt-4 text-sm text-gray-600 dark:text-gray-300 leading-relaxed text-right w-full cursor-text"
+                                      className="pt-3 text-xs text-gray-600 dark:text-gray-300 leading-relaxed text-right w-full cursor-text"
                                     >
                                       {faq.answer || DEFAULT_FAQ_ANSWER}
-                                    </button>
+                                    </p>
                                   )}
                                 </div>
                               )}
                             </div>
                           );
-                        })}
-                      </div>
+                        })
+                      )}
                     </div>
                   </div>
-                )}
+                </div>
               </div>
             )}
 
@@ -4967,6 +4956,45 @@ export default function CreateCourseWizardPage() {
                 className="px-4 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-black text-sm transition-all"
               >
                 بله، حذف شود
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unsaved Changes Confirmation Modal */}
+      {unsavedModalOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity duration-300"
+            onClick={cancelLeave}
+          />
+          <div className="relative w-full max-w-md rounded-3xl border border-gray-200/80 dark:border-white/10 bg-white dark:bg-[#1c1e26] shadow-2xl p-6 sm:p-7 text-right transform-gpu">
+            <div className="size-14 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500 mb-4 shadow-lg shadow-amber-500/10">
+              <span className="material-symbols-outlined text-3xl">warning</span>
+            </div>
+
+            <h3 className="text-lg font-black text-gray-900 dark:text-white">
+              تغییرات ذخیره‌نشده دارید!
+            </h3>
+            <p className="mt-2 text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 leading-relaxed">
+              اطلاعاتی در این مرحله از فرم وارد کرده‌اید که هنوز ذخیره نشده است. در صورت خروج از صفحه یا ریلود کردن، تمام تغییرات شما از دست خواهد رفت.
+            </p>
+
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={confirmLeave}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold text-xs transition-all cursor-pointer text-center"
+              >
+                خروج بدون ذخیره
+              </button>
+              <button
+                type="button"
+                onClick={cancelLeave}
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-primary to-emerald-600 hover:from-primary-hover hover:to-emerald-700 text-white font-black text-xs shadow-lg shadow-primary/25 transition-all cursor-pointer text-center"
+              >
+                ماندن در صفحه و ادامه ویرایش
               </button>
             </div>
           </div>
