@@ -924,7 +924,7 @@ export default function CourseLearningClient() {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-3 sm:space-y-6 pb-6 sm:pb-12">
       {courseLoadError && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
           {courseLoadError}
@@ -936,27 +936,27 @@ export default function CourseLearningClient() {
       ) : (
         <>
       {/* Course Header */}
-      <div className="bg-white dark:bg-[#1c1e26] rounded-3xl p-5 border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Link href="/panel/courses" className="flex items-center justify-center w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-primary transition-colors">
-            <span className="material-symbols-outlined text-xl rotate-180">arrow_back</span>
+      <div className="bg-white dark:bg-[#1c1e26] rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 border border-gray-100 dark:border-gray-800 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          <Link href="/panel/courses" className="flex items-center justify-center size-9 sm:size-10 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-primary transition-colors shrink-0">
+            <span className="material-symbols-outlined text-lg sm:text-xl rotate-180">arrow_back</span>
           </Link>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-xl font-bold text-gray-900 dark:text-white mb-0.5 sm:mb-1 truncate">
               {courseData.title}
             </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium truncate">
               مدرس: {courseData.instructor}
             </p>
           </div>
         </div>
 
-        <div className="flex flex-col md:w-64 space-y-2">
+        <div className="flex flex-col md:w-64 space-y-1.5 sm:space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-gray-500 dark:text-gray-400">
             <span>پیشرفت کلی دوره</span>
-            <span className="text-primary">{courseData.progress}%</span>
+            <span className="text-primary font-black">{courseData.progress}%</span>
           </div>
-          <div className="h-2 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div className="h-1.5 sm:h-2 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
             <div
               className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
               style={{ width: `${courseData.progress}%` }}
@@ -966,15 +966,15 @@ export default function CourseLearningClient() {
       </div>
 
       {/* Main Content Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 items-start">
         
         {/* Left Side: Player or SpotPlayer Card */}
-        <div className="lg:col-span-2 xl:col-span-3 space-y-6">
+        <div className="lg:col-span-2 xl:col-span-3 space-y-3 sm:space-y-6">
           {courseData.playerType === "internal" ? (
             /* Internal Video Player */
-            <div className="bg-white dark:bg-[#1c1e26] rounded-3xl p-3 border border-gray-100 dark:border-gray-800 shadow-sm relative">
+            <div className="bg-white dark:bg-[#1c1e26] rounded-2xl sm:rounded-3xl p-2 sm:p-3 border border-gray-100 dark:border-gray-800 shadow-xs relative">
               {lessonLoading && (
-                <div className="absolute inset-0 z-10 flex items-center justify-center rounded-3xl bg-white/70 dark:bg-[#1c1e26]/70">
+                <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl sm:rounded-3xl bg-white/70 dark:bg-[#1c1e26]/70">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               )}
@@ -987,15 +987,15 @@ export default function CourseLearningClient() {
                 }}
               />
 
-              <div className="flex flex-wrap items-center justify-between gap-4 mt-5 px-2 pb-2">
-                <div className="flex items-center gap-2">
-                  <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold text-sm transition-colors cursor-pointer">
-                    <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-4 mt-2.5 sm:mt-4 px-1 sm:px-2 pb-1 sm:pb-2">
+                <div className="grid grid-cols-2 sm:flex items-center gap-2">
+                  <button className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold text-xs sm:text-sm transition-colors cursor-pointer">
+                    <span className="material-symbols-outlined text-[18px] sm:text-[20px]">arrow_forward</span>
                     درس قبلی
                   </button>
-                  <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold text-sm transition-colors cursor-pointer">
+                  <button className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold text-xs sm:text-sm transition-colors cursor-pointer">
                     درس بعدی
-                    <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+                    <span className="material-symbols-outlined text-[18px] sm:text-[20px]">arrow_back</span>
                   </button>
                 </div>
 
@@ -1004,18 +1004,18 @@ export default function CourseLearningClient() {
                   onClick={() => void handleCompleteLesson()}
                   disabled={activeLesson.isCompleted || completingLesson || !activeLesson.id}
                   className={cn(
-                  "flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer",
+                  "flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer w-full sm:w-auto",
                   activeLesson.isCompleted 
                     ? "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400 border border-green-200 dark:border-green-500/30" 
-                    : "bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20 disabled:opacity-60 disabled:cursor-not-allowed"
+                    : "bg-primary text-white hover:bg-primary/90 shadow-md shadow-primary/20 disabled:opacity-60 disabled:cursor-not-allowed"
                 )}>
-                  <span className="material-symbols-outlined text-[20px]">
+                  <span className="material-symbols-outlined text-[18px] sm:text-[20px]">
                     {completingLesson ? "progress_activity" : activeLesson.isCompleted ? "task_alt" : "check_circle"}
                   </span>
                   {completingLesson ? "در حال ثبت..." : activeLesson.isCompleted ? "تکمیل شده" : "تکمیل این درس"}
                 </button>
                 {completeError && (
-                  <p className="w-full text-sm font-bold text-red-500 text-left">{completeError}</p>
+                  <p className="w-full text-xs sm:text-sm font-bold text-red-500 text-left">{completeError}</p>
                 )}
               </div>
             </div>
@@ -1084,13 +1084,13 @@ export default function CourseLearningClient() {
           )}
 
           {/* Tabs Section */}
-          <div className="bg-white dark:bg-[#1c1e26] rounded-3xl p-5 border border-gray-100 dark:border-gray-800 shadow-sm">
-            <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide border-b border-gray-100 dark:border-gray-800 pb-4 mb-5">
+          <div className="bg-white dark:bg-[#1c1e26] rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 border border-gray-100 dark:border-gray-800 shadow-xs">
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide border-b border-gray-100 dark:border-gray-800 pb-2.5 sm:pb-4 mb-3.5 sm:mb-5">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all cursor-pointer ${
+                  className={`px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all cursor-pointer ${
                     activeTab === tab.id
                       ? "bg-primary/10 text-primary"
                       : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800"
@@ -1591,13 +1591,13 @@ export default function CourseLearningClient() {
 
         {/* Right Side: Curriculum Sidebar */}
         <div className="lg:col-span-1">
-          <div className="bg-white dark:bg-[#1c1e26] rounded-3xl p-5 border border-gray-100 dark:border-gray-800 shadow-sm sticky top-6">
-            <div className="flex items-center gap-2 mb-6">
-              <span className="material-symbols-outlined text-primary">format_list_bulleted</span>
-              <h2 className="text-lg font-black text-gray-900 dark:text-white">سرفصل‌های دوره</h2>
+          <div className="bg-white dark:bg-[#1c1e26] rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 border border-gray-100 dark:border-gray-800 shadow-xs sticky top-6">
+            <div className="flex items-center gap-2 mb-3.5 sm:mb-6">
+              <span className="material-symbols-outlined text-primary text-xl sm:text-2xl">format_list_bulleted</span>
+              <h2 className="text-base sm:text-lg font-black text-gray-900 dark:text-white">سرفصل‌های دوره</h2>
             </div>
 
-            <div className="space-y-3 pr-1">
+            <div className="space-y-2.5 sm:space-y-3 pr-1">
               {courseData.chapters.map((chapter: LearningChapter) => {
                 const isExpanded = expandedChapters.includes(chapter.id);
                 

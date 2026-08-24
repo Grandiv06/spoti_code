@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  devIndicators: false,
   images: {
     // Server-side optimization is ON so covers/avatars are resized and served as
     // modern formats at the size actually rendered (much smaller payloads).

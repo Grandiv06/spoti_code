@@ -239,16 +239,25 @@ export default function CourseHero({
   const displayDuration = introVideoDuration?.trim() || "";
 
   return (
-    <div className={`glass-panel relative overflow-hidden group transition-all duration-700 mb-6 sm:mb-10 lg:mb-16 ${
-      isVideoExpanded ? "p-0 rounded-3xl sm:rounded-5xl" : "p-1.5 sm:p-2 rounded-3xl sm:rounded-5xl"
-    } shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1),0_10px_20px_-5px_rgba(0,0,0,0.04)]`} dir="rtl">
-      <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent pointer-events-none" />
+    <div
+      className={`glass-panel relative overflow-hidden group transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] mb-6 sm:mb-10 lg:mb-16 ${
+        isVideoExpanded
+          ? "p-0 rounded-3xl sm:rounded-5xl bg-black border-transparent"
+          : "p-1.5 sm:p-2 rounded-3xl sm:rounded-5xl bg-white/90 dark:bg-white/[0.03] border-gray-200/80 dark:border-white/10"
+      } shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1),0_10px_20px_-5px_rgba(0,0,0,0.04)]`}
+      dir="rtl"
+    >
+      <div
+        className={`absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent pointer-events-none transition-opacity duration-500 ${
+          isVideoExpanded ? "opacity-0" : "opacity-100"
+        }`}
+      />
       <div
         ref={gridRef}
-        className={`relative grid grid-cols-1 lg:grid-cols-[minmax(0,var(--hero-col1,1fr))_1fr] lg:grid-rows-1 rounded-[1.35rem] sm:rounded-4xl bg-white/20 dark:bg-white/[0.03] overflow-hidden backdrop-blur-sm transition-[grid-template-columns,height] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+        className={`relative grid grid-cols-1 lg:grid-cols-[minmax(0,var(--hero-col1,1fr))_1fr] lg:grid-rows-1 rounded-[1.35rem] sm:rounded-4xl overflow-hidden backdrop-blur-sm transition-[grid-template-columns] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${
           isVideoExpanded
-            ? "min-h-0"
-            : "min-h-0 lg:min-h-[480px]"
+            ? "bg-black"
+            : "bg-white/20 dark:bg-white/[0.03] min-h-0 lg:min-h-[480px]"
         }`}
         style={
           {
@@ -256,10 +265,12 @@ export default function CourseHero({
           } as React.CSSProperties
         }
       >
-        {/* Course Info - hidden on mobile while playing so the player keeps 16:9 */}
+        {/* Course Info - smoothly collapses and fades out when video expands to the right */}
         <div
-          className={`min-w-0 overflow-hidden p-4 sm:p-6 md:p-12 lg:p-16 flex-col justify-center relative z-10 lg:row-start-1 transition-opacity duration-500 ease-out ${
-            isVideoExpanded ? "hidden lg:flex lg:opacity-0 lg:pointer-events-none" : "flex"
+          className={`min-w-0 overflow-hidden flex flex-col justify-center relative z-10 lg:row-start-1 transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+            isVideoExpanded
+              ? "hidden lg:flex opacity-0 pointer-events-none p-0 max-h-0 max-w-0 scale-95"
+              : "flex opacity-100 p-4 sm:p-6 md:p-12 lg:p-16 max-h-[1500px]"
           }`}
         >
           <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-4 sm:mb-6 md:mb-8 justify-start">
@@ -267,10 +278,10 @@ export default function CourseHero({
               {category}
             </span>
             {typeof rating === "number" && rating > 0 ? (
-            <span className="bg-amber-100/80 dark:bg-amber-900/30 backdrop-blur-md text-amber-700 dark:text-amber-300 px-2.5 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-black uppercase tracking-wider border border-amber-200 dark:border-amber-700 flex items-center gap-1">
-              <span className="material-symbols-outlined text-[14px] md:text-[16px] filled">star</span>
-              {rating}
-            </span>
+              <span className="bg-amber-100/80 dark:bg-amber-900/30 backdrop-blur-md text-amber-700 dark:text-amber-300 px-2.5 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-black uppercase tracking-wider border border-amber-200 dark:border-amber-700 flex items-center gap-1">
+                <span className="material-symbols-outlined text-[14px] md:text-[16px] filled">star</span>
+                {rating}
+              </span>
             ) : null}
           </div>
           <h1 className="text-[1.65rem] leading-snug sm:text-4xl md:text-5xl lg:text-7xl font-black text-gray-900 dark:text-white md:leading-[1.2] mb-3 sm:mb-4 md:mb-8 text-right break-words">
@@ -311,10 +322,10 @@ export default function CourseHero({
 
         {/* Video Section - expands to full width on play */}
         <div
-          className={`video-fullscreen-container relative cursor-pointer overflow-hidden row-start-1 group/video transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] w-full min-w-0 flex items-center justify-center bg-black aspect-video min-h-0 lg:min-h-0 lg:aspect-auto ${
+          className={`video-fullscreen-container relative cursor-pointer overflow-hidden row-start-1 group/video transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] w-full min-w-0 flex items-center justify-center bg-black ${
             isVideoExpanded
-              ? "is-playing rounded-3xl sm:rounded-4xl m-0 lg:aspect-video"
-              : "rounded-2xl sm:rounded-4xl lg:rounded-l-none lg:rounded-r-4xl m-1 sm:m-2 lg:m-0 lg:ml-2 lg:h-full"
+              ? "is-playing rounded-3xl sm:rounded-5xl m-0 aspect-video lg:aspect-video"
+              : "rounded-2xl sm:rounded-4xl lg:rounded-r-none lg:rounded-l-4xl m-1 sm:m-2 lg:m-0 aspect-video lg:aspect-auto lg:h-full"
           }`}
           onMouseMove={revealControls}
           onMouseEnter={revealControls}

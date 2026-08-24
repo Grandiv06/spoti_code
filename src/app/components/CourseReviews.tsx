@@ -413,19 +413,19 @@ export default function CourseReviews({
   }, [isModalOpen, isSuccessModalOpen, isAnyModalOpen]);
 
   return (
-    <section className="glass-panel overflow-hidden rounded-[1.5rem] border border-gray-200/80 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.08)] dark:border-white/[0.06] dark:shadow-none sm:rounded-[2rem] md:rounded-4xl">
+    <section className="glass-panel overflow-hidden rounded-[1.5rem] sm:rounded-[2rem] md:rounded-4xl border border-gray-200/80 dark:border-white/[0.06] shadow-[0_10px_30px_-5px_rgba(0,0,0,0.04)] bg-white/95 dark:bg-white/[0.03]">
       <div className="border-b border-gray-200/80 px-5 py-5 dark:border-white/[0.06] md:px-8 md:py-6">
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
           <div className="flex w-full items-center justify-center gap-3 text-center sm:w-auto sm:justify-start sm:text-right md:gap-4">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-white/50 bg-gradient-to-br from-emerald-100 to-white text-primary shadow-sm dark:border-gray-700 dark:from-emerald-900/30 dark:to-gray-800 md:size-12 md:rounded-2xl">
+            <div className="flex size-10 sm:size-11 md:size-12 shrink-0 items-center justify-center rounded-xl md:rounded-2xl border border-emerald-200/70 bg-emerald-50 text-primary shadow-xs dark:border-emerald-800/40 dark:bg-emerald-950/40">
               <span className="material-symbols-outlined filled text-xl md:text-2xl">rate_review</span>
             </div>
             <div>
-              <h2 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-black text-gray-900 dark:text-white">
                 نظرات دانشجویان
               </h2>
-              <span className="text-[10px] md:text-sm text-gray-600 dark:text-gray-400 mt-0.5 md:mt-1 block">
-                ({liveTotalReviews} نظر)
+              <span className="text-[11px] md:text-xs text-gray-500 dark:text-gray-400 font-bold mt-0.5 block">
+                ({liveTotalReviews} نظر ثبت شده)
               </span>
             </div>
           </div>
@@ -440,14 +440,14 @@ export default function CourseReviews({
                 ? "ادمین و مدرس فقط می‌توانند در پاسخ به نظرها پیام ثبت کنند."
                 : undefined
             }
-            className="w-full sm:w-auto justify-center text-sm font-bold text-white bg-primary hover:bg-primary-dark dark:bg-primary dark:hover:bg-primary-dark px-4 md:px-5 py-2 md:py-2.5 rounded-xl md:rounded-2xl shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:bg-primary disabled:hover:shadow-primary/25"
+            className="w-full sm:w-auto justify-center text-sm font-black text-white bg-primary hover:bg-primary-dark dark:bg-primary dark:hover:bg-primary-dark px-5 py-2.5 rounded-xl md:rounded-2xl shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:bg-primary disabled:hover:shadow-primary/25"
           >
             <span className="material-symbols-outlined text-base md:text-lg">edit_square</span>
             ثبت نظر
           </button>
         </div>
         {cannotCreateStandaloneReview ? (
-          <p className="mt-3 rounded-2xl border border-amber-500/15 bg-amber-500/10 px-4 py-3 text-center text-xs font-bold leading-6 text-amber-600 dark:text-amber-300 sm:text-right">
+          <p className="mt-3.5 rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-center text-xs font-bold leading-6 text-amber-800 shadow-xs dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300 sm:text-right">
             ادمین و مدرس نمی‌توانند برای دوره نظر مستقل ثبت کنند؛ فقط امکان پاسخ به نظرهای کاربران برای آن‌ها فعال است.
           </p>
         ) : null}
@@ -607,12 +607,30 @@ export default function CourseReviews({
       )}
 
       <div className="p-4 md:p-6">
-        <div className="min-h-[12rem] overflow-hidden rounded-[1.5rem] border border-gray-200/70 bg-white/80 dark:border-white/10 dark:bg-white/[0.02] md:rounded-[1.75rem]">
+        <div className="min-h-[12rem] overflow-hidden rounded-[1.5rem] border border-gray-200/80 bg-white/70 dark:border-white/10 dark:bg-white/[0.02] md:rounded-[1.75rem]">
           {isLoadingReviews && !hasLoadedOnce ? (
             <CommentsSkeleton />
           ) : liveReviews.length === 0 ? (
-            <div className="px-6 py-10 text-center text-sm font-bold text-gray-500 dark:text-gray-400">
-              هنوز نظری برای این دوره ثبت نشده است.
+            <div className="px-6 py-12 text-center flex flex-col items-center justify-center">
+              <div className="size-14 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200/70 dark:bg-white/5 dark:border-white/10 dark:text-emerald-400 flex items-center justify-center mb-3.5 shadow-xs">
+                <span className="material-symbols-outlined text-2xl">rate_review</span>
+              </div>
+              <p className="text-sm md:text-base font-black text-gray-800 dark:text-gray-200 mb-1">
+                هنوز نظری برای این دوره ثبت نشده است
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mb-4 leading-6">
+                شما می‌توانید اولین نفری باشید که تجربه یا نظر خود را درباره این دوره با دیگران به اشتراک می‌گذارد.
+              </p>
+              {!cannotCreateStandaloneReview && (
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(true)}
+                  className="text-xs font-black text-primary bg-primary/10 hover:bg-primary/20 px-4 py-2.5 rounded-xl transition-all hover:scale-105 cursor-pointer flex items-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-base">edit_square</span>
+                  ثبت اولین نظر
+                </button>
+              )}
             </div>
           ) : (
             <>

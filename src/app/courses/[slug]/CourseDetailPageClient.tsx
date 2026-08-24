@@ -221,24 +221,25 @@ export default function CourseDetailPageClient({ slug, adminPreviewCourseId }: C
       <aside className="lg:col-span-4 relative z-20 order-1 lg:order-2 mb-1 lg:mb-0 min-w-0">
         <div className="lg:sticky lg:top-28 space-y-3 sm:space-y-4 lg:space-y-6">
           {showPriceCard ? (
-            <div className="glass-panel rounded-[1.5rem] md:rounded-4xl p-4 sm:p-6 md:p-8 border border-white/80 dark:border-gray-700 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1),0_10px_20px_-5px_rgba(0,0,0,0.04)] relative overflow-hidden group">
+            <div className="glass-panel rounded-[1.5rem] md:rounded-4xl p-5 sm:p-6 md:p-8 border border-gray-200/80 dark:border-white/10 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.05),0_2px_8px_-2px_rgba(0,0,0,0.02)] relative overflow-hidden group bg-white/95 dark:bg-white/[0.03]">
+              <div className="absolute -top-12 -right-12 size-32 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
               {priceBlock}
             </div>
           ) : null}
 
           {courseData.features.length > 0 ? (
-            <div className="glass-panel rounded-[1.5rem] md:rounded-4xl p-4 sm:p-6 md:p-8 border border-white/60 dark:border-gray-700">
-              <h4 className="font-black text-gray-900 dark:text-white text-sm md:text-base mb-3 sm:mb-4 px-1 sm:px-2 border-r-4 border-primary rounded-r">
+            <div className="glass-panel rounded-[1.5rem] md:rounded-4xl p-5 sm:p-6 md:p-8 border border-gray-200/80 dark:border-white/10 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.05),0_2px_8px_-2px_rgba(0,0,0,0.02)] bg-white/95 dark:bg-white/[0.03]">
+              <h4 className="font-black text-gray-900 dark:text-white text-sm md:text-base mb-3.5 sm:mb-4 pr-3 border-r-4 border-primary rounded-r flex items-center gap-2">
                 ویژگی‌های متمایز
               </h4>
-              <ul className="space-y-2.5 sm:space-y-3">
+              <ul className="space-y-3 sm:space-y-3.5">
                 {courseData.features.map((feature) => (
                   <li
                     key={feature.id}
-                    className="flex items-center gap-2.5 sm:gap-3 text-gray-700 dark:text-gray-300 font-bold text-xs md:text-sm"
+                    className="flex items-center gap-3 text-gray-700 dark:text-gray-200 font-bold text-xs md:text-sm"
                   >
-                    <span className="size-7 sm:size-8 rounded-xl bg-white dark:bg-gray-800 shadow-sm text-primary flex items-center justify-center shrink-0 border border-primary/20">
-                      <span className="material-symbols-outlined text-sm">{feature.icon}</span>
+                    <span className="size-8 sm:size-8.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 shadow-xs flex items-center justify-center shrink-0 border border-emerald-200/70 dark:border-emerald-800/40">
+                      <span className="material-symbols-outlined text-base">{feature.icon}</span>
                     </span>
                     <span className="leading-6">{feature.title}</span>
                   </li>
@@ -255,12 +256,12 @@ export default function CourseDetailPageClient({ slug, adminPreviewCourseId }: C
         </div>
 
         {!isAdminPreview ? (
-          <div className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#14161c]/92 px-3 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
+          <div className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-gray-200/80 dark:border-white/10 bg-white/95 dark:bg-[#14161c]/95 px-3 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
             <div className="mx-auto flex max-w-[1440px] items-center gap-3">
               {showPriceCard ? (
                 <div className="min-w-0 shrink-0 text-right">
-                  <p className="text-[10px] font-bold text-gray-400">مبلغ ثبت‌نام</p>
-                  <p className="text-sm font-black text-white">
+                  <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400">مبلغ ثبت‌نام</p>
+                  <p className="text-sm font-black text-gray-900 dark:text-white">
                     {courseData.isFree ? "رایگان" : `${priceLabel} تومان`}
                   </p>
                 </div>
@@ -333,6 +334,10 @@ export default function CourseDetailPageClient({ slug, adminPreviewCourseId }: C
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark transition-colors duration-300 relative overflow-x-hidden min-h-screen">
+      {/* Ambient background glows */}
+      <div className="pointer-events-none absolute top-0 right-1/4 w-[500px] h-[500px] bg-primary/[0.04] dark:bg-primary/[0.07] rounded-full blur-[140px] -z-10" />
+      <div className="pointer-events-none absolute top-1/3 left-10 w-[400px] h-[400px] bg-emerald-500/[0.03] dark:bg-emerald-500/[0.05] rounded-full blur-[120px] -z-10" />
+
       {isAdminPreview && previewMeta && courseData ? (
         <AdminCoursePreviewBar
           courseId={courseData.id}
