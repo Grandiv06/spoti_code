@@ -171,19 +171,19 @@ export default function SecuritySettingsPanel() {
   const totpEnabled = status?.totpEnabled ?? false;
 
   return (
-    <div className="relative overflow-hidden rounded-[1.75rem] border border-gray-200/80 bg-white p-6 shadow-[0_20px_60px_-24px_rgba(15,23,42,0.18)] dark:border-white/10 dark:bg-[#171922] dark:shadow-[0_20px_60px_-24px_rgba(0,0,0,0.55)] md:p-7">
+    <div className="relative overflow-hidden rounded-3xl border border-gray-200/80 bg-white p-5 sm:p-7 shadow-xs dark:border-white/[0.07] dark:bg-[#101217]">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-16 right-0 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
         <div className="absolute -bottom-20 left-0 h-44 w-44 rounded-full bg-sky-500/10 blur-3xl" />
       </div>
 
-      <div className="relative mb-7 flex items-start gap-3">
-        <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-primary/15 bg-primary/10 text-primary shadow-sm">
+      <div className="relative mb-6 flex items-center gap-3">
+        <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary shadow-xs">
           <span className="material-symbols-outlined text-[22px]">encrypted</span>
         </div>
         <div>
-          <h2 className="text-lg font-black text-gray-900 dark:text-white">امنیت و ورود دو مرحله‌ای</h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <h2 className="text-base sm:text-lg font-black text-gray-900 dark:text-white">امنیت و ورود دو مرحله‌ای</h2>
+          <p className="mt-0.5 text-xs text-gray-500 dark:text-slate-400">
             روش تایید هویت هنگام ورود به حساب خود را انتخاب کنید.
           </p>
         </div>

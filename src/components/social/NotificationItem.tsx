@@ -98,15 +98,15 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
         !notification.isRead && markNotificationAsRead(notification.id)
       }
       className={cn(
-        "flex items-start gap-4 p-4 rounded-2xl transition-colors relative overflow-hidden group cursor-pointer",
+        "flex items-start gap-4 p-4 rounded-2xl transition-all relative overflow-hidden group cursor-pointer border",
         notification.isRead
-          ? "bg-white dark:bg-[#1c1e26] hover:bg-gray-50 dark:hover:bg-white/[0.02]"
-          : "bg-blue-50/50 dark:bg-blue-500/5 hover:bg-blue-50 dark:hover:bg-blue-500/10",
+          ? "bg-white dark:bg-[#101217] border-gray-100 dark:border-white/[0.06] hover:bg-gray-50 dark:hover:bg-white/[0.03]"
+          : "bg-emerald-50/40 dark:bg-primary/[0.06] border-primary/20 hover:bg-emerald-50/70 dark:hover:bg-primary/[0.1] shadow-xs",
       )}
     >
       {/* Unread Indicator Dot */}
       {!notification.isRead && (
-        <span className="absolute top-4 left-4 w-2 h-2 rounded-full bg-blue-500" />
+        <span className="absolute top-4 left-4 size-2 rounded-full bg-primary ring-4 ring-primary/20" />
       )}
 
       <div className="relative shrink-0">
@@ -115,19 +115,19 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
           alt={notification.actor.displayName}
           size="md"
         />
-        <div className="absolute -bottom-1 -right-1 bg-white dark:bg-[#1c1e26] rounded-full p-1 shadow-sm">
+        <div className="absolute -bottom-1 -right-1 bg-white dark:bg-[#101217] rounded-full p-1 shadow-sm border border-gray-100 dark:border-white/10">
           {getIcon()}
         </div>
       </div>
 
       <div className="flex-1 min-w-0">
-        <div className="flex flex-wrap items-center gap-1.5 mb-1">
+        <div className="flex flex-wrap items-center gap-1.5 mb-1 text-sm">
           <span className="font-bold text-gray-900 dark:text-white truncate max-w-[200px]">
             {notification.actor.displayName}
           </span>
           {getText()}
         </div>
-        <div className="text-xs text-gray-400 font-medium">
+        <div className="text-xs text-gray-400 dark:text-slate-500 font-medium">
           {getRelativeTime(notification.createdAt)}
         </div>
       </div>

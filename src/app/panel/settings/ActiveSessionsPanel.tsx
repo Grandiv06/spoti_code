@@ -88,20 +88,20 @@ export default function ActiveSessionsPanel() {
   const usagePercent = maxSessions > 0 ? Math.min(100, (sessions.length / maxSessions) * 100) : 0;
 
   return (
-    <div className="relative overflow-hidden rounded-[1.75rem] border border-gray-200/80 bg-white p-6 shadow-[0_20px_60px_-24px_rgba(15,23,42,0.18)] dark:border-white/10 dark:bg-[#171922] dark:shadow-[0_20px_60px_-24px_rgba(0,0,0,0.55)] md:p-7">
+    <div className="relative overflow-hidden rounded-3xl border border-gray-200/80 bg-white p-5 sm:p-7 shadow-xs dark:border-white/[0.07] dark:bg-[#101217]">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-16 left-0 h-40 w-40 rounded-full bg-violet-500/10 blur-3xl" />
         <div className="absolute -bottom-20 right-0 h-44 w-44 rounded-full bg-primary/10 blur-3xl" />
       </div>
 
-      <div className="relative mb-7">
-        <div className="flex items-start gap-3">
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-violet-500/15 bg-violet-500/10 text-violet-600 shadow-sm dark:text-violet-300">
+      <div className="relative mb-6">
+        <div className="flex items-center gap-3">
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-violet-500/20 bg-violet-500/10 text-violet-600 shadow-xs dark:text-violet-300">
             <span className="material-symbols-outlined text-[22px]">devices</span>
           </div>
           <div>
-            <h2 className="text-lg font-black text-gray-900 dark:text-white">نشست‌های فعال</h2>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <h2 className="text-base sm:text-lg font-black text-gray-900 dark:text-white">نشست‌های فعال</h2>
+            <p className="mt-0.5 text-xs text-gray-500 dark:text-slate-400">
               دستگاه‌هایی که هم‌اکنون به حساب شما متصل هستند را مدیریت کنید.
             </p>
           </div>
@@ -109,9 +109,9 @@ export default function ActiveSessionsPanel() {
       </div>
 
       <div className="relative mb-6">
-        <div className="mb-2 flex items-center justify-between text-[11px] font-bold text-gray-400 dark:text-gray-500">
-          <span>ظرفیت نشست</span>
-          <span>{usagePercent.toLocaleString("fa-IR")}٪</span>
+        <div className="mb-2 flex items-center justify-between text-xs font-bold text-gray-500 dark:text-slate-400">
+          <span>ظرفیت نشست‌ها ({sessions.length.toLocaleString("fa-IR")} از {maxSessions.toLocaleString("fa-IR")} دستگاه)</span>
+          <span className="text-primary font-black">{usagePercent.toLocaleString("fa-IR")}٪</span>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-white/10">
           <div
@@ -172,24 +172,24 @@ export default function ActiveSessionsPanel() {
                   <div className="pointer-events-none absolute inset-y-0 right-0 w-1 bg-primary" />
                 )}
 
-                <div className="grid grid-cols-[1fr_auto] items-center gap-4">
-                  <div className="flex min-w-0 items-center gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+                  <div className="flex items-start sm:items-center gap-3 min-w-0">
                     <div
                       className={cn(
-                        "flex size-12 shrink-0 items-center justify-center rounded-2xl border shadow-sm transition-transform duration-300 group-hover:scale-105",
+                        "flex size-11 sm:size-12 shrink-0 items-center justify-center rounded-2xl border shadow-xs transition-transform duration-300 group-hover:scale-105 mt-0.5 sm:mt-0",
                         session.isCurrent
                           ? "border-primary/20 bg-primary/10 text-primary"
-                          : "border-gray-200 bg-white text-gray-500 dark:border-white/10 dark:bg-[#1c1e26] dark:text-gray-300"
+                          : "border-gray-200 bg-white text-gray-500 dark:border-white/10 dark:bg-[#101217] dark:text-gray-300"
                       )}
                     >
-                      <span className="material-symbols-outlined text-[24px]">
+                      <span className="material-symbols-outlined text-[22px] sm:text-[24px]">
                         {deviceTypeIcon(session.deviceType)}
                       </span>
                     </div>
 
-                    <div className="min-w-0 text-right">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="truncate text-sm font-black text-gray-900 dark:text-white">
+                    <div className="min-w-0 flex-1 text-right">
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                        <p className="text-sm font-black text-gray-900 dark:text-white break-words">
                           {session.deviceLabel}
                         </p>
                         {session.isCurrent && (
@@ -200,16 +200,18 @@ export default function ActiveSessionsPanel() {
                         )}
                       </div>
 
-                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        آخرین فعالیت: {formatSessionDate(session.lastActiveAt)}
-                      </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-slate-400">
+                        <span>
+                          آخرین فعالیت: {formatSessionDate(session.lastActiveAt)}
+                        </span>
 
-                      {ipLabel && (
-                        <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-medium text-gray-500 dark:bg-white/5 dark:text-gray-400">
-                          <span className="material-symbols-outlined text-[13px]">language</span>
-                          <span dir="ltr">{ipLabel}</span>
-                        </p>
-                      )}
+                        {ipLabel && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-white/5 px-2 py-0.5 text-[10px] font-medium text-gray-500 dark:text-slate-400">
+                            <span className="material-symbols-outlined text-[12px]">language</span>
+                            <span dir="ltr">{ipLabel}</span>
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -218,14 +220,14 @@ export default function ActiveSessionsPanel() {
                     onClick={() => handleRevokeClick(session)}
                     disabled={revokingId === session.id}
                     className={cn(
-                      "inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-xs font-black transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50",
+                      "inline-flex w-full sm:w-auto shrink-0 items-center justify-center gap-2 rounded-xl border px-3.5 py-2 sm:py-2.5 text-xs font-black transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer",
                       session.isCurrent
                         ? "border-red-200 bg-red-50 text-red-600 hover:border-red-300 hover:bg-red-100 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/15"
                         : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-white/10"
                     )}
                   >
                     <LogOut className="h-3.5 w-3.5" />
-                    {session.isCurrent ? "حذف این دستگاه" : "خروج از دستگاه"}
+                    <span>{session.isCurrent ? "حذف این دستگاه" : "خروج از دستگاه"}</span>
                   </button>
                 </div>
               </div>

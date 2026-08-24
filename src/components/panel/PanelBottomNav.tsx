@@ -4,7 +4,7 @@ import {
   GraduationCap,
   Headphones,
   Home,
-  ReceiptText,
+  Settings,
   User,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -119,20 +119,12 @@ const navItems: PanelNavItemConfig[] = [
   { href: "/panel/support", label: "پشتیبانی", icon: Headphones },
   { href: "/panel", label: "داشبورد", icon: Home, isCenter: true },
   { href: "/panel/courses", label: "دوره‌ها", icon: GraduationCap },
-  { href: "/panel/transactions", label: "تراکنش‌ها", icon: ReceiptText },
+  { href: "/panel/settings", label: "تنظیمات", icon: Settings },
 ];
 
 function isActive(pathname: string, href: string) {
   if (href === "/panel") {
     return pathname === "/panel";
-  }
-  if (href === "/panel/profile") {
-    return (
-      pathname === "/panel/profile" ||
-      pathname.startsWith("/panel/profile/") ||
-      pathname === "/panel/settings" ||
-      pathname.startsWith("/panel/settings/")
-    );
   }
   return pathname === href || pathname.startsWith(`${href}/`);
 }
@@ -171,18 +163,18 @@ export default function PanelBottomNav({ className }: PanelBottomNavProps) {
         className="relative mx-auto w-full max-w-2xl h-[calc(3.5rem+env(safe-area-inset-bottom,0px))] mt-[1.25rem] overflow-visible"
       >
         <div
-          className="pointer-events-none absolute inset-0 rounded-t-[1.4rem] bg-[color-mix(in_oklab,#ffffff_86%,transparent)] shadow-[0_-18px_48px_rgba(15,23,42,0.16)] backdrop-blur-2xl supports-[backdrop-filter]:bg-[color-mix(in_oklab,#ffffff_72%,transparent)] dark:bg-[color-mix(in_oklab,#14161c_82%,transparent)] dark:shadow-[0_-18px_48px_rgba(0,0,0,0.55)] dark:supports-[backdrop-filter]:bg-[color-mix(in_oklab,#14161c_66%,transparent)]"
+          className="pointer-events-none absolute inset-0 rounded-t-[1.4rem] bg-[color-mix(in_oklab,#ffffff_86%,transparent)] shadow-[0_-18px_48px_rgba(15,23,42,0.16)] backdrop-blur-2xl supports-[backdrop-filter]:bg-[color-mix(in_oklab,#ffffff_72%,transparent)] dark:bg-[color-mix(in_oklab,#090a0d_90%,transparent)] dark:shadow-[0_-18px_48px_rgba(0,0,0,0.8)] dark:supports-[backdrop-filter]:bg-[color-mix(in_oklab,#090a0d_78%,transparent)]"
           style={CUTOUT_MASK_STYLE}
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute inset-0 rounded-t-[1.4rem] [box-shadow:inset_0_-1px_0_color-mix(in_oklab,#22c55e_12%,transparent)]"
+          className="pointer-events-none absolute inset-0 rounded-t-[1.4rem] [box-shadow:inset_0_-1px_0_color-mix(in_oklab,#22c55e_15%,transparent)]"
           style={CUTOUT_MASK_STYLE}
           aria-hidden
         />
 
         <svg
-          className="pointer-events-none absolute inset-0 z-0 block size-full overflow-visible text-[color-mix(in_oklab,#22c55e_34%,transparent)] dark:text-[color-mix(in_oklab,#22c55e_28%,transparent)]"
+          className="pointer-events-none absolute inset-0 z-0 block size-full overflow-visible text-[color-mix(in_oklab,#22c55e_34%,transparent)] dark:text-[color-mix(in_oklab,#22c55e_38%,transparent)]"
           viewBox={`0 0 ${barSize.w} ${barSize.h}`}
           preserveAspectRatio="xMidYMid meet"
           aria-hidden

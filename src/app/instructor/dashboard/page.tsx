@@ -253,23 +253,6 @@ export default function InstructorDashboardPage() {
               </Link>
             </div>
           )}
-
-          {stats.newQuestions > 0 && (
-            <div className="col-span-2 rounded-2xl bg-rose-500/10 border border-rose-500/20 px-4 py-3.5 flex items-center justify-between gap-3 text-rose-700 dark:text-rose-300">
-              <div className="flex items-center gap-2">
-                <HelpCircle className="w-5 h-5 shrink-0 animate-pulse" />
-                <span className="text-xs font-bold leading-relaxed">
-                  تعداد {formatPersian(stats.newQuestions)} سوال جدید مطرح شده در انجمن‌ها منتظر پاسخ شماست!
-                </span>
-              </div>
-              <Link
-                href="/instructor/questions"
-                className="text-[10px] font-black underline hover:text-rose-600 transition-colors"
-              >
-                پاسخ به سوالات
-              </Link>
-            </div>
-          )}
         </div>
       )}
 

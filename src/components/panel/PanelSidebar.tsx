@@ -40,8 +40,8 @@ export default function PanelSidebar() {
 
   return (
     <>
-      <aside className="hidden lg:flex h-full w-72 shrink-0 bg-white dark:bg-[#14161c] border-l border-gray-200/70 dark:border-white/5 flex-col">
-        <div className="relative p-6 flex items-center justify-center border-b border-gray-200/70 dark:border-white/5 min-h-24 shrink-0">
+      <aside className="hidden lg:flex h-full w-72 shrink-0 bg-white dark:bg-[#090a0d] border-l border-gray-200/70 dark:border-white/[0.07] flex-col">
+        <div className="relative p-6 flex items-center justify-center border-b border-gray-200/70 dark:border-white/[0.07] min-h-24 shrink-0">
           <Link
             href="/"
             className="flex items-center gap-3 group cursor-pointer transition-transform hover:scale-[1.02]"

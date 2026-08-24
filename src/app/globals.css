@@ -97,18 +97,18 @@
 }
 
 .dark {
-  /* Dark Theme Overrides – آبی خیلی تیره */
-  --color-background-base: #14161c;
-  --color-surface-card: rgba(28, 30, 38, 0.8);
-  --color-surface-card-hover: rgba(38, 42, 52, 0.95);
-  --color-glass-surface: rgba(20, 22, 28, 0.9);
-  --color-glass-surface-hover: rgba(28, 30, 38, 0.95);
+  /* Dark Theme Overrides – مشکی عمیق، لوکس و پرمیوم با اکسنت زمردی زنده */
+  --color-background-base: #090a0d;
+  --color-surface-card: rgba(16, 18, 24, 0.92);
+  --color-surface-card-hover: rgba(22, 25, 33, 0.96);
+  --color-glass-surface: rgba(13, 15, 20, 0.9);
+  --color-glass-surface-hover: rgba(19, 22, 29, 0.96);
   --color-glass-border: rgba(255, 255, 255, 0.08);
-  --color-text-main: #f4f4f5;
-  --color-text-muted: #a1a1aa;
-  --color-sage: #a7f3d0;
-  --color-sage-light: rgba(167, 243, 208, 0.1);
-  --color-primary-soft: rgba(34, 197, 94, 0.15);
+  --color-text-main: #f8fafc;
+  --color-text-muted: #94a3b8;
+  --color-sage: #34d399;
+  --color-sage-light: rgba(52, 211, 153, 0.12);
+  --color-primary-soft: rgba(34, 197, 94, 0.16);
 }
 
 @theme {
@@ -118,7 +118,7 @@
   --color-primary-soft: var(--color-primary-soft);
 
   --color-background-light: #f8fafc;
-  --color-background-dark: #14161c;
+  --color-background-dark: #090a0d;
 
   /* Dynamic Colors */
   --color-background-base: var(--color-background-base);
@@ -131,11 +131,11 @@
   --color-sage-light: var(--color-sage-light);
 
   --color-surface-light: #ffffff;
-  --color-surface-dark: #1c1e26;
+  --color-surface-dark: #101217;
   --color-text-light: #1f2937;
-  --color-text-dark: #f3f4f6;
+  --color-text-dark: #f8fafc;
   --color-text-muted-light: #6b7280;
-  --color-text-muted-dark: #9ca3af;
+  --color-text-muted-dark: #94a3b8;
 
   --font-sans: "Iran Yekan", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Iran Yekan", ui-sans-serif, system-ui, sans-serif;
@@ -568,9 +568,9 @@ html.material-icons-loading .material-icons-round {
 
 .dark .mesh-bg {
   background-image:
-    radial-gradient(at 40% 20%, rgba(34, 197, 94, 0.12) 0px, transparent 50%),
-    radial-gradient(at 80% 0%, rgba(34, 197, 94, 0.08) 0px, transparent 50%),
-    radial-gradient(at 0% 50%, rgba(34, 197, 94, 0.1) 0px, transparent 50%);
+    radial-gradient(at 40% 15%, rgba(34, 197, 94, 0.16) 0px, transparent 60%),
+    radial-gradient(at 85% 5%, rgba(34, 197, 94, 0.1) 0px, transparent 50%),
+    radial-gradient(at 5% 55%, rgba(34, 197, 94, 0.08) 0px, transparent 55%);
 }
 
 /* Hide Next.js Dev Indicator Badge */

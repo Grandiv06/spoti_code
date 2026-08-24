@@ -60,7 +60,7 @@ export default function PanelShell({
   return (
     <div
       ref={shellRef}
-      className="panel-shell fixed inset-x-0 top-0 bottom-0 bg-gray-50 text-gray-900 dark:bg-[#14161c] dark:text-[#e2e8f0] flex overflow-hidden"
+      className="panel-shell fixed inset-x-0 top-0 bottom-0 bg-gray-50 text-gray-900 dark:bg-[#090a0d] dark:text-[#f8fafc] flex overflow-hidden"
     >
       {sidebar}
       <div className="flex-1 flex flex-col min-w-0 min-h-0">

@@ -41,7 +41,7 @@ function StatTile({
             "inline-flex size-7 shrink-0 items-center justify-center rounded-lg border lg:size-10 lg:rounded-xl",
           hasValue
             ? "border-primary/25 bg-primary/10 text-primary"
-            : "border-gray-200 bg-gray-50 text-gray-400 dark:border-white/10 dark:bg-[#14161c] dark:text-slate-400",
+            : "border-gray-200 bg-gray-50 text-gray-400 dark:border-white/10 dark:bg-[#0a0b0f] dark:text-slate-400",
         )}
       >
         <Icon className="size-3.5 lg:size-4" strokeWidth={2.25} />
@@ -61,10 +61,10 @@ function StatTile({
   );
 
   const className = cn(
-    "block rounded-xl border bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition-all duration-200 active:scale-[0.98] dark:bg-[#181a21]",
+    "block rounded-xl border bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition-all duration-200 active:scale-[0.98] dark:bg-[#101217]",
     hasValue
       ? "border-primary/20"
-      : "border-gray-200/70 dark:border-white/[0.06]",
+      : "border-gray-200/70 dark:border-white/[0.07]",
     href && "cursor-pointer hover:border-primary/35",
   );
 
@@ -82,7 +82,7 @@ function StatTile({
 function DashboardSkeleton() {
   return (
     <div className="mx-auto w-full max-w-3xl space-y-3 sm:space-y-4 pb-2 lg:max-w-6xl">
-      <div className="rounded-2xl border border-gray-200/70 bg-white p-3.5 dark:border-white/[0.07] dark:bg-[#1c1e26]/80 sm:p-4">
+      <div className="rounded-2xl border border-gray-200/70 bg-white p-3.5 dark:border-white/[0.07] dark:bg-[#101217] sm:p-4">
         <SkeletonBox className="mb-2 h-3 w-20" rounded="rounded-md" />
         <SkeletonBox className="mb-2 h-6 w-40" rounded="rounded-lg" />
         <SkeletonBox className="mb-4 h-4 w-56" rounded="rounded-md" />
@@ -93,7 +93,7 @@ function DashboardSkeleton() {
         {Array.from({ length: 4 }).map((_, index) => (
           <div
             key={index}
-            className="rounded-xl border border-gray-200/70 bg-white dark:border-white/[0.06] dark:bg-[#181a21]"
+            className="rounded-xl border border-gray-200/70 bg-white dark:border-white/[0.07] dark:bg-[#101217]"
           >
             <div className="flex min-h-[3.25rem] items-center gap-2 p-2.5 sm:p-3">
               <SkeletonBox className="size-7 shrink-0" rounded="rounded-lg" />
@@ -108,14 +108,13 @@ function DashboardSkeleton() {
         {Array.from({ length: 3 }).map((_, index) => (
           <div
             key={index}
-            className="rounded-2xl border border-gray-200/70 bg-white p-2.5 dark:border-white/[0.06] dark:bg-[#111318] sm:p-3"
+            className="rounded-2xl border border-gray-200/70 bg-white p-2.5 dark:border-white/[0.07] dark:bg-[#101217] sm:p-3"
           >
             <div className="flex items-center gap-2.5">
               <SkeletonBox className="size-14 shrink-0 sm:size-16" rounded="rounded-xl" />
               <div className="min-w-0 flex-1 space-y-2">
                 <SkeletonBox className="h-4 w-40" rounded="rounded-md" />
                 <SkeletonBox className="h-3 w-24" rounded="rounded-md" />
-                <SkeletonBox className="h-1.5 w-full" rounded="rounded-full" />
               </div>
             </div>
           </div>
