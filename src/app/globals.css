@@ -319,6 +319,36 @@ body.panel-overlay-open [data-panel-bottom-nav] {
   animation: slide-in-from-right 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
+@keyframes wizard-step-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-wizard-step-enter {
+  animation: wizard-step-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes wizard-badge-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-wizard-badge-pop {
+  animation: wizard-badge-pop 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 @keyframes auth-page-enter {
   from {
     opacity: 0;

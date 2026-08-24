@@ -27,6 +27,11 @@ import {
   ArrowRight,
   ArrowLeft,
   Check,
+  CheckCircle2,
+  AlertTriangle,
+  Loader2,
+  RefreshCw,
+  CloudUpload,
   UploadCloud,
   FileImage,
   Video,
@@ -707,13 +712,13 @@ function mergeDraftIntoWizardForm(
 }
 
 const WIZARD_FIELD_CLASS =
-  "bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] rounded-2xl text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] focus:border-primary/50 focus:ring-2 focus:ring-primary/15 focus:outline-none transition-all";
+  "bg-gray-50/80 dark:bg-white/[0.04] border border-gray-200/70 dark:border-white/[0.08] rounded-xl text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 shadow-sm hover:border-gray-300/90 dark:hover:border-white/[0.14] focus:border-primary/60 focus:bg-white dark:focus:bg-white/[0.06] focus:ring-4 focus:ring-primary/10 focus:outline-none transition-all duration-200";
 
 const WIZARD_DROPZONE_CLASS =
-  "border border-dashed border-gray-200/80 dark:border-white/10 rounded-2xl bg-gray-50/60 dark:bg-white/[0.03] hover:border-primary/35 hover:bg-primary/[0.04] dark:hover:bg-primary/[0.06] transition-all";
+  "border-2 border-dashed border-gray-200/90 dark:border-white/10 rounded-2xl bg-gradient-to-b from-gray-50/90 to-gray-50/40 dark:from-white/[0.045] dark:to-white/[0.02] hover:border-primary/50 hover:bg-primary/[0.05] dark:hover:bg-primary/[0.07] hover:shadow-[0_10px_36px_rgba(34,197,94,0.10)] transition-all duration-300";
 
 const WIZARD_SECTION_CLASS =
-  "rounded-2xl border border-gray-200/70 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] p-4 md:p-5";
+  "rounded-2xl border border-gray-200/70 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] p-4 md:p-5 shadow-sm hover:shadow-md hover:border-gray-300/70 dark:hover:border-white/[0.12] transition-all duration-300";
 
 export default function CreateCourseWizardPage() {
   const router = useRouter();
@@ -726,8 +731,24 @@ export default function CreateCourseWizardPage() {
   const userEditedFormRef = useRef(false);
   const heroTitleTouchedRef = useRef(false);
   const lastSavedSnapshotRef = useRef<string | null>(null);
+
+  // ─── Auto-save (ذخیره خودکار) ───
+  const [autoSaveStatus, setAutoSaveStatus] = useState<
+    "idle" | "dirty" | "saving" | "saved" | "error"
+  >("idle");
+  const [lastAutoSavedAt, setLastAutoSavedAt] = useState<Date | null>(null);
+  const [editTick, setEditTick] = useState(0);
+  const autoSaveInFlightRef = useRef(false);
+  const autoSaveGuardsRef = useRef({
+    isSaving: false,
+    isLoading: false,
+    step: 1,
+    courseId: null as string | null,
+  });
+
   const markFormEdited = () => {
     userEditedFormRef.current = true;
+    setEditTick((tick) => tick + 1);
   };
   const [step, setStep] = useState(() =>
     readWizardStepFromParams(searchParams),
@@ -754,6 +775,17 @@ export default function CreateCourseWizardPage() {
   const [unsavedModalOpen, setUnsavedModalOpen] = useState(false);
   const [pendingNavigationUrl, setPendingNavigationUrl] = useState<string | null>(null);
   const isNavigatingBypassRef = useRef(false);
+
+  // Keep live mirrors of values the debounced auto-save needs, so the timer
+  // callback never acts on stale state (course id, active step, saving flags).
+  useEffect(() => {
+    autoSaveGuardsRef.current = {
+      isSaving: isSavingStep1,
+      isLoading: isLoadingDraft,
+      step,
+      courseId: createdCourseId ?? draftCourseId ?? null,
+    };
+  }, [isSavingStep1, isLoadingDraft, step, createdCourseId, draftCourseId]);
 
   // Unified Wizard State
   const [formData, setFormData] = useState<WizardFormData>({
@@ -1129,6 +1161,7 @@ export default function CreateCourseWizardPage() {
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
+    markFormEdited();
     setFormData((prev) => ({
       ...prev,
       title: val,
@@ -1145,6 +1178,7 @@ export default function CreateCourseWizardPage() {
     const englishDigits = normalizeDigitsToEnglish(e.target.value);
     const digitsOnly = englishDigits.replace(/\D/g, "");
     const withoutLeadingZeros = digitsOnly.replace(/^0+/, "");
+    markFormEdited();
     setFormData((p) => ({ ...p, duration: withoutLeadingZeros }));
   };
 
@@ -1152,6 +1186,7 @@ export default function CreateCourseWizardPage() {
     const englishDigits = normalizeDigitsToEnglish(e.target.value);
     const digitsOnly = englishDigits.replace(/\D/g, "");
     const withoutLeadingZeros = digitsOnly.replace(/^0+/, "");
+    markFormEdited();
     setFormData((p) => ({
       ...p,
       price: withoutLeadingZeros ? Number(withoutLeadingZeros) : 0,
@@ -1296,6 +1331,7 @@ export default function CreateCourseWizardPage() {
     url: string,
     fileName: string,
   ) => {
+    markFormEdited();
     setLessonVideoMap((prev) => ({
       ...prev,
       [lessonId]: { name: fileName, url },
@@ -1680,6 +1716,7 @@ export default function CreateCourseWizardPage() {
   // Chapter actions
   const addOrUpdateChapter = () => {
     if (!chapTitle.trim()) return;
+    markFormEdited();
 
     if (editingChapId) {
       setFormData((prev) => ({
@@ -1710,6 +1747,7 @@ export default function CreateCourseWizardPage() {
   };
 
   const deleteChapter = (id: string) => {
+    markFormEdited();
     setFormData((prev) => ({
       ...prev,
       chapters: prev.chapters.filter((c) => c.id !== id),
@@ -1727,6 +1765,7 @@ export default function CreateCourseWizardPage() {
   };
 
   const addChapterInline = () => {
+    markFormEdited();
     const chapNumber = String(formData.chapters.length + 1).padStart(2, "0");
     const newChap: ChapterModel = {
       id: `chap-${Math.random().toString(36).substr(2, 9)}`,
@@ -1740,6 +1779,7 @@ export default function CreateCourseWizardPage() {
   };
 
   const addLessonInline = (chapId: string) => {
+    markFormEdited();
     const newLes: LessonModel = {
       id: `les-${Math.random().toString(36).substr(2, 9)}`,
       title: "جلسه جدید",
@@ -1769,6 +1809,7 @@ export default function CreateCourseWizardPage() {
   };
 
   const updateChapterTitleInline = (chapId: string, value: string) => {
+    markFormEdited();
     setFormData((prev) => ({
       ...prev,
       chapters: prev.chapters.map((c) =>
@@ -1786,6 +1827,8 @@ export default function CreateCourseWizardPage() {
     updated[index] = updated[targetIdx];
     updated[targetIdx] = temp;
 
+    markFormEdited();
+
     // Recalculate Persian numbers
     const finalChaps = updated.map((ch, idx) => ({
       ...ch,
@@ -1797,6 +1840,7 @@ export default function CreateCourseWizardPage() {
 
   const reorderChapters = (sourceId: string, targetId: string) => {
     if (sourceId === targetId) return;
+    markFormEdited();
     setFormData((prev) => {
       const sourceIndex = prev.chapters.findIndex((c) => c.id === sourceId);
       const targetIndex = prev.chapters.findIndex((c) => c.id === targetId);
@@ -1817,6 +1861,7 @@ export default function CreateCourseWizardPage() {
 
   const reorderFaqs = (sourceId: string, targetId: string) => {
     if (sourceId === targetId) return;
+    markFormEdited();
     setFormData((prev) => {
       const sourceIndex = prev.faqs.findIndex((f) => f.id === sourceId);
       const targetIndex = prev.faqs.findIndex((f) => f.id === targetId);
@@ -1915,6 +1960,7 @@ export default function CreateCourseWizardPage() {
   // Lesson actions
   const addOrUpdateLesson = () => {
     if (!lesTitle.trim() || !selectedChapIdForLesson) return;
+    markFormEdited();
 
     if (editingLesId) {
       setFormData((prev) => ({
@@ -1961,6 +2007,7 @@ export default function CreateCourseWizardPage() {
   };
 
   const deleteLesson = (chapId: string, lesId: string) => {
+    markFormEdited();
     setFormData((prev) => ({
       ...prev,
       chapters: prev.chapters.map((c) =>
@@ -2038,6 +2085,7 @@ export default function CreateCourseWizardPage() {
     lesId: string,
     value: string,
   ) => {
+    markFormEdited();
     setFormData((prev) => ({
       ...prev,
       chapters: prev.chapters.map((c) =>
@@ -2155,6 +2203,7 @@ export default function CreateCourseWizardPage() {
   };
 
   const removeLessonVideo = (lessonId: string) => {
+    markFormEdited();
     setLessonVideoMap((prev) => {
       const target = prev[lessonId];
       if (target?.url?.startsWith("blob:")) URL.revokeObjectURL(target.url);
@@ -2175,6 +2224,7 @@ export default function CreateCourseWizardPage() {
   };
 
   const endEditLessonTitle = (lessonId: string) => {
+    markFormEdited();
     setFormData((prev) => ({
       ...prev,
       chapters: prev.chapters.map((chapter) => ({
@@ -2309,6 +2359,7 @@ export default function CreateCourseWizardPage() {
 
   // FAQ actions
   const addFAQBox = () => {
+    markFormEdited();
     const newFaq = {
       id: `faq-${Math.random().toString(36).substr(2, 9)}`,
       question: DEFAULT_FAQ_QUESTION,
@@ -2326,6 +2377,7 @@ export default function CreateCourseWizardPage() {
   };
 
   const updateFAQQuestionInline = (faqId: string, value: string) => {
+    markFormEdited();
     setFormData((prev) => ({
       ...prev,
       faqs: prev.faqs.map((f) =>
@@ -2335,6 +2387,7 @@ export default function CreateCourseWizardPage() {
   };
 
   const updateFAQAnswerInline = (faqId: string, value: string) => {
+    markFormEdited();
     setFormData((prev) => ({
       ...prev,
       faqs: prev.faqs.map((f) =>
@@ -2349,6 +2402,7 @@ export default function CreateCourseWizardPage() {
       newHighlight.trim() &&
       !formData.aboutHighlights.includes(newHighlight.trim())
     ) {
+      markFormEdited();
       setFormData((p) => ({
         ...p,
         aboutHighlights: [...p.aboutHighlights, newHighlight.trim()],
@@ -2358,6 +2412,7 @@ export default function CreateCourseWizardPage() {
   };
 
   const removeHighlightItem = (item: string) => {
+    markFormEdited();
     setFormData((p) => ({
       ...p,
       aboutHighlights: p.aboutHighlights.filter((h) => h !== item),
@@ -2595,9 +2650,14 @@ export default function CreateCourseWizardPage() {
   // Navigation handlers
   const persistCourseDraft = async (
     currentStep = step,
-    options?: { silent?: boolean; formOverrides?: Partial<WizardFormData> },
+    options?: {
+      silent?: boolean;
+      formOverrides?: Partial<WizardFormData>;
+      courseIdOverride?: string | null;
+    },
   ): Promise<string | null> => {
-    const existingCourseId = createdCourseId ?? draftCourseId;
+    const existingCourseId =
+      options?.courseIdOverride ?? createdCourseId ?? draftCourseId;
     let mediaOverrides: Partial<WizardFormData> = { ...options?.formOverrides };
     const initialResponse = await apiPostNoMock<unknown>(
       "/api/instructor-dashboard/courses/drafts",
@@ -2733,6 +2793,73 @@ export default function CreateCourseWizardPage() {
     return courseId;
   };
 
+  // ─── Auto-save engine ───
+  // Runs 2.5s after the last edit/upload and silently persists the draft,
+  // exactly like the auto-save behavior of modern apps (Notion/Google Docs).
+  const runAutoSave = async () => {
+    const guards = autoSaveGuardsRef.current;
+    if (guards.isLoading || guards.isSaving) return;
+    if (autoSaveInFlightRef.current) return;
+    if (!formData.title.trim()) {
+      // The server requires a title before a draft can exist.
+      setAutoSaveStatus("dirty");
+      return;
+    }
+    if (!isWizardDirty()) {
+      setAutoSaveStatus((prev) => (prev === "error" ? prev : "saved"));
+      return;
+    }
+
+    autoSaveInFlightRef.current = true;
+    setAutoSaveStatus("saving");
+    let succeeded = false;
+    try {
+      const savedId = await persistCourseDraft(guards.step, {
+        silent: true,
+        courseIdOverride: guards.courseId,
+      });
+      succeeded = Boolean(savedId);
+      if (succeeded) {
+        setLastAutoSavedAt(new Date());
+        setAutoSaveStatus("saved");
+      } else {
+        setAutoSaveStatus("error");
+      }
+    } catch (error) {
+      console.error("Auto-save failed", error);
+      setAutoSaveStatus("error");
+    } finally {
+      autoSaveInFlightRef.current = false;
+      // New edits arrived while saving → schedule one more pass.
+      if (succeeded && userEditedFormRef.current) {
+        setEditTick((tick) => tick + 1);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (editTick === 0) return;
+    if (isLoadingDraft) return;
+
+    setAutoSaveStatus((prev) => (prev === "saving" ? prev : "dirty"));
+    const timer = window.setTimeout(() => {
+      void runAutoSave();
+    }, 2500);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editTick, isLoadingDraft]);
+
+  // Used by manual saves so they never run concurrently with an auto-save
+  // (prevents duplicate media uploads / double draft POSTs).
+  const waitForAutoSaveIdle = async () => {
+    const startedAt = Date.now();
+    while (autoSaveInFlightRef.current && Date.now() - startedAt < 120_000) {
+      await new Promise((resolve) => {
+        window.setTimeout(resolve, 400);
+      });
+    }
+  };
+
   const handleNext = async () => {
     if (!validateStep(step)) return;
 
@@ -2757,6 +2884,7 @@ export default function CreateCourseWizardPage() {
 
     try {
       setIsSavingStep1(true);
+      await waitForAutoSaveIdle();
 
       let savedCourseId = existingCourseId;
 
@@ -2765,6 +2893,8 @@ export default function CreateCourseWizardPage() {
         // mid-wizard reopens on the step they advanced into.
         savedCourseId = await persistCourseDraft(nextStep, { formOverrides });
         if (!savedCourseId) return;
+        setAutoSaveStatus("saved");
+        setLastAutoSavedAt(new Date());
       }
       // No field changes → skip draft payload POST; just advance the wizard UI.
 
@@ -2850,6 +2980,7 @@ export default function CreateCourseWizardPage() {
 
     try {
       setIsSavingStep1(true);
+      await waitForAutoSaveIdle();
       let courseId = createdCourseId ?? draftCourseId ?? null;
       const dirty = isWizardDirty();
 
@@ -2966,6 +3097,129 @@ export default function CreateCourseWizardPage() {
     return () => window.clearTimeout(timeoutId);
   }, [finalPreviewNotice]);
 
+  // ─── Auto-save status badge (premium pill, Notion-style) ───
+  const renderAutoSaveBadge = (compact = false) => {
+    const savedTimeLabel = lastAutoSavedAt
+      ? lastAutoSavedAt.toLocaleTimeString("fa-IR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : null;
+
+    const baseClass = compact
+      ? "inline-flex items-center gap-1.5 text-[10px] font-bold transition-all duration-300"
+      : "inline-flex items-center gap-2.5 rounded-2xl border px-3.5 py-2.5 text-[11px] font-bold backdrop-blur-md transition-all duration-300 shadow-sm animate-wizard-badge-pop";
+
+    if (autoSaveStatus === "saving") {
+      return (
+        <span
+          key={autoSaveStatus}
+          className={`${baseClass} ${
+            compact
+              ? "text-primary"
+              : "border-primary/25 bg-primary/[0.07] text-primary dark:bg-primary/10"
+          }`}
+          role="status"
+          aria-live="polite"
+        >
+          <Loader2 className={`${compact ? "w-3 h-3" : "w-4 h-4"} animate-spin`} />
+          <span>در حال ذخیره خودکار…</span>
+        </span>
+      );
+    }
+
+    if (autoSaveStatus === "dirty") {
+      return (
+        <span
+          key={autoSaveStatus}
+          className={`${baseClass} ${
+            compact
+              ? "text-amber-500"
+              : "border-amber-400/30 bg-amber-50/80 text-amber-600 dark:bg-amber-400/10 dark:text-amber-400"
+          }`}
+          role="status"
+          aria-live="polite"
+        >
+          <span className="relative flex w-2 h-2 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+            <span className="relative inline-flex rounded-full w-2 h-2 bg-amber-500" />
+          </span>
+          <span>تغییرات ذخیره نشده</span>
+          {!compact && (
+            <span className="text-[9px] font-medium opacity-70">
+              لحظاتی دیگر ذخیره می‌شود
+            </span>
+          )}
+        </span>
+      );
+    }
+
+    if (autoSaveStatus === "error") {
+      return (
+        <span
+          key={autoSaveStatus}
+          className={`${baseClass} ${
+            compact
+              ? "text-red-500"
+              : "border-red-400/30 bg-red-50/80 text-red-600 dark:bg-red-400/10 dark:text-red-400"
+          }`}
+          role="alert"
+        >
+          <AlertTriangle className={compact ? "w-3 h-3" : "w-4 h-4"} />
+          <span>ذخیره خودکار انجام نشد</span>
+          <button
+            type="button"
+            onClick={() => void runAutoSave()}
+            className={`inline-flex items-center gap-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 transition-colors cursor-pointer ${
+              compact ? "px-1.5 py-0.5" : "px-2 py-1 text-[10px] font-black"
+            }`}
+          >
+            <RefreshCw className="w-3 h-3" />
+            تلاش مجدد
+          </button>
+        </span>
+      );
+    }
+
+    if (autoSaveStatus === "saved" || savedTimeLabel) {
+      return (
+        <span
+          key={autoSaveStatus}
+          className={`${baseClass} ${
+            compact
+              ? "text-emerald-600 dark:text-emerald-400"
+              : "border-emerald-400/25 bg-emerald-50/80 text-emerald-600 dark:bg-emerald-400/10 dark:text-emerald-400"
+          }`}
+          role="status"
+          aria-live="polite"
+        >
+          <CheckCircle2 className={compact ? "w-3 h-3" : "w-4 h-4"} />
+          <span>همه تغییرات ذخیره شد</span>
+          {!compact && savedTimeLabel && (
+            <span className="text-[9px] font-medium opacity-70">
+              آخرین ذخیره: {savedTimeLabel}
+            </span>
+          )}
+        </span>
+      );
+    }
+
+    // idle — nothing typed yet
+    return (
+      <span
+        key={autoSaveStatus}
+        className={`${baseClass} ${
+          compact
+            ? "text-gray-400 dark:text-gray-500"
+            : "border-gray-200/80 bg-gray-50/80 text-gray-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-gray-400"
+        }`}
+      >
+        <CloudUpload className={compact ? "w-3 h-3" : "w-4 h-4"} />
+        <span>ذخیره خودکار فعال است</span>
+      </span>
+    );
+  };
+
   return (
     <div
       className="max-w-[1440px] mx-auto px-3 sm:px-4 lg:px-8 py-6 sm:py-10 text-right min-h-screen overflow-x-hidden"
@@ -2973,18 +3227,41 @@ export default function CreateCourseWizardPage() {
     >
       {/* 1. Page Header */}
       <div className="relative w-full rounded-2xl sm:rounded-[2rem] overflow-hidden bg-white dark:bg-[#1c1e26] border border-gray-100 dark:border-white/5 shadow-xl mb-6 sm:mb-10 p-4 sm:p-6 md:p-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
-          <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary shrink-0">
-            <GraduationCap className="w-6 h-6 sm:w-8 sm:h-8" />
+        {/* Decorative premium background */}
+        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+          <div className="absolute -top-28 -left-24 w-80 h-80 rounded-full bg-primary/15 dark:bg-primary/20 blur-3xl" />
+          <div className="absolute -bottom-36 right-1/4 w-96 h-96 rounded-full bg-emerald-400/10 dark:bg-emerald-400/[0.07] blur-3xl" />
+          <div className="absolute inset-0 bg-gradient-to-l from-primary/[0.05] via-transparent to-transparent" />
+        </div>
+
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 min-w-0">
+            <div className="relative shrink-0">
+              <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-primary via-emerald-500 to-emerald-600 flex items-center justify-center text-white shadow-lg shadow-primary/30">
+                <GraduationCap className="w-6 h-6 sm:w-8 sm:h-8" />
+              </div>
+              <span className="absolute -inset-1.5 rounded-[1.35rem] border border-primary/25 dark:border-primary/20" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 mb-1 sm:mb-2">
+                <h1 className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white leading-snug">
+                  استودیوی پیشرفته ایجاد دوره جدید
+                </h1>
+                <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-primary/10 dark:bg-primary/15 border border-primary/20 px-2.5 py-1 text-[9px] font-black text-primary shrink-0">
+                  <Sparkles className="w-3 h-3" />
+                  نسخه پریمیوم
+                </span>
+              </div>
+              <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 font-bold leading-relaxed">
+                ساده، گام‌به‌گام و مجهز به پیش‌نمایش زنده، ذخیره خودکار و کاملاً
+                هماهنگ با صفحه نهایی و واقعی دوره.
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <h1 className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white mb-1 sm:mb-2 leading-snug">
-              استودیوی پیشرفته ایجاد دوره جدید
-            </h1>
-            <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 font-bold leading-relaxed">
-              ساده، گام‌به‌گام و مجهز به پیش‌نمایش زنده و کاملاً هماهنگ با صفحه
-              نهایی و واقعی دوره.
-            </p>
+
+          {/* Auto-save status */}
+          <div className="shrink-0 flex items-center gap-2">
+            {renderAutoSaveBadge()}
           </div>
         </div>
       </div>
@@ -3009,17 +3286,20 @@ export default function CreateCourseWizardPage() {
               }
             </p>
           </div>
-          <span className="shrink-0 rounded-full bg-primary/15 px-2.5 py-1 text-[10px] font-black text-primary">
-            {Math.round(((step - 1) / 4) * 100)}٪
-          </span>
+          <div className="flex items-center gap-2 shrink-0">
+            {renderAutoSaveBadge(true)}
+            <span className="rounded-full bg-primary/15 px-2.5 py-1 text-[10px] font-black text-primary">
+              {Math.round(((step - 1) / 4) * 100).toLocaleString("fa-IR")}٪
+            </span>
+          </div>
         </div>
 
         <div className="relative flex items-start justify-between overflow-x-auto sm:overflow-visible pt-1 sm:pt-2 pb-2 sm:pb-0 scrollbar-none gap-3 sm:gap-6 -mx-1 px-1">
           {/* Connector Line behind steps */}
-          <div className="absolute left-4 right-4 sm:left-6 sm:right-6 top-6 sm:top-8 -translate-y-1/2 h-[2px] sm:h-[3px] bg-gray-100 dark:bg-white/10 z-0">
+          <div className="absolute left-4 right-4 sm:left-6 sm:right-6 top-6 sm:top-8 -translate-y-1/2 h-[3px] sm:h-1 rounded-full bg-gray-100 dark:bg-white/10 z-0 overflow-hidden">
             {/* Active Connector Progress */}
             <div
-              className="absolute right-0 top-0 h-full bg-primary transition-all duration-500"
+              className="absolute right-0 top-0 h-full rounded-full bg-gradient-to-l from-primary via-emerald-400 to-emerald-500 shadow-[0_0_14px_rgba(34,197,94,0.55)] transition-all duration-700 ease-out"
               style={{
                 width:
                   step === 1
@@ -3041,35 +3321,41 @@ export default function CreateCourseWizardPage() {
               label: "اطلاعات کارت دوره",
               shortLabel: "کارت",
               desc: "تصویر، قیمت و مشخصات",
+              icon: FileText,
             },
             {
               stepNum: 2,
               label: "معرفی و هیرو دوره",
               shortLabel: "هیرو",
               desc: "ویدیو، شعار و کلمات ویژه",
+              icon: Sparkles,
             },
             {
               stepNum: 3,
               label: "جزئیات و محتوای دوره",
               shortLabel: "جزئیات",
               desc: "ویژگی‌ها، توضیحات و سوالات",
+              icon: Layers,
             },
             {
               stepNum: 4,
               label: "ویدیوها و جلسات",
               shortLabel: "ویدیو",
               desc: "مدیریت سرفصل و فایل‌ها",
+              icon: Video,
             },
             {
               stepNum: 5,
               label: "بررسی نهایی",
               shortLabel: "نهایی",
               desc: "پیش‌نمایش کلی و انتشار",
+              icon: CheckCircle2,
             },
           ].map((item) => {
             const isActive = step === item.stepNum;
             const isReachable = item.stepNum <= maxReachedStep;
             const isVisited = isReachable && !isActive;
+            const StepIcon = item.icon;
 
             return (
               <button
@@ -3084,16 +3370,16 @@ export default function CreateCourseWizardPage() {
                 <div
                   className={`w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center font-black text-xs sm:text-sm transition-all duration-300 ${
                     isActive
-                      ? "bg-primary text-background-dark shadow-[0_0_20px_rgba(34,197,94,0.4)] scale-105 sm:scale-110 z-20"
+                      ? "bg-gradient-to-br from-primary via-emerald-500 to-emerald-600 text-white shadow-[0_8px_24px_rgba(34,197,94,0.45)] ring-4 ring-primary/15 dark:ring-primary/20 scale-105 sm:scale-110 z-20"
                       : isVisited
-                        ? "bg-[#e6fbf0] dark:bg-[#132d21] text-primary border border-primary/20 z-10"
+                        ? "bg-emerald-50 dark:bg-[#132d21] text-primary border border-primary/25 z-10 group-hover:scale-105 group-hover:shadow-md group-hover:shadow-primary/10"
                         : "bg-gray-100 dark:bg-[#252833] text-gray-400 dark:text-gray-600 border border-transparent z-10"
                   }`}
                 >
                   {isVisited ? (
                     <Check className="w-4 h-4 sm:w-5 sm:h-5" />
                   ) : (
-                    item.stepNum
+                    <StepIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                   )}
                 </div>
                 <div className="text-center max-w-[72px] sm:max-w-[120px]">
@@ -3145,13 +3431,13 @@ export default function CreateCourseWizardPage() {
             <CreateCourseWizardFormSkeleton step={step} />
           ) : (
             <>
-          <div className="space-y-8 animate-in fade-in duration-300">
+          <div key={step} className="space-y-8 animate-wizard-step-enter">
             {/* STEP 1: INITIAL CARD DETAILS */}
             {step === 1 && (
               <div className="space-y-6">
                 <div>
                   <h2 className="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
-                    <span className="w-2 h-6 bg-primary rounded-full" />
+                    <span className="w-1.5 h-7 bg-gradient-to-b from-primary via-emerald-500 to-emerald-600 rounded-full shadow-[0_0_14px_rgba(34,197,94,0.45)] shrink-0" />
                     مرحله اول: اطلاعات اولیه کارت دوره
                   </h2>
                   <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold mt-1">
@@ -3232,6 +3518,7 @@ export default function CreateCourseWizardPage() {
                     <button
                       type="button"
                       onClick={() => {
+                        markFormEdited();
                         setFormData((p) => ({ ...p, isPaid: "free" }));
                       }}
                       className={`p-3 rounded-xl border text-xs font-black transition-all cursor-pointer ${
@@ -3244,9 +3531,10 @@ export default function CreateCourseWizardPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() =>
-                        setFormData((p) => ({ ...p, isPaid: "paid" }))
-                      }
+                      onClick={() => {
+                        markFormEdited();
+                        setFormData((p) => ({ ...p, isPaid: "paid" }));
+                      }}
                       className={`p-3 rounded-xl border text-xs font-black transition-all cursor-pointer ${
                         formData.isPaid === "paid"
                           ? "bg-primary/10 border-primary text-primary"
@@ -3392,7 +3680,7 @@ export default function CreateCourseWizardPage() {
               <div className="space-y-5">
                 <div>
                   <h2 className="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
-                    <span className="w-2 h-6 bg-primary rounded-full" />
+                    <span className="w-1.5 h-7 bg-gradient-to-b from-primary via-emerald-500 to-emerald-600 rounded-full shadow-[0_0_14px_rgba(34,197,94,0.45)] shrink-0" />
                     مرحله دوم: هیرو و معرفی دوره
                   </h2>
                   <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-1">
@@ -3453,12 +3741,13 @@ export default function CreateCourseWizardPage() {
                           rows={4}
                           placeholder="توضیح کوتاهی که در هیرو بالای صفحه قرار می‌گیرد و هدف دوره را بیان می‌کند..."
                           value={formData.shortDescription}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            markFormEdited();
                             setFormData((p) => ({
                               ...p,
                               shortDescription: e.target.value,
-                            }))
-                          }
+                            }));
+                          }}
                           className={`min-h-[105px] px-4 py-3 ${WIZARD_FIELD_CLASS} text-xs font-bold text-right leading-relaxed ${errors.shortDescription ? "border-red-500 ring-2 ring-red-500/15" : ""}`}
                         />
                         {errors.shortDescription && (
@@ -3619,7 +3908,7 @@ export default function CreateCourseWizardPage() {
               <div className="space-y-5">
                 <div>
                   <h2 className="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
-                    <span className="w-2 h-6 bg-primary rounded-full" />
+                    <span className="w-1.5 h-7 bg-gradient-to-b from-primary via-emerald-500 to-emerald-600 rounded-full shadow-[0_0_14px_rgba(34,197,94,0.45)] shrink-0" />
                     مرحله سوم: محتوای عمیق صفحه دوره
                   </h2>
                   <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-1">
@@ -3648,12 +3937,13 @@ export default function CreateCourseWizardPage() {
                         rows={5}
                         placeholder="متن کامل درباره دوره، اهداف و مهارت‌هایی که دانشجو یاد می‌گیرد..."
                         value={formData.aboutDescription}
-                        onChange={(value) =>
+                        onChange={(value) => {
+                          markFormEdited();
                           setFormData((p) => ({
                             ...p,
                             aboutDescription: value,
-                          }))
-                        }
+                          }));
+                        }}
                         highlights={formData.aboutHighlights}
                         onAddHighlight={(value) => {
                           const normalizedValue = value.trim();
@@ -3662,6 +3952,7 @@ export default function CreateCourseWizardPage() {
                             formData.aboutHighlights.includes(normalizedValue)
                           )
                             return;
+                          markFormEdited();
                           setFormData((prev) => ({
                             ...prev,
                             aboutHighlights: [
@@ -3896,7 +4187,7 @@ export default function CreateCourseWizardPage() {
               <div className="space-y-5 sm:space-y-6">
                 <div>
                   <h2 className="text-base sm:text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
-                    <span className="w-2 h-5 sm:h-6 bg-primary rounded-full shrink-0" />
+                    <span className="w-1.5 h-6 sm:h-7 bg-gradient-to-b from-primary via-emerald-500 to-emerald-600 rounded-full shadow-[0_0_14px_rgba(34,197,94,0.45)] shrink-0" />
                     <span className="leading-snug">
                       مرحله چهارم: مدیریت ویدیوها و جلسات
                     </span>
@@ -4201,7 +4492,7 @@ export default function CreateCourseWizardPage() {
               <div className="space-y-6">
                 <div>
                   <h2 className="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
-                    <span className="w-2 h-6 bg-primary rounded-full animate-pulse" />
+                    <span className="w-1.5 h-7 bg-gradient-to-b from-primary via-emerald-500 to-emerald-600 rounded-full shadow-[0_0_14px_rgba(34,197,94,0.45)] animate-pulse" />
                     مرحله آخر: بازبینی و نهایی‌سازی دوره
                   </h2>
                   <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold mt-1">
@@ -4301,7 +4592,7 @@ export default function CreateCourseWizardPage() {
               <button
                 type="button"
                 onClick={handleBack}
-                className="flex w-full sm:w-auto items-center justify-center gap-1.5 px-5 py-3.5 bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-2xl transition-all cursor-pointer select-none"
+                className="flex w-full sm:w-auto items-center justify-center gap-1.5 px-5 py-3.5 bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-2xl transition-all hover:-translate-y-0.5 cursor-pointer select-none"
               >
                 <ArrowRight className="w-4 h-4" />
                 <span>مرحله قبلی</span>
@@ -4310,12 +4601,17 @@ export default function CreateCourseWizardPage() {
               <button
                 type="button"
                 onClick={() => router.push("/instructor/courses")}
-                className="flex w-full sm:w-auto items-center justify-center gap-1.5 px-5 py-3.5 bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-2xl transition-all cursor-pointer select-none"
+                className="flex w-full sm:w-auto items-center justify-center gap-1.5 px-5 py-3.5 bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-2xl transition-all hover:-translate-y-0.5 cursor-pointer select-none"
               >
                 <ArrowRight className="w-4 h-4" />
                 <span>انصراف و بازگشت</span>
               </button>
             )}
+
+            {/* Inline auto-save status (desktop) */}
+            <div className="hidden sm:flex items-center justify-center flex-1">
+              {renderAutoSaveBadge(true)}
+            </div>
 
             {/* Next / Submit buttons */}
             {step < 5 ? (
@@ -4323,10 +4619,13 @@ export default function CreateCourseWizardPage() {
                 type="button"
                 onClick={handleNext}
                 disabled={isSavingStep1}
-                className="flex w-full sm:w-auto items-center justify-center gap-1.5 px-6 py-3.5 bg-primary hover:bg-primary-hover disabled:bg-primary/60 disabled:hover:scale-100 disabled:cursor-not-allowed text-white text-xs font-bold rounded-2xl transition-all shadow-md shadow-primary/20 hover:scale-[1.02] cursor-pointer select-none"
+                className="relative overflow-hidden flex w-full sm:w-auto items-center justify-center gap-1.5 px-7 py-3.5 bg-gradient-to-l from-primary via-emerald-500 to-emerald-600 hover:from-primary-hover hover:via-emerald-600 hover:to-emerald-700 disabled:from-primary/60 disabled:via-emerald-500/60 disabled:to-emerald-600/60 disabled:hover:scale-100 disabled:cursor-not-allowed text-white text-xs font-black rounded-2xl transition-all duration-300 shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 hover:scale-[1.03] hover:-translate-y-0.5 cursor-pointer select-none"
               >
-                <span>{isSavingStep1 ? "در حال ذخیره..." : "مرحله بعدی"}</span>
-                <ArrowLeft className="w-4 h-4" />
+                <span className="relative z-10 flex items-center gap-1.5">
+                  {isSavingStep1 && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>{isSavingStep1 ? "در حال ذخیره..." : "مرحله بعدی"}</span>
+                  {!isSavingStep1 && <ArrowLeft className="w-4 h-4" />}
+                </span>
               </button>
             ) : (
               <div className="flex w-full sm:w-auto flex-col gap-3 sm:flex-row">
@@ -4334,7 +4633,7 @@ export default function CreateCourseWizardPage() {
                   type="button"
                   disabled={isSavingStep1}
                   onClick={() => void handleSubmitWizard("draft")}
-                  className="w-full sm:w-auto px-5 py-3.5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-2xl hover:border-primary hover:text-primary transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto px-5 py-3.5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-2xl hover:border-primary hover:text-primary hover:-translate-y-0.5 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {isSavingStep1
                     ? "در حال ذخیره..."
@@ -4344,8 +4643,9 @@ export default function CreateCourseWizardPage() {
                   type="button"
                   disabled={isSavingStep1}
                   onClick={() => void handleSubmitWizard("pending")}
-                  className="w-full sm:w-auto px-6 py-3.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-2xl transition-all shadow-md shadow-primary/20 hover:scale-[1.02] cursor-pointer disabled:bg-primary/60 disabled:hover:scale-100 disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-6 py-3.5 bg-gradient-to-l from-primary via-emerald-500 to-emerald-600 hover:from-primary-hover hover:via-emerald-600 hover:to-emerald-700 text-white text-xs font-black rounded-2xl transition-all duration-300 shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 hover:scale-[1.03] hover:-translate-y-0.5 cursor-pointer disabled:from-primary/60 disabled:via-emerald-500/60 disabled:to-emerald-600/60 disabled:hover:scale-100 disabled:cursor-not-allowed"
                 >
+                  {isSavingStep1 && <Loader2 className="w-4 h-4 animate-spin" />}
                   {isSavingStep1
                     ? "در حال ارسال..."
                     : "ارسال برای بررسی و انتشار"}
