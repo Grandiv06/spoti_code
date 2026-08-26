@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowUpDown,
   BookOpen,
+  Check,
   CheckCircle2,
   ChevronLeft,
   GraduationCap,
@@ -33,6 +34,18 @@ export default function PanelCourses() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
   const [sortBy, setSortBy] = useState<SortOption>("latest");
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const sortRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sortRef.current && !sortRef.current.contains(event.target as Node)) {
+        setIsSortOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Summary counts
   const totalCount = courses.length;
@@ -224,19 +237,53 @@ export default function PanelCourses() {
                 </div>
 
                 {/* Sort Dropdown */}
-                <div className="relative w-full sm:w-48 lg:w-44 shrink-0">
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as SortOption)}
-                    aria-label="مرتب‌سازی دوره‌ها"
-                    className="h-10 sm:h-11 w-full appearance-none rounded-2xl border border-gray-200 bg-gray-50/80 py-2 pr-4 pl-10 text-xs sm:text-sm font-medium text-gray-900 outline-none transition-all focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/10 dark:border-white/[0.08] dark:bg-[#0a0b0f] dark:text-white dark:focus:bg-[#101217] cursor-pointer"
+                <div className="relative w-full sm:w-48 lg:w-44 shrink-0" ref={sortRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsSortOpen(!isSortOpen)}
+                    className="flex h-10 sm:h-11 w-full items-center justify-between rounded-2xl border border-gray-200 bg-gray-50/80 px-4 text-xs sm:text-sm font-medium text-gray-900 outline-none transition-all focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/10 dark:border-white/[0.08] dark:bg-[#0a0b0f] dark:text-white dark:focus:bg-[#101217] cursor-pointer"
                   >
-                    <option value="latest">جدیدترین‌ها</option>
-                    <option value="progress_high">بیشترین پیشرفت</option>
-                    <option value="progress_low">کمترین پیشرفت</option>
-                    <option value="title">عنوان (الفبا)</option>
-                  </select>
-                  <ArrowUpDown className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-gray-400 dark:text-slate-500" />
+                    <div className="flex items-center gap-2">
+                      <ArrowUpDown className="size-4 text-gray-400 dark:text-slate-500" />
+                      <span>
+                        {sortBy === "latest" ? "جدیدترین‌ها" :
+                         sortBy === "progress_high" ? "بیشترین پیشرفت" :
+                         sortBy === "progress_low" ? "کمترین پیشرفت" : "عنوان (الفبا)"}
+                      </span>
+                    </div>
+                    <ChevronLeft className={cn("size-4 text-gray-400 transition-transform", isSortOpen ? "-rotate-90" : "")} />
+                  </button>
+
+                  {isSortOpen && (
+                    <div className="absolute top-full left-0 right-0 z-50 mt-2 rounded-2xl border border-gray-100 bg-white p-2 shadow-xl dark:border-white/[0.08] dark:bg-[#151820] animate-in fade-in zoom-in-95 duration-200">
+                      <div className="flex flex-col space-y-1">
+                        {[
+                          { value: "latest", label: "جدیدترین‌ها" },
+                          { value: "progress_high", label: "بیشترین پیشرفت" },
+                          { value: "progress_low", label: "کمترین پیشرفت" },
+                          { value: "title", label: "عنوان (الفبا)" },
+                        ].map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => {
+                              setSortBy(option.value as SortOption);
+                              setIsSortOpen(false);
+                            }}
+                            className={cn(
+                              "flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold transition-colors cursor-pointer",
+                              sortBy === option.value
+                                ? "bg-primary/10 text-primary dark:bg-primary/10"
+                                : "text-gray-600 hover:bg-gray-50 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white"
+                            )}
+                          >
+                            <span>{option.label}</span>
+                            {sortBy === option.value && <Check className="size-4" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

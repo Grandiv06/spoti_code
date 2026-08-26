@@ -12,27 +12,11 @@ import { usePathname } from "next/navigation";
 
 export default function Header() {
   const { cart, toggleCart } = useCart();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [loginMousePos, setLoginMousePos] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
-  const loginRef = useRef<HTMLDivElement>(null);
-  const [cartMousePos, setCartMousePos] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
   const pathname = usePathname();
-
-  const handleCartMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    setCartMousePos({ x, y });
-  };
 
   useEffect(() => {
     setIsMounted(true);
@@ -56,13 +40,7 @@ export default function Header() {
     };
   }, [isMenuOpen]);
 
-  const handleLoginMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = loginRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    setLoginMousePos({ x, y });
-  };
+
 
   const menuItems = [
     { label: "خانه", href: "/", icon: "home" },
@@ -88,19 +66,9 @@ export default function Header() {
     return (
       <button
         onClick={toggleCart}
-        onMouseMove={handleCartMouseMove}
-        onMouseLeave={() => setCartMousePos(null)}
         className={`relative flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/20 dark:bg-[#14161c]/10 backdrop-blur-xl border border-white/15 dark:border-white/[0.04] hover:bg-white/30 dark:hover:bg-[#14161c]/20 transition-colors duration-300 cursor-pointer overflow-visible ${className}`}
         aria-label="سبد خرید"
       >
-        {cartMousePos && (
-          <span
-            className="pointer-events-none absolute inset-0 rounded-2xl overflow-hidden"
-            style={{
-              background: `radial-gradient(circle 35px at ${cartMousePos.x}% ${cartMousePos.y}%, rgba(34, 197, 94, 0.12) 0%, transparent 70%)`,
-            }}
-          />
-        )}
         <span className="relative z-10 flex items-center justify-center">
           <span className="material-symbols-outlined text-xl">shopping_cart</span>
         </span>
@@ -175,12 +143,7 @@ export default function Header() {
           <div className="hidden lg:flex">
             <ThemeToggle />
           </div>
-          <div
-            ref={loginRef}
-            onMouseMove={handleLoginMouseMove}
-            onMouseLeave={() => setLoginMousePos(null)}
-            className="hidden md:block relative"
-          >
+          <div className="hidden md:block relative">
             {isAuthenticated ? (
               <Link
                 href={user?.role === "admin" ? "/admin" : user?.role === "instructor" ? "/instructor/dashboard" : "/panel"}
@@ -196,14 +159,6 @@ export default function Header() {
                 href="/login"
                 className="relative flex items-center justify-center gap-2 rounded-4xl px-8 py-3 text-sm font-bold text-white transition-all duration-300 hover:scale-[1.02] active:scale-95 overflow-hidden bg-primary/85 dark:bg-primary/80 backdrop-blur-xl border border-white/25 dark:border-white/15 shadow-xl shadow-primary/25 hover:bg-primary dark:hover:bg-primary-hover"
               >
-                {loginMousePos && (
-                  <span
-                    className="pointer-events-none absolute inset-0"
-                    style={{
-                      background: `radial-gradient(circle 60px at ${loginMousePos.x}% ${loginMousePos.y}%, rgba(255,255,255,0.2) 0%, transparent 70%)`,
-                    }}
-                  />
-                )}
                 <span className="relative z-10">ورود</span>
                 <span className="material-symbols-outlined relative z-10 text-xl">
                   login
@@ -314,34 +269,60 @@ export default function Header() {
                     </ul>
                   </nav>
 
-                  <div className="shrink-0 border-t border-gray-200/70 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-white/[0.06]">
-                    <Link
-                      href={isAuthenticated ? panelHref : "/login"}
-                      onClick={() => setIsMenuOpen(false)}
-                      className={`flex w-full items-center justify-between rounded-[1.35rem] px-4 py-3.5 text-[14px] font-black transition-all active:scale-[0.98] ${
-                        isAuthenticated
-                          ? "border border-white/15 bg-white/20 text-gray-800 backdrop-blur-xl dark:border-white/[0.04] dark:bg-[#14161c]/10 dark:text-white"
-                          : "border border-white/25 bg-primary text-white shadow-lg shadow-primary/25 dark:border-white/15 dark:bg-primary/90"
-                      }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[20px]">
-                          {isAuthenticated ? "person" : "login"}
-                        </span>
-                        {isAuthenticated ? "پنل کاربری" : "ورود به حساب"}
-                      </span>
-                      <span
-                        className={`flex size-8 items-center justify-center rounded-xl ${
-                          isAuthenticated
-                            ? "bg-white/60 dark:bg-white/10"
-                            : "bg-white/20"
-                        }`}
+                  <div className="shrink-0 border-t border-gray-200/70 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-white/[0.06] space-y-2">
+                    {isAuthenticated ? (
+                      <>
+                        <Link
+                          href={panelHref}
+                          onClick={() => setIsMenuOpen(false)}
+                          className="flex w-full items-center justify-between rounded-[1.35rem] border border-white/15 bg-white/20 px-4 py-3.5 text-[14px] font-black text-gray-800 backdrop-blur-xl transition-all active:scale-[0.98] dark:border-white/[0.04] dark:bg-[#14161c]/10 dark:text-white"
+                        >
+                          <span className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-[20px]">
+                              person
+                            </span>
+                            پنل کاربری
+                          </span>
+                          <span className="flex size-8 items-center justify-center rounded-xl bg-white/60 dark:bg-white/10">
+                            <span className="material-symbols-outlined text-[18px] rtl:rotate-180">
+                              east
+                            </span>
+                          </span>
+                        </Link>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            logout();
+                          }}
+                          className="flex w-full items-center justify-center gap-2 rounded-[1.35rem] border border-red-200/70 bg-red-50/70 px-4 py-3 text-[13px] font-bold text-red-600 transition-all hover:bg-red-100/70 active:scale-[0.98] dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400 cursor-pointer"
+                        >
+                          <span className="material-symbols-outlined text-[20px]">
+                            logout
+                          </span>
+                          خروج از حساب
+                        </button>
+                      </>
+                    ) : (
+                      <Link
+                        href="/login"
+                        onClick={() => setIsMenuOpen(false)}
+                        className="flex w-full items-center justify-between rounded-[1.35rem] border border-white/25 bg-primary px-4 py-3.5 text-[14px] font-black text-white shadow-lg shadow-primary/25 transition-all active:scale-[0.98] dark:border-white/15 dark:bg-primary/90"
                       >
-                        <span className="material-symbols-outlined text-[18px] rtl:rotate-180">
-                          east
+                        <span className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-[20px]">
+                            login
+                          </span>
+                          ورود به حساب
                         </span>
-                      </span>
-                    </Link>
+                        <span className="flex size-8 items-center justify-center rounded-xl bg-white/20">
+                          <span className="material-symbols-outlined text-[18px] rtl:rotate-180">
+                            east
+                          </span>
+                        </span>
+                      </Link>
+                    )}
                   </div>
                 </div>
               </div>

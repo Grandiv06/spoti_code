@@ -88,7 +88,7 @@ export default function TestimonialSlider() {
                   <div key={`${t.id}-${activeIndex}`} className="flex flex-col items-center animate-in fade-in duration-500">
                     <div className="w-full block p-10 pb-16 rounded-4xl relative bg-primary text-white mb-8">
                       <div className="relative w-24 h-24 mx-auto">
-                        <Image alt="Student" className="rounded-full border-4 border-white shadow-lg object-cover" src={t.image} fill />
+                        <Image alt="Student" className="rounded-full border-4 border-white shadow-lg object-cover" src={t.image} fill sizes="96px" />
                       </div>
                       <p className="leading-loose font-normal mt-6 text-white/90">&quot;{t.content}&quot;</p>
                       <h4 className="font-black text-2xl mt-6">{t.name}</h4>
@@ -168,6 +168,7 @@ export default function TestimonialSlider() {
                           `}
                           src={t.image}
                           fill
+                          sizes="96px"
                         />
                       </div>
                       <p className={`text-base md:text-lg leading-loose font-normal transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${isCenter ? "mt-8 text-white/90" : "mt-6 text-gray-600 dark:text-gray-400"}`}>

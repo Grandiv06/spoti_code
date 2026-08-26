@@ -26,8 +26,8 @@ export default function HomeHero() {
 
   return (
     <header className="relative z-10 mx-auto max-w-7xl px-4 pt-8 pb-12 sm:px-6 sm:pt-12 sm:pb-16 lg:pt-14 lg:pb-20">
-      {/* Ambient background glow - soft and unclipped */}
-      <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl h-[350px] sm:h-[450px] bg-primary/[0.07] dark:bg-primary/[0.09] rounded-full blur-[140px] -z-10" />
+      {/* Ambient background glow - soft and hardware accelerated */}
+      <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl h-[350px] sm:h-[450px] bg-primary/[0.07] dark:bg-primary/[0.09] rounded-full blur-3xl transform-gpu -z-10" />
 
       <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-14">
         {/* Text Column (Right side in RTL) */}

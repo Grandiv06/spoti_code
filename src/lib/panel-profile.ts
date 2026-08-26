@@ -203,6 +203,20 @@ export async function fetchMyProfile(): Promise<ProfileSettings> {
   return mapApiProfileToSettings(response);
 }
 
+export async function fetchMyProfileFull(): Promise<{
+  profile: ProfileSettings;
+  userId: string | null;
+  username: string | null;
+}> {
+  const response = await apiGetNoMock<unknown>("/api/profiles/me", getAuthHeaders());
+  const payload = unwrapResponse(response);
+  const row = payload && typeof payload === "object" && !Array.isArray(payload) ? (payload as Record<string, unknown>) : null;
+  const userId = row && typeof row.userId === "string" && row.userId.trim() ? row.userId.trim() : null;
+  const username = row && typeof row.username === "string" && row.username.trim() ? row.username.trim() : null;
+  const profile = mapApiProfileToSettings(response);
+  return { profile, userId, username };
+}
+
 export async function fetchPublicProfile(userId: string): Promise<Partial<ProfileSettings>> {
   const response = await apiGetNoMock<unknown>(
     `/api/profiles/${encodeURIComponent(userId)}`

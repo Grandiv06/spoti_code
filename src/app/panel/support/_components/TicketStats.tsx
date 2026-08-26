@@ -27,7 +27,7 @@ function StatTile({
           : "border-gray-200/70 dark:border-white/[0.06]",
       )}
     >
-      <div className="flex min-h-[3.25rem] items-center gap-2 p-2.5 sm:p-3 lg:min-h-[4.25rem] lg:gap-3 lg:p-4">
+      <div className="flex min-h-[3.25rem] items-center gap-2.5 px-4 py-2.5 sm:gap-3 sm:px-4 sm:py-3 lg:min-h-[4.25rem] lg:gap-3 lg:px-5 lg:py-4">
         <span
           className={cn(
             "inline-flex size-7 shrink-0 items-center justify-center rounded-lg border lg:size-10 lg:rounded-xl",

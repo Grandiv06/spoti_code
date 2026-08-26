@@ -45,10 +45,7 @@ export default function FAQ() {
 
       <main className="max-w-4xl mx-auto px-6 pt-20 sm:pt-24 lg:pt-32 pb-20 relative z-10">
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary-dark dark:text-primary text-sm font-bold mb-6">
-            <span className="material-symbols-outlined text-[20px]">help</span>
-            سوالات متداول
-          </div>
+
           <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-6">
             پاسخ به پرتکرارترین{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-l from-primary to-green-600 relative inline-block">

@@ -113,9 +113,9 @@ export default function PremiumStats() {
 
   return (
     <section className="py-24 relative overflow-hidden" ref={ref}>
-      {/* Decorative Background Elements - Hidden on mobile for performance */}
-      <div className="hidden md:block absolute top-1/2 left-0 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 dark:bg-primary/5 rounded-full blur-[150px] pointer-events-none -z-10 mix-blend-screen"></div>
-      <div className="hidden md:block absolute bottom-0 right-0 w-[600px] h-[600px] bg-blue-500/5 dark:bg-blue-500/5 rounded-full blur-[120px] pointer-events-none -z-10 mix-blend-screen"></div>
+      {/* Decorative Background Elements - Hardware accelerated */}
+      <div className="hidden md:block absolute top-1/2 left-0 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 dark:bg-primary/5 rounded-full blur-3xl transform-gpu pointer-events-none -z-10 mix-blend-screen"></div>
+      <div className="hidden md:block absolute bottom-0 right-0 w-[500px] h-[500px] bg-blue-500/5 dark:bg-blue-500/5 rounded-full blur-3xl transform-gpu pointer-events-none -z-10 mix-blend-screen"></div>
 
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         <div className="text-center mb-16">

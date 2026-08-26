@@ -3,7 +3,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { fetchMyProfile, fetchMyProfileUserId, fetchMyProfileUsername, getProfileSocialLinks } from "@/lib/panel-profile";
+import { fetchMyProfileFull, getProfileSocialLinks } from "@/lib/panel-profile";
 import type { ProfileSettings } from "@/context/ProfileSettingsContext";
 import ProfileHeader from "../../social/profile/_components/ProfileHeader";
 import ProfileSidebar from "../../social/profile/_components/ProfileSidebar";
@@ -37,7 +37,7 @@ export default function PanelProfilePage() {
     const loadProfile = async () => {
       setLoading(true);
       try {
-        const [result, userId, username] = await Promise.all([fetchMyProfile(), fetchMyProfileUserId(), fetchMyProfileUsername()]);
+        const { profile: result, userId, username } = await fetchMyProfileFull();
         if (!cancelled) {
           setApiProfile(result as ApiProfile);
           setProfileUserId(userId ?? user?.id);

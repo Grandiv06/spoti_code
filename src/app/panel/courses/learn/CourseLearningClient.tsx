@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import CustomVideoPlayer from "@/components/panel/CustomVideoPlayer";
-import { Copy, Download, Loader2, MonitorPlay, Paperclip, ShieldCheck, UploadCloud, X, Send, FileText, MessageSquare } from "lucide-react";
+import { Copy, Download, Loader2, MonitorPlay, Paperclip, ShieldCheck, UploadCloud, X, Send, FileText, MessageSquare, GraduationCap, User, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   completeCourseLesson,
@@ -326,60 +326,7 @@ export default function CourseLearningClient() {
     };
   }, [courseId, fallbackCourseData, loadLessonDetail]);
 
-  const lessonVideoFingerprint = useMemo(
-    () =>
-      courseData.chapters
-        .flatMap((chapter) => chapter.lessons)
-        .map((lesson) => `${lesson.id}:${lesson.videoUrl ?? ""}`)
-        .join("|"),
-    [courseData.chapters]
-  );
 
-  // Measure real lesson durations from video metadata for accurate sidebar display.
-  useEffect(() => {
-    if (courseLoading || courseData.playerType !== "internal") return;
-
-    const lessons = courseData.chapters
-      .flatMap((chapter) => chapter.lessons)
-      .filter((lesson) => Boolean(lesson.videoUrl && lesson.videoUrl !== "#"));
-
-    if (lessons.length === 0) return;
-
-    let cancelled = false;
-    let cursor = 0;
-    const concurrency = 3;
-
-    const runWorker = async () => {
-      while (!cancelled) {
-        const index = cursor++;
-        if (index >= lessons.length) return;
-        const lesson = lessons[index];
-        const url = lesson.videoUrl;
-        if (!url) continue;
-        try {
-          const seconds = await readVideoDurationFromUrl(url);
-          if (cancelled) return;
-          rememberLessonDuration(lesson.id, formatVideoDuration(seconds));
-        } catch {
-          // Keep API/stored duration when metadata cannot be read (e.g. CORS).
-        }
-      }
-    };
-
-    void Promise.all(
-      Array.from({ length: Math.min(concurrency, lessons.length) }, () => runWorker())
-    );
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    courseLoading,
-    courseData.id,
-    courseData.playerType,
-    lessonVideoFingerprint,
-    rememberLessonDuration,
-  ]);
 
   const handleLessonSelect = (lesson: LearningLesson) => {
     if (lesson.isLocked) return;
@@ -934,32 +881,59 @@ export default function CourseLearningClient() {
         <CourseLearningSkeleton />
       ) : (
         <>
-      {/* Course Header */}
-      <div className="bg-white dark:bg-[#101217] rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 border border-gray-100 dark:border-white/[0.07] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
-        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-          <Link href="/panel/courses" className="flex items-center justify-center size-9 sm:size-10 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-primary transition-colors shrink-0">
-            <span className="material-symbols-outlined text-lg sm:text-xl rotate-180">arrow_back</span>
-          </Link>
-          <div className="min-w-0">
-            <h1 className="text-base sm:text-xl font-bold text-gray-900 dark:text-white mb-0.5 sm:mb-1 truncate">
-              {courseData.title}
-            </h1>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium truncate">
-              مدرس: {courseData.instructor}
-            </p>
+      {/* Premium Course Header */}
+      <div className="relative overflow-hidden bg-white dark:bg-[#101217] rounded-3xl p-5 sm:p-6 border border-gray-100 dark:border-white/[0.07] shadow-sm">
+        {/* Subtle Background Glow */}
+        <div className="absolute -top-24 -left-24 size-48 bg-primary/10 dark:bg-primary/5 blur-3xl rounded-full pointer-events-none" />
+        <div className="absolute -bottom-24 -right-24 size-48 bg-emerald-500/10 dark:bg-emerald-500/5 blur-3xl rounded-full pointer-events-none" />
+        
+        <div className="relative flex items-center justify-between gap-3 sm:gap-6">
+          
+          <div className="flex items-center gap-3 sm:gap-5 min-w-0 flex-1">
+            <Link 
+              href="/panel/courses" 
+              className="flex items-center justify-center size-10 sm:size-14 rounded-xl sm:rounded-2xl bg-gray-50 dark:bg-white/[0.03] text-gray-500 dark:text-gray-400 hover:bg-white hover:text-primary dark:hover:bg-white/5 dark:hover:text-primary transition-all border border-gray-200/50 dark:border-white/[0.05] shadow-xs shrink-0 cursor-pointer hover:scale-105 active:scale-95"
+              title="بازگشت به دوره‌ها"
+            >
+              <span className="material-symbols-outlined text-[20px] sm:text-[26px] rotate-180">arrow_back</span>
+            </Link>
+            
+            <div className="min-w-0 space-y-0.5 sm:space-y-1.5">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <span className="hidden sm:inline-flex size-5 sm:size-6 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+                  <GraduationCap className="size-3 sm:size-3.5" />
+                </span>
+                <p className="text-[10px] sm:text-[11px] font-bold tracking-wide text-primary uppercase">
+                  میز یادگیری
+                </p>
+              </div>
+              <h1 className="text-sm sm:text-2xl font-black text-gray-900 dark:text-white truncate">
+                {courseData.title}
+              </h1>
+              <p className="hidden md:flex text-xs sm:text-sm text-gray-500 dark:text-slate-400 font-medium items-center gap-1.5">
+                <User className="size-3.5" />
+                مدرس: {courseData.instructor || "اسپاتی کد"}
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div className="flex flex-col md:w-64 space-y-1.5 sm:space-y-2">
-          <div className="flex items-center justify-between text-xs font-bold text-gray-500 dark:text-gray-400">
-            <span>پیشرفت کلی دوره</span>
-            <span className="text-primary font-black">{courseData.progress}%</span>
-          </div>
-          <div className="h-1.5 sm:h-2 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
-              style={{ width: `${courseData.progress}%` }}
-            ></div>
+          <div className="flex flex-col w-32 sm:w-48 md:w-72 bg-gray-50 dark:bg-black/20 p-3 sm:p-4 md:p-5 rounded-xl md:rounded-2xl border border-gray-100 dark:border-white/[0.04] shrink-0">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[10px] sm:text-xs font-bold mb-2 sm:mb-3 gap-1 sm:gap-0">
+              <div className="hidden sm:flex items-center gap-1.5 text-gray-700 dark:text-slate-300">
+                <Sparkles className="size-4 text-primary" />
+                <span>پیشرفت کلی دوره</span>
+              </div>
+              <span className="text-primary font-black text-sm text-center sm:text-left">{normalizePersianDigits(String(courseData.progress))}%</span>
+            </div>
+            
+            <div className="h-2 w-full bg-gray-200/60 dark:bg-white/10 rounded-full overflow-hidden shadow-inner">
+              <div
+                className="h-full bg-gradient-to-l from-primary to-emerald-400 rounded-full transition-all duration-1000 ease-out relative"
+                style={{ width: `${courseData.progress}%` }}
+              >
+                <div className="absolute inset-0 bg-white/20 w-full h-full" style={{ animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite" }} />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1172,36 +1146,60 @@ export default function CourseLearningClient() {
 
         {/* Right Side: Curriculum Sidebar */}
         <div className="lg:col-span-1">
-          <div className="bg-white dark:bg-[#101217] rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 border border-gray-100 dark:border-white/[0.07] shadow-xs sticky top-6">
-            <div className="flex items-center gap-2 mb-3.5 sm:mb-6">
-              <span className="material-symbols-outlined text-primary text-xl sm:text-2xl">format_list_bulleted</span>
-              <h2 className="text-base sm:text-lg font-black text-gray-900 dark:text-white">سرفصل‌های دوره</h2>
+          <div className="bg-white dark:bg-[#101217] rounded-3xl p-4 sm:p-5 border border-gray-100 dark:border-white/[0.07] shadow-sm sticky top-6">
+            <div className="flex items-center gap-2 mb-4 sm:mb-5 pb-4 border-b border-gray-100 dark:border-white/[0.05]">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-gray-50 dark:bg-white/[0.02] border border-gray-200/50 dark:border-white/[0.05] text-gray-700 dark:text-slate-300">
+                <span className="material-symbols-outlined text-[20px]">format_list_bulleted</span>
+              </div>
+              <div>
+                <h2 className="text-base font-black text-gray-900 dark:text-white">سرفصل‌های دوره</h2>
+                <p className="text-[11px] font-bold text-gray-500 dark:text-slate-400 mt-0.5">مسیر یادگیری شما</p>
+              </div>
             </div>
 
-            <div className="space-y-2.5 sm:space-y-3 pr-1">
+            <div className="space-y-3 sm:space-y-4 pr-1 max-h-[calc(100vh-140px)] overflow-y-auto scrollbar-hide">
               {courseData.chapters.map((chapter: LearningChapter) => {
                 const isExpanded = expandedChapters.includes(chapter.id);
+                const hasActiveLesson = chapter.lessons.some(l => l.id === activeLessonId);
                 
                 return (
-                  <div key={chapter.id} className="border border-gray-100 dark:border-white/[0.07] rounded-2xl overflow-hidden bg-gray-50/50 dark:bg-[#0a0b0f]/60">
+                  <div key={chapter.id} className={cn(
+                    "rounded-2xl overflow-hidden transition-all duration-300 border",
+                    isExpanded 
+                      ? "bg-gray-50/50 dark:bg-white/[0.02] border-gray-200/60 dark:border-white/[0.07] shadow-xs" 
+                      : "bg-transparent border-transparent hover:bg-gray-50/50 dark:hover:bg-white/[0.02]"
+                  )}>
                     <button 
                       onClick={() => toggleChapter(chapter.id)}
-                      className="w-full flex items-center justify-between p-4 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                      className="w-full flex items-center justify-between p-3.5 sm:p-4 transition-colors cursor-pointer select-none group"
                     >
-                      <h3 className="font-bold text-sm text-gray-900 dark:text-white text-right">{chapter.title}</h3>
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          "size-2 rounded-full transition-all duration-500", 
+                          hasActiveLesson ? "bg-primary shadow-[0_0_10px_rgba(34,197,94,0.8)] scale-110" : 
+                          isExpanded ? "bg-gray-400 dark:bg-gray-500" : "bg-gray-300 dark:bg-gray-700 group-hover:bg-gray-400"
+                        )} />
+                        <h3 className={cn(
+                          "font-bold text-sm text-right transition-colors", 
+                          hasActiveLesson ? "text-primary" :
+                          isExpanded ? "text-gray-900 dark:text-white" : "text-gray-600 dark:text-slate-400 group-hover:text-gray-800 dark:group-hover:text-slate-200"
+                        )}>
+                          {chapter.title}
+                        </h3>
+                      </div>
                       <span className={cn(
-                        "material-symbols-outlined text-gray-400 transition-transform duration-300",
-                        isExpanded && "rotate-180"
+                        "material-symbols-outlined text-[20px] transition-transform duration-300",
+                        isExpanded ? "text-gray-700 dark:text-slate-300 rotate-180" : "text-gray-400 group-hover:text-gray-600 dark:group-hover:text-slate-300"
                       )}>
-                        keyboard_arrow_down
+                        expand_more
                       </span>
                     </button>
 
                     <div className={cn(
-                      "transition-all duration-300 ease-in-out overflow-hidden",
-                      isExpanded ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
+                      "transition-all duration-500 ease-in-out overflow-hidden",
+                      isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
                     )}>
-                      <div className="p-2 pt-0 space-y-1">
+                      <div className="px-2 pb-2 space-y-1.5">
                         {chapter.lessons.map((lesson: LearningLesson) => {
                           const isActive = activeLessonId === lesson.id;
                           
@@ -1210,42 +1208,54 @@ export default function CourseLearningClient() {
                               key={lesson.id}
                               onClick={() => handleLessonSelect(lesson)}
                               className={cn(
-                                "flex items-start gap-3 p-3 rounded-xl transition-all",
-                                lesson.isLocked ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:bg-white dark:hover:bg-[#151820]",
-                                isActive ? "bg-white dark:bg-[#151820] border border-primary/30 shadow-sm" : "border border-transparent"
+                                "group relative flex flex-col gap-2 p-3 sm:p-3.5 rounded-2xl transition-all duration-300 overflow-hidden",
+                                lesson.isLocked ? "opacity-50 cursor-not-allowed grayscale" : "cursor-pointer hover:bg-white dark:hover:bg-white/[0.04]",
+                                isActive ? "bg-white dark:bg-[#151820] border border-primary/20 shadow-sm" : "border border-transparent"
                               )}
                             >
-                              <div className={cn(
-                                "mt-0.5 flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full",
-                                isActive ? "text-primary" : 
-                                lesson.isCompleted ? "text-green-500 bg-green-50 dark:bg-green-500/10" : "text-gray-400"
-                              )}>
-                                <span className="material-symbols-outlined text-[18px]">
-                                  {isActive ? "play_circle" : 
-                                   lesson.isCompleted ? "check_circle" : 
-                                   lesson.isLocked ? "lock" : "play_circle"}
-                                </span>
-                              </div>
-
-                              <div className="flex-1 min-w-0">
-                                <p className={cn(
-                                  "text-sm font-bold truncate",
-                                  isActive ? "text-primary" : "text-gray-700 dark:text-gray-300"
-                                )}>
-                                  {lesson.title}
-                                </p>
-                                <div className="flex items-center gap-2 mt-1.5">
-                                  <span className="text-xs text-gray-500 font-medium flex items-center gap-1">
-                                    <span className="material-symbols-outlined text-[14px]">schedule</span>
+                              {/* Active Indicator Line */}
+                              {isActive && (
+                                <div className="absolute top-0 right-0 h-full w-1 bg-primary rounded-r-full shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
+                              )}
+                              
+                              <div className="flex items-center justify-between w-full gap-2">
+                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                  <div className={cn(
+                                    "flex-shrink-0 size-8 sm:size-9 flex items-center justify-center rounded-xl transition-all duration-300 shadow-xs",
+                                    isActive ? "bg-primary/10 text-primary border border-primary/20" : 
+                                    lesson.isCompleted ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" : 
+                                    "bg-gray-100 text-gray-400 dark:bg-black/40 dark:text-gray-500 dark:border-white/5 border border-gray-200/50 group-hover:text-primary group-hover:border-primary/30"
+                                  )}>
+                                    <span className="material-symbols-outlined text-[18px] sm:text-[20px]">
+                                      {isActive ? "graphic_eq" : 
+                                       lesson.isCompleted ? "check" : 
+                                       lesson.isLocked ? "lock" : "play_arrow"}
+                                    </span>
+                                  </div>
+                                  
+                                  <p className={cn(
+                                    "text-[13px] sm:text-sm font-bold truncate transition-colors",
+                                    isActive ? "text-primary" : "text-gray-800 dark:text-slate-200 group-hover:text-gray-900 dark:group-hover:text-white"
+                                  )}>
+                                    {lesson.title}
+                                  </p>
+                                </div>
+                                
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <span className="text-[11px] sm:text-xs font-bold tracking-widest text-gray-400 dark:text-slate-500 transition-colors group-hover:text-gray-600 dark:group-hover:text-slate-400">
                                     {resolvedDurations[lesson.id] ?? lesson.duration}
                                   </span>
-                                  {lesson.isWatched && !lesson.isCompleted && (
-                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
-                                      دیده شده
-                                    </span>
-                                  )}
                                 </div>
                               </div>
+                              
+                              {/* Tags Row */}
+                              {(lesson.isWatched && !lesson.isCompleted) && (
+                                <div className="flex items-center mr-11 sm:mr-12">
+                                  <span className="text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-md bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
+                                    در حال مشاهده
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           );
                         })}
