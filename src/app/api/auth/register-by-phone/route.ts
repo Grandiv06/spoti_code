@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ data });
   } catch (error) {
     const message = toPublicAuthErrorMessage(error, "ثبت‌نام انجام نشد. دوباره تلاش کنید.");
-    const status = message.includes("الزامی") || message.includes("معتبر") ? 400 : 500;
+    const status = message.includes("الزامی") || message.includes("معتبر") || message.includes("صبر") || message.includes("ارسال") ? 400 : 500;
     console.error("[POST /api/auth/register-by-phone]", error);
     return NextResponse.json({ message }, { status });
   }

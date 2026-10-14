@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ data });
   } catch (error) {
     const message = toPublicAuthErrorMessage(error, "ارسال کد تایید انجام نشد. دوباره تلاش کنید.");
-    const status = message.includes("معتبر") ? 400 : 500;
+    const status = message.includes("معتبر") || message.includes("صبر") || message.includes("ارسال") ? 400 : 500;
     console.error("[POST /api/auth/resend-verification-code]", error);
     return NextResponse.json({ message }, { status });
   }

@@ -27,9 +27,11 @@ type OtpChallenge = {
   expiresAt: number;
   fullName?: string;
   verifiedAt?: number;
+  lastSentAt?: number;
 };
 
 const SIGNUP_COMPLETION_WINDOW_MS = 10 * 60 * 1000;
+const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
 
 export type SendVerificationResult =
   | {
@@ -58,10 +60,14 @@ export type PhoneAuthResult =
 
 const globalForAuth = globalThis as typeof globalThis & {
   __otpChallenges?: Map<string, OtpChallenge>;
+  __inFlightOtp?: Map<string, Promise<SendVerificationResult>>;
 };
 
 const otpChallenges = globalForAuth.__otpChallenges ?? new Map<string, OtpChallenge>();
 globalForAuth.__otpChallenges = otpChallenges;
+
+const inFlightOtpRequests = globalForAuth.__inFlightOtp ?? new Map<string, Promise<SendVerificationResult>>();
+globalForAuth.__inFlightOtp = inFlightOtpRequests;
 
 function normalizeDigits(value: string): string {
   const persian = "۰۱۲۳۴۵۶۷۸۹";
@@ -136,10 +142,12 @@ async function createOtpCode(phone: string): Promise<string> {
 }
 
 function storeOtpChallenge(phone: string, code: string, fullName?: string) {
+  const now = Date.now();
   otpChallenges.set(phone, {
     code,
-    expiresAt: Date.now() + OTP_EXPIRY_SECONDS * 1000,
+    expiresAt: now + OTP_EXPIRY_SECONDS * 1000,
     fullName,
+    lastSentAt: now,
   });
 }
 
@@ -227,21 +235,52 @@ export async function sendVerificationCode(
 ): Promise<SendVerificationResult> {
   const phone = normalizeIranPhone(phoneInput);
 
-  // Users who enabled Google Authenticator log in with a TOTP code instead of
-  // an SMS OTP — skip sending an SMS and tell the client to prompt for the app code.
-  const existing = await prisma.user.findUnique({ where: { phone } });
-  if (existing && isTotpLogin(existing)) {
-    return { phoneNumber: phone, requiresTotp: true };
+  // ۱. اگر همزمان درخواست دیگری برای همین شماره در حال پردازش است، همان را برگردان
+  const activeRequest = inFlightOtpRequests.get(phone);
+  if (activeRequest) {
+    return activeRequest;
   }
 
-  const code = await createOtpCode(phone);
-  storeOtpChallenge(phone, code, fullName?.trim() || undefined);
+  // ۲. بررسی کول‌داون (حداقل فاصله زمانی بین ارسال دو پیامک برای جلوگیری از اسپم)
+  const staticOtp = getStaticOtpForPhone(phone);
+  const existingChallenge = otpChallenges.get(phone);
+  const now = Date.now();
 
-  return {
-    phoneNumber: phone,
-    secondsToExpire: OTP_EXPIRY_SECONDS,
-    ...(shouldExposeDevOtp() ? { otp: code } : {}),
-  };
+  if (
+    !staticOtp &&
+    existingChallenge?.lastSentAt &&
+    now - existingChallenge.lastSentAt < OTP_RESEND_COOLDOWN_MS
+  ) {
+    const remainingSeconds = Math.ceil(
+      (OTP_RESEND_COOLDOWN_MS - (now - existingChallenge.lastSentAt)) / 1000
+    );
+    throw new Error(`کد تایید به تازگی ارسال شده است. لطفاً ${remainingSeconds} ثانیه دیگر صبر کنید.`);
+  }
+
+  const execution = (async (): Promise<SendVerificationResult> => {
+    try {
+      // Users who enabled Google Authenticator log in with a TOTP code instead of
+      // an SMS OTP — skip sending an SMS and tell the client to prompt for the app code.
+      const existing = await prisma.user.findUnique({ where: { phone } });
+      if (existing && isTotpLogin(existing)) {
+        return { phoneNumber: phone, requiresTotp: true as const };
+      }
+
+      const code = await createOtpCode(phone);
+      storeOtpChallenge(phone, code, fullName?.trim() || undefined);
+
+      return {
+        phoneNumber: phone,
+        secondsToExpire: OTP_EXPIRY_SECONDS,
+        ...(shouldExposeDevOtp() ? { otp: code } : {}),
+      };
+    } finally {
+      inFlightOtpRequests.delete(phone);
+    }
+  })();
+
+  inFlightOtpRequests.set(phone, execution);
+  return execution;
 }
 
 export async function registerByPhone(phoneInput: string, fullName?: string) {

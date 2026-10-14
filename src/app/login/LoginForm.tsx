@@ -51,6 +51,10 @@ export default function LoginForm() {
   const [recoveryCode, setRecoveryCode] = useState("");
   const [useRecoveryCode, setUseRecoveryCode] = useState(false);
   const [otpSubmitting, setOtpSubmitting] = useState(false);
+  const [isSendingPhone, setIsSendingPhone] = useState(false);
+  const [isResendingOtp, setIsResendingOtp] = useState(false);
+  const isSendingPhoneRef = useRef(false);
+  const isResendingOtpRef = useRef(false);
   const [sentOtp, setSentOtp] = useState("");
   const [otpExpiresIn, setOtpExpiresIn] = useState(0);
   const [error, setError] = useState("");
@@ -157,6 +161,8 @@ export default function LoginForm() {
 
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSendingPhoneRef.current || isSendingPhone || otpSubmitting || loginMutation.isPending) return;
+
     setError("");
     const value = normalizeDigits(phoneInput).replace(/[^0-9]/g, "");
     if (value.length < 10) {
@@ -165,6 +171,8 @@ export default function LoginForm() {
     }
 
     const normalizedPhone = toIranIntlPhone(value);
+    isSendingPhoneRef.current = true;
+    setIsSendingPhone(true);
 
     try {
       const result = await apiPostNoMock<unknown>("/api/auth/resend-verification-code", {
@@ -187,6 +195,9 @@ export default function LoginForm() {
       setStep("otp");
     } catch (error) {
       setError(extractAuthErrorMessage(error, "ارسال کد تایید انجام نشد."));
+    } finally {
+      isSendingPhoneRef.current = false;
+      setIsSendingPhone(false);
     }
   };
 
@@ -357,10 +368,21 @@ export default function LoginForm() {
   };
 
   const handleResendOtp = async () => {
-    if (!phone || otpSubmitting || loginMutation.isPending) return;
+    if (
+      !phone ||
+      isResendingOtpRef.current ||
+      isResendingOtp ||
+      otpSubmitting ||
+      loginMutation.isPending ||
+      otpExpiresIn > 0
+    ) {
+      return;
+    }
 
     setError("");
     setOtp("");
+    isResendingOtpRef.current = true;
+    setIsResendingOtp(true);
 
     try {
       const result = await apiPostNoMock<unknown>("/api/auth/resend-verification-code", {
@@ -371,6 +393,9 @@ export default function LoginForm() {
       setOtpExpiresIn(secondsToExpire);
     } catch (error) {
       setError(extractAuthErrorMessage(error, "ارسال مجدد کد تایید انجام نشد."));
+    } finally {
+      isResendingOtpRef.current = false;
+      setIsResendingOtp(false);
     }
   };
 
@@ -664,10 +689,10 @@ export default function LoginForm() {
           <button
             type="button"
             onClick={handleResendOtp}
-            disabled={otpSubmitting || loginMutation.isPending}
-            className="mt-2 text-sm font-black text-[#00c853] dark:text-green-400 hover:underline decoration-2 underline-offset-4 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isResendingOtp || otpSubmitting || loginMutation.isPending || otpExpiresIn > 0}
+            className="mt-2 text-sm font-black text-[#00c853] dark:text-green-400 hover:underline decoration-2 underline-offset-4 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
           >
-            ارسال مجدد کد
+            {isResendingOtp ? "در حال ارسال مجدد..." : "ارسال مجدد کد"}
           </button>
         )}
         <form
@@ -764,10 +789,17 @@ export default function LoginForm() {
         </div>
         <button
           type="submit"
-          disabled={loginMutation.isPending}
-          className="w-full h-14 bg-[#00c853] hover:bg-[#009624] dark:bg-[#00c853] dark:hover:bg-[#009624] text-white text-lg font-bold rounded-[2.5rem] shadow-lg shadow-green-500/20 hover:shadow-green-600/30 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 mt-4 cursor-pointer"
+          disabled={isSendingPhone || phoneInput.trim().length < 10}
+          className="w-full h-14 bg-[#00c853] hover:bg-[#009624] dark:bg-[#00c853] dark:hover:bg-[#009624] disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none text-white text-lg font-bold rounded-[2.5rem] shadow-lg shadow-green-500/20 hover:shadow-green-600/30 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 mt-4 cursor-pointer"
         >
-          <span>{loginMutation.isPending ? "در حال ارسال..." : "دریافت کد تایید"}</span>
+          {isSendingPhone ? (
+            <>
+              <span className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <span>در حال ارسال کد...</span>
+            </>
+          ) : (
+            <span>دریافت کد تایید</span>
+          )}
         </button>
       </form>
     </>
