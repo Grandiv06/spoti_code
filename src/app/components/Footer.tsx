@@ -130,13 +130,13 @@ export default function Footer() {
               </Link>
             </li>
             <li>
-              <a
+              <Link
                 className="hover:text-primary transition-colors flex items-center gap-2"
-                href="#"
+                href="/terms"
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-primary/40"></span>
                 قوانین و مقررات
-              </a>
+              </Link>
             </li>
           </ul>
         </div>
