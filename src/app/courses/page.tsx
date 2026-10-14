@@ -94,9 +94,20 @@ const getCourseList = (payload: unknown): unknown[] => {
 
 export default function CoursesPage() {
   const [activeFilter, setActiveFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [allCourses, setAllCourses] = useState<CourseItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { isEnrolled, canPurchase } = useStudentEnrollments();
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const catParam = params.get("category");
+      if (catParam) {
+        setActiveFilter(catParam.toLowerCase());
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -111,7 +122,40 @@ export default function CoursesPage() {
           const studentsCount = Number(row.studentsCount ?? row.students ?? 0);
           const rawCategory = String(
             row.categorySlug ?? row.category ?? row.track ?? "general"
+          ).toLowerCase().trim();
+
+          const rawCategoryLabel = String(
+            row.categoryTitle ?? row.categoryName ?? row.category ?? "سایر"
           );
+
+          let normalizedCategory = rawCategory;
+          let normalizedCategoryLabel = rawCategoryLabel;
+
+          if (
+            rawCategory === "frontend" ||
+            rawCategory.includes("front") ||
+            rawCategoryLabel.includes("فرانت")
+          ) {
+            normalizedCategory = "frontend";
+            normalizedCategoryLabel = "فرانت‌اند";
+          } else if (
+            rawCategory === "backend" ||
+            rawCategory.includes("back") ||
+            rawCategoryLabel.includes("بک")
+          ) {
+            normalizedCategory = "backend";
+            normalizedCategoryLabel = "بک‌اند";
+          } else if (rawCategory === "mobile" || rawCategoryLabel.includes("موبایل")) {
+            normalizedCategory = "mobile";
+            normalizedCategoryLabel = "موبایل";
+          } else if (
+            rawCategory === "base" ||
+            rawCategoryLabel.includes("مبانی") ||
+            rawCategoryLabel.includes("پایه")
+          ) {
+            normalizedCategory = "base";
+            normalizedCategoryLabel = "مبانی";
+          }
 
           const basePrice = Number(row.price ?? 0);
           const displayPrice = Number(row.displayPrice ?? row.finalPrice ?? basePrice);
@@ -126,10 +170,8 @@ export default function CoursesPage() {
           return {
             id: String(row.id ?? row.slug ?? `course-${index + 1}`),
             slug: String(row.slug ?? row.id ?? `course-${index + 1}`),
-            category: rawCategory.toLowerCase(),
-            categoryLabel: String(
-              row.categoryTitle ?? row.categoryName ?? row.category ?? "سایر"
-            ),
+            category: normalizedCategory,
+            categoryLabel: normalizedCategoryLabel,
             title: String(row.title ?? row.name ?? "دوره بدون عنوان"),
             description: String(
               row.shortDescription ??
@@ -165,31 +207,85 @@ export default function CoursesPage() {
   }, []);
 
   const categories = useMemo(() => {
-    const byCategory = allCourses.reduce<Record<string, number>>((acc, course) => {
-      acc[course.category] = (acc[course.category] ?? 0) + 1;
-      return acc;
-    }, {});
+    const counts: Record<string, number> = {
+      all: allCourses.length,
+      frontend: 0,
+      backend: 0,
+    };
 
-    const dynamicCategories = Object.keys(byCategory).map((id) => {
-      const firstMatch = allCourses.find((course) => course.category === id);
-      return {
-        id,
-        label: firstMatch?.categoryLabel ?? id,
-        count: byCategory[id],
-        icon: "code",
-      };
-    });
+    const otherCategoriesMap = new Map<
+      string,
+      { id: string; label: string; count: number; icon: string }
+    >();
 
-    return [
-      { id: "all", label: "همه دوره‌ها", count: allCourses.length, icon: "stream" },
-      ...dynamicCategories,
+    for (const course of allCourses) {
+      if (course.category === "frontend") {
+        counts.frontend += 1;
+      } else if (course.category === "backend") {
+        counts.backend += 1;
+      } else if (course.category && course.category !== "all") {
+        if (!otherCategoriesMap.has(course.category)) {
+          let icon = "code";
+          if (course.category === "mobile") icon = "smartphone";
+          else if (course.category === "ai") icon = "psychology";
+          else if (course.category === "base") icon = "menu_book";
+          else if (course.category === "devops") icon = "cloud";
+
+          otherCategoriesMap.set(course.category, {
+            id: course.category,
+            label: course.categoryLabel || course.category,
+            count: 0,
+            icon,
+          });
+        }
+        const entry = otherCategoriesMap.get(course.category)!;
+        entry.count += 1;
+      }
+    }
+
+    const primaryCategories = [
+      {
+        id: "all",
+        label: "همه دوره‌ها",
+        count: counts.all,
+        icon: "widgets",
+      },
+      {
+        id: "frontend",
+        label: "فرانت‌اند",
+        count: counts.frontend,
+        icon: "desktop_windows",
+      },
+      {
+        id: "backend",
+        label: "بک‌اند",
+        count: counts.backend,
+        icon: "dns",
+      },
     ];
+
+    return [...primaryCategories, ...Array.from(otherCategoriesMap.values())];
   }, [allCourses]);
 
   const filteredCourses = useMemo(() => {
-    if (activeFilter === "all") return allCourses;
-    return allCourses.filter((course) => course.category === activeFilter);
-  }, [activeFilter, allCourses]);
+    let result = allCourses;
+
+    if (activeFilter !== "all") {
+      result = result.filter((course) => course.category === activeFilter);
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      result = result.filter(
+        (c) =>
+          c.title.toLowerCase().includes(q) ||
+          c.description.toLowerCase().includes(q) ||
+          c.instructor.toLowerCase().includes(q)
+      );
+    }
+
+    return result;
+  }, [activeFilter, allCourses, searchQuery]);
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark transition-colors duration-300 relative overflow-x-hidden min-h-screen">
@@ -250,7 +346,7 @@ export default function CoursesPage() {
                       ${isActive ? "bg-[#0d1c15]/20 text-[#0d1c15]" : "bg-gray-200 dark:bg-white/10 text-gray-600 dark:text-gray-300"}
                     `}
                     >
-                      {cat.count}
+                      {cat.count.toLocaleString("fa-IR")}
                     </span>
                   </button>
                 );
@@ -265,10 +361,22 @@ export default function CoursesPage() {
                 </span>
               </div>
               <input
-                className="w-full bg-white dark:bg-[#1C1F26] border border-gray-200 dark:border-white/10 rounded-full py-3.5 pr-12 pl-4 focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all placeholder-gray-400 dark:placeholder-gray-500 font-bold text-gray-700 dark:text-white outline-none text-sm shadow-sm"
+                className="w-full bg-white dark:bg-[#1C1F26] border border-gray-200 dark:border-white/10 rounded-full py-3.5 pr-12 pl-10 focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all placeholder-gray-400 dark:placeholder-gray-500 font-bold text-gray-700 dark:text-white outline-none text-sm shadow-sm"
                 placeholder="جستجوی پیشرفته دوره..."
                 type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute inset-y-0 left-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
+                  title="پاک کردن جستجو"
+                >
+                  <span className="material-symbols-outlined text-lg">close</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
