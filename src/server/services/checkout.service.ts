@@ -175,6 +175,7 @@ export async function initiateCheckout(
           where: { id: course.id },
           data: {
             studentsCount: { increment: 1 },
+            ...(order.amount > 0 ? { revenue: { increment: BigInt(order.amount) } } : {}),
           },
         });
 
@@ -587,10 +588,14 @@ export async function handleZibalCallback(query: {
         },
       });
 
+      const matchedOrder = transaction.orders.find((o) => o.courseId === courseId);
+      const orderAmount = matchedOrder?.amount ?? 0;
+
       await tx.course.update({
         where: { id: courseId },
         data: {
           studentsCount: { increment: 1 },
+          ...(orderAmount > 0 ? { revenue: { increment: BigInt(orderAmount) } } : {}),
         },
       });
     }

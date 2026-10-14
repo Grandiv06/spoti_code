@@ -114,3 +114,22 @@ export function useInstructorProfileSummary(enabled = true) {
     retry: 1,
   });
 }
+
+export const instructorEarningsQueryKey = ["instructor-dashboard", "earnings"] as const;
+
+export function useInstructorEarnings() {
+  return useQuery<import("@/server/services/instructor-earnings.service").InstructorEarningsResponse, Error>({
+    queryKey: instructorEarningsQueryKey,
+    queryFn: async () => {
+      const res = await apiGetNoMock<{ data: import("@/server/services/instructor-earnings.service").InstructorEarningsResponse }>(
+        "/api/instructor-dashboard/earnings",
+        getAuthHeaders()
+      );
+      return res.data;
+    },
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
+    retry: 1,
+  });
+}
+
