@@ -4,7 +4,7 @@ import { FaTelegramPlane, FaInstagram, FaLinkedinIn, FaYoutube } from "react-ico
 
 export default function Footer() {
   return (
-    <footer className="bg-gray-950 text-white rounded-t-[4rem] mt-12 pt-24 pb-12 px-6 relative overflow-hidden">
+    <footer className="bg-gray-950 text-white rounded-t-[4rem] mt-12 pt-24 pb-36 sm:pb-36 lg:pb-16 px-6 relative overflow-hidden">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16 relative z-10">
         <div className="space-y-8">
           <div className="flex items-center gap-3">
@@ -15,7 +15,7 @@ export default function Footer() {
               height={32}
               className="w-8 h-8 group-hover:scale-110 transition-transform"
             />
-            <span className="text-2xl font-black">اسپاتی کد</span>
+            <span className="text-2xl font-black">اسپاتی‌کد</span>
           </div>
           <p className="text-gray-400 leading-relaxed text-lg">
             تخصصی‌ترین مرکز آموزش برنامه‌نویسی در ایران با هدف تربیت نیروهای

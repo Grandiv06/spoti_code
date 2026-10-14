@@ -219,7 +219,7 @@ function SidebarSkeleton() {
       </div>
 
       {/* Mobile Bottom Floating Action Bar Skeleton */}
-      <div className="lg:hidden fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 dark:border-white/10 bg-white dark:bg-[#101217] px-3 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgba(0,0,0,0.15)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.5)]">
+      <div className="lg:hidden fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 dark:border-white/10 bg-white/95 dark:bg-[#0f1117]/95 backdrop-blur-xl px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgba(0,0,0,0.2)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.6)]">
         <div className="mx-auto flex max-w-[1440px] items-center gap-3">
           <div className="min-w-0 shrink-0 text-right space-y-1">
             <SkeletonLine className="h-2 w-14 !bg-gray-200/70 dark:!bg-white/[0.05]" rounded="rounded-md" />

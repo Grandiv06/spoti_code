@@ -266,7 +266,7 @@ export default function CourseDetailPageClient({ slug, adminPreviewCourseId }: C
         </div>
 
         {!isAdminPreview ? (
-          <div className="lg:hidden fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 dark:border-white/10 bg-white dark:bg-[#101217] px-3 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgba(0,0,0,0.15)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.5)]">
+          <div className="lg:hidden fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 dark:border-white/10 bg-white/95 dark:bg-[#0f1117]/95 backdrop-blur-xl px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgba(0,0,0,0.2)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.6)]">
             <div className="mx-auto flex max-w-[1440px] items-center gap-3">
               {showPriceCard ? (
                 <div className="min-w-0 shrink-0 text-right">
@@ -358,7 +358,7 @@ export default function CourseDetailPageClient({ slug, adminPreviewCourseId }: C
         />
       ) : null}
 
-      <main className="max-w-[1440px] mx-auto px-3 sm:px-4 md:px-12 py-6 sm:py-8 md:py-12 relative z-10 pb-28 lg:pb-12">
+      <main className="max-w-[1440px] mx-auto px-3 sm:px-4 md:px-12 py-6 sm:py-8 md:py-12 relative z-10 pb-32 lg:pb-12">
         <CourseDetailClient
           hero={{
             title: courseData.heroTitle || courseData.title,
