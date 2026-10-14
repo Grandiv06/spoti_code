@@ -40,20 +40,9 @@ export default function AboutPage() {
                 داستان ما
               </h2>
               <div className="w-16 h-1 bg-primary rounded-full"></div>
-              <p className="text-gray-600 dark:text-gray-300 text-lg leading-loose text-justify">
-                ما با هدف دموکراتیک کردن دانش مهندسی نرم‌افزار شروع کردیم. در
-                اسپاتی کد، ما متعهد به ارائه محتوای آموزشی با بالاترین کیفیت و
-                متدهای روز دنیا هستیم تا جامعه‌ای از توسعه‌دهندگان حرفه‌ای
-                بسازیم. داستان ما از یک اتاق کوچک و یک ایده بزرگ شروع شد: اینکه
-                هر ایرانی بتواند به دانشی دسترسی داشته باشد که در سیلیکون ولی
-                تدریس می‌شود.
+              <p className="text-gray-600 dark:text-gray-300 text-base sm:text-lg leading-loose text-justify">
+                اسپاتی‌کد با یک هدف روشن و شفاف متولد شد: فراهم کردن بستری حرفه‌ای، ساده و لذت‌بخش برای یادگیری برنامه‌نویسی و مهارت‌های دنیای تکنولوژی. ما بر این باوریم که یادگیری کدنویسی نباید پیچیده یا دست‌نیافتنی باشد؛ بلکه هر فرد علاقه‌مند در هر نقطه‌ای از کشور باید بتواند به آموزش‌های استاندارد، پروژه‌محور و متناسب با نیاز بازار کار دسترسی داشته باشد. در اسپاتی‌کد، ما مسیر ورود به دنیای حرفه‌ای برنامه‌نویسی را با آموزش‌های روان، پشتیبانی همیشگی و همراهی گام‌به‌گام برای شما هموار می‌کنیم.
               </p>
-              <button className="w-fit mt-2 text-primary font-bold hover:text-gray-900 dark:hover:text-white transition-colors flex items-center gap-2 group-hover:gap-4 transition-all cursor-pointer">
-                بیشتر بخوانید
-                <span className="material-symbols-outlined rotate-180 text-sm">
-                  arrow_right_alt
-                </span>
-              </button>
             </div>
           </div>
           <div className="order-1 lg:order-2 h-full min-h-[300px] lg:min-h-[500px] rounded-4xl overflow-hidden glass-panel-light p-2 relative">
@@ -93,8 +82,7 @@ export default function AboutPage() {
                   ماموریت ما
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                  دموکراتیک کردن دانش سطح بالای مهندسی نرم‌افزار برای همه
-                  فارسی‌زبانان. ما می‌خواهیم مرزهای جغرافیایی را حذف کنیم.
+                  ارائه آموزش‌های تخصصی، پروژه‌محور و متناسب با بازار کار به زبانی ساده و کاربردی برای تمام علاقه‌مندان به دنیای برنامه‌نویسی.
                 </p>
               </div>
             </div>
