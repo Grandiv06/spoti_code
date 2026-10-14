@@ -78,36 +78,43 @@ export default function ContactPage() {
           <div className="lg:col-span-1 flex flex-col gap-6">
             <div className="glass-panel rounded-4xl p-8 flex flex-col gap-4 hover:bg-white/5 dark:hover:bg-white/5 transition-colors border-t-4 border-t-primary/50">
               <div className="size-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                <span className="material-symbols-outlined text-3xl">location_on</span>
+                <span className="material-symbols-outlined text-3xl">support_agent</span>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">آدرس</h3>
-              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                تهران، خیابان آزادی، کارخانه نوآوری، ساختمان آکادمی کد
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">پشتیبانی و تیکت</h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-sm">
+                سریع‌ترین روش دریافت پاسخ، ثبت تیکت در پنل کاربری دانشجویان است.
               </p>
-            </div>
-            <div className="glass-panel rounded-4xl p-8 flex flex-col gap-4 hover:bg-white/5 dark:hover:bg-white/5 transition-colors border-t-4 border-t-primary/50">
-              <div className="size-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                <span className="material-symbols-outlined text-3xl">call</span>
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">تلفن</h3>
-              <a
-                href="tel:02191001000"
-                className="text-gray-600 dark:text-gray-400 hover:text-primary transition-colors font-bold text-lg dir-ltr text-right"
+              <Link
+                href="/panel/support"
+                className="text-primary font-bold hover:text-primary-hover transition-colors inline-flex items-center gap-1.5 text-sm mt-1"
               >
-                ۰۲۱-۹۱۰۰۱۰۰۰
-              </a>
+                <span>ورود به بخش تیکت‌ها</span>
+                <span className="material-symbols-outlined text-base rtl:rotate-180">arrow_right_alt</span>
+              </Link>
             </div>
             <div className="glass-panel rounded-4xl p-8 flex flex-col gap-4 hover:bg-white/5 dark:hover:bg-white/5 transition-colors border-t-4 border-t-primary/50">
               <div className="size-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
                 <span className="material-symbols-outlined text-3xl">mail</span>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">ایمیل</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">ایمیل پشتیبانی</h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-sm">
+                برای پیشنهادات، همکاری و ارتباط مستقیم:
+              </p>
               <a
                 href="mailto:support@spoticode.ir"
-                className="text-gray-600 dark:text-gray-400 hover:text-primary transition-colors"
+                className="text-gray-900 dark:text-white hover:text-primary transition-colors font-bold text-base dir-ltr text-right"
               >
                 support@spoticode.ir
               </a>
+            </div>
+            <div className="glass-panel rounded-4xl p-8 flex flex-col gap-4 hover:bg-white/5 dark:hover:bg-white/5 transition-colors border-t-4 border-t-primary/50">
+              <div className="size-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                <span className="material-symbols-outlined text-3xl">language</span>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">خدمات کاملاً آنلاین</h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-sm">
+                اسپاتی‌کد شعبه حضوری یا خط تلفنی ندارد؛ کلیه آموزش‌ها و پشتیبانی‌ها به‌صورت تماماً آنلاین و دیجیتال انجام می‌شود.
+              </p>
             </div>
           </div>
 

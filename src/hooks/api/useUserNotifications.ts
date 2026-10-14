@@ -4,6 +4,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 
+import { apiGetNoMock } from "@/lib/api";
+import { getAuthHeaders } from "@/lib/auth-tokens";
+
 export interface UserNotification {
   id: string;
   type: "COURSE" | "SUPPORT" | "ORDER" | "SYSTEM";
@@ -21,7 +24,7 @@ export interface UserNotification {
 const NOTIFICATIONS_QUERY_KEY = ["dashboard", "notifications"] as const;
 
 export function useUserNotifications() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const storageKey = user?.id ? `spoticode_notifs_read_${user.id}` : null;
   const [readIds, setReadIds] = useState<string[]>([]);
@@ -43,17 +46,17 @@ export function useUserNotifications() {
 
   const { data, isLoading, refetch } = useQuery<{ notifications: Omit<UserNotification, "isRead">[] }>({
     queryKey: NOTIFICATIONS_QUERY_KEY,
-    queryFn: async () => {
-      const res = await fetch("/api/dashboard/notifications");
-      if (!res.ok) throw new Error("Failed to fetch notifications");
-      return res.json();
-    },
-    enabled: isAuthenticated && Boolean(user),
+    queryFn: () =>
+      apiGetNoMock<{ notifications: Omit<UserNotification, "isRead">[] }>(
+        "/api/dashboard/notifications",
+        getAuthHeaders()
+      ),
+    enabled: !authLoading && isAuthenticated && Boolean(user),
     staleTime: 30_000,
     gcTime: 5 * 60_000,
   });
 
-  const rawNotifications = data?.notifications || [];
+  const rawNotifications = Array.isArray(data?.notifications) ? data.notifications : [];
 
   const notifications: UserNotification[] = rawNotifications.map((n) => ({
     ...n,

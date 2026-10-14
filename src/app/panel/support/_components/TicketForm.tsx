@@ -203,7 +203,7 @@ export default function TicketForm({ onBack }: { onBack: () => void }) {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading || loading || attachments.length >= MAX_ATTACHMENTS}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-gray-50 px-4 text-sm font-bold text-gray-600 transition-colors hover:border-primary/30 hover:text-primary dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-200 dark:hover:text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+            className="inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-gray-50 px-4 text-sm font-bold text-gray-600 transition-colors hover:border-primary/30 hover:text-primary dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-200 dark:hover:text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
           >
             <Paperclip className="size-4" />
             {uploading
@@ -216,16 +216,16 @@ export default function TicketForm({ onBack }: { onBack: () => void }) {
           <button
             type="submit"
             disabled={loading || uploading}
-            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-black text-white shadow-[0_10px_28px_rgba(34,197,94,0.22)] transition-all hover:bg-primary-hover active:scale-[0.98] cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-14 min-h-[3.5rem] w-full shrink-0 items-center justify-center gap-2 rounded-2xl bg-primary text-base font-black text-white shadow-[0_10px_28px_rgba(34,197,94,0.22)] transition-all hover:bg-primary-hover active:scale-[0.98] cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 sm:h-12 sm:min-h-[3rem] sm:flex-1 sm:text-sm"
           >
             {loading ? (
               <>
-                <Loader2 className="size-4 animate-spin" />
+                <Loader2 className="size-5 sm:size-4 animate-spin" />
                 در حال ثبت...
               </>
             ) : (
               <>
-                <Send className="size-4" />
+                <Send className="size-5 sm:size-4" />
                 ارسال تیکت
               </>
             )}

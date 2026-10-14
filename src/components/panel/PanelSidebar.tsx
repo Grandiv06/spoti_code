@@ -53,14 +53,9 @@ export default function PanelSidebar() {
               height={48}
               className="h-12 w-auto object-contain transition-transform duration-500 group-hover:-rotate-45"
             />
-            <div className="flex flex-col leading-none">
-              <span className="text-2xl font-black text-gray-900 dark:text-white tracking-tight group-hover:text-primary transition-colors">
-                <span className="text-primary">اسپاتی</span> کد
-              </span>
-              <span className="text-[10px] text-primary tracking-widest uppercase font-bold">
-                Coding Academy
-              </span>
-            </div>
+            <span className="text-2xl font-black text-gray-900 dark:text-white tracking-tight group-hover:text-primary transition-colors">
+              <span className="text-primary">اسپاتی</span> کد
+            </span>
           </Link>
         </div>
 

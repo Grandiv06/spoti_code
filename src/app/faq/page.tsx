@@ -121,17 +121,17 @@ export default function FAQ() {
             تیم پشتیبانی اسپاتی‌کد آماده است تا در سریع‌ترین زمان ممکن به سوالات شما پاسخ دهد و شما را در مسیر یادگیری راهنمایی کند.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <a
-              href="tel:09121234567"
+            <Link
+              href="/panel/support"
               className="px-8 py-3.5 bg-primary text-[#0d1c15] font-black rounded-2xl hover:bg-primary-hover hover:scale-105 transition-all cursor-pointer shadow-[0_4px_20px_-5px_rgba(34,197,94,0.4)]"
             >
-              تماس با پشتیبانی
-            </a>
+              ثبت تیکت پشتیبانی
+            </Link>
             <Link
               href="/contact"
               className="px-8 py-3.5 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white font-black rounded-2xl hover:bg-gray-200 dark:hover:bg-white/10 transition-colors cursor-pointer"
             >
-              ارسال پیام به تلگرام
+              ارتباط با ما
             </Link>
           </div>
         </div>

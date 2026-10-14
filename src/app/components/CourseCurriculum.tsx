@@ -139,6 +139,16 @@ export default function CourseCurriculum({
     );
   }
 
+  const anyOpen = openChapterId !== null;
+
+  const toggleAll = () => {
+    if (anyOpen) {
+      setOpenChapterId(null);
+    } else if (chapters.length > 0) {
+      setOpenChapterId(chapters[0].id);
+    }
+  };
+
   return (
     <section className="glass-panel overflow-hidden rounded-[1.5rem] sm:rounded-[2rem] md:rounded-4xl border border-gray-200/80 dark:border-white/[0.06] shadow-[0_10px_30px_-5px_rgba(0,0,0,0.04)] bg-white/95 dark:bg-white/[0.03]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200/80 px-4 py-4 dark:border-white/[0.06] sm:px-5 sm:py-5 md:px-8 md:py-6">
@@ -151,10 +161,10 @@ export default function CourseCurriculum({
         <div className="flex flex-row-reverse flex-wrap items-center gap-2 sm:gap-3">
           <button
             type="button"
-            onClick={collapseAll}
+            onClick={toggleAll}
             className="text-xs sm:text-sm font-bold text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors flex items-center gap-1.5 cursor-pointer"
           >
-            بستن
+            {anyOpen ? "بستن همه" : "باز کردن"}
           </button>
           <span className="rounded-xl sm:rounded-2xl bg-emerald-50/90 border border-emerald-200/70 px-2.5 py-1.5 sm:px-4 sm:py-2 text-[11px] sm:text-xs md:text-sm font-black text-emerald-800 shadow-xs dark:bg-white/5 dark:border-transparent dark:text-gray-300">
             {chapters.length} فصل
@@ -222,61 +232,67 @@ export default function CourseCurriculum({
                 </div>
               </button>
 
-              {isOpen && (
-                <div className="border-t border-gray-200/80 bg-slate-50/60 p-3 dark:border-white/[0.06] dark:bg-black/20 sm:p-4 md:p-6">
-                  <ul className="mr-1 space-y-2 border-r-2 border-primary/30 pr-3 dark:border-primary/20 sm:mr-2 sm:space-y-3 sm:pr-5">
-                    {chapter.lessons.map((lesson) => {
-                      const playable = isLessonPlayable(lesson, coursePurchased);
-                      const isActive = activeLessonId === lesson.id;
+              <div
+                className={`grid transition-[grid-template-rows,opacity] duration-350 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                  isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                }`}
+              >
+                <div className="overflow-hidden">
+                  <div className="border-t border-gray-200/80 bg-slate-50/60 p-3 dark:border-white/[0.06] dark:bg-black/20 sm:p-4 md:p-6">
+                    <ul className="mr-1 space-y-2 border-r-2 border-primary/30 pr-3 dark:border-primary/20 sm:mr-2 sm:space-y-3 sm:pr-5">
+                      {chapter.lessons.map((lesson) => {
+                        const playable = isLessonPlayable(lesson, coursePurchased);
+                        const isActive = activeLessonId === lesson.id;
 
-                      return (
-                        <li
-                          key={lesson.id}
-                          className={`flex items-center justify-between gap-2 group/li transition-all rounded-xl sm:rounded-2xl px-2.5 py-2 sm:px-3.5 sm:py-2.5 ${
-                            isActive
-                              ? "bg-primary/15 dark:bg-primary/20 ring-1 ring-primary/40"
-                              : "hover:bg-white dark:hover:bg-white/[0.04]"
-                          }`}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (!playable) {
-                                onLockedLessonClick?.();
-                                return;
-                              }
-                              onLessonSelect?.(lesson, chapter);
-                            }}
-                            className={`flex min-w-0 flex-1 items-center gap-2 sm:gap-3 transition-colors text-right ${
-                              playable
-                                ? "text-gray-800 dark:text-gray-200 group-hover/li:text-primary dark:group-hover/li:text-white cursor-pointer"
-                                : "text-gray-500 dark:text-gray-500 cursor-not-allowed"
-                            }`}
-                            disabled={!playable}
-                          >
-                            {playable ? (
-                              <span className="material-symbols-outlined text-primary text-xl shrink-0">play_circle</span>
-                            ) : (
-                              <span className="material-symbols-outlined text-gray-400 dark:text-gray-600 text-xl shrink-0">lock</span>
-                            )}
-                            <span className="font-bold text-[13px] sm:text-sm leading-6 line-clamp-2">{lesson.title}</span>
-                          </button>
-
-                          <span
-                            className={`text-xs font-bold px-2.5 py-1 rounded-lg shrink-0 ${
-                              playable
-                                ? "bg-emerald-100/90 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
-                                : "bg-gray-200/80 text-gray-500 dark:bg-gray-800/50 dark:text-gray-500"
+                        return (
+                          <li
+                            key={lesson.id}
+                            className={`flex items-center justify-between gap-2 group/li transition-all rounded-xl sm:rounded-2xl px-2.5 py-2 sm:px-3.5 sm:py-2.5 ${
+                              isActive
+                                ? "bg-primary/15 dark:bg-primary/20 ring-1 ring-primary/40"
+                                : "hover:bg-white dark:hover:bg-white/[0.04]"
                             }`}
                           >
-                            {playable ? lesson.duration : "قفل"}
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!playable) {
+                                  onLockedLessonClick?.();
+                                  return;
+                                }
+                                onLessonSelect?.(lesson, chapter);
+                              }}
+                              className={`flex min-w-0 flex-1 items-center gap-2 sm:gap-3 transition-colors text-right ${
+                                playable
+                                  ? "text-gray-800 dark:text-gray-200 group-hover/li:text-primary dark:group-hover/li:text-white cursor-pointer"
+                                  : "text-gray-500 dark:text-gray-500 cursor-not-allowed"
+                              }`}
+                              disabled={!playable}
+                            >
+                              {playable ? (
+                                <span className="material-symbols-outlined text-primary text-xl shrink-0">play_circle</span>
+                              ) : (
+                                <span className="material-symbols-outlined text-gray-400 dark:text-gray-600 text-xl shrink-0">lock</span>
+                              )}
+                              <span className="font-bold text-[13px] sm:text-sm leading-6 line-clamp-2">{lesson.title}</span>
+                            </button>
+
+                            <span
+                              className={`text-xs font-bold px-2.5 py-1 rounded-lg shrink-0 ${
+                                playable
+                                  ? "bg-emerald-100/90 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
+                                  : "bg-gray-200/80 text-gray-500 dark:bg-gray-800/50 dark:text-gray-500"
+                              }`}
+                            >
+                              {playable ? lesson.duration : "قفل"}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
           );
         })}

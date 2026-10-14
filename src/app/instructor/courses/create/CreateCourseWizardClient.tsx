@@ -793,8 +793,8 @@ export default function CreateCourseWizardPage() {
     category: "Frontend",
     level: "intermediate",
     language: "فارسی",
-    duration: "18",
-    price: 1450000,
+    duration: "",
+    price: 0,
     isPaid: "paid", // free or paid
     cover: "",
     introVideo: "",
@@ -3556,7 +3556,7 @@ export default function CreateCourseWizardPage() {
                         type="text"
                         inputMode="numeric"
                         pattern="[0-9]*"
-                        placeholder="18"
+                        placeholder="مثال: ۱۸"
                         value={formData.duration}
                         onChange={handleDurationChange}
                         className="w-full px-4 py-2.5 pl-14 bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 rounded-xl text-xs font-bold focus:border-primary focus:outline-none transition-all text-left"
@@ -3579,7 +3579,7 @@ export default function CreateCourseWizardPage() {
                           type="text"
                           inputMode="numeric"
                           pattern="[0-9]*"
-                          placeholder="1450000"
+                          placeholder="مثال: ۱,۴۵۰,۰۰۰"
                           value={
                             formData.price === 0 ? "" : String(formData.price)
                           }

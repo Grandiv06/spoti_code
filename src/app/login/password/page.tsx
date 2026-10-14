@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "ورود با رمز عبور - آکادمی برنامه‌نویسی",
+  title: "ورود با رمز عبور - اسپاتی‌کد",
   description: "ورود به حساب کاربری با رمز عبور",
 };
 
@@ -29,7 +29,7 @@ export default function LoginPasswordPage() {
               </svg>
             </div>
             <h2 className="text-gray-900 dark:text-white text-xl font-bold tracking-tight">
-              آکادمی برنامه‌نویسی
+              اسپاتی‌کد
             </h2>
           </Link>
           <div className="hidden sm:flex gap-6 text-sm font-semibold text-gray-600 dark:text-gray-400">

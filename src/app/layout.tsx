@@ -8,7 +8,7 @@ import CartSidebar from "./components/CartSidebar";
 import QueryProvider from "@/components/providers/QueryProvider";
 
 export const metadata: Metadata = {
-  title: "آکادمی کد - آموزش برنامه‌نویسی",
+  title: "اسپاتی‌کد - آموزش برنامه‌نویسی",
   description: "مسیر حرفه‌ای شدن در دنیای برنامه‌نویسی",
   icons: {
     icon: "/favicon.svg",

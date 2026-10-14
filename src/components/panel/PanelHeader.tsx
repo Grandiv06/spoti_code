@@ -162,9 +162,9 @@ export default function PanelHeader() {
           {/* Notifications Floating Dropdown - Centered on mobile, aligned on desktop */}
           {isNotificationsOpen && (
             <>
-              {/* Mobile backdrop */}
+              {/* Mobile transparent backdrop for outside clicks */}
               <div
-                className="fixed inset-0 bg-black/40 backdrop-blur-xs z-40 sm:hidden animate-in fade-in duration-200"
+                className="fixed inset-0 z-40 sm:hidden"
                 onClick={() => setIsNotificationsOpen(false)}
                 aria-hidden="true"
               />

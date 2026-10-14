@@ -5,7 +5,7 @@ import Image from "next/image";
 import LoginForm from "./LoginForm";
 
 export const metadata: Metadata = {
-  title: "ورود با شماره موبایل - آکادمی برنامه‌نویسی",
+  title: "ورود با شماره موبایل - اسپاتی‌کد",
   description: "ورود به حساب کاربری با شماره موبایل",
 };
 

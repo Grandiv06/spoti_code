@@ -12,6 +12,7 @@ import {
   type CourseApprovalStatus,
   type InstructorCourseDraftDto,
 } from "@/server/dto/instructor-course-draft.dto";
+import { stripInlineMediaDeep } from "@/server/utils/media-guard";
 
 type CourseApprovalRow = {
   id: string;
@@ -239,7 +240,7 @@ function mapApprovalRow(row: CourseApprovalRow) {
             ? "رد شده"
             : "پیش‌نویس",
     draftStep: row.draftStep ?? 1,
-    draftData: parseDraftData(row.draftData),
+    draftData: stripInlineMediaDeep(parseDraftData(row.draftData)),
     introVideo: row.introVideo ?? "",
     chapters: parseDraftData(row.chapters),
     faqs: parseDraftData(row.faqs),
@@ -299,8 +300,8 @@ async function readCourseRow(courseId: string) {
       c."categoryTitle",
       c."instructorId",
       i."name" as "instructorName",
-      c."cover",
-      c."thumbnail",
+      CASE WHEN c."cover" LIKE 'data:%' OR c."cover" LIKE 'blob:%' THEN ${DEFAULT_COVER} ELSE c."cover" END AS "cover",
+      CASE WHEN c."thumbnail" LIKE 'data:%' OR c."thumbnail" LIKE 'blob:%' THEN ${DEFAULT_COVER} ELSE c."thumbnail" END AS "thumbnail",
       c."difficulty",
       c."level",
       c."durationHours",
@@ -575,8 +576,8 @@ export async function getAdminCourseRequests(
           c."categoryTitle",
           c."instructorId",
           i."name" as "instructorName",
-          c."cover",
-          c."thumbnail",
+          CASE WHEN c."cover" LIKE 'data:%' OR c."cover" LIKE 'blob:%' THEN ${DEFAULT_COVER} ELSE c."cover" END AS "cover",
+          CASE WHEN c."thumbnail" LIKE 'data:%' OR c."thumbnail" LIKE 'blob:%' THEN ${DEFAULT_COVER} ELSE c."thumbnail" END AS "thumbnail",
           c."difficulty",
           c."level",
           c."durationHours",
@@ -612,8 +613,8 @@ export async function getAdminCourseRequests(
           c."categoryTitle",
           c."instructorId",
           i."name" as "instructorName",
-          c."cover",
-          c."thumbnail",
+          CASE WHEN c."cover" LIKE 'data:%' OR c."cover" LIKE 'blob:%' THEN ${DEFAULT_COVER} ELSE c."cover" END AS "cover",
+          CASE WHEN c."thumbnail" LIKE 'data:%' OR c."thumbnail" LIKE 'blob:%' THEN ${DEFAULT_COVER} ELSE c."thumbnail" END AS "thumbnail",
           c."difficulty",
           c."level",
           c."durationHours",

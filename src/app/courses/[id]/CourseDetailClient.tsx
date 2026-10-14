@@ -81,6 +81,10 @@ export default function CourseDetailClient({
   const [lockedNotice, setLockedNotice] = useState<string | null>(null);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, []);
+
+  useEffect(() => {
     if (!lockedNotice) return;
     const timeoutId = window.setTimeout(() => setLockedNotice(null), 2600);
     return () => window.clearTimeout(timeoutId);

@@ -332,6 +332,15 @@ export default function CourseLearningClient() {
     if (lesson.isLocked) return;
     setCompleteError(null);
     setActiveLessonId(lesson.id);
+    setActiveLessonDetail(lesson);
+    const parentChapter = courseData.chapters.find((ch) =>
+      ch.lessons.some((l) => l.id === lesson.id)
+    );
+    if (parentChapter) {
+      setExpandedChapters((prev) =>
+        prev.includes(parentChapter.id) ? prev : [...prev, parentChapter.id]
+      );
+    }
     void loadLessonDetail(lesson.id, lesson);
   };
 
@@ -747,6 +756,21 @@ export default function CourseLearningClient() {
     activeLesson = activeLessonDetail;
   }
 
+  const allLessons = useMemo(() => {
+    return courseData.chapters.flatMap((chapter) => chapter.lessons);
+  }, [courseData.chapters]);
+
+  const currentLessonIndex = useMemo(() => {
+    if (!activeLesson?.id) return -1;
+    return allLessons.findIndex((l) => l.id === activeLesson.id);
+  }, [allLessons, activeLesson?.id]);
+
+  const prevLesson = currentLessonIndex > 0 ? allLessons[currentLessonIndex - 1] : null;
+  const nextLesson =
+    currentLessonIndex >= 0 && currentLessonIndex < allLessons.length - 1
+      ? allLessons[currentLessonIndex + 1]
+      : null;
+
   const toggleChapter = (chapterId: string) => {
     setExpandedChapters(prev => 
       prev.includes(chapterId) 
@@ -961,15 +985,39 @@ export default function CourseLearningClient() {
               />
 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-4 mt-2.5 sm:mt-4 px-1 sm:px-2 pb-1 sm:pb-2">
-                <div className="grid grid-cols-2 sm:flex items-center gap-2">
-                  <button className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold text-xs sm:text-sm transition-colors cursor-pointer">
-                    <span className="material-symbols-outlined text-[18px] sm:text-[20px]">arrow_forward</span>
-                    درس قبلی
-                  </button>
-                  <button className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold text-xs sm:text-sm transition-colors cursor-pointer">
-                    درس بعدی
-                    <span className="material-symbols-outlined text-[18px] sm:text-[20px]">arrow_back</span>
-                  </button>
+                <div className="flex items-center gap-2">
+                  {prevLesson && (
+                    <button
+                      type="button"
+                      onClick={() => handleLessonSelect(prevLesson)}
+                      title={`درس قبلی: ${prevLesson.title}`}
+                      className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold text-xs sm:text-sm transition-colors cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-[18px] sm:text-[20px]">arrow_forward</span>
+                      درس قبلی
+                    </button>
+                  )}
+                  {nextLesson && (
+                    <button
+                      type="button"
+                      onClick={() => handleLessonSelect(nextLesson)}
+                      disabled={nextLesson.isLocked}
+                      title={
+                        nextLesson.isLocked
+                          ? `درس بعدی قفل است: ${nextLesson.title}`
+                          : `درس بعدی: ${nextLesson.title}`
+                      }
+                      className={cn(
+                        "flex-1 sm:flex-initial flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-colors",
+                        nextLesson.isLocked
+                          ? "bg-gray-100 dark:bg-gray-800/50 text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-60"
+                          : "bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                      )}
+                    >
+                      درس بعدی
+                      <span className="material-symbols-outlined text-[18px] sm:text-[20px]">arrow_back</span>
+                    </button>
+                  )}
                 </div>
 
                 <button

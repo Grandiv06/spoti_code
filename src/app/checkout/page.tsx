@@ -185,7 +185,12 @@ export default function CheckoutPage() {
 
     try {
       const response = await apiPostNoMock<{
-        data?: { trackingCode?: string };
+        data?: {
+          free?: boolean;
+          paymentUrl?: string;
+          trackId?: string | number;
+          trackingCode?: string;
+        };
       }>(
         "/api/dashboard/checkout",
         {
@@ -195,7 +200,16 @@ export default function CheckoutPage() {
         getAuthHeaders()
       );
 
-      const trackingCode = response?.data?.trackingCode ?? null;
+      const resData = response?.data;
+
+      // در صورت وجود لینک درگاه پرداخت زیبال، هدایت به درگاه شاپرک/زیبال
+      if (resData?.paymentUrl) {
+        window.location.href = resData.paymentUrl;
+        return;
+      }
+
+      // خرید رایگان یا تسویه مستقیم
+      const trackingCode = resData?.trackingCode ?? null;
       clearCart();
       setSuccessTrackingCode(trackingCode);
     } catch (error) {
@@ -205,6 +219,7 @@ export default function CheckoutPage() {
       setIsSubmitting(false);
     }
   };
+
 
   if (successTrackingCode) {
     return (
@@ -479,16 +494,21 @@ export default function CheckoutPage() {
                 disabled={cart.length === 0 || isSubmitting || authLoading || isStaff}
                 className="w-full cursor-pointer rounded-2xl bg-primary px-5 py-4 text-base font-black text-white shadow-[0_0_24px_rgba(34,197,94,0.25)] transition hover:-translate-y-0.5 hover:shadow-[0_0_34px_rgba(34,197,94,0.35)] disabled:cursor-not-allowed disabled:bg-gray-400"
               >
-                {isSubmitting ? "در حال پردازش..." : "پرداخت و تکمیل خرید"}
+                {isSubmitting
+                  ? "در حال اتصال به درگاه پرداخت..."
+                  : total <= 0
+                    ? "ثبت‌نام رایگان و تکمیل خرید"
+                    : "پرداخت امن با درگاه زیبال"}
               </button>
 
               {submitError ? (
                 <p className="text-center text-xs font-bold text-red-500">{submitError}</p>
               ) : null}
 
-              <p className="text-center text-xs font-bold text-gray-500 dark:text-gray-400">
-                پس از پرداخت، دوره‌ها در پنل کاربری و تراکنش‌ها در بخش مالی ثبت می‌شوند.
-              </p>
+              <div className="flex items-center justify-center gap-2 pt-1 text-center text-xs font-bold text-gray-500 dark:text-gray-400">
+                <span className="material-symbols-outlined text-[18px] text-emerald-500">verified_user</span>
+                <span>پرداخت امن شتابی از طریق درگاه پرداخت زیبال</span>
+              </div>
             </div>
           </div>
         </aside>

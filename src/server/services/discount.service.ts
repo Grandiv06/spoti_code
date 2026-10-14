@@ -304,11 +304,29 @@ async function getUserUsageCount(discountId: string, userId: string) {
   });
 }
 
-async function assertUserCanUseDiscount(discount: DiscountWithCourses, userId: string) {
-  if (discount.perUserUsageLimit != null) {
+async function assertUserCanUseDiscount(
+  discount: DiscountWithCourses,
+  userId: string | null,
+  now = new Date()
+) {
+  if (!discount.isEnabled) {
+    throw new AuthError("این کد تخفیف غیرفعال است", 400);
+  }
+  if (discount.startsAt && now < discount.startsAt) {
+    throw new AuthError("زمان فعال‌سازی این کد تخفیف هنوز فرا نرسیده است", 400);
+  }
+  if (discount.expiresAt && now > discount.expiresAt) {
+    throw new AuthError("مهلت استفاده از این کد تخفیف به پایان رسیده است", 400);
+  }
+  if (discount.globalUsageLimit != null && discount.usedCount >= discount.globalUsageLimit) {
+    throw new AuthError("ظرفیت استفاده از این کد تخفیف تکمیل شده است", 400);
+  }
+
+  if (userId) {
     const userUsage = await getUserUsageCount(discount.id, userId);
-    if (userUsage >= discount.perUserUsageLimit) {
-      throw new AuthError("سقف استفاده از این کد تخفیف برای شما تکمیل شده است", 400);
+    const userLimit = discount.perUserUsageLimit ?? 1;
+    if (userUsage >= userLimit) {
+      throw new AuthError("سقف استفاده از این کد تخفیف برای حساب کاربری شما تکمیل شده است", 400);
     }
   }
 }
@@ -547,14 +565,9 @@ export async function previewCartDiscount(
   if (!discount) {
     throw new AuthError("کد تخفیف معتبر نیست", 400);
   }
-  if (!isDiscountUsable(discount)) {
-    throw new AuthError("کد تخفیف منقضی یا غیرفعال است", 400);
-  }
+  await assertUserCanUseDiscount(discount, user ? user.id : null);
   if (!supportsManualEntry(discount.applyType)) {
     throw new AuthError("این کد تخفیف باید به‌صورت خودکار اعمال شود", 400);
-  }
-  if (user) {
-    await assertUserCanUseDiscount(discount, user.id);
   }
 
   const { lineDiscounts, eligibleCourseIds, discountAmount } = calculateLineDiscounts(items, discount);
@@ -606,18 +619,18 @@ export async function resolveCheckoutDiscount(
 }
 
 export async function recordDiscountUsage(discountId: string, userId: string, orderId?: string) {
-  await prisma.$transaction([
-    prisma.discountCodeUsage.create({
+  await prisma.$transaction(async (tx) => {
+    await tx.discountCodeUsage.create({
       data: {
         id: `DCU-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         discountCodeId: discountId,
         userId,
         orderId: orderId ?? null,
       },
-    }),
-    prisma.discountCode.update({
+    });
+    await tx.discountCode.update({
       where: { id: discountId },
       data: { usedCount: { increment: 1 } },
-    }),
-  ]);
+    });
+  });
 }

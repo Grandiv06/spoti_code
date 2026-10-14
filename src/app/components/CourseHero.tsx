@@ -254,7 +254,7 @@ export default function CourseHero({
       />
       <div
         ref={gridRef}
-        className={`relative grid grid-cols-1 lg:grid-cols-[minmax(0,var(--hero-col1,1fr))_1fr] lg:grid-rows-1 rounded-[1.35rem] sm:rounded-4xl overflow-hidden backdrop-blur-sm transition-[grid-template-columns] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+        className={`relative grid grid-cols-1 lg:grid-cols-[minmax(0,var(--hero-col1,1fr))_1fr] lg:grid-rows-1 rounded-[1.35rem] sm:rounded-4xl overflow-hidden backdrop-blur-sm transition-[grid-template-columns] duration-500 ease-in-out ${
           isVideoExpanded
             ? "bg-black"
             : "bg-white/20 dark:bg-white/[0.03] min-h-0 lg:min-h-[480px]"
@@ -265,11 +265,11 @@ export default function CourseHero({
           } as React.CSSProperties
         }
       >
-        {/* Course Info - smoothly collapses and fades out when video expands to the right */}
+        {/* Course Info - smoothly fades out and collapses without scaling/distorting text */}
         <div
-          className={`min-w-0 overflow-hidden flex flex-col justify-center relative z-10 lg:row-start-1 transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+          className={`min-w-0 overflow-hidden flex flex-col justify-center relative z-10 lg:row-start-1 transition-[opacity,transform,padding] duration-500 ease-in-out ${
             isVideoExpanded
-              ? "hidden lg:flex opacity-0 pointer-events-none p-0 max-h-0 max-w-0 scale-95"
+              ? "hidden lg:flex opacity-0 pointer-events-none p-0 max-h-0"
               : "flex opacity-100 p-4 sm:p-6 md:p-12 lg:p-16 max-h-[1500px]"
           }`}
         >
@@ -322,7 +322,7 @@ export default function CourseHero({
 
         {/* Video Section - expands to full width on play */}
         <div
-          className={`video-fullscreen-container relative cursor-pointer overflow-hidden row-start-1 group/video transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] w-full min-w-0 flex items-center justify-center bg-black ${
+          className={`video-fullscreen-container relative cursor-pointer overflow-hidden row-start-1 group/video transition-all duration-500 ease-in-out w-full min-w-0 flex items-center justify-center bg-black ${
             isVideoExpanded
               ? "is-playing rounded-3xl sm:rounded-5xl m-0 aspect-video lg:aspect-video"
               : "rounded-2xl sm:rounded-4xl lg:rounded-r-none lg:rounded-l-4xl m-1 sm:m-2 lg:m-0 aspect-video lg:aspect-auto lg:h-full"

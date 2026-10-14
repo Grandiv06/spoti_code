@@ -1,4 +1,14 @@
 import { PrismaClient } from "@prisma/client";
+import {
+  DEFAULT_COURSE_IMAGES,
+  DEFAULT_INSTRUCTOR_AVATARS,
+  DEFAULT_USER_AVATARS,
+  containsInlineMedia,
+  persistInlineMediaDeep,
+  pickDefault,
+  sanitizeMediaUrl,
+  stripInlineMediaDeep,
+} from "@/server/utils/media-guard";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -28,10 +38,87 @@ function resolveDatabaseUrl() {
   }
 }
 
+const WRITE_OPERATIONS = new Set([
+  "create",
+  "createMany",
+  "createManyAndReturn",
+  "update",
+  "updateMany",
+  "updateManyAndReturn",
+  "upsert",
+]);
+
+/**
+ * Media guard (see src/server/utils/media-guard.ts):
+ * - Write: any base64 `data:image` in a write payload (incl. nested writes / JSON columns)
+ *   is saved as a file under /uploads/media and only its URL is stored.
+ * - Read: image columns never return inline media, even if some slipped into the DB.
+ */
+function withMediaGuard(client: PrismaClient) {
+  return client.$extends({
+    name: "media-guard",
+    query: {
+      $allModels: {
+        async $allOperations({ model, operation, args, query }) {
+          if (WRITE_OPERATIONS.has(operation) && args && containsInlineMedia(args)) {
+            const folder = String(model ?? "misc").toLowerCase();
+            const safeArgs = await persistInlineMediaDeep(args, folder);
+            return query(safeArgs);
+          }
+          return query(args);
+        },
+      },
+    },
+    result: {
+      course: {
+        cover: {
+          needs: { id: true, cover: true },
+          compute: (c) => sanitizeMediaUrl(c.cover, pickDefault(DEFAULT_COURSE_IMAGES, c.id)),
+        },
+        thumbnail: {
+          needs: { id: true, thumbnail: true },
+          compute: (c) => sanitizeMediaUrl(c.thumbnail, pickDefault(DEFAULT_COURSE_IMAGES, c.id)),
+        },
+        draftData: {
+          needs: { draftData: true },
+          compute: (c) => stripInlineMediaDeep(c.draftData),
+        },
+      },
+      userProfile: {
+        image: {
+          needs: { userId: true, image: true },
+          compute: (p) => sanitizeMediaUrl(p.image, pickDefault(DEFAULT_USER_AVATARS, p.userId)),
+        },
+        bannerImage: {
+          needs: { bannerImage: true },
+          compute: (p) => sanitizeMediaUrl(p.bannerImage, ""),
+        },
+      },
+      instructor: {
+        avatar: {
+          needs: { id: true, avatar: true },
+          compute: (i) => sanitizeMediaUrl(i.avatar, pickDefault(DEFAULT_INSTRUCTOR_AVATARS, i.id)),
+        },
+        coverImage: {
+          needs: { coverImage: true },
+          compute: (i) => sanitizeMediaUrl(i.coverImage, ""),
+        },
+      },
+      comment: {
+        authorAvatar: {
+          needs: { authorId: true, authorAvatar: true },
+          compute: (c) =>
+            sanitizeMediaUrl(c.authorAvatar, pickDefault(DEFAULT_USER_AVATARS, c.authorId)),
+        },
+      },
+    },
+  });
+}
+
 function createPrismaClient() {
   const databaseUrl = resolveDatabaseUrl();
 
-  return new PrismaClient({
+  const client = new PrismaClient({
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
     ...(databaseUrl
       ? {
@@ -41,6 +128,9 @@ function createPrismaClient() {
         }
       : {}),
   });
+
+  // Extended client keeps the same runtime API; cast so existing call sites stay typed.
+  return withMediaGuard(client) as unknown as PrismaClient;
 }
 
 function isPrismaClientCurrent(client: PrismaClient) {

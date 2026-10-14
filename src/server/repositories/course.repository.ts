@@ -1,5 +1,6 @@
 import type { CourseCategory, Prisma } from "@prisma/client";
 import { prisma } from "@/server/db/prisma";
+import { stripInlineMediaDeep } from "@/server/utils/media-guard";
 
 export const publicCourseListSelect = {
   id: true,
@@ -53,7 +54,8 @@ async function attachDraftData<T extends { id: string }>(course: T) {
 
   return {
     ...course,
-    draftData: parseJsonColumn(row?.draftData),
+    // Raw query bypasses the Prisma media guard — strip inline media explicitly.
+    draftData: stripInlineMediaDeep(parseJsonColumn(row?.draftData)),
   };
 }
 

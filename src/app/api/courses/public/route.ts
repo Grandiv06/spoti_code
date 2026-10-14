@@ -2,7 +2,8 @@ import { CourseCategory } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { getPublicCourses } from "@/server/services/course.service";
 
-// Public catalog is cached in-process; allow CDN/browser short reuse as well.
+// Public catalog uses search params and is dynamically served with in-process & HTTP caching.
+export const dynamic = "force-dynamic";
 export const revalidate = 60;
 
 const VALID_CATEGORIES = new Set<string>(Object.values(CourseCategory));

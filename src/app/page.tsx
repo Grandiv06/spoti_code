@@ -447,35 +447,132 @@ export default function Home() {
               {/* Graphic (Right Side in RTL) */}
               <div className="w-full lg:w-1/2 relative">
                 {/* Background glow optimized */}
-                <div className="hidden md:block absolute inset-0 bg-gradient-to-bl from-emerald-400/20 to-transparent rounded-[3rem] blur-3xl -z-10 group-hover:bg-emerald-400/30 transition-all duration-1000 transform-gpu"></div>
+                <div className="hidden md:block absolute inset-0 bg-gradient-to-bl from-emerald-500/25 via-teal-500/15 to-transparent rounded-[3rem] blur-3xl -z-10 group-hover:from-emerald-500/35 group-hover:scale-105 transition-all duration-1000 transform-gpu"></div>
                 
                 {/* Main Card */}
-                <div className="bg-white dark:bg-[#1a1c23] md:bg-white/95 md:dark:bg-[#1a1c23]/95 md:backdrop-blur-md border border-gray-100 dark:border-white/5 rounded-[3rem] p-8 shadow-xl relative md:group-hover:-translate-y-4 transition-transform duration-700 transform-gpu">
-                  {/* Decorative server grid layout */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="h-32 bg-gray-100 dark:bg-gray-800/50 rounded-2xl flex items-center justify-center">
-                       <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-700">dns</span>
+                <div className="bg-white/95 dark:bg-[#181a22]/95 md:backdrop-blur-xl border border-gray-100 dark:border-white/10 rounded-[2.5rem] md:rounded-[3rem] p-6 md:p-8 shadow-2xl shadow-emerald-500/5 relative md:group-hover:-translate-y-2 transition-transform duration-700 transform-gpu">
+                  {/* Terminal / Server Header */}
+                  <div className="flex items-center justify-between pb-5 mb-5 border-b border-gray-100 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-red-400/80"></div>
+                      <div className="w-3 h-3 rounded-full bg-amber-400/80"></div>
+                      <div className="w-3 h-3 rounded-full bg-emerald-400/80"></div>
+                      <span className="text-xs font-mono text-gray-400 dark:text-gray-500 ml-2 select-none" dir="ltr">server:cluster-01</span>
                     </div>
-                    <div className="h-32 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800/50 rounded-2xl flex flex-col items-center justify-center text-emerald-500">
-                      <span className="material-symbols-outlined text-3xl mb-2">cloud_done</span>
-                      <span className="text-xs font-bold">API Active</span>
+                    <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200/60 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                      </span>
+                      <span>سرویس فعال • 99.9%</span>
                     </div>
-                    <div className="col-span-2 h-20 bg-gray-200/50 dark:bg-gray-800/80 rounded-2xl flex items-center px-6 gap-4">
-                      <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></div>
-                      <div className="h-2 w-full bg-emerald-400/20 rounded-full">
-                         <div className="h-full w-2/3 bg-emerald-400 rounded-full"></div>
+                  </div>
+
+                  {/* Microservices & Database Cards */}
+                  <div className="space-y-3.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      {/* Box 1: API Endpoint Card */}
+                      <div className="bg-gray-50/90 dark:bg-[#202430]/80 border border-gray-200/70 dark:border-white/5 rounded-2xl p-4 flex flex-col justify-between hover:border-emerald-500/30 transition-colors">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="w-8 h-8 rounded-xl bg-emerald-100/80 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                            <span className="material-symbols-outlined text-lg">api</span>
+                          </div>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20" dir="ltr">
+                            200 OK
+                          </span>
+                        </div>
+                        <div>
+                          <div className="text-xs font-mono font-bold text-gray-800 dark:text-gray-200 mb-1 flex items-center gap-1.5" dir="ltr">
+                            <span className="text-emerald-500 font-extrabold">POST</span>
+                            <span className="truncate">/api/v1/auth</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400 font-mono" dir="ltr">
+                            <span>payload: json</span>
+                            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">14ms</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Box 2: Database / Cache Engine */}
+                      <div className="bg-gray-50/90 dark:bg-[#202430]/80 border border-gray-200/70 dark:border-white/5 rounded-2xl p-4 flex flex-col justify-between hover:border-cyan-500/30 transition-colors">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="w-8 h-8 rounded-xl bg-cyan-100/80 dark:bg-cyan-500/20 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
+                            <span className="material-symbols-outlined text-lg">database</span>
+                          </div>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 font-bold border border-cyan-500/20" dir="ltr">
+                            PostgreSQL
+                          </span>
+                        </div>
+                        <div>
+                          <div className="text-xs font-mono font-bold text-gray-800 dark:text-gray-200 mb-1 flex items-center gap-1.5" dir="ltr">
+                            <span className="text-cyan-500 font-extrabold">QUERY</span>
+                            <span className="truncate">cache: hit</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400 font-mono" dir="ltr">
+                            <span>Redis Pool</span>
+                            <span className="text-cyan-600 dark:text-cyan-400 font-semibold">0.6ms</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Row: Real-time Throughput & Health */}
+                    <div className="bg-gray-50/90 dark:bg-[#202430]/80 border border-gray-200/70 dark:border-white/5 rounded-2xl p-4">
+                      <div className="flex items-center justify-between mb-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-emerald-500 text-base">monitoring</span>
+                          <span className="text-xs font-bold text-gray-700 dark:text-gray-300">توان پردازش سرور (Throughput)</span>
+                        </div>
+                        <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400" dir="ltr">
+                          18,400 req/s
+                        </span>
+                      </div>
+                      
+                      {/* Animated Gradient Bar */}
+                      <div className="relative h-2.5 w-full bg-gray-200 dark:bg-gray-800/80 rounded-full overflow-hidden">
+                        <div className="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 rounded-full w-[82%] shadow-sm shadow-emerald-500/50"></div>
+                      </div>
+
+                      {/* Micro stats footer */}
+                      <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-gray-200/50 dark:border-white/5 text-[11px] text-gray-500 dark:text-gray-400 font-mono" dir="ltr">
+                        <span className="flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                          CPU: 24%
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-teal-400"></span>
+                          RAM: 380MB
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                          Workers: 8x
+                        </span>
                       </div>
                     </div>
                   </div>
                   
-                  {/* Floating UI Element */}
-                  <div className="hidden md:flex absolute -top-4 -left-4 md:-top-8 md:-left-8 bg-white dark:bg-[#252836] md:bg-white/95 md:dark:bg-[#252836]/95 md:backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-4 shadow-2xl items-center gap-4 md:group-hover:-translate-y-4 md:group-hover:-rotate-6 transition-all duration-700 delay-100 z-20 transform-gpu">
-                    <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                      <span className="material-symbols-outlined text-lg">rocket_launch</span>
+                  {/* Floating Badge 1: Latency (Top Left) */}
+                  <div className="hidden md:flex absolute -top-4 -left-4 md:-top-7 md:-left-7 bg-white/95 dark:bg-[#252836]/95 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-3.5 shadow-2xl items-center gap-3.5 md:group-hover:-translate-y-3 md:group-hover:-rotate-3 transition-all duration-700 delay-100 z-20 transform-gpu">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-md shadow-emerald-500/30">
+                      <span className="material-symbols-outlined text-xl">rocket_launch</span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold mb-0.5 tracking-widest leading-none">LATENCY</span>
-                      <span className="text-sm font-black text-gray-900 dark:text-white font-mono leading-none" dir="ltr">~2 ms</span>
+                      <span className="text-[10px] text-gray-400 dark:text-gray-400 font-bold mb-0.5 tracking-wider uppercase">LATENCY (p99)</span>
+                      <div className="flex items-baseline gap-1" dir="ltr">
+                        <span className="text-base font-black text-gray-900 dark:text-white font-mono leading-none">~1.8</span>
+                        <span className="text-xs font-bold text-emerald-500 font-mono leading-none">ms</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Floating Badge 2: Security & Encryption (Bottom Right) */}
+                  <div className="hidden md:flex absolute -bottom-4 -right-4 md:-bottom-7 md:-right-7 bg-white/95 dark:bg-[#252836]/95 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl py-3 px-4 shadow-2xl items-center gap-3 md:group-hover:translate-y-2 md:group-hover:rotate-2 transition-all duration-700 delay-200 z-20 transform-gpu">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                      <span className="material-symbols-outlined text-lg font-bold">verified_user</span>
+                    </div>
+                    <div>
+                      <div className="text-xs font-black text-gray-900 dark:text-white">امنیت و رمزنگاری</div>
+                      <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono font-medium" dir="ltr">AES-256 • SSL TLS 1.3</div>
                     </div>
                   </div>
                 </div>

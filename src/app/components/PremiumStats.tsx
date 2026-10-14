@@ -1,14 +1,20 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import CountUp from "react-countup";
 import { useInView } from "react-intersection-observer";
+import { apiGetNoMock } from "@/lib/api";
 
-const stats = [
+type DynamicStatsResponse = {
+  coursesCount?: number;
+  studentsCount?: number;
+  durationHours?: number;
+};
+
+const initialStats = [
   {
     id: 1,
-    value: 10000,
+    key: "students",
+    value: 0,
     suffix: "+",
     label: "دانشجوی مستعد",
     icon: "school",
@@ -24,7 +30,8 @@ const stats = [
   },
   {
     id: 2,
-    value: 50,
+    key: "courses",
+    value: 0,
     suffix: "+",
     label: "دوره تخصصی",
     icon: "menu_book",
@@ -56,10 +63,11 @@ const stats = [
   },
   {
     id: 4,
-    value: 150,
+    key: "duration",
+    value: 0,
     suffix: "+",
-    label: "پروژه عملی و واقعی",
-    icon: "rocket_launch",
+    label: "ساعت آموزش تخصصی",
+    icon: "play_circle",
     color: "amber",
     gradient: "from-amber-500 to-orange-400",
     bgLight: "bg-amber-50",
@@ -104,12 +112,51 @@ export default function PremiumStats() {
   });
 
   const [mounted, setMounted] = useState(false);
+  const [statsData, setStatsData] = useState(initialStats);
 
   useEffect(() => {
     setMounted(true);
+
+    const fetchStats = async () => {
+      try {
+        const res = await apiGetNoMock<DynamicStatsResponse>("/api/stats/public");
+        if (res && typeof res === "object") {
+          const courses = typeof res.coursesCount === "number" ? res.coursesCount : 0;
+          const students = typeof res.studentsCount === "number" ? res.studentsCount : 0;
+          const duration = typeof res.durationHours === "number" ? res.durationHours : 0;
+
+          setStatsData((prev) =>
+            prev.map((item) => {
+              if (item.key === "courses") {
+                return { ...item, value: courses };
+              }
+              if (item.key === "students") {
+                return { ...item, value: students };
+              }
+              if (item.key === "duration") {
+                return { ...item, value: duration };
+              }
+              return item;
+            })
+          );
+        }
+      } catch (error) {
+        console.error("Failed to load public stats:", error);
+      }
+    };
+
+    fetchStats();
   }, []);
 
-  if (!mounted) return null;
+  const studentsItem = statsData.find((item) => item.key === "students");
+  const studentsCount = studentsItem?.value ?? 0;
+
+  const studentsScaleText =
+    studentsCount < 100
+      ? "ده‌ها"
+      : studentsCount < 1000
+      ? "صدها"
+      : "هزاران";
 
   return (
     <section className="py-24 relative overflow-hidden" ref={ref}>
@@ -137,7 +184,7 @@ export default function PremiumStats() {
              transition={{ duration: 0.6, delay: 0.1 }}
              className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white leading-tight"
            >
-             چرا هزاران دانشجو{" "}
+             چرا {studentsScaleText} دانشجو{" "}
              <span className="text-transparent bg-clip-text bg-gradient-to-l from-primary to-emerald-600 relative inline-block">
                اسپاتی‌کد
              </span>{" "}
@@ -151,7 +198,7 @@ export default function PremiumStats() {
           animate={inView ? "visible" : "hidden"}
           className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-12 md:gap-8 lg:divide-x-0"
         >
-          {stats.map((stat, index) => (
+          {statsData.map((stat) => (
             <motion.div
               key={stat.id}
               variants={itemVariants}

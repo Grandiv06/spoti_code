@@ -181,7 +181,7 @@ function buildReceiptHtml(transaction: Transaction, fontCss: string): string {
 <body>
   <div class="receipt">
     <div class="header">
-      <h1 class="brand">آکادمی اسپاتی‌کد</h1>
+      <h1 class="brand">اسپاتی‌کد</h1>
       <p class="subtitle">رسید پرداخت الکترونیکی</p>
     </div>
     <div class="body">

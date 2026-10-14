@@ -71,6 +71,7 @@ model User {
   profile            UserProfile?
   discountCodeUsages DiscountCodeUsage[]
   sessions             UserSession[]
+  paymentTransactions PaymentTransaction[]
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
 }
@@ -237,10 +238,44 @@ model UserOrder {
   courseId       String?
   discountCode   String?
   discountAmount Int      @default(0)
+  paymentTransactionId String?
+  paymentTransaction   PaymentTransaction? @relation(fields: [paymentTransactionId], references: [id], onDelete: SetNull)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   @@index([userId, status])
+  @@index([paymentTransactionId])
+}
+
+model PaymentTransaction {
+  id             String      @id
+  userId         String
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trackId        String?     @unique
+  orderId        String      @unique
+  amount         Int
+  amountRials    BigInt
+  gateway        String      @default("zibal")
+  status         String      @default("pending")
+  refNumber      String?
+  cardNumber     String?
+  description    String?
+  courseIds      Json
+  discountCode   String?
+  discountAmount Int         @default(0)
+  paidAt         DateTime?
+  resultCode     Int?
+  resultMessage  String?
+  rawCallback    Json?
+  rawVerify      Json?
+  orders         UserOrder[]
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([trackId])
+  @@index([status])
+  @@index([orderId])
 }
 
 model DiscountCode {

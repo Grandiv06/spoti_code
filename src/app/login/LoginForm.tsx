@@ -442,7 +442,14 @@ export default function LoginForm() {
           تکمیل حساب کاربری
         </h1>
         <p className="text-gray-500 dark:text-gray-400 font-medium text-sm leading-relaxed">
-          شماره {phone} تایید شد. برای نمایش در سایت، نام خود را وارد کنید.
+          شماره{" "}
+          <bdi
+            dir="ltr"
+            className="inline-block font-bold text-gray-800 dark:text-gray-200 [unicode-bidi:isolate]"
+          >
+            {"\u200E" + phone}
+          </bdi>{" "}
+          تایید شد. برای نمایش در سایت، نام خود را وارد کنید.
         </p>
 
         <form
@@ -638,7 +645,14 @@ export default function LoginForm() {
           کد تایید
         </h1>
         <p className="text-gray-500 dark:text-gray-400 font-medium text-sm leading-relaxed">
-          کد ۶ رقمی ارسال شده به {phone} را وارد کنید
+          کد ۶ رقمی ارسال شده به{" "}
+          <bdi
+            dir="ltr"
+            className="inline-block font-bold text-gray-800 dark:text-gray-200 [unicode-bidi:isolate]"
+          >
+            {"\u200E" + phone}
+          </bdi>{" "}
+          را وارد کنید
         </p>
         <OtpCodeDisplay code={sentOtp} />
         {otpExpiresIn > 0 ? (
@@ -712,7 +726,7 @@ export default function LoginForm() {
           ورود به حساب کاربری
         </h1>
         <p className="text-gray-500 dark:text-gray-400 font-medium text-sm leading-relaxed">
-          برای استفاده از خدمات آکادمی، شماره موبایل خود را وارد کنید
+          برای استفاده از خدمات اسپاتی‌کد، شماره موبایل خود را وارد کنید
         </p>
 
       </div>

@@ -142,36 +142,57 @@ export default function Footer() {
         </div>
         <div>
           <h4 className="font-black text-xl mb-8 border-r-4 border-primary pr-4">
-            تماس بـا مـا
+            نماد اعتماد و ارتباط
           </h4>
           <div className="space-y-6 text-gray-400">
-            <div className="flex items-start gap-4">
-              <span className="material-symbols-outlined text-primary">
-                location_on
-              </span>
-              <p className="text-sm">
-                تهران، خیابان آزادی، کارخانه نوآوری، ساختمان آکادمی کد
-              </p>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="material-symbols-outlined text-primary">
-                call
-              </span>
-              <p className="text-lg font-black dir-ltr text-right">
-                ۰۲۱-۹۱۰۰۱۰۰۰
-              </p>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="material-symbols-outlined text-primary">
+            <a
+              href="mailto:info@spoticode.com"
+              className="flex items-center gap-4 hover:text-primary transition-colors group"
+            >
+              <span className="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">
                 mail
               </span>
-              <p className="text-sm">spoticode.academy@gmail.com</p>
+              <span className="text-sm font-semibold dir-ltr text-right">
+                info@spoticode.com
+              </span>
+            </a>
+            <div className="pt-2 flex justify-center items-center gap-3">
+              <a
+                referrerPolicy="origin"
+                target="_blank"
+                href="https://trustseal.enamad.ir/?id=8093749&Code=liRC5Z6KudPpc1L6eZdTppbZEdbYqgf9"
+                className="inline-flex items-center justify-center bg-white/10 p-2 rounded-2xl hover:bg-white/20 transition-all hover:scale-105"
+                title="نماد اعتماد الکترونیکی"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  referrerPolicy="origin"
+                  src="https://trustseal.enamad.ir/logo.aspx?id=8093749&Code=liRC5Z6KudPpc1L6eZdTppbZEdbYqgf9"
+                  alt="اینماد"
+                  style={{ cursor: "pointer" }}
+                  className="w-20 h-20 object-contain rounded-xl bg-white p-1"
+                />
+              </a>
+              <a
+                target="_blank"
+                rel="noopener noreferrer"
+                href="https://gateway.zibal.ir/trustMe/spoticode.com"
+                className="inline-flex items-center justify-center bg-white/10 p-2 rounded-2xl hover:bg-white/20 transition-all hover:scale-105"
+                title="پرداخت امن زیبال"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="https://zibal.ir/trust/assets/2.png"
+                  alt="پرداخت امن زیبال"
+                  className="w-20 h-20 object-contain rounded-xl bg-white p-1"
+                />
+              </a>
             </div>
           </div>
         </div>
       </div>
       <div className="max-w-7xl mx-auto mt-20 pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 gap-6">
-        <p>تمامی حقوق مادی و معنوی برای آکادمی اسپاتی کد محفوظ است © ۱۴۰۵</p>
+        <p>تمامی حقوق مادی و معنوی برای اسپاتی‌کد محفوظ است © ۱۴۰۵</p>
         <div className="flex gap-10">
           <a className="hover:text-white transition-colors cursor-pointer" href="#">
             حریم خصوصی

@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Clock, HelpCircle, Mail, MessageCircle, Phone } from "lucide-react";
+import { Clock, HelpCircle, Mail, MessageCircle } from "lucide-react";
 
 export default function ContactCard() {
   return (
@@ -44,39 +44,24 @@ export default function ContactCard() {
       <section className="rounded-3xl border border-primary/15 bg-gradient-to-b from-primary/10 to-white p-5 dark:to-[#1c1e26]/90 sm:p-6">
         <div className="mb-4 text-right sm:text-center">
           <h2 className="text-base font-black text-gray-900 dark:text-white sm:text-lg">
-            سایر راه‌های ارتباطی
+            ارتباط مستقیم ایمیلی
           </h2>
           <p className="mt-1.5 text-xs font-medium leading-relaxed text-gray-500 dark:text-slate-400 sm:text-sm">
-            برای موارد ضروری، می‌توانید از طریق تماس تلفنی یا ایمیل مستقیم در ارتباط باشید.
+            علاوه بر تیکت، می‌توانید از طریق ایمیل رسمی با تیم پشتیبانی در ارتباط باشید.
           </p>
         </div>
 
         <div className="flex flex-col gap-2.5">
           <a
-            href="tel:02112345678"
-            className="flex items-center gap-3 rounded-2xl bg-primary px-4 py-3 text-white transition-colors hover:bg-primary-hover cursor-pointer"
-          >
-            <div className="rounded-xl bg-white/15 p-2 shrink-0">
-              <Phone className="size-4.5" />
-            </div>
-            <div className="min-w-0 flex-1 text-right">
-              <p className="text-xs font-black">تماس تلفنی</p>
-              <p className="mt-0.5 text-xs font-bold tabular-nums [direction:ltr] [unicode-bidi:plaintext]">
-                ۰۲۱-۱۲۳۴۵۶۷۸
-              </p>
-            </div>
-          </a>
-
-          <a
             href="mailto:support@spoticode.ir"
-            className="group flex items-center gap-3 rounded-2xl border border-sky-500/20 bg-sky-500/10 px-4 py-3 transition-colors hover:bg-sky-500/15 cursor-pointer"
+            className="group flex items-center gap-3 rounded-2xl border border-sky-500/20 bg-sky-500/10 px-4 py-3.5 transition-colors hover:bg-sky-500/15 cursor-pointer"
           >
-            <div className="rounded-xl bg-sky-500/10 p-2 text-sky-500 dark:text-sky-300 shrink-0">
-              <Mail className="size-4.5" />
+            <div className="rounded-xl bg-sky-500/15 p-2 text-sky-500 dark:text-sky-300 shrink-0">
+              <Mail className="size-5" />
             </div>
             <div className="min-w-0 flex-1 text-right">
               <p className="text-xs font-black text-gray-900 dark:text-white">
-                ایمیل پشتیبانی
+                ایمیل پشتیبانی اسپاتی‌کد
               </p>
               <p className="mt-0.5 truncate text-xs font-bold text-sky-600 dark:text-sky-200/80 [direction:ltr] [unicode-bidi:plaintext]">
                 support@spoticode.ir

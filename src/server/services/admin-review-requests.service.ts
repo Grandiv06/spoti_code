@@ -8,6 +8,7 @@ import {
   type ReviewApprovalStatus,
 } from "@/server/dto/admin-review-requests.dto";
 import { resolveUserDisplayName, isGenericUserDisplayName } from "@/server/utils/user-display-name";
+import { DEFAULT_USER_AVATARS, pickDefault } from "@/server/utils/media-guard";
 
 export type AdminReviewRequestFilterInput = {
   status?: string;
@@ -91,7 +92,10 @@ function resolveReviewAuthorName(row: ReviewRequestRow) {
 
 function rowToReviewComment(row: ReviewRequestRow) {
   const authorName = resolveReviewAuthorName(row);
-  const authorAvatar = row.userAvatar?.trim() || row.authorAvatar;
+  const authorAvatar =
+    row.userAvatar?.trim() ||
+    row.authorAvatar?.trim() ||
+    pickDefault(DEFAULT_USER_AVATARS, row.authorId ?? row.id);
 
   return {
     id: row.id,
@@ -145,13 +149,13 @@ async function findReviewRequestRows(input: {
       c."content",
       c."rating",
       c."authorName",
-      c."authorAvatar",
+      CASE WHEN c."authorAvatar" LIKE 'data:%' OR c."authorAvatar" LIKE 'blob:%' THEN '' ELSE c."authorAvatar" END as "authorAvatar",
       c."authorId",
       u."fullName" as "userFullName",
       up."occupation" as "userOccupation",
       u."phone" as "userPhone",
       u."email" as "userEmail",
-      up."image" as "userAvatar",
+      CASE WHEN up."image" LIKE 'data:%' OR up."image" LIKE 'blob:%' THEN NULL ELSE up."image" END as "userAvatar",
       c."approvalStatus",
       c."createdAt",
       co."title" as "courseTitle",
@@ -222,13 +226,13 @@ export async function updateAdminReviewRequestStatus(
       c."content",
       c."rating",
       c."authorName",
-      c."authorAvatar",
+      CASE WHEN c."authorAvatar" LIKE 'data:%' OR c."authorAvatar" LIKE 'blob:%' THEN '' ELSE c."authorAvatar" END as "authorAvatar",
       c."authorId",
       u."fullName" as "userFullName",
       up."occupation" as "userOccupation",
       u."phone" as "userPhone",
       u."email" as "userEmail",
-      up."image" as "userAvatar",
+      CASE WHEN up."image" LIKE 'data:%' OR up."image" LIKE 'blob:%' THEN NULL ELSE up."image" END as "userAvatar",
       c."approvalStatus",
       c."createdAt",
       co."title" as "courseTitle",

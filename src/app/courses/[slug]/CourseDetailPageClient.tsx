@@ -151,6 +151,16 @@ export default function CourseDetailPageClient({ slug, adminPreviewCourseId }: C
     };
   }, [adminPreviewCourseId, isAdminPreview, slug]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [slug]);
+
+  useEffect(() => {
+    if (!loading && courseData) {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    }
+  }, [loading, courseData]);
+
   const chapters = useMemo(
     () => (courseData ? normalizeChapters(courseData.chapters) : undefined),
     [courseData]
@@ -256,7 +266,7 @@ export default function CourseDetailPageClient({ slug, adminPreviewCourseId }: C
         </div>
 
         {!isAdminPreview ? (
-          <div className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-gray-200/80 dark:border-white/10 bg-white/95 dark:bg-[#14161c]/95 px-3 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+          <div className="lg:hidden fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 dark:border-white/10 bg-white dark:bg-[#101217] px-3 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgba(0,0,0,0.15)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.5)]">
             <div className="mx-auto flex max-w-[1440px] items-center gap-3">
               {showPriceCard ? (
                 <div className="min-w-0 shrink-0 text-right">
